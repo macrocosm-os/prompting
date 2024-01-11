@@ -2,7 +2,7 @@ import time
 import torch
 from typing import List
 from rouge import Rouge
-from rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
+from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
 
 
 class RougeRewardModel(BaseRewardModel):

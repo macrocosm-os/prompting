@@ -2,7 +2,7 @@ import re
 import bittensor as bt
 from dataclasses import dataclass
 from tenacity import retry, stop_after_attempt
-from tasks import Task
+from prompting.tasks import Task
 from typing import Tuple
 
 

@@ -1,6 +1,6 @@
 
-from tasks import DebuggingTask, QuestionAnsweringTask, SummarizationTask, MathTask, DateQuestionAnsweringTask
-from tools import WikiDataset, CodingDataset, MathDataset, DateQADataset
+from prompting.tasks import DebuggingTask, QuestionAnsweringTask, SummarizationTask, MathTask, DateQuestionAnsweringTask
+from prompting.tools import WikiDataset, CodingDataset, MathDataset, DateQADataset
 
 def create_task(llm_pipeline, task_name):
     wiki_based_tasks = ['summarization', 'qa']

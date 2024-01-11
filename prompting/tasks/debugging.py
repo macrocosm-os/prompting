@@ -1,7 +1,7 @@
 import random
 import bittensor as bt
 from dataclasses import dataclass
-from tasks import Task
+from prompting.tasks import Task
 import difflib
 
 # The two options are:
@@ -55,7 +55,7 @@ def corrupt(code, n_remove=0, n_swap=0, seed=None, sep=' ', min_length=1, max_le
         """Remove n random chunks from the code. Chunks can be characters, words, or lines."""
 
         chunks = code.split(sep) if sep else list(code)
-        
+
         # select n random chunks to remove
         indices = random.sample([i for i, chunk in enumerate(chunks) if min_length <= len(chunk) <= max_length], n)
         bt.logging.info(f'Removing the following {len(indices)} chunks: {[chunks[i] for i in indices]} at indices {indices}')
@@ -74,7 +74,7 @@ def corrupt(code, n_remove=0, n_swap=0, seed=None, sep=' ', min_length=1, max_le
         chunks[indices[0]], chunks[indices[1]] = chunks[indices[1]], chunks[indices[0]]
 
         return sep.join(chunks)
-    
+
     # Do this at your peril. It doesn't catch multiline comments or strings.
     if remove_comment_lines:
         code = '\n'.join([line for line in code.splitlines() if not line.strip() or line.strip().startswith('#','//')])
@@ -98,7 +98,7 @@ class DebuggingTask(Task):
         dict(name='diff', lines=False, threshold=0.5, weight=0.5),
         dict(name='relevance', threshold=None, weight=0.5),
     ]
-    
+
     def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
 
@@ -119,9 +119,9 @@ class DebuggingTask(Task):
             reference=reference,
             topic=self.context['repo_name'],
             subtopic=self.context['path'],
-            tags=self.context['language'],            
+            tags=self.context['language'],
         )
-        
+
     def generate_query(self, llm=None, n_remove=1, n_swap=1, seed=0, sep='', min_length=1, max_length=10):
         self.query = corrupt(self.context['code'], n_remove=n_remove, n_swap=n_swap, seed=seed, sep=sep, min_length=min_length, max_length=max_length)
         return self.query

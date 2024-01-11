@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from tasks import Task
+from prompting.tasks import Task
 
 @dataclass
 class MathTask(Task):

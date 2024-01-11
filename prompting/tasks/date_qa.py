@@ -1,6 +1,6 @@
 import bittensor as bt
 from dataclasses import dataclass
-from tasks import Task
+from prompting.tasks import Task
 import textwrap
 
 

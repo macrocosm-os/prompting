@@ -1,7 +1,7 @@
 import difflib
 import torch
 from typing import List
-from rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
+from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
 import time
 
 class DiffRewardModel(BaseRewardModel):

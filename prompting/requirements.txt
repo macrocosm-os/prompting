@@ -1,13 +1,14 @@
 editdistance
 datasets
-transformers==4.36.1
+transformers
 accelerate
 tenacity
-openai==1.4.0
+openai
 python-dotenv
 langchain
 # evaluate
 absl-py
+angle_emb
 mathgenerator # this should come from my fork/synapse fork
 beautifulsoup4
 nltk 

@@ -25,9 +25,8 @@ class MockDendrite:
 
 
 class DendriteResponseEvent:
-    def __init__(self, reference: str, responses: List[MockSynapse], uids: torch.IntTensor):
+    def __init__(self, responses: List[bt.Synapse], uids: torch.IntTensor):
         self.uids = uids
-        self.reference = reference
         self.completions = [response.completion for response in responses]
         self.timings = [response.time for response in responses]
         self.status_messages = [response.status_message for response in responses]
@@ -36,7 +35,6 @@ class DendriteResponseEvent:
     def as_dict(self):
         return {
             'uids': self.uids.tolist(),
-            'reference': self.reference,
             'completions': self.completions,
             'timings': self.timings,
             'status_messages': self.status_messages,

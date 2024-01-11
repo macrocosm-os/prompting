@@ -29,16 +29,15 @@ import bittensor as bt
 from typing import List
 from types import SimpleNamespace
 from dataclasses import asdict
-from agent import HumanAgent
-from dendrite import DendriteResponseEvent
-from conversation import create_task
-from protocol import Prompting
-from transformers import pipeline
-from rewards import RewardPipeline, RewardEvent, RewardModelTypeEnum
+from prompting.agent import HumanAgent
+from prompting.dendrite import DendriteResponseEvent
+from prompting.conversation import create_task
+from prompting.protocol import Prompting
+from prompting.rewards import RewardPipeline, RewardResult, RewardEvent, RewardModelTypeEnum
+from prompting.utils.uids import get_random_uids
+from prompting.utils.logging import init_wandb
 
-# TODO: Improve the design of this stuff
-from mock import ttl_get_block, MockDendrite
-from utils import init_wandb, get_random_uids
+from transformers import pipeline
 
 
 async def run_step(self, agent: HumanAgent, k: int, timeout: float, exclude: list = []):
@@ -69,31 +68,32 @@ async def run_step(self, agent: HumanAgent, k: int, timeout: float, exclude: lis
 
     # Make calls to the network with the prompt.
     responses: List[bt.Synapse] = await self.dendrite(
-       axons=axons,
+        axons=axons,
         synapse=synapse,
         timeout=timeout,
     )
 
     # Encapsulate the responses in a response event (dataclass)
-    response_event = DendriteResponseEvent(agent.task.reference, responses, uids)
+    response_event = DendriteResponseEvent(responses, uids)
 
-    # Reward the responses and get the reward event (dataclass)
-    reward_event = RewardEvent(self.reward_pipeline, task=agent.task, response_event=response_event)
+    # Reward the responses and get the reward result (dataclass)
+    # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
+    reward_result = RewardResult(self.reward_pipeline, task=agent.task, response_event=response_event)
 
     # The original idea was that the agent is 'satisfied' when it gets a good enough response (e.g. reward critera is met, such as ROUGE>threshold)
-    top_reward = reward_event.reward.max()
-    top_response = response_event.completions[reward_event.reward.argmax()]
+    agent.update_progress(
+        top_reward=reward_result.rewards.max(),
+        top_response=response_event.completions[reward_result.rewards.argmax()]
+    )
 
-    agent.update_progress(top_reward, top_response)
-
-    self.update_scores(uids, reward_event.reward)
+    self.update_scores(uids, reward_result.rewards)
 
     # Log the step event.
     event = {
-        "block": ttl_get_block(self),
+        "block": self.block,
         "step_time": time.time() - start_time,
         **asdict(agent.task), # can include time to use tools, create query/references
-        **asdict(reward_event), # can include fine-gained rewards as well as times
+        **asdict(reward_result), # can include fine-gained rewards as well as times
         **asdict(response_event) # can include times, status, and completions
     }
 
@@ -111,8 +111,9 @@ async def run_step(self, agent: HumanAgent, k: int, timeout: float, exclude: lis
 
 async def forward(self):
 
+    bt.logging.info(f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}")
     # Create a specific task
-    task_name = np.random.choice(self.config.tasks, p=self.config.task_distribution)
+    task_name = np.random.choice(self.config.neuron.tasks, p=np.array(self.config.neuron.task_p)/sum(self.config.neuron.task_p))
     bt.logging.info(f"📋 Creating {task_name} task... ")
     task = create_task(self.llm_pipeline, task_name)
 
@@ -168,14 +169,16 @@ if __name__ == "__main__":
 
     #### CONFIG ####
     config = SimpleNamespace(
-        tasks=list(tasks_sampling_distribution.keys()),
-        task_distribution=list(tasks_sampling_distribution.values()),
+        model_id = "HuggingFaceH4/zephyr-7b-beta",
+        neuron = SimpleNamespace(
+            tasks=list(tasks_sampling_distribution.keys()),
+            task_p=list(tasks_sampling_distribution.values()),
+            moving_average_alpha=0.1,
+        ),
+        mock=True,
         sample_size=10,
         timeout=15,
         device='cuda',
-        neuron= SimpleNamespace(
-            moving_average_alpha=0.1,
-        ),
         max_turns=1,
         termination_probability=1,
         wandb=wandb_config
@@ -184,7 +187,7 @@ if __name__ == "__main__":
     #### GLOBAL SELF / NEURON ####
     llm_pipeline = pipeline(
         "text-generation",
-        model="HuggingFaceH4/zephyr-7b-beta",
+        model_id=config.model_id,
         #device_map="cuda:0",
         device_map="auto",
 
@@ -195,21 +198,21 @@ if __name__ == "__main__":
         }
     )
 
-    class MockSubtensor:
-        def get_current_block(self):
-            return 2_000_000
+    from neurons.validator import Validator
+    
+    mock_self = Validator(config)
 
     # Note: Self could be abstracted into neuron class
-    mock_self = SimpleNamespace(
-        config=config,
-        llm_pipeline=llm_pipeline,
-        reward_pipeline=RewardPipeline(selected_tasks=config.tasks),
-        dendrite=MockDendrite(),
-        subtensor=MockSubtensor(),
-        moving_averaged_scores=torch.zeros(1024).to(config.device),
-        device=config.device,
-        wandb=init_wandb(config)
-    )
+    # mock_self = SimpleNamespace(
+    #     config=config,
+    #     llm_pipeline=llm_pipeline,
+    #     reward_pipeline=RewardPipeline(selected_tasks=config.tasks),
+    #     dendrite=MockDendrite(),
+    #     subtensor=MockSubtensor(),
+    #     moving_averaged_scores=torch.zeros(1024).to(config.device),
+    #     device=config.device,
+    #     wandb=init_wandb(config)
+    # )
 
 
     #### FLOW EXECUTION ####

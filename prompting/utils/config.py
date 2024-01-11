@@ -89,6 +89,13 @@ def add_args(cls, parser):
     )
 
     parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="Mock neuron and all network components.",
+        default=False,
+    )
+
+    parser.add_argument(
         "--neuron.events_retention_size",
         type=str,
         help="Events retention size.",
@@ -103,6 +110,36 @@ def add_args(cls, parser):
     )
 
     if neuron_type == "validator":
+        parser.add_argument(
+            "--neuron.model",
+            type=str,
+            help="The model to use for the validator.",
+            default='HuggingFaceH4/zephyr-7b-beta',
+        )
+
+        parser.add_argument(
+            "--neuron.tasks",
+            type=str,
+            nargs="+",
+            help="The tasks to use for the validator.",
+            default=['summarization','qa','debugging','math','date_qa'],
+        )
+
+        parser.add_argument(
+            "--neuron.task_p",
+            type=float,
+            nargs="+",
+            help="The probability of sampling each task.",
+            default=[0.5, 0.5, 0.0, 0.0, 0.0],
+        )
+
+        parser.add_argument(
+            "--neuron.max_tokens",
+            type=int,
+            help="The maximum number of tokens in generated responses.",
+            default=256,
+        )
+
         parser.add_argument(
             "--neuron.num_concurrent_forwards",
             type=int,

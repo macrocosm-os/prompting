@@ -3,7 +3,7 @@ from abc import ABC
 from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import List, Union
-from llm import HuggingFaceLLM, OpenAILLM
+from prompting.llm import HuggingFaceLLM
 
 
 class TaskEvaluationType(Enum):

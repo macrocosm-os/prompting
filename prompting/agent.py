@@ -1,57 +1,13 @@
-import random
+import torch
 import textwrap
 import bittensor as bt
-import textwrap
-from tasks import Task
-from dataclasses import dataclass
-from llm import HuggingFaceLLM, OpenAILLM
+
+from prompting.tasks import Task
+from prompting.llm import HuggingFaceLLM
+from prompting.persona import Persona, create_persona
+
 from transformers import pipeline
-import torch
 
-@dataclass
-class Persona:
-    profile: str
-    mood: str
-    tone: str
-
-
-def create_persona() -> Persona:
-    """Defines the persona of the user. This is used to create the system prompt. It dictates the style of the agent's questions and communication."""
-    profiles = ["student", "teacher", "parent", "hacker", "programmer", "scientist"]
-    # profiles = ["16 year old highschool student", ...
-
-    # TODO: more terse, less verbose
-    mood = [
-        "an interested",
-        "a concerned",
-        "an impatient",
-        "a tired",
-        "a confused",
-        "an annoyed",
-        "a curious",
-        "an upbeat",
-        "a lazy",
-    ]
-    tone = [
-        "formal",
-        "informal",
-        "indifferent",
-        "casual",
-        "rushed",
-        "polite",
-        "impolite",
-        "friendly",
-        "unfriendly",
-        "positive",
-        "negative",
-    ]
-    # TODO: we can lower case the human messages, add common grammar and spelling mistakes...
-
-    return Persona(
-        profile=random.choice(profiles),
-        mood=random.choice(mood),
-        tone=random.choice(tone),
-    )
 
 class HumanAgent(HuggingFaceLLM):
     "Agent that impersonates a human user and makes queries based on its goal."
@@ -108,7 +64,7 @@ class HumanAgent(HuggingFaceLLM):
     def create_challenge(self) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
         self.challenge = super().query(message="Ask a question related to your goal")
-        return self.challenge
+        return self.challenge.strip(' "')
 
 
     def __str__(self):
@@ -156,7 +112,7 @@ if __name__ == "__main__":
     # dataset = WikiDataset()
     # context = dataset.next()
 
-    # task = SummarizationTask(llm_pipeline=llm_pipeline, context=context)    
+    # task = SummarizationTask(llm_pipeline=llm_pipeline, context=context)
 
     # bt.logging.info("Creating agent...")
     # agent = HumanAgent(

@@ -27,6 +27,7 @@ from prompting.utils.config import check_config, add_args, config
 from prompting.utils.misc import ttl_get_block
 from prompting import __spec_version__ as spec_version
 
+from prompting.mock import MockSubtensor, MockMetagraph
 
 class BaseNeuron(ABC):
     """
@@ -44,7 +45,7 @@ class BaseNeuron(ABC):
         add_args(cls, parser)
 
     @classmethod
-    def config(cls):
+    def _config(cls):
         return config(cls)
 
     subtensor: "bt.subtensor"
@@ -57,8 +58,8 @@ class BaseNeuron(ABC):
         return ttl_get_block(self)
 
     def __init__(self, config=None):
-        base_config = copy.deepcopy(config or BaseNeuron.config())
-        self.config = self.config()
+        base_config = copy.deepcopy(config or BaseNeuron._config())
+        self.config = self._config()
         self.config.merge(base_config)
         self.check_config(self.config)
 
@@ -76,15 +77,18 @@ class BaseNeuron(ABC):
         bt.logging.info("Setting up bittensor objects.")
 
         # The wallet holds the cryptographic key pairs for the miner.
-        self.wallet = bt.wallet(config=self.config)
+        if self.config.mock:
+            self.wallet = bt.MockWallet(config=self.config)
+            self.subtensor = bt.MockSubtensor()
+            self.subtensor = MockSubtensor(self.config.netuid, wallet=self.wallet)
+            self.metagraph = MockMetagraph(self.config.netuid, subtensor=self.subtensor)
+        else:
+            self.wallet = bt.wallet(config=self.config)
+            self.subtensor = bt.subtensor(config=self.config)
+            self.metagraph = self.subtensor.metagraph(self.config.netuid)
+
         bt.logging.info(f"Wallet: {self.wallet}")
-
-        # The subtensor is our connection to the Bittensor blockchain.
-        self.subtensor = bt.subtensor(config=self.config)
         bt.logging.info(f"Subtensor: {self.subtensor}")
-
-        # The metagraph holds the state of the network, letting us know about other validators and miners.
-        self.metagraph = self.subtensor.metagraph(self.config.netuid)
         bt.logging.info(f"Metagraph: {self.metagraph}")
 
         # Check if the miner is registered on the Bittensor network before proceeding further.

@@ -19,9 +19,9 @@
 import time
 import torch
 import bittensor as bt
-from transformers import pipeline
 
-from prompting.validator import forward
+from prompting.forward import forward
+from prompting.llm import pipeline
 from prompting.base.validator import BaseValidatorNeuron
 
 
@@ -36,13 +36,11 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info("load_state()")
         self.load_state()
 
-        ####### LOAD LLM PIPELINE #####
-        self.model_id = self.config.model_id
         self.llm_pipeline = pipeline(
-            "text-generation",
-            model=self.model_id,
+            model_id=self.config.model_id,
             torch_dtype=torch.bfloat16,
-            device_map=self.device
+            device_map=self.device,
+            mock=self.config.mock,
         )
 
 

@@ -1,7 +1,7 @@
 from typing import List
 from angle_emb import AnglE
 from torch.nn.functional import cosine_similarity
-from rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
+from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
 
 
 

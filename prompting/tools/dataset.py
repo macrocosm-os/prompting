@@ -44,20 +44,20 @@ class Dataset(Iterator):
 
     def __next__(self):
         while True:
-            bt.logging.debug("Retrieving data from dataset...")
+            bt.logging.debug("Retrieving data from prompting.dataset...")
             text = next(self.dataset)["text"]
 
             # Check if the text is not empty or does not consist only of newline characters
             if text.strip():
                 return {"text": text}
-            
-            
+
+
 class MockDataset(Iterator):
     def __next__(self):
         return {"text": "What is the capital of Texas?"}
 
 
-    
+
 def chunk(text, sep, n_chunks=None):
 
     # choose a random chunk from the article
@@ -65,16 +65,16 @@ def chunk(text, sep, n_chunks=None):
     # select a subsequence of paragraphs
     if n_chunks is None:
         n_chunks = random.randint(1, len(chunks))
-        
+
     start_chunk = random.randint(0, len(chunks) - n_chunks)
     bt.logging.info(f'Choosing {n_chunks} chunks starting at index {start_chunk}.')
-    
+
     return sep.join(chunks[start_chunk:start_chunk + n_chunks])
-            
-            
+
+
 
 class CodingDataset:
-    
+
     all_languages = {
         "C++": [".cpp", ".hpp", ".c++", ".h++", ".cc", ".hh", ".C", ".H"],
         "CSS": [".css"],
@@ -86,16 +86,16 @@ class CodingDataset:
         "SQL": [".sql"],
         "Shell": [".sh", ".bash", ".command", ".zsh"],
     }
-    
+
     def __init__(self, dataset_id='codeparrot/github-code', seed=None, languages=None):
         if seed is None:
             seed = random.randint(0, 1000)
         self.seed = seed
-        
+
         if languages is None:
             languages = list(self.all_languages.keys())
-        self.languages = languages    
-        
+        self.languages = languages
+
         self.dataset_id = dataset_id
         self.dataset = iter(
             load_dataset(dataset_id, split="train", streaming=True, languages=self.languages).shuffle(
@@ -104,7 +104,7 @@ class CodingDataset:
         )
 
     def next(self, min_lines=5, max_lines=100):
-        bt.logging.debug("Retrieving code from dataset...")
+        bt.logging.debug("Retrieving code from prompting.dataset...")
         while True:
             code = next(self.dataset)
             if min_lines <= len(code['code'].splitlines()) <= max_lines:
@@ -223,7 +223,7 @@ class WikiDataset:
         return text
 
     def next(self, subset=False, chunk_sep='\n', n_chunks=None):
-        bt.logging.debug("Retrieving data from dataset...")
+        bt.logging.debug("Retrieving data from prompting.dataset...")
         tries = 0
         while tries < self.max_tries:
             info = self.get_random_wikipedia_article()
@@ -232,17 +232,17 @@ class WikiDataset:
             tries += 1
             if len(text.split()) >= self.min_length_words:
                 break
-        
+
         if tries == self.max_tries:
             raise Exception(
                 f"Could not find an article with length >= {self.min_length_words} words after {self.max_tries} tries."
             )
-        
+
         if subset in info['sections'].keys():
             text = info['sections'][subset]
         elif subset:
             text = chunk(text, sep=chunk_sep, n_chunks=n_chunks)
-        
+
         info['text'] = text
         return info
 
@@ -280,7 +280,7 @@ class StackOverflowDataset(Iterator):
         filtered_questions = [q for q in questions if q["score"] >= min_upvotes]
         # Shuffle the questions
         random.shuffle(filtered_questions)
-        
+
         # Add the questions to the list of questions
         self.questions.extend(filtered_questions)
         return
@@ -318,13 +318,13 @@ class StackOverflowDataset(Iterator):
         soup = BeautifulSoup(highest_voted_answer["body"], "html.parser")
         full_content = soup.get_text(separator="\n")
         return full_content
-    
+
     def __next__(self):
         while True:
-            bt.logging.debug("Retrieving data from dataset...")
+            bt.logging.debug("Retrieving data from prompting.dataset...")
             info = self.get_stack_question()
             return info
-        
+
 
 class DateQADataset:
     def __init__(self, max_tries: int = 10):
@@ -351,7 +351,7 @@ class DateQADataset:
             response = requests.get(url)
             events = []
 
-            
+
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
                 available_sections = []
@@ -362,7 +362,7 @@ class DateQADataset:
                 section = random.choice(available_sections)
                 # Find the events section
                 events_list = soup.find('span', id=section).parent.find_next_sibling('ul')
-                
+
                 for li in events_list.find_all('li'):
                     events.append(li)
 
@@ -373,11 +373,11 @@ class DateQADataset:
                     #link_titles = [link.get("title") for link in links]
                     if links:
                         link = random.choice(links)
-                    
+
                     return {'date': random_date.strftime('%B %d'), 'event': selected_event.get_text(), 'link': link.get("title")}
 
     def next(self):
-        bt.logging.debug("Retrieving data from dataset...")
+        bt.logging.debug("Retrieving data from prompting.dataset...")
         info = self.get_random_event()
         return info
 
@@ -397,6 +397,6 @@ class MathDataset:
             choice = random.choice(range(len(options)))
             problem, solution = mathgenerator.genById(choice)
             return {'problem': problem, 'solution': solution}
-    
+
     def next(self, parse=True):
         return self.random_problem(parse)

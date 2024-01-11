@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from tasks import Task
+from prompting.tasks import Task
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 # TODO
