@@ -9,7 +9,7 @@ class RougeRewardModel(BaseRewardModel):
     @property
     def name(self) -> str:
         return 'rouge'
-    
+
     @property
     def model_type(self) -> RewardModelTypeEnum:
         return RewardModelTypeEnum.WEIGHTED_REWARD
@@ -19,12 +19,11 @@ class RougeRewardModel(BaseRewardModel):
         self.ngram = ngram
         self.metric = metric
         self.avg = avg
-        # TODO: Add init args to Rouge if required
-        self.rouge = Rouge()
-        
+        self.rouge = Rouge(**kwargs)
+
     def rouge_score(self, reference, completion):
         return self.rouge.get_scores(reference, completion, avg=self.avg)[0][self.ngram][self.metric]
-        
+
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
         """Compute ROUGE scores given a completion and reference pair."""
         rewards = []
@@ -32,7 +31,7 @@ class RougeRewardModel(BaseRewardModel):
 
         for completion in completions:
             t0 = time.time()
-            self.rouge_score(reference, completion) 
+            self.rouge_score(reference, completion)
             timings.append(time.time() - t0)
             rewards.append(self.rouge_score(reference, completion))
 

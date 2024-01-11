@@ -3,17 +3,49 @@ import time
 from prompting.tasks import Task, SummarizationTask, WikiDataset, QuestionAnsweringTask
 from typing import List
 from experiments.miners import Miner, NetworkResponse, MockMiner
-from prompting.utils import export_logs, Log, load_llm, get_model_name_from_llm
+from prompting.utils import export_logs, Log
 import openai
 import os
 from dotenv import load_dotenv, find_dotenv
 from prompting.rewards.rouge import calculate_rouge_scores
 from prompting.agent import HumanAgent
 import random
+import torch
+from langchain.llms.huggingface_pipeline import HuggingFacePipeline
+from langchain.chat_models import ChatOpenAI
 
 class Neuron:
     def __init__(self, llm):
         self.llm = llm
+
+
+def load_llm(model: str, **kwargs):
+    bt.logging.info(f"🤖 Loading LLM model {model}...")
+    if model == 'zephyr':
+        llm = HuggingFacePipeline.from_model_id(
+            model_id="HuggingFaceH4/zephyr-7b-beta",
+            task="text-generation",
+            device=0,  # replace with device_map="auto" to use the accelerate library.
+            #device_map="cuda:0",
+            pipeline_kwargs={"max_new_tokens": 256},
+            model_kwargs={ "torch_dtype": torch.bfloat16 }
+        )
+    elif model.startswith('gpt'):
+        llm = ChatOpenAI(model_name=model, max_tokens=256, **kwargs)
+    else:
+        raise NotImplementedError(f"Model {model} not implemented")
+
+    bt.logging.success(f"🤖 Loaded LLM model {model}!")
+    return llm
+
+
+def get_model_name_from_llm(llm) -> str:
+    # Handles different naming rules for langchain wrappers
+    if hasattr(llm, 'model_name') and llm.model_name is not None:
+        return llm.model_name # model_name: OpenAI format
+    else:
+        return llm.model_id # model_id: HuggingFace
+
 
 
 def load_neuron(model: str) -> Neuron:        

@@ -68,10 +68,10 @@ with codecs.open(
 setup(
     name="prompting",
     version=version_string,
-    description="The flagship Bittensor subnet focused on text-based intellgience and comprehension.",
+    description="SN1: An incentive mechanism for internet-scale conversational intelligence",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/opentensor/subnet-1",
+    url="https://github.com/opentensor/prompting",
     author="bittensor.com",
     packages=find_packages(),
     include_package_data=True,

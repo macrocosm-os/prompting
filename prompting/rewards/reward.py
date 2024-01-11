@@ -4,7 +4,7 @@ from typing import List
 from abc import ABC, abstractmethod
 from typing import List
 from dataclasses import dataclass
-from network import NetworkResponseEvent
+from mock import NetworkResponseEvent
 from enum import Enum
 
 class RewardModelTypeEnum(Enum):
@@ -20,7 +20,7 @@ class RewardEvent:
     timings: List[float]
     model: str
     model_type: RewardModelTypeEnum
-    batch_time: float    
+    batch_time: float
     extra_info: dict
     uids: List[float]
 
@@ -38,7 +38,7 @@ class RewardEvent:
 class BatchRewardOutput:
     rewards: torch.FloatTensor
     timings: List[float]
-    extra_info: dict    
+    extra_info: dict
 
 
 class BaseRewardModel(ABC):
@@ -55,17 +55,17 @@ class BaseRewardModel(ABC):
     @abstractmethod
     def __init__(self, **kwargs):
         pass
-            
+
     @abstractmethod
     def reward(self, reference:str, completions:List[str]) -> BatchRewardOutput:
         pass
-    
-    def apply(self, response_event: NetworkResponseEvent) -> RewardEvent:        
-        t0 = time.time()
-        batch_rewards_output = self.reward(response_event.reference, response_event.completions) 
-        batch_rewards_time = time.time() - t0        
 
-        reward_event = RewardEvent( 
+    def apply(self, response_event: NetworkResponseEvent) -> RewardEvent:
+        t0 = time.time()
+        batch_rewards_output = self.reward(response_event.reference, response_event.completions)
+        batch_rewards_time = time.time() - t0
+
+        reward_event = RewardEvent(
             rewards = batch_rewards_output.rewards.cpu().tolist(),
             model_type = self.model_type,
             model = self.name,
@@ -76,4 +76,4 @@ class BaseRewardModel(ABC):
         )
 
         return reward_event
-    
+
