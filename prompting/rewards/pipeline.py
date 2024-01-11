@@ -27,19 +27,20 @@ class RewardPipeline:
         self.load_pipeline()
 
     def load_pipeline(self):
+        """Dynamically loads the reward models required by the selected tasks so that we only use the necessary resources."""
         required_reward_models = []
 
         for task in self.selected_tasks:
             if task not in SUPPORTED_TASKS:
                 raise ValueError(f'Task {task} not supported. Please choose from {SUPPORTED_TASKS.keys()}')
 
-            required_reward_models += SUPPORTED_TASKS[task].reward_definition
+            required_reward_models += SUPPORTED_TASKS[task].reward_definition.copy()
 
         # TODO: Improve readability / design
         # Instantiate only the required reward models
         reward_models = REWARD_MODELS.copy()
         for model in required_reward_models:
-            name = model['name']
+            name = model.pop('name')
             reward_models[name] = REWARD_MODELS[name](**model)
 
         self.reward_models = reward_models

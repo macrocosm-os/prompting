@@ -79,18 +79,20 @@ class MockPipeline():
 
 class MockSubtensor(bt.MockSubtensor):
 
-    def __init__(self, netuid, n=1024, wallet=None, network='mock'):
+    def __init__(self, netuid, n=16, wallet=None, network='mock'):
 
         super(MockSubtensor, self).__init__(network=network)
 
         if not self.subnet_exists(netuid):
             self.create_subnet(netuid)
 
+        # Register ourself (the validator) as a neuron at uid=0
         if wallet is not None:
             self.force_register_neuron(netuid=netuid, hotkey=wallet.hotkey.ss58_address, coldkey=wallet.coldkey.ss58_address, balance=100000, stake=100000)
 
-        for i in range(n):
-            self.force_register_neuron(netuid=netuid, hotkey=str(i), coldkey='mock123', balance=100000, stake=100000)
+        # Register n mock neurons who will be miners
+        for i in range(1,n+1):
+            self.force_register_neuron(netuid=netuid, hotkey=f'miner-hotkey-{i}', coldkey='mock123', balance=100000, stake=100000)
 
 
 class MockMetagraph(bt.metagraph):
@@ -101,4 +103,11 @@ class MockMetagraph(bt.metagraph):
         if subtensor is not None:
             self.subtensor = subtensor
         self.sync(subtensor=subtensor)
+
+        for axon in self.axons:
+            axon.ip = '1.2.3.4'
+            axon.port = 8008
+
+        bt.logging.info(f"Metagraph: {self}")
+        bt.logging.info(f'Axons: {self.axons}')
 

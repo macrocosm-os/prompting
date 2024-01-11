@@ -40,8 +40,8 @@ Answer the question you will receive in detail, utilizing the following context.
 @dataclass
 class QuestionAnsweringTask(Task):
     reward_definition=[
-        dict(name='rouge', ngram='rouge-1', metric='f', weight=0.5),
-        dict(name='relevance', threshold=None, weight=0.5)
+        dict(name='rouge', ngram='rouge-1', metric='f'),
+        dict(name='relevance', threshold=None)
     ]
     
 

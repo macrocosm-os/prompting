@@ -79,7 +79,6 @@ class BaseNeuron(ABC):
         # The wallet holds the cryptographic key pairs for the miner.
         if self.config.mock:
             self.wallet = bt.MockWallet(config=self.config)
-            self.subtensor = bt.MockSubtensor()
             self.subtensor = MockSubtensor(self.config.netuid, wallet=self.wallet)
             self.metagraph = MockMetagraph(self.config.netuid, subtensor=self.subtensor)
         else:

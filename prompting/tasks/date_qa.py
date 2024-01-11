@@ -7,7 +7,7 @@ import textwrap
 @dataclass
 class DateQuestionAnsweringTask(Task):
     reward_definition = [
-        dict(name='rouge', ngram='rouge-l', metric='f', weight=1),
+        dict(name='rouge', ngram='rouge-l', metric='f'),
     ]
     # # Used to obtain the question [we actually can use a subset of the context]
     # query_template = """\

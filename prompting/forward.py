@@ -63,22 +63,22 @@ async def run_step(self, agent: HumanAgent, k: int, timeout: float, exclude: lis
     uids = get_random_uids(self, k=k, exclude=exclude).to(self.device)
 
     axons = [self.metagraph.axons[uid] for uid in uids]
-    # TODO: Should this be entire history?
-    synapse = Prompting(roles=["user"], messages=[agent.challenge])
-
     # Make calls to the network with the prompt.
     responses: List[bt.Synapse] = await self.dendrite(
         axons=axons,
-        synapse=synapse,
+        # TODO: Should this be entire history?
+        synapse=Prompting(roles=["user"], messages=[agent.challenge]),
         timeout=timeout,
     )
 
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses, uids)
 
+    bt.logging.info(f'Created DendriteResponseEvent:\n {response_event}')
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
     reward_result = RewardResult(self.reward_pipeline, task=agent.task, response_event=response_event)
+    bt.logging.info(f'Created RewardResult:\n {reward_result}')
 
     # The original idea was that the agent is 'satisfied' when it gets a good enough response (e.g. reward critera is met, such as ROUGE>threshold)
     agent.update_progress(
@@ -113,10 +113,9 @@ async def forward(self):
 
     bt.logging.info(f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}")
     # Create a specific task
-    task_name = np.random.choice(self.config.neuron.tasks, p=np.array(self.config.neuron.task_p)/sum(self.config.neuron.task_p))
+    task_name = np.random.choice(self.config.neuron.tasks, p=self.config.neuron.task_p)
     bt.logging.info(f"📋 Creating {task_name} task... ")
     task = create_task(self.llm_pipeline, task_name)
-
 
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
@@ -126,7 +125,13 @@ async def forward(self):
     exclude_uids = []
     while not agent.finished:
         # when run_step is called, the agent updates its progress
-        event = await run_step(self, agent, k=self.config.sample_size, timeout=self.config.timeout, exclude=exclude_uids)
+        event = await run_step(
+            self,
+            agent,
+            k=self.config.neuron.sample_size,
+            timeout=self.config.neuron.timeout,
+            exclude=exclude_uids
+        )
         exclude_uids += event['uids']
 
         ## TODO: Add max_turns and termination_probability parameters
@@ -199,7 +204,7 @@ if __name__ == "__main__":
     )
 
     from neurons.validator import Validator
-    
+
     mock_self = Validator(config)
 
     # Note: Self could be abstracted into neuron class

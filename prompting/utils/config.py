@@ -134,6 +134,13 @@ def add_args(cls, parser):
         )
 
         parser.add_argument(
+            "--neuron.timeout",
+            type=float,
+            help="The timeout for each forward call in seconds.",
+            default=10,
+        )
+
+        parser.add_argument(
             "--neuron.max_tokens",
             type=int,
             help="The maximum number of tokens in generated responses.",
