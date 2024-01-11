@@ -22,10 +22,10 @@ import typing
 import bittensor as bt
 
 # Bittensor Miner Template:
-import template
+import prompting
 
 # import base miner class which takes care of most of the boilerplate
-from template.base.miner import BaseMinerNeuron
+from prompting.base.miner import BaseMinerNeuron
 
 
 class Miner(BaseMinerNeuron):
@@ -43,8 +43,8 @@ class Miner(BaseMinerNeuron):
         # TODO(developer): Anything specific to your use case you can do here
 
     async def forward(
-        self, synapse: template.protocol.Dummy
-    ) -> template.protocol.Dummy:
+        self, synapse: prompting.protocol.Dummy
+    ) -> prompting.protocol.Dummy:
         """
         Processes the incoming 'Dummy' synapse by performing a predefined operation on the input data.
         This method should be replaced with actual logic relevant to the miner's purpose.
@@ -63,7 +63,7 @@ class Miner(BaseMinerNeuron):
         return synapse
 
     async def blacklist(
-        self, synapse: template.protocol.Dummy
+        self, synapse: prompting.protocol.Dummy
     ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -107,7 +107,7 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def priority(self, synapse: template.protocol.Dummy) -> float:
+    async def priority(self, synapse: prompting.protocol.Dummy) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.

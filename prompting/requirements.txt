@@ -1,0 +1,18 @@
+editdistance
+datasets
+transformers==4.36.1
+accelerate
+tenacity
+openai==1.4.0
+python-dotenv
+langchain
+# evaluate
+absl-py
+mathgenerator # this should come from my fork/synapse fork
+beautifulsoup4
+nltk 
+rouge
+wandb
+bittensor
+angle-emb
+jupyter

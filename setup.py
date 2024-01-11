@@ -1,7 +1,6 @@
 # The MIT License (MIT)
 # Copyright © 2023 Yuma Rao
-# TODO(developer): Set your name
-# Copyright © 2023 <your name>
+# Copyright © 2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -31,17 +30,21 @@ def read_requirements(path):
     with open(path, "r") as f:
         requirements = f.read().splitlines()
         processed_requirements = []
-
         for req in requirements:
             # For git or other VCS links
             if req.startswith("git+") or "@" in req:
-                pkg_name = re.search(r"(#egg=)([\w\-_]+)", req)
-                if pkg_name:
-                    processed_requirements.append(pkg_name.group(2))
-                else:
-                    # You may decide to raise an exception here,
-                    # if you want to ensure every VCS link has an #egg=<package_name> at the end
-                    continue
+                # check if "egg=" is present in the requirement string
+                if "egg=" in req:
+                    pkg_name = re.search(r"egg=([a-zA-Z0-9_-]+)", req.strip())
+                    if pkg_name:
+                        pkg_name = pkg_name.group(1)
+                        processed_requirements.append(pkg_name + " @ " + req.strip())
+                else:  # handle git links without "egg="
+                    # extracting package name from URL assuming it is the last part of the URL before any @ symbol
+                    pkg_name = re.search(r"/([a-zA-Z0-9_-]+)(\.git)?(@|$)", req)
+                    if pkg_name:
+                        pkg_name = pkg_name.group(1)
+                        processed_requirements.append(pkg_name + " @ " + req.strip())
             else:
                 processed_requirements.append(req)
         return processed_requirements
@@ -55,7 +58,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 # loading version from setup.py
 with codecs.open(
-    os.path.join(here, "template/__init__.py"), encoding="utf-8"
+    os.path.join(here, "prompting/__init__.py"), encoding="utf-8"
 ) as init_file:
     version_match = re.search(
         r"^__version__ = ['\"]([^'\"]*)['\"]", init_file.read(), re.M
@@ -63,16 +66,16 @@ with codecs.open(
     version_string = version_match.group(1)
 
 setup(
-    name="bittensor_subnet_template",  # TODO(developer): Change this value to your module subnet name.
+    name="prompting",
     version=version_string,
-    description="bittensor_subnet_template",  # TODO(developer): Change this value to your module subnet description.
+    description="The flagship Bittensor subnet focused on text-based intellgience and comprehension.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/opentensor/bittensor-subnet-template",  # TODO(developer): Change this url to your module subnet github url.
-    author="bittensor.com",  # TODO(developer): Change this value to your module subnet author name.
+    url="https://github.com/opentensor/subnet-1",
+    author="bittensor.com",
     packages=find_packages(),
     include_package_data=True,
-    author_email="",  # TODO(developer): Change this value to your module subnet author email.
+    author_email="",
     license="MIT",
     python_requires=">=3.8",
     install_requires=requirements,
@@ -86,6 +89,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",

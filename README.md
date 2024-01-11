@@ -1,100 +1,111 @@
+
 <div align="center">
 
-# **Bittensor Subnet Template** <!-- omit in toc -->
+# **Bittensor Text-Prompting** <!-- omit in toc -->
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
 ---
 
-## The Incentivized Internet <!-- omit in toc -->
+### The Incentivized Internet <!-- omit in toc -->
 
 [Discord](https://discord.gg/bittensor) • [Network](https://taostats.io/) • [Research](https://bittensor.com/whitepaper)
+
 </div>
 
 ---
-- [Quickstarter template](#quickstarter-template)
-- [Introduction](#introduction)
-  - [Example](#example)
-- [Installation](#installation)
-  - [Before you proceed](#before-you-proceed)
-  - [Install](#install)
-- [Writing your own incentive mechanism](#writing-your-own-incentive-mechanism)
-- [License](#license)
 
----
-## Quickstarter template
+This template contains all the necessary files and functions to run Bittensor's Text-Prompting Subnet. You can try running miners on netuid 8 in Bittensor's test network.
 
-This template contains all the required installation instructions, scripts, and files and functions for:
-- Building Bittensor subnets.
-- Creating custom incentive mechanisms and running these mechanisms on the subnets. 
+# Introduction
+The Bittensor blockchain hosts multiple self-contained incentive mechanisms 'subnets'. Subnets are playing fields through which miners (those producing value) and validators (those producing consensus) determine together the proper distribution of TAO for the purpose of incentivizing the creation of value, i.e. generating digital commodities, such as intelligence, or data. Each consists of a wire protocol through which miners and validators interact and their method of interacting with Bittensor's chain consensus engine [Yuma Consensus](https://bittensor.com/documentation/validating/yuma-consensus) which is designed to drive these actors into agreement about who is creating value.
 
-In order to simplify the building of subnets, this template abstracts away the complexity of the underlying blockchain and other boilerplate code. While the default behavior of the template is sufficient for a simple subnet, you should customize the template in order to meet your specific requirements.
----
+This repository is a subnet for text prompting with large language models (LLM). Inside, you will find miners and validators designed by the OpenTensor Foundation team to valdiate and serve language models. The current validator implementation queries the network for responses while servers responds to requests with their best completions. These completions are judged and ranked by the validators and passed to the chain. 
 
-## Introduction
-
-**IMPORTANT**: If you are new to Bittensor subnets, read this section before proceeding to [Installation](#installation) section. 
-
-The Bittensor blockchain hosts multiple self-contained incentive mechanisms called **subnets**. Subnets are playing fields in which:
-- Subnet miners who produce value, and
-- Subnet validators who produce consensus
-
-determine together the proper distribution of TAO for the purpose of incentivizing the creation of value, i.e., generating digital commodities, such as intelligence or data. 
-
-Each subnet consists of:
-- Subnet miners and subnet validators.
-- A protocol using which the subnet miners and subnet validators interact with one another. This protocol is part of the incentive mechanism.
-- The Bittensor API using which the subnet miners and subnet validators interact with Bittensor's onchain consensus engine [Yuma Consensus](https://bittensor.com/documentation/validating/yuma-consensus). The Yuma Consensus is designed to drive these actors: subnet validators and subnet miners, into agreement on who is creating value and what that value is worth. 
-
-This starter template is split into three primary files. To write your own incentive mechanism, you should edit these files. These files are:
-1. `template/protocol.py`: Contains the definition of the protocol used by subnet miners and subnet validators.
-2. `neurons/miner.py`: Script that defines the subnet miner's behavior, i.e., how the subnet miner responds to requests from subnet validators.
-3. `neurons/validator.py`: This script defines the subnet validator's behavior, i.e., how the subnet validator requests information from the subnet miners and determines the scores.
-
-### Example
-
-The Bittensor Subnet 1 for Text Prompting is built using this template. See [Bittensor Text-Prompting](https://github.com/opentensor/text-prompting) for how to configure the files and how to add monitoring and telemetry and support multiple miner types. Also see this Subnet 1 in action on [Taostats](https://taostats.io/subnets/netuid-1/) explorer.
+</div>
 
 ---
 
-## Installation
+# Installation
+This repository requires python3.8 or higher. To install, simply clone this repository and install the requirements.
+```bash
+git clone https://github.com/opentensor/prompting.git
+cd prompting
+python -m pip install -r requirements.txt
+python -m pip install -e .
+```
 
-### Before you proceed
-Before you proceed with the installation of the subnet, note the following: 
+If you are running a specific server, you might need install server-specific requirements.
 
-- Use these instructions to run your subnet locally for your development and testing, or on Bittensor testnet or on Bittensor mainnet. 
-- **IMPORTANT**: We **strongly recommend** that you first run your subnet locally and complete your development and testing before running the subnet on Bittensor testnet. Furthermore, make sure that you next run your subnet on Bittensor testnet before running it on the Bittensor mainnet.
-- You can run your subnet either as a subnet owner, or as a subnet validator or as a subnet miner. 
-- **IMPORTANT:** Make sure you are aware of the minimum compute requirements for your subnet. See the [Minimum compute YAML configuration](./min_compute.yml).
-- Note that installation instructions differ based on your situation: For example, installing for local development and testing will require a few additional steps compared to installing for testnet. Similarly, installation instructions differ for a subnet owner vs a validator or a miner. 
+```bash
+cd neurons/miners/bittensorLM
+python -m pip install -r requirements.txt
+```
 
-### Install
-
-- **Running locally**: Follow the step-by-step instructions described in this section: [Running Subnet Locally](./docs/running_on_staging.md).
-- **Running on Bittensor testnet**: Follow the step-by-step instructions described in this section: [Running on the Test Network](./docs/running_on_testnet.md).
-- **Running on Bittensor mainnet**: Follow the step-by-step instructions described in this section: [Running on the Main Network](./docs/running_on_mainnet.md).
+</div>
 
 ---
 
-## Writing your own incentive mechanism
+Prior to running a miner or validator, you must [create a wallet](https://github.com/opentensor/docs/blob/main/reference/btcli.md) and [register the wallet to a netuid](https://github.com/opentensor/docs/blob/main/subnetworks/registration.md). Once you have done so, you can run the miner and validator with the following commands.
+```bash
+# To run the miner
+python -m neurons/miners/bittensorLM/miner.py 
+    --netuid 8  
+    --subtensor.network test 
+    --wallet.name <your miner wallet> # Must be created using the bittensor-cli
+    --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
+    --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 
-As described in [Quickstarter template](#quickstarter-template) section above, when you are ready to write your own incentive mechanism, update this template repository by editing the following files. The code in these files contains detailed documentation on how to update the template. Read the documentation in each of the files to understand how to update the template. There are multiple **TODO**s in each of the files identifying sections you should update. These files are:
-- `template/protocol.py`: Contains the definition of the wire-protocol used by miners and validators.
-- `neurons/miner.py`: Script that defines the miner's behavior, i.e., how the miner responds to requests from validators.
-- `neurons/validator.py`: This script defines the validator's behavior, i.e., how the validator requests information from the miners and determines the scores.
-- `template/forward.py`: Contains the definition of the validator's forward pass.
-- `template/reward.py`: Contains the definition of how validators reward miner responses.
+# To run the validator
+python -m neurons/validators/validator.py
+    --netuid 8
+    --subtensor.network test 
+    --wallet.name <your validator wallet>  # Must be created using the bittensor-cli
+    --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
+    --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
+```
 
-In addition to the above files, you should also update the following files:
-- `README.md`: This file contains the documentation for your project. Update this file to reflect your project's documentation.
-- `CONTRIBUTING.md`: This file contains the instructions for contributing to your project. Update this file to reflect your project's contribution guidelines.
-- `template/__init__.py`: This file contains the version of your project.
-- `setup.py`: This file contains the metadata about your project. Update this file to reflect your project's metadata.
-- `docs/`: This directory contains the documentation for your project. Update this directory to reflect your project's documentation.
+</div>
 
-__Note__
-The `template` directory should also be renamed to your project name.
 ---
+
+
+# Running
+
+These validators are designed to run and update themselves automatically. To run a validator, follow these steps:
+
+1. Install this repository, you can do so by following the steps outlined in [the installation section](#installation).
+2. Install [Weights and Biases](https://docs.wandb.ai/quickstart) and run `wandb login` within this repository. This will initialize Weights and Biases, enabling you to view KPIs and Metrics on your validator. (Strongly recommended to help the network improve from data sharing)
+3. Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` package](https://jqlang.github.io/jq/) on your system.
+   **On Linux**:
+   ```bash
+   sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm install pm2 -g && pm2 update
+   ``` 
+   **On Mac OS**
+   ```bash
+   brew update && brew install jq && brew install npm && sudo npm install pm2 -g && pm2 update
+   ```
+4. Run the `run.sh` script which will handle running your validator and pulling the latest updates as they are issued. 
+   ```bash
+   pm2 start run.sh --name text_prompt_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key>
+   ```
+
+This will run **two** PM2 process: one for the validator which is called `text_prompt_validators_main_process` by default (you can change this in `run.sh`), and one for the run.sh script (in step 4, we named it `text_prompt_validators_autoupdate`). The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `text_prompt_validators_main_process` and then restart itself.
+
+
+# Real-time monitoring with wandb integration
+By default, the text prompting validator sends data to wandb, allowing users to monitor running validators and access key metrics in real time, such as:
+- Gating model loss
+- Hardware usage
+- Forward pass time
+- Block duration
+
+All the data sent to wandb is publicly available to the community at the following [link](https://wandb.ai/opentensor-dev/openvalidators).
+
+You don't need to have a wandb account to access the data or to generate a new run,
+but bear in mind that
+[data generated by anonymous users will be deleted after 7 days](https://docs.wandb.ai/guides/app/features/anon#:~:text=If%20there's%20no%20account%2C%20we,be%20available%20for%207%20days)
+as default wandb policy.
 
 ## License
 This repository is licensed under the MIT License.

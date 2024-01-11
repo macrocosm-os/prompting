@@ -27,7 +27,7 @@ import bittensor as bt
 from typing import List
 from traceback import print_exception
 
-from template.base.neuron import BaseNeuron
+from prompting.base.neuron import BaseNeuron
 
 
 class BaseValidatorNeuron(BaseNeuron):
