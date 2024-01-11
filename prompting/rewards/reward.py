@@ -2,9 +2,7 @@ import torch
 import time
 from typing import List
 from abc import ABC, abstractmethod
-from typing import List
 from dataclasses import dataclass
-from mock import NetworkResponseEvent
 from enum import Enum
 
 class RewardModelTypeEnum(Enum):
