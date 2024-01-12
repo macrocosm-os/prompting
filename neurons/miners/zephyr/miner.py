@@ -23,6 +23,7 @@ import bittensor as bt
 # Bittensor Miner Template:
 import prompting
 from prompting.llm import pipeline
+
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import Miner
 

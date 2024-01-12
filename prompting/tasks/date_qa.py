@@ -7,7 +7,7 @@ import textwrap
 @dataclass
 class DateQuestionAnsweringTask(Task):
     reward_definition = [
-        dict(name='rouge', ngram='rouge-l', metric='f'),
+        dict(name="rouge", ngram="rouge-l", metric="f"),
     ]
     # # Used to obtain the question [we actually can use a subset of the context]
     # query_template = """\
@@ -28,23 +28,21 @@ class DateQuestionAnsweringTask(Task):
     # # {question}
     # # """
 
-
     def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
-        year,_, *event = self.context['event'].split()
-        self.context['event'] = ' '.join(event)
-        query = self.context['event'].strip('.') + ' on what date?'
-        reference = self.context['date']+', '+year.strip()
+        year, _, *event = self.context["event"].split()
+        self.context["event"] = " ".join(event)
+        query = self.context["event"].strip(".") + " on what date?"
+        reference = self.context["date"] + ", " + year.strip()
         super().__init__(
             name="date_qa",
             desc="get help on answering a question",
-            goal=f"to get the answer to the following question",   
-            query=query,           
-            reference=reference,   
-            topic=self.context['event'],
-            subtopic="",            
+            goal=f"to get the answer to the following question",
+            query=query,
+            reference=reference,
+            topic=self.context["event"],
+            subtopic="",
             tags="",
             static_reference=True,
             static_query=True,
         )
-

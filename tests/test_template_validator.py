@@ -66,9 +66,7 @@ class TemplateValidatorNeuronTestCase(unittest.TestCase):
 
         responses = self.neuron.dendrite.query(
             # Send the query to miners in the network.
-            axons=[
-                self.neuron.metagraph.axons[uid] for uid in self.miner_uids
-            ],
+            axons=[self.neuron.metagraph.axons[uid] for uid in self.miner_uids],
             # Construct a dummy query.
             synapse=Dummy(dummy_input=self.neuron.step),
             # All responses have the deserialize function called on them before returning.

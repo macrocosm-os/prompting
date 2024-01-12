@@ -82,11 +82,15 @@ class GenericInstructionTask(Task):
         )
 
         self.criteria = self.create_criteria(llm_pipeline)
-        instruction, reference = self.create_instruction_and_reference(llm_pipeline)
+        instruction, reference = self.create_instruction_and_reference(
+            llm_pipeline
+        )
         self.challenge = instruction
         self.reference = reference
 
-    def extract_instruction_and_reference_from_text(self, text: str) -> Tuple[str, str]:
+    def extract_instruction_and_reference_from_text(
+        self, text: str
+    ) -> Tuple[str, str]:
         # Split the text into problem and response using regular expression
         split_text = re.split(r"\nResponse:\n", text)
 
@@ -117,10 +121,15 @@ class GenericInstructionTask(Task):
             instruction_generation_prompt_with_criteria = (
                 instruction_generation_prompt.format(CRITERIA=self.criteria)
             )
-            instruction_generation_response = llm(instruction_generation_prompt_with_criteria)
+            instruction_generation_response = llm(
+                instruction_generation_prompt_with_criteria
+            )
 
             # Extract generic instruction and reference response from the generated text
-            instruction, reference = self.extract_instruction_and_reference_from_text(
+            (
+                instruction,
+                reference,
+            ) = self.extract_instruction_and_reference_from_text(
                 instruction_generation_response
             )
 

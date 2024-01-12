@@ -47,12 +47,12 @@ def export_logs(logs: List[Log]):
     all_logs_dict = [asdict(log) for log in logs]
 
     for logs in all_logs_dict:
-        task_dict = logs.pop('task')
-        prefixed_task_dict = {f'task_{k}': v for k, v in task_dict.items()}
+        task_dict = logs.pop("task")
+        prefixed_task_dict = {f"task_{k}": v for k, v in task_dict.items()}
         logs.update(prefixed_task_dict)
 
     log_file = f"./logs/{date_string}_output.json"
-    with open(log_file, 'w') as file:
+    with open(log_file, "w") as file:
         json.dump(all_logs_dict, file)
 
     return log_file

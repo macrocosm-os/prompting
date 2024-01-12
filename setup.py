@@ -38,13 +38,17 @@ def read_requirements(path):
                     pkg_name = re.search(r"egg=([a-zA-Z0-9_-]+)", req.strip())
                     if pkg_name:
                         pkg_name = pkg_name.group(1)
-                        processed_requirements.append(pkg_name + " @ " + req.strip())
+                        processed_requirements.append(
+                            pkg_name + " @ " + req.strip()
+                        )
                 else:  # handle git links without "egg="
                     # extracting package name from URL assuming it is the last part of the URL before any @ symbol
                     pkg_name = re.search(r"/([a-zA-Z0-9_-]+)(\.git)?(@|$)", req)
                     if pkg_name:
                         pkg_name = pkg_name.group(1)
-                        processed_requirements.append(pkg_name + " @ " + req.strip())
+                        processed_requirements.append(
+                            pkg_name + " @ " + req.strip()
+                        )
             else:
                 processed_requirements.append(req)
         return processed_requirements

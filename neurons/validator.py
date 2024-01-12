@@ -44,14 +44,19 @@ class Validator(BaseValidatorNeuron):
             mock=self.config.mock,
         )
 
-        if sum(self.config.neuron.task_p)!=1:
+        if sum(self.config.neuron.task_p) != 1:
             raise ValueError("Task probabilities do not sum to 1.")
 
         # Filter out tasks with 0 probability
-        active_tasks = [task for task, p in zip(self.config.neuron.tasks, self.config.neuron.task_p) if p>0]
+        active_tasks = [
+            task
+            for task, p in zip(
+                self.config.neuron.tasks, self.config.neuron.task_p
+            )
+            if p > 0
+        ]
         # Load the reward pipeline
         self.reward_pipeline = RewardPipeline(selected_tasks=active_tasks)
-
 
     async def forward(self):
         """

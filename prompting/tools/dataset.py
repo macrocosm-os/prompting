@@ -27,7 +27,8 @@ from bs4 import BeautifulSoup
 from collections.abc import Iterator
 from sympy.parsing.latex import parse_latex
 
-#TODO: Use beautiful soup to parse things like wikipedia articles and stack overflow questions and answers
+# TODO: Use beautiful soup to parse things like wikipedia articles and stack overflow questions and answers
+
 
 class Dataset(Iterator):
     def __init__(self, dataset_id, seed=None):
@@ -57,9 +58,7 @@ class MockDataset(Iterator):
         return {"text": "What is the capital of Texas?"}
 
 
-
 def chunk(text, sep, n_chunks=None):
-
     # choose a random chunk from the article
     chunks = [chunk for chunk in text.split(sep) if chunk.strip()]
     # select a subsequence of paragraphs
@@ -67,19 +66,19 @@ def chunk(text, sep, n_chunks=None):
         n_chunks = random.randint(1, len(chunks))
 
     start_chunk = random.randint(0, len(chunks) - n_chunks)
-    bt.logging.info(f'Choosing {n_chunks} chunks starting at index {start_chunk}.')
+    bt.logging.info(
+        f"Choosing {n_chunks} chunks starting at index {start_chunk}."
+    )
 
-    return sep.join(chunks[start_chunk:start_chunk + n_chunks])
-
+    return sep.join(chunks[start_chunk : start_chunk + n_chunks])
 
 
 class CodingDataset:
-
     all_languages = {
         "C++": [".cpp", ".hpp", ".c++", ".h++", ".cc", ".hh", ".C", ".H"],
         "CSS": [".css"],
         "Dockerfile": [".dockerfile", "Dockerfile"],
-        "HTML":[".html"],
+        "HTML": [".html"],
         "Java": [".java"],
         "JavaScript": [".js"],
         "Python": [".py"],
@@ -87,7 +86,9 @@ class CodingDataset:
         "Shell": [".sh", ".bash", ".command", ".zsh"],
     }
 
-    def __init__(self, dataset_id='codeparrot/github-code', seed=None, languages=None):
+    def __init__(
+        self, dataset_id="codeparrot/github-code", seed=None, languages=None
+    ):
         if seed is None:
             seed = random.randint(0, 1000)
         self.seed = seed
@@ -98,24 +99,30 @@ class CodingDataset:
 
         self.dataset_id = dataset_id
         self.dataset = iter(
-            load_dataset(dataset_id, split="train", streaming=True, languages=self.languages).shuffle(
-                seed=seed, buffer_size=10000
-            )
+            load_dataset(
+                dataset_id,
+                split="train",
+                streaming=True,
+                languages=self.languages,
+            ).shuffle(seed=seed, buffer_size=10000)
         )
 
     def next(self, min_lines=5, max_lines=100):
         bt.logging.debug("Retrieving code from prompting.dataset...")
         while True:
             code = next(self.dataset)
-            if min_lines <= len(code['code'].splitlines()) <= max_lines:
+            if min_lines <= len(code["code"].splitlines()) <= max_lines:
                 return code
 
 
-
-
 class WikiDataset:
-
-    def __init__(self, min_length_words: int = 250, min_length_bytes: int = 1000, max_tries: int = 10, min_backlinks: int = 1):
+    def __init__(
+        self,
+        min_length_words: int = 250,
+        min_length_bytes: int = 1000,
+        max_tries: int = 10,
+        min_backlinks: int = 1,
+    ):
         # Wikipedia API endpoint for a random article
         self.url = "https://en.wikipedia.org/w/api.php"
         self.min_length_words = min_length_words
@@ -164,11 +171,15 @@ class WikiDataset:
                     for cat in page_info.get("categories", [{}])
                 ]
                 # filter out any mention of articles
-                categories = [cat for cat in categories if "article" not in cat.lower()]
+                categories = [
+                    cat for cat in categories if "article" not in cat.lower()
+                ]
                 extract = page_info.get("extract")
 
                 if (
-                    length >= self.min_length_bytes and backlinks >= self.min_backlinks and extract
+                    length >= self.min_length_bytes
+                    and backlinks >= self.min_backlinks
+                    and extract
                 ):  # and views >= min_views:
                     return {
                         "title": page_info["title"],
@@ -211,7 +222,7 @@ class WikiDataset:
         page = next(iter(data["query"]["pages"].values()))
         content = page.get("extract", "Content not found.")
 
-        text = {None: ''}
+        text = {None: ""}
         section = None
         for line in content.split("\n"):
             if line.startswith("==") and line.endswith("=="):
@@ -222,13 +233,13 @@ class WikiDataset:
 
         return text
 
-    def next(self, subset=False, chunk_sep='\n', n_chunks=None):
+    def next(self, subset=False, chunk_sep="\n", n_chunks=None):
         bt.logging.debug("Retrieving data from prompting.dataset...")
         tries = 0
         while tries < self.max_tries:
             info = self.get_random_wikipedia_article()
-            info['sections'] = self.get_wikipedia_article_content(info["title"])
-            text = '\n'.join(info['sections'].values())
+            info["sections"] = self.get_wikipedia_article_content(info["title"])
+            text = "\n".join(info["sections"].values())
             tries += 1
             if len(text.split()) >= self.min_length_words:
                 break
@@ -238,14 +249,13 @@ class WikiDataset:
                 f"Could not find an article with length >= {self.min_length_words} words after {self.max_tries} tries."
             )
 
-        if subset in info['sections'].keys():
-            text = info['sections'][subset]
+        if subset in info["sections"].keys():
+            text = info["sections"][subset]
         elif subset:
             text = chunk(text, sep=chunk_sep, n_chunks=n_chunks)
 
-        info['text'] = text
+        info["text"] = text
         return info
-
 
 
 class StackOverflowDataset(Iterator):
@@ -292,7 +302,7 @@ class StackOverflowDataset(Iterator):
         question = self.questions.pop()
         # Fetch the highest voted answer for the selected question
         answer = self.get_stack_answer(question)
-        return {'question': question["title"], 'answer':answer}
+        return {"question": question["title"], "answer": answer}
 
     # @retry(
     #    stop=stop_after_attempt(5), wait=wait_random_exponential(multiplier=1, max=10)
@@ -314,7 +324,9 @@ class StackOverflowDataset(Iterator):
         if not answers:
             bt.logging.warning("No answers found for the question!")
 
-        highest_voted_answer = answers[0]  # The first answer is the highest voted
+        highest_voted_answer = answers[
+            0
+        ]  # The first answer is the highest voted
         soup = BeautifulSoup(highest_voted_answer["body"], "html.parser")
         full_content = soup.get_text(separator="\n")
         return full_content
@@ -339,7 +351,9 @@ class DateQADataset:
             # Step 1: Generate a random date
             year = 2000
             month = random.randint(1, 12)
-            day = random.randint(1, 28)  # Simplified to avoid dealing with different month lengths
+            day = random.randint(
+                1, 28
+            )  # Simplified to avoid dealing with different month lengths
             random_date = datetime.date(year, month, day)
 
             # Step 2: Format the date for Wikipedia URL
@@ -351,52 +365,109 @@ class DateQADataset:
             response = requests.get(url)
             events = []
 
-
             if response.status_code == 200:
-                soup = BeautifulSoup(response.content, 'html.parser')
+                soup = BeautifulSoup(response.content, "html.parser")
                 available_sections = []
-                for name in ['Events', 'Births', 'Deaths']:
-                    section = soup.find('span', id=name)
+                for name in ["Events", "Births", "Deaths"]:
+                    section = soup.find("span", id=name)
                     if section:
                         available_sections.append(name)
                 section = random.choice(available_sections)
                 # Find the events section
-                events_list = soup.find('span', id=section).parent.find_next_sibling('ul')
+                events_list = soup.find(
+                    "span", id=section
+                ).parent.find_next_sibling("ul")
 
-                for li in events_list.find_all('li'):
+                for li in events_list.find_all("li"):
                     events.append(li)
 
                 # Step 4: Extract Event Information and Step 5: Select an Event
                 if events:
                     selected_event = random.choice(events)
-                    links = selected_event.find_all('a')
-                    #link_titles = [link.get("title") for link in links]
+                    links = selected_event.find_all("a")
+                    # link_titles = [link.get("title") for link in links]
                     if links:
                         link = random.choice(links)
 
-                    return {'date': random_date.strftime('%B %d'), 'event': selected_event.get_text(), 'link': link.get("title")}
+                    return {
+                        "date": random_date.strftime("%B %d"),
+                        "event": selected_event.get_text(),
+                        "link": link.get("title"),
+                    }
 
     def next(self):
         bt.logging.debug("Retrieving data from prompting.dataset...")
         info = self.get_random_event()
         return info
 
-class MathDataset:
 
+class MathDataset:
     def random_problem(self, parse):
         if parse:
-            parseable_list = [2, 7, 11, 15, 19, 21, 24, 27, 29, 30, 32, 33, 35, 36, 42, 45, 48, 49, 52, 59, 60, 64, 66, 67, 68, 69, 70, 73, 76, 78, 81, 82, 83, 84, 85, 86, 87, 92, 94, 95, 96, 97, 105, 108, 109, 111, 115, 122, 123]
+            parseable_list = [
+                2,
+                7,
+                11,
+                15,
+                19,
+                21,
+                24,
+                27,
+                29,
+                30,
+                32,
+                33,
+                35,
+                36,
+                42,
+                45,
+                48,
+                49,
+                52,
+                59,
+                60,
+                64,
+                66,
+                67,
+                68,
+                69,
+                70,
+                73,
+                76,
+                78,
+                81,
+                82,
+                83,
+                84,
+                85,
+                86,
+                87,
+                92,
+                94,
+                95,
+                96,
+                97,
+                105,
+                108,
+                109,
+                111,
+                115,
+                122,
+                123,
+            ]
             options = parseable_list
             choice = random.choice((options))
             problem, solution = mathgenerator.genById(choice)
-            #problem = parse_latex(str(problem).replace('$', '').strip())
-            solution = parse_latex(str(solution).replace('$', '').strip()).evalf()
-            return {'problem': problem, 'solution': solution}
+            # problem = parse_latex(str(problem).replace('$', '').strip())
+            solution = parse_latex(
+                str(solution).replace("$", "").strip()
+            ).evalf()
+            return {"problem": problem, "solution": solution}
         else:
             options = mathgenerator.getGenList()
             choice = random.choice(range(len(options)))
             problem, solution = mathgenerator.genById(choice)
-            return {'problem': problem, 'solution': solution}
+            return {"problem": problem, "solution": solution}
 
     def next(self, parse=True):
         return self.random_problem(parse)

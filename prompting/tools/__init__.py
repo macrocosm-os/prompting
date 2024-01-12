@@ -5,5 +5,5 @@ from .dataset import (
     WikiDataset,
     StackOverflowDataset,
     DateQADataset,
-    MathDataset
+    MathDataset,
 )

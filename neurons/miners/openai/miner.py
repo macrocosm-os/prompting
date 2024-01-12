@@ -30,7 +30,6 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models import ChatOpenAI
 
 
-
 class OpenAIMiner(Miner):
     """
     Your miner neuron class. You should use this class to define your miner's behavior. In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
@@ -45,10 +44,10 @@ class OpenAIMiner(Miner):
 
         # Set openai key and other args
         self.model = ChatOpenAI(
-            model_name='gpt-4',
-            api_key = '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',
+            model_name="gpt-4",
+            api_key="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",
             # **kwargs
-            )
+        )
 
     async def forward(
         self, synapse: prompting.protocol.Synapse
@@ -68,12 +67,12 @@ class OpenAIMiner(Miner):
         """
         # TODO(developer): Replace with actual implementation logic.
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("{role}", "{input}")
-        ])
+        prompt = ChatPromptTemplate.from_messages([("{role}", "{input}")])
         chain = prompt | self.model | StrOutputParser()
 
-        response = chain.invoke({"role": synapse.roles[-1], "input": synapse.messages[-1]})
+        response = chain.invoke(
+            {"role": synapse.roles[-1], "input": synapse.messages[-1]}
+        )
 
         synapse.response = response
 

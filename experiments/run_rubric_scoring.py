@@ -45,14 +45,22 @@ def compute_rouge(string1, string2, key: str, return_metric="f"):
     rouge_scores = rouge.get_scores(string1, string2)[0]
 
     return {
-        f"rouge_1_{return_metric}_score_{key}": rouge_scores["rouge-1"][return_metric],
-        f"rouge-2_{return_metric}_score_{key}": rouge_scores["rouge-2"][return_metric],
-        f"rouge-l_{return_metric}_score_{key}": rouge_scores["rouge-l"][return_metric],
+        f"rouge_1_{return_metric}_score_{key}": rouge_scores["rouge-1"][
+            return_metric
+        ],
+        f"rouge-2_{return_metric}_score_{key}": rouge_scores["rouge-2"][
+            return_metric
+        ],
+        f"rouge-l_{return_metric}_score_{key}": rouge_scores["rouge-l"][
+            return_metric
+        ],
     }
 
 
 def main(run_ids=["f6ul5wr8", "85sx63hh"], tasks: List = ["qa"]):
-    wandb.init(project="agent_experiments", entity="sn1", tags=["rubric"] + tasks)
+    wandb.init(
+        project="agent_experiments", entity="sn1", tags=["rubric"] + tasks
+    )
 
     df = create_dataframe(run_ids=run_ids)
 

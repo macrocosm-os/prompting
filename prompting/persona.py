@@ -11,7 +11,14 @@ class Persona:
 
 def create_persona() -> Persona:
     """Defines the persona of the user. This is used to create the system prompt. It dictates the style of the agent's questions and communication."""
-    profiles = ["student", "teacher", "parent", "hacker", "programmer", "scientist"]
+    profiles = [
+        "student",
+        "teacher",
+        "parent",
+        "hacker",
+        "programmer",
+        "scientist",
+    ]
     # profiles = ["16 year old highschool student", ...
 
     # TODO: more terse, less verbose

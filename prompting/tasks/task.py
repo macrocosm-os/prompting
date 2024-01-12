@@ -27,7 +27,7 @@ class Task(ABC):
     reward_definition = List[dict]
     reward_threshold: float = 0.0
     reference: Union[str, List[str]] = None
-    criteria: str = "",
+    criteria: str = ("",)
     delimiter: str = ""
     complete: bool = False
     static_reference: bool = False
@@ -43,14 +43,23 @@ class Task(ABC):
         return {
             k: v
             for k, v in asdict(self).items()
-            if k in ("topic", "subtopic", "reference_prompt", "reference_system_prompt", "goal", "desc", "name")
+            if k
+            in (
+                "topic",
+                "subtopic",
+                "reference_prompt",
+                "reference_system_prompt",
+                "goal",
+                "desc",
+                "name",
+            )
         }
 
     def __state_dict__(self):
         return {
             "desc": self.desc,
             "goal": self.goal,
-            "query": self.query, # For now we just use the raw query but should add delimiters again
+            "query": self.query,  # For now we just use the raw query but should add delimiters again
             "topic": self.topic,
             "subtopic": self.subtopic,
         }
@@ -61,7 +70,6 @@ class Task(ABC):
     def formatted_challenge(self):
         return f"{self.delimiter}{self.challenge}{self.delimiter}"
 
-
     def generate_reference(self, llm):
         """Generates a reference answer to be used for scoring miner completions"""
         if self.static_reference:
@@ -70,7 +78,7 @@ class Task(ABC):
         self.reference = self.generate(
             system=self.reference_system_prompt,
             prompt=self.reference_prompt,
-            llm=llm
+            llm=llm,
         )
         return self.reference
 
@@ -80,9 +88,7 @@ class Task(ABC):
         if self.static_query:
             return self.query
         self.query = self.generate(
-            system=self.query_system_prompt,
-            prompt=self.query_prompt,
-            llm=llm
+            system=self.query_system_prompt, prompt=self.query_prompt, llm=llm
         )
         return self.query
 
@@ -93,5 +99,3 @@ class Task(ABC):
             agent = HuggingFaceLLM(llm, system_prompt=system)
 
         return agent.query(prompt)
-
-

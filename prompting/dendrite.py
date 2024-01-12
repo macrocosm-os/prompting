@@ -13,15 +13,18 @@ class MockSynapse:
 
 
 class MockDendrite:
-    async def __call__(self, synapse: bt.Synapse , timeout: float) -> List[MockSynapse]:
+    async def __call__(
+        self, synapse: bt.Synapse, timeout: float
+    ) -> List[MockSynapse]:
         synapse = MockSynapse(
             status_message="OK",
             status_code=200,
             completion="Hello, world!",
-            time=0.01
+            time=0.01,
         )
 
         return [synapse]
+
 
 # response = {
 #     'name': 'Prompting',
@@ -58,28 +61,36 @@ class MockDendrite:
 #     'completion': ''
 #     }
 
+
 class DendriteResponseEvent:
     def __init__(self, responses: List[bt.Synapse], uids: torch.IntTensor):
-
         bt.logging.info(f"responses: {responses}")
-        bt.logging.info(f'first miner response full object: {responses[1].__dict__}')
+        bt.logging.info(
+            f"first miner response full object: {responses[1].__dict__}"
+        )
         self.uids = uids
         self.completions = [response.completion for response in responses]
-        self.timings = [response.axon.process_time or 0 for response in responses]
-        self.status_messages = [response.axon.status_message for response in responses]
-        self.status_codes = [response.axon.status_code for response in responses]
+        self.timings = [
+            response.axon.process_time or 0 for response in responses
+        ]
+        self.status_messages = [
+            response.axon.status_message for response in responses
+        ]
+        self.status_codes = [
+            response.axon.status_code for response in responses
+        ]
 
     def as_dict(self):
         return {
-            'uids': self.uids.tolist(),
-            'completions': self.completions,
-            'timings': self.timings,
-            'status_messages': self.status_messages,
-            'status_codes': self.status_codes
+            "uids": self.uids.tolist(),
+            "completions": self.completions,
+            "timings": self.timings,
+            "status_messages": self.status_messages,
+            "status_codes": self.status_codes,
         }
-        
+
     def __repr__(self):
-        return f'DendriteResponseEvent(uids={self.uids}, completions={self.completions}, timings={self.timings}, status_messages={self.status_messages}, status_codes={self.status_codes})'
+        return f"DendriteResponseEvent(uids={self.uids}, completions={self.completions}, timings={self.timings}, status_messages={self.status_messages}, status_codes={self.status_codes})"
 
 
 if __name__ == "__main__":

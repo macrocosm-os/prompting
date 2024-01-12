@@ -21,37 +21,38 @@ Summarize the following context in a concise and accurate manner:
 {context}
 """
 
+
 @dataclass
-class SummarizationTask(Task):    
-    reward_definition=[
-        dict(name='rouge', ngram='rouge-l', metric='f'),
-        dict(name='relevance', threshold=None),
+class SummarizationTask(Task):
+    reward_definition = [
+        dict(name="rouge", ngram="rouge-l", metric="f"),
+        dict(name="relevance", threshold=None),
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True):
-
         self.context = context
 
         self.query_prompt = None
         # NOTE: We do not perform an inference here and just use the article title as the query. This is because the article title is usually a good summary of the article itself.
         # Query is just the article title
-        query = self.context['title']
+        query = self.context["title"]
 
         self.reference_system_prompt = SUMMARIZATION_SYSTEM_PROMPT
-        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=self.context['text'])
+        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
+            context=self.context["text"]
+        )
         if create_reference:
             reference = self.generate_reference(llm_pipeline)
         else:
             reference = None
-            
+
         super().__init__(
             name="summarization",
-            desc="get help with summarization",      
-            goal="summarize the following topic",         
-            query=query,   
-            reference=reference,           
-            topic=self.context['title'],
-            subtopic=self.context['categories'][0],            
-            tags=self.context['categories'],            
+            desc="get help with summarization",
+            goal="summarize the following topic",
+            query=query,
+            reference=reference,
+            topic=self.context["title"],
+            subtopic=self.context["categories"][0],
+            tags=self.context["categories"],
         )
-

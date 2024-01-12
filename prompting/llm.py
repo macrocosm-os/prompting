@@ -9,7 +9,9 @@ from abc import ABC, abstractmethod
 
 def pipeline(model_id, device_map=None, torch_dtype=None, mock=False):
     if mock:
-        return MockPipeline(model_id, device_map=device_map, torch_dtype=torch_dtype)
+        return MockPipeline(
+            model_id, device_map=device_map, torch_dtype=torch_dtype
+        )
 
     return pipeline(
         "text-generation",
@@ -18,8 +20,17 @@ def pipeline(model_id, device_map=None, torch_dtype=None, mock=False):
         torch_dtype=torch_dtype,
     )
 
+
 class LLM(ABC):
-    def __init__(self, pipeline, max_new_tokens=1024, do_sample=True, temperature=0.7, top_k=50, top_p=0.95):
+    def __init__(
+        self,
+        pipeline,
+        max_new_tokens=1024,
+        do_sample=True,
+        temperature=0.7,
+        top_k=50,
+        top_p=0.95,
+    ):
         self.pipeline = pipeline
         self.kwargs = dict(
             do_sample=do_sample,
@@ -47,11 +58,7 @@ class LLM(ABC):
         return self.forward(messages)
 
 
-
-
-
 class HuggingFaceLLM(LLM):
-
     def __init__(
         self,
         pipeline: Pipeline,
@@ -75,7 +82,9 @@ class HuggingFaceLLM(LLM):
         self.messages = [{"content": self.system_prompt, "role": "system"}]
         self.times = [0]
 
-    def query(self, message, cleanup=True, role="user", disregard_system_prompt=False):
+    def query(
+        self, message, cleanup=True, role="user", disregard_system_prompt=False
+    ):
         messages = self.messages + [{"content": message, "role": role}]
 
         if disregard_system_prompt:
@@ -106,7 +115,8 @@ class HuggingFaceLLM(LLM):
         response.split("\n")
         if cleanup and response.startswith("Assistant:"):
             print(f"Cleaning up response: {response}")
-            response = response.strip("Assistant:").split("User:")[0].strip("\n")
+            response = (
+                response.strip("Assistant:").split("User:")[0].strip("\n")
+            )
 
         return response
-

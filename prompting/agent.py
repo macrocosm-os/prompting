@@ -63,9 +63,10 @@ class HumanAgent(HuggingFaceLLM):
 
     def create_challenge(self) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
-        self.challenge = super().query(message="Ask a question related to your goal")
+        self.challenge = super().query(
+            message="Ask a question related to your goal"
+        )
         return self.challenge.strip(' "')
-
 
     def __str__(self):
         return self.system_prompt
@@ -104,7 +105,7 @@ if __name__ == "__main__":
         "text-generation",
         model="HuggingFaceH4/zephyr-7b-beta",
         torch_dtype=torch.bfloat16,
-        #device_map="cuda:0",
+        # device_map="cuda:0",
         device_map="auto",
     )
 
@@ -127,6 +128,3 @@ if __name__ == "__main__":
     # bt.logging.info(f'Task query: {task.query}')
     # bt.logging.info(f'Task reference: {task.reference}')
     # bt.logging.info(f'Agent challenge: {agent.challenge}')
-
-
-

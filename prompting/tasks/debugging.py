@@ -31,7 +31,17 @@ Introduce a bug to the following {language} code snippet in triple backticks (``
 # {query}
 # """
 
-def corrupt(code, n_remove=0, n_swap=0, seed=None, sep=' ', min_length=1, max_length=10, remove_comment_lines=False):
+
+def corrupt(
+    code,
+    n_remove=0,
+    n_swap=0,
+    seed=None,
+    sep=" ",
+    min_length=1,
+    max_length=10,
+    remove_comment_lines=False,
+):
     """
     Corrupt a piece of code by removing and/or swapping chunks of it.
     TODO: Ignore comments and strings(?) when corrupting the code.
@@ -49,54 +59,88 @@ def corrupt(code, n_remove=0, n_swap=0, seed=None, sep=' ', min_length=1, max_le
     # set seed for reproducibility
     random.seed(seed)
 
-    assert n_remove + n_swap > 0, 'Must specify at least one corruption type.'
+    assert n_remove + n_swap > 0, "Must specify at least one corruption type."
 
-    def remove(code, n, sep=' ', min_length=1, max_length=10):
+    def remove(code, n, sep=" ", min_length=1, max_length=10):
         """Remove n random chunks from the code. Chunks can be characters, words, or lines."""
 
         chunks = code.split(sep) if sep else list(code)
 
         # select n random chunks to remove
-        indices = random.sample([i for i, chunk in enumerate(chunks) if min_length <= len(chunk) <= max_length], n)
-        bt.logging.info(f'Removing the following {len(indices)} chunks: {[chunks[i] for i in indices]} at indices {indices}')
+        indices = random.sample(
+            [
+                i
+                for i, chunk in enumerate(chunks)
+                if min_length <= len(chunk) <= max_length
+            ],
+            n,
+        )
+        bt.logging.info(
+            f"Removing the following {len(indices)} chunks: {[chunks[i] for i in indices]} at indices {indices}"
+        )
 
-        return sep.join([chunk for i, chunk in enumerate(chunks) if i not in indices])
+        return sep.join(
+            [chunk for i, chunk in enumerate(chunks) if i not in indices]
+        )
 
-    def swap(code, sep=' ', min_length=1, max_length=10):
+    def swap(code, sep=" ", min_length=1, max_length=10):
         """Swap two random chunks in the code. Chunks can be characters, words, or lines."""
         chunks = code.split(sep) if sep else list(code)
 
         # select 2 random chunks to swap
-        indices = random.sample([i for i, chunk in enumerate(chunks) if min_length <= len(chunk) <= max_length], 2)
+        indices = random.sample(
+            [
+                i
+                for i, chunk in enumerate(chunks)
+                if min_length <= len(chunk) <= max_length
+            ],
+            2,
+        )
 
-        bt.logging.info(f'Swapping chunk {chunks[indices[0]]!r} at index {indices[0]} with chunk {chunks[indices[1]]!r} at index {indices[1]}')
+        bt.logging.info(
+            f"Swapping chunk {chunks[indices[0]]!r} at index {indices[0]} with chunk {chunks[indices[1]]!r} at index {indices[1]}"
+        )
 
-        chunks[indices[0]], chunks[indices[1]] = chunks[indices[1]], chunks[indices[0]]
+        chunks[indices[0]], chunks[indices[1]] = (
+            chunks[indices[1]],
+            chunks[indices[0]],
+        )
 
         return sep.join(chunks)
 
     # Do this at your peril. It doesn't catch multiline comments or strings.
     if remove_comment_lines:
-        code = '\n'.join([line for line in code.splitlines() if not line.strip() or line.strip().startswith('#','//')])
+        code = "\n".join(
+            [
+                line
+                for line in code.splitlines()
+                if not line.strip() or line.strip().startswith("#", "//")
+            ]
+        )
 
     # spread n corruptions across the code
     for i in range(n_remove):
-        code = remove(code, n=1, sep=sep, min_length=min_length, max_length=max_length)
+        code = remove(
+            code, n=1, sep=sep, min_length=min_length, max_length=max_length
+        )
     for i in range(n_swap):
         code = swap(code, sep=sep, min_length=min_length, max_length=max_length)
 
     return code
 
+
 def diff(query, reference):
     """Get the diff between two strings."""
-    return '\n'.join(difflib.unified_diff(query.splitlines(), reference.splitlines()))
+    return "\n".join(
+        difflib.unified_diff(query.splitlines(), reference.splitlines())
+    )
 
 
 @dataclass
 class DebuggingTask(Task):
     reward_definition = [
-        dict(name='diff', lines=False, threshold=0.5),
-        dict(name='relevance', threshold=None),
+        dict(name="diff", lines=False, threshold=0.5),
+        dict(name="relevance", threshold=None),
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True):
@@ -112,20 +156,37 @@ class DebuggingTask(Task):
         reference = self.generate_reference()
 
         super().__init__(
-            name='debugging',
+            name="debugging",
             desc="get help with debugging",
             goal=f"ask for help fixing the broken piece of code. When asking for help do not adjust the code in any way.",
             query=query,
             reference=reference,
-            topic=self.context['repo_name'],
-            subtopic=self.context['path'],
-            tags=self.context['language'],
+            topic=self.context["repo_name"],
+            subtopic=self.context["path"],
+            tags=self.context["language"],
         )
 
-    def generate_query(self, llm=None, n_remove=1, n_swap=1, seed=0, sep='', min_length=1, max_length=10):
-        self.query = corrupt(self.context['code'], n_remove=n_remove, n_swap=n_swap, seed=seed, sep=sep, min_length=min_length, max_length=max_length)
+    def generate_query(
+        self,
+        llm=None,
+        n_remove=1,
+        n_swap=1,
+        seed=0,
+        sep="",
+        min_length=1,
+        max_length=10,
+    ):
+        self.query = corrupt(
+            self.context["code"],
+            n_remove=n_remove,
+            n_swap=n_swap,
+            seed=seed,
+            sep=sep,
+            min_length=min_length,
+            max_length=max_length,
+        )
         return self.query
 
     def generate_reference(self, llm=None):
         """Overrides the default reference generation to just return the reference code"""
-        return self.context['code']
+        return self.context["code"]

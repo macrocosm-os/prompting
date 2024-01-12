@@ -150,9 +150,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # In case of unforeseen errors, the validator will log the error and continue operations.
         except Exception as err:
             bt.logging.error("Error during validation", str(err))
-            bt.logging.debug(
-                print_exception(type(err), err, err.__traceback__)
-            )
+            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
 
     def run_in_background_thread(self):
         """
@@ -286,9 +284,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # If so, we need to add new hotkeys and moving averages.
         if len(self.hotkeys) < len(self.metagraph.hotkeys):
             # Update the size of the moving average scores.
-            new_moving_average = torch.zeros((self.metagraph.n)).to(
-                self.device
-            )
+            new_moving_average = torch.zeros((self.metagraph.n)).to(self.device)
             min_len = min(len(self.hotkeys), len(self.scores))
             new_moving_average[:min_len] = self.scores[:min_len]
             self.scores = new_moving_average

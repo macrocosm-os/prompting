@@ -33,14 +33,21 @@ from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
 from prompting.conversation import create_task
 from prompting.protocol import Prompting
-from prompting.rewards import RewardPipeline, RewardResult, RewardEvent, RewardModelTypeEnum
+from prompting.rewards import (
+    RewardPipeline,
+    RewardResult,
+    RewardEvent,
+    RewardModelTypeEnum,
+)
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import init_wandb
 
 from transformers import pipeline
 
 
-async def run_step(self, agent: HumanAgent, k: int, timeout: float, exclude: list = []):
+async def run_step(
+    self, agent: HumanAgent, k: int, timeout: float, exclude: list = []
+):
     """Executes a single step of the agent, which consists of:
     - Getting a list of uids to query
     - Querying the network
@@ -74,16 +81,18 @@ async def run_step(self, agent: HumanAgent, k: int, timeout: float, exclude: lis
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses, uids)
 
-    bt.logging.info(f'Created DendriteResponseEvent:\n {response_event}')
+    bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
-    reward_result = RewardResult(self.reward_pipeline, task=agent.task, response_event=response_event)
-    bt.logging.info(f'Created RewardResult:\n {reward_result}')
+    reward_result = RewardResult(
+        self.reward_pipeline, task=agent.task, response_event=response_event
+    )
+    bt.logging.info(f"Created RewardResult:\n {reward_result}")
 
     # The original idea was that the agent is 'satisfied' when it gets a good enough response (e.g. reward critera is met, such as ROUGE>threshold)
     agent.update_progress(
         top_reward=reward_result.rewards.max(),
-        top_response=response_event.completions[reward_result.rewards.argmax()]
+        top_response=response_event.completions[reward_result.rewards.argmax()],
     )
 
     self.update_scores(uids, reward_result.rewards)
@@ -92,9 +101,13 @@ async def run_step(self, agent: HumanAgent, k: int, timeout: float, exclude: lis
     event = {
         "block": self.block,
         "step_time": time.time() - start_time,
-        **asdict(agent.task), # can include time to use tools, create query/references
-        **asdict(reward_result), # can include fine-gained rewards as well as times
-        **asdict(response_event) # can include times, status, and completions
+        **asdict(
+            agent.task
+        ),  # can include time to use tools, create query/references
+        **asdict(
+            reward_result
+        ),  # can include fine-gained rewards as well as times
+        **asdict(response_event),  # can include times, status, and completions
     }
 
     bt.logging.debug(f"Step complete. Event:\n{event}")
@@ -108,18 +121,22 @@ async def run_step(self, agent: HumanAgent, k: int, timeout: float, exclude: lis
     return event
 
 
-
 async def forward(self):
-
-    bt.logging.info(f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}")
+    bt.logging.info(
+        f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
+    )
     # Create a specific task
-    task_name = np.random.choice(self.config.neuron.tasks, p=self.config.neuron.task_p)
+    task_name = np.random.choice(
+        self.config.neuron.tasks, p=self.config.neuron.task_p
+    )
     bt.logging.info(f"📋 Creating {task_name} task... ")
     task = create_task(self.llm_pipeline, task_name)
 
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
-    agent = HumanAgent(task=task, llm=self.llm_pipeline, begin_conversation=True)
+    agent = HumanAgent(
+        task=task, llm=self.llm_pipeline, begin_conversation=True
+    )
 
     rounds = 0
     exclude_uids = []
@@ -130,36 +147,39 @@ async def forward(self):
             agent,
             k=self.config.neuron.sample_size,
             timeout=self.config.neuron.timeout,
-            exclude=exclude_uids
+            exclude=exclude_uids,
         )
-        exclude_uids += event['uids']
+        exclude_uids += event["uids"]
 
         ## TODO: Add max_turns and termination_probability parameters
-        if rounds > self.config.max_turns or random.random() < self.config.termination_probability:
+        if (
+            rounds > self.config.max_turns
+            or random.random() < self.config.termination_probability
+        ):
             break
 
         rounds += 1
 
 
-
-
 if __name__ == "__main__":
     # NOTE: TASKS MATH AND DATE_QA ARE NOT WORKING
     tasks_sampling_distribution = {
-        'debugging':0.0,
-        'qa': 0.0,
-        'summarization': 0.0,
-        'math': 1.0,
-        'date_qa':0.0
+        "debugging": 0.0,
+        "qa": 0.0,
+        "summarization": 0.0,
+        "math": 1.0,
+        "date_qa": 0.0,
     }
 
     # Filter out tasks with 0 probability of being sampled to be highlighted in wandb
-    sampled_tasks = [key for key, value in tasks_sampling_distribution.items() if value != 0]
+    sampled_tasks = [
+        key for key, value in tasks_sampling_distribution.items() if value != 0
+    ]
     wandb_config = SimpleNamespace(
         project_name="agent_experiments",
         entity="sn1",
         # NOTE: CHECK APPROPIATE TAGS FOR YOUR TEST RUN
-        tags=['MOCK_TEST', 'zephyr_4bits'] + sampled_tasks,
+        tags=["MOCK_TEST", "zephyr_4bits"] + sampled_tasks,
         off=False,
     )
 
@@ -174,8 +194,8 @@ if __name__ == "__main__":
 
     #### CONFIG ####
     config = SimpleNamespace(
-        model_id = "HuggingFaceH4/zephyr-7b-beta",
-        neuron = SimpleNamespace(
+        model_id="HuggingFaceH4/zephyr-7b-beta",
+        neuron=SimpleNamespace(
             tasks=list(tasks_sampling_distribution.keys()),
             task_p=list(tasks_sampling_distribution.values()),
             moving_average_alpha=0.1,
@@ -183,24 +203,23 @@ if __name__ == "__main__":
         mock=True,
         sample_size=10,
         timeout=15,
-        device='cuda',
+        device="cuda",
         max_turns=1,
         termination_probability=1,
-        wandb=wandb_config
+        wandb=wandb_config,
     )
 
     #### GLOBAL SELF / NEURON ####
     llm_pipeline = pipeline(
         "text-generation",
         model_id=config.model_id,
-        #device_map="cuda:0",
+        # device_map="cuda:0",
         device_map="auto",
-
         model_kwargs={
             "torch_dtype": torch.float16,
             # NOTE: LINE BELLOW IS TEMPORARY SINCE WE ONLY HAVE ONE FUNCTIONING GPU FOR 2 DIFFERENT USERS, SHOULD NOT BE USED IF GPU IS AVAILABLE
-            "load_in_4bit": True
-        }
+            "load_in_4bit": True,
+        },
     )
 
     from neurons.validator import Validator
@@ -219,12 +238,10 @@ if __name__ == "__main__":
     #     wandb=init_wandb(config)
     # )
 
-
     #### FLOW EXECUTION ####
     num_steps = 4
     for _ in range(num_steps):
         asyncio.run(forward(mock_self))
 
     mock_self.wandb.finish()
-    pd.DataFrame(mock_self.mock_log).to_csv('mock_log.csv')
-
+    pd.DataFrame(mock_self.mock_log).to_csv("mock_log.csv")

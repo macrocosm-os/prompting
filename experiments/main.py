@@ -1,6 +1,11 @@
 import bittensor as bt
 import time
-from prompting.tasks import Task, SummarizationTask, WikiDataset, QuestionAnsweringTask
+from prompting.tasks import (
+    Task,
+    SummarizationTask,
+    WikiDataset,
+    QuestionAnsweringTask,
+)
 from typing import List
 from experiments.miners import Miner, NetworkResponse, MockMiner
 from prompting.utils import export_logs, Log
@@ -14,6 +19,7 @@ import torch
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain.chat_models import ChatOpenAI
 
+
 class Neuron:
     def __init__(self, llm):
         self.llm = llm
@@ -21,16 +27,16 @@ class Neuron:
 
 def load_llm(model: str, **kwargs):
     bt.logging.info(f"🤖 Loading LLM model {model}...")
-    if model == 'zephyr':
+    if model == "zephyr":
         llm = HuggingFacePipeline.from_model_id(
             model_id="HuggingFaceH4/zephyr-7b-beta",
             task="text-generation",
             device=0,  # replace with device_map="auto" to use the accelerate library.
-            #device_map="cuda:0",
+            # device_map="cuda:0",
             pipeline_kwargs={"max_new_tokens": 256},
-            model_kwargs={ "torch_dtype": torch.bfloat16 }
+            model_kwargs={"torch_dtype": torch.bfloat16},
         )
-    elif model.startswith('gpt'):
+    elif model.startswith("gpt"):
         llm = ChatOpenAI(model_name=model, max_tokens=256, **kwargs)
     else:
         raise NotImplementedError(f"Model {model} not implemented")
@@ -41,41 +47,38 @@ def load_llm(model: str, **kwargs):
 
 def get_model_name_from_llm(llm) -> str:
     # Handles different naming rules for langchain wrappers
-    if hasattr(llm, 'model_name') and llm.model_name is not None:
-        return llm.model_name # model_name: OpenAI format
+    if hasattr(llm, "model_name") and llm.model_name is not None:
+        return llm.model_name  # model_name: OpenAI format
     else:
-        return llm.model_id # model_id: HuggingFace
+        return llm.model_id  # model_id: HuggingFace
 
 
-
-def load_neuron(model: str) -> Neuron:        
+def load_neuron(model: str) -> Neuron:
     # Load OpenAI API key from .env file for test purposes, remove for production
-    _ = load_dotenv(find_dotenv()) 
-    openai.api_key = os.environ['OPENAI_API_KEY']
-    
+    _ = load_dotenv(find_dotenv())
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+
     # Loads LLM from model name
     llm = load_llm(model)
-    neuron = Neuron(llm)    
+    neuron = Neuron(llm)
     return neuron
 
 
 def create_random_task(llm) -> Task:
     # TODO: Implement data seed creation
-    # TODO: Implement random task creation    
+    # TODO: Implement random task creation
     # TODO: Modify tasks on ./tasks/* to support langchain
     dataset = Dataset()
     dataset = WikiDataset()
-    task = SummarizationTask(dataset)    
-    task = QuestionAnsweringTask()    
+    task = SummarizationTask(dataset)
+    task = QuestionAnsweringTask()
     return task
 
 
-
-def create_random_task(llm) -> Task:        
-    return random.choice([
-        SummarizationTask(WikiDataset()), 
-        QuestionAnsweringTask()
-    ])
+def create_random_task(llm) -> Task:
+    return random.choice(
+        [SummarizationTask(WikiDataset()), QuestionAnsweringTask()]
+    )
 
 
 def query_network(query: str, llm) -> List[NetworkResponse]:
@@ -85,15 +88,17 @@ def query_network(query: str, llm) -> List[NetworkResponse]:
 
     # zephyr_miner = Miner(llm)
     gpt4_miner = Miner(load_llm("gpt-4"))
-    mock_miner = MockMiner(default_response="Austin is the capital of Texas", miner_id="static_response")
+    mock_miner = MockMiner(
+        default_response="Austin is the capital of Texas",
+        miner_id="static_response",
+    )
 
     # miners = [zephyr_miner, gpt4_miner, mock_miner]
     miners = [gpt4_miner, mock_miner]
 
-
-    #TODO: Make async if takes too long
+    # TODO: Make async if takes too long
     responses = []
-    for miner in miners:    
+    for miner in miners:
         response = miner.query(query)
         responses.append(response)
 
@@ -101,7 +106,7 @@ def query_network(query: str, llm) -> List[NetworkResponse]:
 
 
 def reward_responses(responses: List[str], reference: str):
-   # TODO: Add time scoring function
+    # TODO: Add time scoring function
     rewards = calculate_rouge_scores(responses, reference)
     return rewards
 
@@ -112,7 +117,7 @@ def update_weights_on_chain(responses: List[bt.Synapse], rewards: List[float]):
     pass
 
 
-def forward(neuron) -> Log: 
+def forward(neuron) -> Log:
     bt.logging.info("📋 Creating random task... ")
     task = create_random_task(neuron.llm)
     bt.logging.info("✅ Created task: " + task.name)
@@ -120,11 +125,11 @@ def forward(neuron) -> Log:
     agent = HumanAgent(task=task, llm=neuron.llm, begin_conversation=False)
 
     t0 = time.time()
-    agent.challenge = agent.create_challenge()        
-    challenge_time = time.time() - t0 
-    
+    agent.challenge = agent.create_challenge()
+    challenge_time = time.time() - t0
+
     t0 = time.time()
-    agent.reference = agent.create_reference()        
+    agent.reference = agent.create_reference()
     reference_time = time.time() - t0
 
     bt.logging.info("🌐 Querying network...")
@@ -135,7 +140,7 @@ def forward(neuron) -> Log:
 
     bt.logging.info("💰 Rewarding responses...")
     rewards = reward_responses(responses, agent.reference)
-    
+
     bt.logging.info("🔗 Updating weights on chain...")
     update_weights_on_chain(responses, rewards)
 
@@ -152,7 +157,7 @@ def forward(neuron) -> Log:
         rewards=rewards,
         task=task.asdict(),
         # extra_info=get_extra_log_info(agent, references)
-    )    
+    )
 
     return log
 
@@ -166,7 +171,7 @@ if __name__ == "__main__":
 
     # Run one step, set defined number of steps for now to facilitate testing
     steps_to_run = 1
-    logs = []    
+    logs = []
     for _ in range(steps_to_run):
         log = forward(neuron)
         logs.append(log)
