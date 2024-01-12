@@ -139,8 +139,8 @@ def diff(query, reference):
 @dataclass
 class DebuggingTask(Task):
     reward_definition = [
-        dict(name="diff", lines=False, threshold=0.5),
-        dict(name="relevance", threshold=None),
+        dict(name="diff", lines=False, threshold=0.5, weight=1.0),
+        dict(name="relevance", threshold=None, weight=1.0),
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True):

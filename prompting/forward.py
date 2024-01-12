@@ -17,13 +17,11 @@
 # DEALINGS IN
 #  THE SOFTWARE.
 import time
-import wandb
 import torch
 import random
 import asyncio
 
 import numpy as np
-import pandas as pd
 import bittensor as bt
 
 from typing import List
@@ -33,20 +31,12 @@ from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
 from prompting.conversation import create_task
 from prompting.protocol import Prompting
-from prompting.rewards import (
-    RewardPipeline,
-    RewardResult,
-    RewardEvent,
-    RewardModelTypeEnum,
-)
+from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
-from prompting.utils.logging import init_wandb
-
-from transformers import pipeline
 
 
 async def run_step(
-    self, agent: HumanAgent, k: int, timeout: float, exclude: list = []
+    self, agent: HumanAgent, k: int, timeout: float, exclude: list = None
 ):
     """Executes a single step of the agent, which consists of:
     - Getting a list of uids to query
@@ -67,7 +57,7 @@ async def run_step(
     # Record event start time.
     start_time = time.time()
     # Get the list of uids to query for this step.
-    uids = get_random_uids(self, k=k, exclude=exclude).to(self.device)
+    uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
 
     axons = [self.metagraph.axons[uid] for uid in uids]
     # Make calls to the network with the prompt.
@@ -85,7 +75,7 @@ async def run_step(
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
     reward_result = RewardResult(
-        self.reward_pipeline, task=agent.task, response_event=response_event
+        self.reward_pipeline, task=agent.task, response_event=response_event, device=self.device
     )
     bt.logging.info(f"Created RewardResult:\n {reward_result}")
 
@@ -101,22 +91,15 @@ async def run_step(
     event = {
         "block": self.block,
         "step_time": time.time() - start_time,
-        **asdict(
-            agent.task
-        ),  # can include time to use tools, create query/references
-        **asdict(
-            reward_result
-        ),  # can include fine-gained rewards as well as times
-        **asdict(response_event),  # can include times, status, and completions
+        # can include time to use tools, create query/references
+        **asdict(agent.task),
+        # can include fine-gained rewards as well as times
+        **asdict(reward_result),
+        **asdict(response_event),
     }
 
     bt.logging.debug(f"Step complete. Event:\n{event}")
-    if not self.config.neuron.dont_save_events:
-        logger.log("EVENTS", "events", **event)
-
-    # Log the event to wandb.
-    if not self.config.wandb.off:
-        self.wandb.log(event)
+    self.log(event)
 
     return event
 
@@ -135,7 +118,7 @@ async def forward(self):
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
     agent = HumanAgent(
-        task=task, llm=self.llm_pipeline, begin_conversation=True
+        task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True
     )
 
     rounds = 0
@@ -183,15 +166,6 @@ if __name__ == "__main__":
         off=False,
     )
 
-    class MockLogger:
-        def __init__(self):
-            self.history = []
-
-        def log(self, level, name, **kwargs):
-            self.history.append(kwargs)
-
-    logger = MockLogger()
-
     #### CONFIG ####
     config = SimpleNamespace(
         model_id="HuggingFaceH4/zephyr-7b-beta",
@@ -207,19 +181,6 @@ if __name__ == "__main__":
         max_turns=1,
         termination_probability=1,
         wandb=wandb_config,
-    )
-
-    #### GLOBAL SELF / NEURON ####
-    llm_pipeline = pipeline(
-        "text-generation",
-        model_id=config.model_id,
-        # device_map="cuda:0",
-        device_map="auto",
-        model_kwargs={
-            "torch_dtype": torch.float16,
-            # NOTE: LINE BELLOW IS TEMPORARY SINCE WE ONLY HAVE ONE FUNCTIONING GPU FOR 2 DIFFERENT USERS, SHOULD NOT BE USED IF GPU IS AVAILABLE
-            "load_in_4bit": True,
-        },
     )
 
     from neurons.validator import Validator
@@ -244,4 +205,6 @@ if __name__ == "__main__":
         asyncio.run(forward(mock_self))
 
     mock_self.wandb.finish()
+
+    import pandas as pd
     pd.DataFrame(mock_self.mock_log).to_csv("mock_log.csv")

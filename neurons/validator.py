@@ -21,7 +21,7 @@ import torch
 import bittensor as bt
 
 from prompting.forward import forward
-from prompting.llm import pipeline
+from prompting.llm import load_pipeline
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.rewards import RewardPipeline
 
@@ -37,7 +37,7 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info("load_state()")
         self.load_state()
 
-        self.llm_pipeline = pipeline(
+        self.llm_pipeline = load_pipeline(
             model_id=self.config.model_id,
             torch_dtype=torch.bfloat16,
             device_map=self.device,

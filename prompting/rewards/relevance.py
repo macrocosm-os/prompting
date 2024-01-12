@@ -17,11 +17,11 @@ class RelevanceRewardModel(BaseRewardModel):
     def model_type(self) -> RewardModelTypeEnum:
         return RewardModelTypeEnum.WEIGHTED_REWARD
 
-    def __init__(self, threshold=None, device="cuda", **kwargs):
+    def __init__(self, threshold=None, device="cuda", pooling_strategy="cls"):
         super().__init__()
         self.threshold = threshold
         self.model = AnglE.from_pretrained(
-            "WhereIsAI/UAE-Large-V1", pooling_strategy="cls"
+            "WhereIsAI/UAE-Large-V1", pooling_strategy=pooling_strategy
         )
         if device == "cuda":
             self.model = self.model.cuda()

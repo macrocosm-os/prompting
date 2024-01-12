@@ -3,10 +3,11 @@ import textwrap
 import bittensor as bt
 
 from prompting.tasks import Task
-from prompting.llm import HuggingFaceLLM
+from prompting.llm import HuggingFaceLLM, load_pipeline
+
 from prompting.persona import Persona, create_persona
 
-from transformers import pipeline
+from transformers import Pipeline
 
 
 class HumanAgent(HuggingFaceLLM):
@@ -30,7 +31,7 @@ class HumanAgent(HuggingFaceLLM):
     def __init__(
         self,
         task: Task,
-        llm,
+        llm_pipeline: Pipeline,
         system_template: str = None,
         persona: Persona = None,
         begin_conversation=True,
@@ -39,7 +40,7 @@ class HumanAgent(HuggingFaceLLM):
             self.persona = create_persona()
 
         self.task = task
-        self.llm = llm
+        self.llm_pipeline = llm_pipeline
 
         if system_template is not None:
             self.system_prompt_template = system_template
@@ -51,7 +52,7 @@ class HumanAgent(HuggingFaceLLM):
         )
 
         super().__init__(
-            pipeline=llm,
+            llm_pipeline=llm_pipeline,
             system_prompt=self.system_prompt,
             max_new_tokens=256,
         )
@@ -78,7 +79,7 @@ class HumanAgent(HuggingFaceLLM):
         # Generates response to miner response
         self.query(miner_response)
         # Updates current prompt with new state of conversation
-        self.prompt = self.get_history_prompt()
+        # self.prompt = self.get_history_prompt()
 
     def update_progress(
         self, top_reward: float, top_response: str, continue_conversation=False
@@ -101,11 +102,9 @@ class HumanAgent(HuggingFaceLLM):
 if __name__ == "__main__":
     bt.logging.info("🤖 Loading LLM model...")
 
-    llm_pipeline = pipeline(
-        "text-generation",
-        model="HuggingFaceH4/zephyr-7b-beta",
+    llm_pipeline = load_pipeline(
+        model_id="HuggingFaceH4/zephyr-7b-beta",
         torch_dtype=torch.bfloat16,
-        # device_map="cuda:0",
         device_map="auto",
     )
 

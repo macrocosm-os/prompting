@@ -5,6 +5,7 @@ import bittensor as bt
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import List
+from loguru import logger
 
 
 @dataclass
@@ -65,3 +66,13 @@ def init_wandb(config):
         entity=config.wandb.entity,
         tags=config.wandb.tags,
     )
+
+
+def log(self, event):
+
+    if not self.config.neuron.dont_save_events:
+        logger.log("EVENTS", "events", **event)
+
+    # Log the event to wandb.
+    if not self.config.wandb.off:
+        self.wandb.log(event)

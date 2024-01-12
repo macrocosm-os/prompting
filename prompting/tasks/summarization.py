@@ -25,8 +25,8 @@ Summarize the following context in a concise and accurate manner:
 @dataclass
 class SummarizationTask(Task):
     reward_definition = [
-        dict(name="rouge", ngram="rouge-l", metric="f"),
-        dict(name="relevance", threshold=None),
+        dict(name="rouge", ngram="rouge-l", metric="f", weight=1.0),
+        dict(name="relevance", threshold=None, weight=1.0),
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True):

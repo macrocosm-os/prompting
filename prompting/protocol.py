@@ -17,10 +17,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import pydantic
-import time
-import torch
-from typing import List
 import bittensor as bt
+
+from typing import List
 from starlette.responses import StreamingResponse
 
 

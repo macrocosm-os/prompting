@@ -32,23 +32,23 @@ def create_task(llm_pipeline, task_name):
         dataset = DateQADataset()
 
     if task_name == "summarization":
-        return SummarizationTask(
+        task = SummarizationTask(
             llm_pipeline=llm_pipeline, context=dataset.next()
         )
 
     elif task_name == "qa":
-        return QuestionAnsweringTask(
+        task = QuestionAnsweringTask(
             llm_pipeline=llm_pipeline, context=dataset.next()
         )
 
     elif task_name == "debugging":
-        return DebuggingTask(llm_pipeline=llm_pipeline, context=dataset.next())
+        task = DebuggingTask(llm_pipeline=llm_pipeline, context=dataset.next())
 
     elif task_name == "math":
-        return MathTask(llm_pipeline=llm_pipeline, context=dataset.next())
+        task = MathTask(llm_pipeline=llm_pipeline, context=dataset.next())
 
     elif task_name == "date_qa":
-        return DateQuestionAnsweringTask(
+        task = DateQuestionAnsweringTask(
             llm_pipeline=llm_pipeline, context=dataset.next()
         )
 
@@ -56,3 +56,5 @@ def create_task(llm_pipeline, task_name):
         raise ValueError(
             f"Task {task_name} not supported. Please choose a valid task"
         )
+        
+    return task

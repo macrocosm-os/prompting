@@ -1,6 +1,7 @@
 import torch
 import time
-from typing import List
+import bittensor as bt
+from typing import List, Dict
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -12,86 +13,90 @@ class RewardModelTypeEnum(Enum):
     PENALTY = "penalty"
 
 
-# Move code out of here
 @dataclass
 class RewardEvent:
+    """Contains rewards for all the responses in a batch"""
     rewards: torch.FloatTensor
-    timings: List[float]
-    model: str
+    timings: torch.FloatTensor
+    model_name: str
     model_type: RewardModelTypeEnum
     batch_time: float
     extra_info: dict
-    uids: List[float]
 
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
         return {
-            f"{self.model}_model_raw_rewards": self.rewards,
-            f"{self.model}_model_timings": [
-                round(num, 5) for num in self.timings
-            ]
-            if self.timings
-            else None,
-            f"{self.model}_model_batch_time": self.batch_time,
-            f"{self.model}_model_extra_info": self.extra_info,
+            f"{self.model_name}_raw_rewards": self.rewards,
+            f"{self.model_name}_timings": self.timings,
+            f"{self.model_name}_batch_time": self.batch_time,
+            f"{self.model_name}_extra_info": self.extra_info,
         }
 
 
 class RewardResult:
-    def __init__(self, reward_pipeline, task, response_event):
+    def __init__(self, reward_pipeline, task, response_event, device):
+
         self.reward_pipeline = reward_pipeline
-        self.task = task
         self.response_event = response_event
+        self.device = device
+        self.task = task
+        self.reward_events = self.reward_responses()
+        self.rewards = self.total_reward()
 
-    def get_rewards(
-        self, task, rewards_events: List[RewardEvent]
-    ) -> torch.FloatTensor:
-        # TODO: How would using the Agent as a reward model fit into this flow?
-        # Compute the rewards for the responses given the prompt
-        # Creates a dict with the uids as keys and the final rewards as values
-        uids_final_rewards = {}
+    def reward_responses(self) -> List[RewardEvent]:
+        """Calculates the rewards for the responses given the task and returns a RewardEvent for each reward model"""
 
-        for task_reward_definition in task.reward_definition:
-            # Gets appropriate reward event for the reward model defined in the task
-            reward_event = next(
-                (
-                    event
-                    for event in rewards_events
-                    if task_reward_definition["name"] == event.model
-                ),
-                None,
-            )
+        reward_events = []
 
-            if reward_event.model_type == RewardModelTypeEnum.WEIGHTED_REWARD:
-                for uid, reward in zip(reward_event.uids, reward_event.rewards):
-                    # Sets uid as int instead of tensor
-                    uid = uid.item()
-                    # Multiplies the reward by the weight defined in the task
-                    final_rewards = task_reward_definition["weight"] * reward
-                    # Adds the reward to the uid's final reward
-                    uid_reward = uids_final_rewards.get(uid, 0)
-                    uids_final_rewards[uid] = uid_reward + final_rewards
+        for reward_info in self.task.reward_definition:
 
-            elif reward_event.model_type == RewardModelTypeEnum.FILTER_REWARD:
-                ...
-            elif reward_event.model_type == RewardModelTypeEnum.PENALTY:
-                ...
-            else:
+            # Select the reward model from preloaded reward model pipeline
+            model = self.reward_pipeline.reward_models.get(reward_info["name"])
+            if not model:
                 raise ValueError(
-                    f"Reward model type {reward_event.model_type} not supported."
+                    f"Reward model {reward_info['name']} not supported. Please choose from {self.reward_pipeline.reward_models.keys()}"
                 )
 
-        final_rewards = torch.tensor(list(uids_final_rewards.values())).to(
-            self.device
-        )
+            # Compute the rewards for the responses given the prompt
+            reward_event = model.apply(self.response_event)
+            reward_events.append(reward_event.to(self.device))
 
-        return final_rewards
+        return reward_events
+
+    def total_reward(self) -> torch.FloatTensor:
+        """Combines the rewards from all the reward models into a single reward tensor"""
+
+        # TODO: How would using the Agent as a reward model fit into this flow?
+        # Compute the rewards for the responses given the prompt
+        rewards = torch.zeros_like(self.response_event.uids, dtype=torch.float16)
+
+        for reward_type in RewardModelTypeEnum:
+
+            for reward_info in self.task.reward_definition:
+                bt.logging.info(f"reward_info: {reward_info}")
+
+                for reward_event in filter(
+                    lambda x: x.model_name == reward_info["name"] and reward_event.model_type == reward_type,
+                    self.rewards_events
+                    ):
+
+                    # Gets appropriate reward event for the reward model defined in the task
+                    if reward_type == RewardModelTypeEnum.WEIGHTED_REWARD:
+
+                        rewards += reward_info.get("weight", 1) * reward_event.rewards
+
+                    else:
+                        raise ValueError(
+                            f"Reward model type {reward_event.model_type} not supported."
+                        )
+
+        return rewards.to(self.device)
 
 
 @dataclass
 class BatchRewardOutput:
     rewards: torch.FloatTensor
-    timings: List[float]
+    timings: torch.FloatTensor
     extra_info: dict
 
 
@@ -126,7 +131,7 @@ class BaseRewardModel(ABC):
         reward_event = RewardEvent(
             rewards=batch_rewards_output.rewards.cpu().tolist(),
             model_type=self.model_type,
-            model=self.name,
+            model_name=self.name,
             batch_time=batch_rewards_time,
             extra_info=batch_rewards_output.extra_info,
             timings=batch_rewards_output.timings,

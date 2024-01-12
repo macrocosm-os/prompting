@@ -4,10 +4,9 @@ import bittensor as bt
 
 from transformers import Pipeline, pipeline
 from prompting.mock import MockPipeline
-from abc import ABC, abstractmethod
 
 
-def pipeline(model_id, device_map=None, torch_dtype=None, mock=False):
+def load_pipeline(model_id, device_map=None, torch_dtype=None, mock=False):
     if mock:
         return MockPipeline(
             model_id, device_map=device_map, torch_dtype=torch_dtype
@@ -21,47 +20,10 @@ def pipeline(model_id, device_map=None, torch_dtype=None, mock=False):
     )
 
 
-class LLM(ABC):
+class HuggingFaceLLM:
     def __init__(
         self,
-        pipeline,
-        max_new_tokens=1024,
-        do_sample=True,
-        temperature=0.7,
-        top_k=50,
-        top_p=0.95,
-    ):
-        self.pipeline = pipeline
-        self.kwargs = dict(
-            do_sample=do_sample,
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
-            max_new_tokens=max_new_tokens,
-        )
-        self.messages = []
-        self.times = []
-
-    @abstractmethod
-    def query(self, message, cleanup=True, role="user"):
-        pass
-
-    @abstractmethod
-    def forward(self, messages, cleanup=False):
-        pass
-
-    def _make_prompt(self, messages):
-        # Abstract method for creating the prompt from messages
-        pass
-
-    def __call__(self, messages):
-        return self.forward(messages)
-
-
-class HuggingFaceLLM(LLM):
-    def __init__(
-        self,
-        pipeline: Pipeline,
+        llm_pipeline: Pipeline,
         system_prompt,
         max_new_tokens=256,
         do_sample=True,
@@ -69,7 +31,7 @@ class HuggingFaceLLM(LLM):
         top_k=50,
         top_p=0.95,
     ):
-        self.pipeline = pipeline
+        self.llm_pipeline = llm_pipeline
         self.system_prompt = system_prompt
         self.kwargs = dict(
             do_sample=do_sample,
@@ -101,13 +63,13 @@ class HuggingFaceLLM(LLM):
         return self.forward(messages)
 
     def _make_prompt(self, messages):
-        return self.pipeline.tokenizer.apply_chat_template(
+        return self.llm_pipeline.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
 
     def forward(self, messages, cleanup=False, preformat_messages=False):
         prompt = self._make_prompt(messages)
-        outputs = self.pipeline(prompt, **self.kwargs)
+        outputs = self.llm_pipeline(prompt, **self.kwargs)
         bt.logging.info(f"Generated response: {outputs}")
         response = outputs[0]["generated_text"]
 

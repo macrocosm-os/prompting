@@ -62,6 +62,11 @@ Data Generation:
 
 @dataclass
 class GenericInstructionTask(Task):
+    reward_definition = [
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=1.0),
+        dict(name="relevance", threshold=None, weight=1.0),
+    ]
+
     def __init__(self, llm_pipeline):
         super().__init__(
             name="generic_instruction",
