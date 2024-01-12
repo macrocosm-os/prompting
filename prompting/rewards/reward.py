@@ -3,7 +3,7 @@ import time
 import bittensor as bt
 from typing import List, Dict
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from enum import Enum
 
 
@@ -34,32 +34,53 @@ class RewardEvent:
 
 
 class RewardResult:
-    def __init__(self, reward_pipeline, task, response_event, device):
+    def __init__(self, reward_pipeline, task, response_event):
+        """Passes the responses through the reward models and calculates the total reward
+
+        Args:
+            reward_pipeline (RewardPipeline): List of all loaded/ative reward models
+            task (Task): Task instance which contains reward_definition (list of reward model requirements) and a reference answer (str)
+            response_event (DendriteResponseEvent): Network responses to the prompt
+        """
 
         self.reward_pipeline = reward_pipeline
         self.response_event = response_event
-        self.device = device
         self.task = task
         self.reward_events = self.reward_responses()
+
         self.rewards = self.total_reward()
 
-    def reward_responses(self) -> List[RewardEvent]:
-        """Calculates the rewards for the responses given the task and returns a RewardEvent for each reward model"""
+    def __state_dict__(self):
 
+        state = {"rewards": self.rewards}
+        for event in self.reward_events:
+            state.update(event.asdict())
+
+        return state
+
+    def reward_responses(self) -> List[RewardEvent]:
+        """Calculates the rewards for the responses given the task and returns a RewardEvent for each reward model
+        reward_events: List[RewardEvent] = [
+            RewardEvent(model_name='rouge', rewards=torch.zeros(50), timings=torch.zeros(50), ...),
+            RewardEvent(model_name='relevance', rewards=torch.zeros(50), timings=torch.zeros(50), ...),
+        ]
+        """
         reward_events = []
 
         for reward_info in self.task.reward_definition:
 
             # Select the reward model from preloaded reward model pipeline
-            model = self.reward_pipeline.reward_models.get(reward_info["name"])
-            if not model:
+            reward_model = self.reward_pipeline.get(reward_info["name"])
+            if not reward_model:
                 raise ValueError(
-                    f"Reward model {reward_info['name']} not supported. Please choose from {self.reward_pipeline.reward_models.keys()}"
+                    f"Reward model {reward_info['name']} not supported. Please choose from {self.reward_pipeline.keys()}"
                 )
 
+            bt.logging.warning(f'Task reference: {self.task.reference}')
+
             # Compute the rewards for the responses given the prompt
-            reward_event = model.apply(self.response_event)
-            reward_events.append(reward_event.to(self.device))
+            reward_event = reward_model.apply(self.task.reference, self.response_event)
+            reward_events.append(reward_event)
 
         return reward_events
 
@@ -68,7 +89,7 @@ class RewardResult:
 
         # TODO: How would using the Agent as a reward model fit into this flow?
         # Compute the rewards for the responses given the prompt
-        rewards = torch.zeros_like(self.response_event.uids, dtype=torch.float16)
+        rewards = torch.zeros_like(self.response_event.uids, dtype=torch.float32)
 
         for reward_type in RewardModelTypeEnum:
 
@@ -76,21 +97,21 @@ class RewardResult:
                 bt.logging.info(f"reward_info: {reward_info}")
 
                 for reward_event in filter(
-                    lambda x: x.model_name == reward_info["name"] and reward_event.model_type == reward_type,
-                    self.rewards_events
+                    lambda x: x.model_name == reward_info["name"] and x.model_type == reward_type,
+                    self.reward_events
                     ):
 
                     # Gets appropriate reward event for the reward model defined in the task
                     if reward_type == RewardModelTypeEnum.WEIGHTED_REWARD:
 
-                        rewards += reward_info.get("weight", 1) * reward_event.rewards
+                        rewards += reward_info.get("weight", 1) * reward_event.rewards.cpu()
 
                     else:
                         raise ValueError(
                             f"Reward model type {reward_event.model_type} not supported."
                         )
 
-        return rewards.to(self.device)
+        return rewards
 
 
 @dataclass
@@ -121,21 +142,25 @@ class BaseRewardModel(ABC):
     ) -> BatchRewardOutput:
         pass
 
-    def apply(self, response_event) -> RewardEvent:
+    def apply(self, reference: str, response_event) -> RewardEvent:
+
+        bt.logging.warning(f'Reference: {reference}')
+        bt.logging.warning(f'Response event: {response_event}')
         t0 = time.time()
         batch_rewards_output = self.reward(
-            response_event.reference, response_event.completions
+            reference, response_event.completions
         )
         batch_rewards_time = time.time() - t0
 
-        reward_event = RewardEvent(
-            rewards=batch_rewards_output.rewards.cpu().tolist(),
+        return RewardEvent(
+            rewards=batch_rewards_output.rewards,
             model_type=self.model_type,
             model_name=self.name,
             batch_time=batch_rewards_time,
             extra_info=batch_rewards_output.extra_info,
             timings=batch_rewards_output.timings,
-            uids=response_event.uids,
         )
 
-        return reward_event
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(name={self.name}, model_type={self.model_type})"

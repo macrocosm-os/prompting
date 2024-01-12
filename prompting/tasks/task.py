@@ -34,41 +34,21 @@ class Task(ABC):
     static_query: bool = False
 
     def __str__(self):
-        return f"{self.desc} about {self.topic} ({self.subject})"
+        return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
 
     def __repr__(self):
-        return f"{self.desc} about {self.topic} ({self.subject})"
-
-    def asdict(self):
-        return {
-            k: v
-            for k, v in asdict(self).items()
-            if k
-            in (
-                "topic",
-                "subtopic",
-                "reference_prompt",
-                "reference_system_prompt",
-                "goal",
-                "desc",
-                "name",
-            )
-        }
+        return str(self)
 
     def __state_dict__(self):
         return {
             "desc": self.desc,
             "goal": self.goal,
             "query": self.query,  # For now we just use the raw query but should add delimiters again
+            "reference": self.reference,
             "topic": self.topic,
             "subtopic": self.subtopic,
+            "tags": self.tags,
         }
-
-    def formatted_reference(self):
-        return f"{self.delimiter}{self.reference}{self.delimiter}"
-
-    def formatted_challenge(self):
-        return f"{self.delimiter}{self.challenge}{self.delimiter}"
 
     def generate_reference(self, llm):
         """Generates a reference answer to be used for scoring miner completions"""

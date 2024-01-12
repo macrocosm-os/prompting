@@ -9,6 +9,7 @@ from prompting.tasks import (
     DateQuestionAnsweringTask,
 )
 from prompting.rewards import (
+    BaseRewardModel,
     RougeRewardModel,
     DiffRewardModel,
     RelevanceRewardModel,
@@ -37,24 +38,39 @@ class RewardPipeline:
         self.selected_tasks = selected_tasks
         self.load_pipeline()
 
+    def __getitem__(self, __key: str) -> BaseRewardModel:
+        return self.reward_models.get(__key)
+
+    def get(self, __key: str) -> BaseRewardModel:
+        return self.__getitem__(__key)
+
+    def __repr__(self):
+        return f'RewardPipeline({self.reward_models})'
+
     def load_pipeline(self):
         """Dynamically loads the reward models required by the selected tasks so that we only use the necessary resources."""
-        required_reward_models = []
+        active_reward_models = []
 
         for task in self.selected_tasks:
             if task not in SUPPORTED_TASKS:
                 raise ValueError(
                     f"Task {task} not supported. Please choose from {SUPPORTED_TASKS.keys()}"
                 )
-            required_reward_models += SUPPORTED_TASKS[task].reward_definition.copy()
+            active_reward_models += SUPPORTED_TASKS[task].reward_definition
 
         # Instantiate only the required reward models
-        reward_models = REWARD_MODELS.copy()
-        for model in required_reward_models:
-            name = model.pop("name")
-            weight = model.pop("weight")
-            reward_models[name] = REWARD_MODELS[name](**model)
+        reward_models = {}
+        for model in active_reward_models:
+            name = model.get("name")
+            if not name:
+                raise ValueError(f"Reward model {model} does not have a name. ")
+            elif name not in REWARD_MODELS:
+                raise ValueError(
+                    f"Reward model {name} not supported. Please choose from {REWARD_MODELS.keys()}"
+                )
+            cls = REWARD_MODELS[name]
+
+            reward_models[name] = cls(**{k: v for k, v in model.items() if k not in ["name", "weight"]})
 
         self.reward_models = reward_models
-        bt.logging.info(f"Loaded reward models: {self.reward_models.keys()}")
 

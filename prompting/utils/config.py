@@ -63,6 +63,7 @@ def add_args(cls, parser):
     # Netuid Arg: The netuid of the subnet to connect to.
     parser.add_argument("--netuid", type=int, help="Subnet netuid", default=1)
 
+    bt.logging.info(f'Neuron type: {cls.__name__}, {cls}')
     neuron_type = (
         "validator" if "miner" not in cls.__name__.lower() else "miner"
     )
@@ -109,13 +110,14 @@ def add_args(cls, parser):
         default=False,
     )
 
+    parser.add_argument(
+        "--neuron.model",
+        type=str,
+        help="The model to use for the validator.",
+        default="HuggingFaceH4/zephyr-7b-beta",
+    )
+
     if neuron_type == "validator":
-        parser.add_argument(
-            "--neuron.model",
-            type=str,
-            help="The model to use for the validator.",
-            default="HuggingFaceH4/zephyr-7b-beta",
-        )
 
         parser.add_argument(
             "--neuron.tasks",
@@ -206,6 +208,31 @@ def add_args(cls, parser):
             help="If set, miners will accept queries from non registered entities. (Dangerous!)",
             default=False,
         )
+
+
+    parser.add_argument(
+        "--wandb.off", action="store_true", help="Turn off wandb.", default=False
+    )
+    parser.add_argument(
+        "--wandb.project_name",
+        type=str,
+        help="The name of the project where you are sending the new run.",
+        default="alpha-validators",
+    )
+
+    parser.add_argument(
+        "--wandb.offline",
+        action="store_true",
+        help="Runs wandb in offline mode.",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--wandb.notes",
+        type=str,
+        help="Notes to add to the wandb run.",
+        default="",
+    )
 
 
 def config(cls):

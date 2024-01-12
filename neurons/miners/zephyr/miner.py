@@ -22,7 +22,9 @@ import bittensor as bt
 
 # Bittensor Miner Template:
 import prompting
-from prompting.llm import pipeline
+from prompting.llm import load_pipeline
+from prompting.llm import HuggingFaceLLM
+from prompting.protocol import PromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import Miner
@@ -40,32 +42,47 @@ class ZephyrMiner(Miner):
     def __init__(self, config=None):
         super(ZephyrMiner, self).__init__(config=config)
 
-        self.llm_pipeline = pipeline(
+        self.llm_pipeline = load_pipeline(
             model_id=self.config.model_id,
             torch_dtype=torch.bfloat16,
             device_map=self.device,
             mock=self.config.mock,
         )
 
+        self.model = HuggingFaceLLM(
+            llm_pipeline=self.llm_pipeline,
+            system_prompt=self.config.system_prompt,
+            max_new_tokens=self.config.max_new_tokens,
+            do_sample=self.config.do_sample,
+            temperature=self.config.temperature,
+            top_k=self.config.top_k,
+            top_p=self.config.top_p,
+        )
+
     async def forward(
-        self, synapse: prompting.protocol.Synapse
-    ) -> prompting.protocol.Synapse:
+        self, synapse: PromptingSynapse
+    ) -> PromptingSynapse:
         """
         Processes the incoming synapse by performing a predefined operation on the input data.
         This method should be replaced with actual logic relevant to the miner's purpose.
 
         Args:
-            synapse (template.protocol.Synapse): The synapse object containing the 'dummy_input' data.
+            synapse (PromptingSynapse): The synapse object containing the 'dummy_input' data.
 
         Returns:
-            template.protocol.Synapse: The synapse object with the 'dummy_output' field set to twice the 'dummy_input' value.
+            PromptingSynapse: The synapse object with the 'dummy_output' field set to twice the 'dummy_input' value.
 
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        # TODO(developer): Replace with actual implementation logic.
-        synapse.dummy_output = synapse.dummy_input * 2
-        return synapse
+
+        # TODO: Make sure that we are sending the right parameters to the model
+        return self.model.query(
+            message=synapse.messages[-1],
+            cleanup=True,
+            role="user",
+            disregard_system_prompt=False,
+        )
 
 
 # This is the main function, which runs the miner.

@@ -53,7 +53,7 @@ This starter template is split into three primary files. To write your own incen
 
 ### Example
 
-The Bittensor Subnet 1 for Text Prompting is built using this template. See [Bittensor Text-Prompting](https://github.com/opentensor/text-prompting) for how to configure the files and how to add monitoring and telemetry and support multiple miner types. Also see this Subnet 1 in action on [Taostats](https://taostats.io/subnets/netuid-1/) explorer.
+The Bittensor Subnet 1 for Text PromptingSynapse is built using this template. See [Bittensor Text-PromptingSynapse](https://github.com/opentensor/text-prompting) for how to configure the files and how to add monitoring and telemetry and support multiple miner types. Also see this Subnet 1 in action on [Taostats](https://taostats.io/subnets/netuid-1/) explorer.
 
 ---
 

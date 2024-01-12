@@ -1,12 +1,13 @@
 import json
 import os
+import copy
 import wandb
 import bittensor as bt
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import List
 from loguru import logger
-
+import prompting
 
 @dataclass
 class Log:
@@ -22,18 +23,6 @@ class Log:
     rewards: List[float]
     task: dict
     # extra_info: dict
-
-
-# def get_extra_log_info(agent: HumanAgent, references: List[str]) -> dict:
-#     extra_info = {
-#         'challenge_length_chars': len(agent.challenge),
-#         'challenge_length_words': len(agent.challenge.split()),
-#         'reference_length_chars': [len(reference) for reference in references],
-#         'reference_length_words': [len(reference.split()) for reference in references],
-#     }
-
-#     return extra_info
-
 
 def export_logs(logs: List[Log]):
     bt.logging.info("📝 Exporting logs...")
@@ -59,20 +48,71 @@ def export_logs(logs: List[Log]):
     return log_file
 
 
-def init_wandb(config):
-    return wandb.init(
-        anonymous="allow",
-        project=config.wandb.project_name,
-        entity=config.wandb.entity,
-        tags=config.wandb.tags,
+def should_reinit_wandb(self):
+    # Check if wandb run needs to be rolled over.
+    return (
+        not self.config.wandb.off
+        and self.step
+        and self.step % self.config.wandb.run_step_length == 0
     )
 
 
-def log(self, event):
+def init_wandb(self, reinit=False):
+    """Starts a new wandb run."""
+    tags = [
+        self.wallet.hotkey.ss58_address,
+        prompting.__version__,
+        str(prompting.__spec_version__),
+        f"netuid_{self.metagraph.netuid}",
+    ]
+
+    if self.config.mock:
+        tags.append("mock")
+    for task in self.active_tasks:
+        tags.append(task)
+    if self.config.neuron.disable_set_weights:
+        tags.append("disable_set_weights")
+
+    wandb_config = {
+        key: copy.deepcopy(self.config.get(key, None))
+        for key in ("neuron", "reward", "netuid", "wandb")
+    }
+    wandb_config["neuron"].pop("full_path", None)
+
+    self.wandb = wandb.init(
+        anonymous="allow",
+        reinit=reinit,
+        project=self.config.wandb.project_name,
+        entity=self.config.wandb.entity,
+        config=wandb_config,
+        mode="offline" if self.config.wandb.offline else "online",
+        dir=self.config.neuron.full_path,
+        tags=tags,
+        notes=self.config.wandb.notes,
+    )
+    bt.logging.success(
+        prefix="Started a new wandb run",
+        sufix=f"<blue> {self.wandb.name} </blue>",
+    )
+
+
+def reinit_wandb(self):
+    """Reinitializes wandb, rolling over the run."""
+    self.wandb.finish()
+    init_wandb(self, reinit=True)
+
+
+
+def log_event(self, event):
 
     if not self.config.neuron.dont_save_events:
         logger.log("EVENTS", "events", **event)
 
+    if self.config.wandb.off:
+        return
+
+    if not getattr(self, "wandb", None):
+        init_wandb(self)
+
     # Log the event to wandb.
-    if not self.config.wandb.off:
-        self.wandb.log(event)
+    self.wandb.log(event)

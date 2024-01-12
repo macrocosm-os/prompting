@@ -48,7 +48,7 @@ class Validator(BaseValidatorNeuron):
             raise ValueError("Task probabilities do not sum to 1.")
 
         # Filter out tasks with 0 probability
-        active_tasks = [
+        self.active_tasks = [
             task
             for task, p in zip(
                 self.config.neuron.tasks, self.config.neuron.task_p
@@ -56,7 +56,8 @@ class Validator(BaseValidatorNeuron):
             if p > 0
         ]
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(selected_tasks=active_tasks)
+        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks)
+        bt.logging.error(f'Reward pipeline: {self.reward_pipeline}')
 
     async def forward(self):
         """

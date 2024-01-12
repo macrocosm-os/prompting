@@ -26,13 +26,13 @@ import bittensor as bt
 
 from typing import List
 from types import SimpleNamespace
-from dataclasses import asdict
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
 from prompting.conversation import create_task
-from prompting.protocol import Prompting
+from prompting.protocol import PromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
+from prompting.utils.logging import log_event
 
 
 async def run_step(
@@ -61,10 +61,10 @@ async def run_step(
 
     axons = [self.metagraph.axons[uid] for uid in uids]
     # Make calls to the network with the prompt.
-    responses: List[bt.Synapse] = await self.dendrite(
+    responses: List[PromptingSynapse] = await self.dendrite(
         axons=axons,
         # TODO: Should this be entire history?
-        synapse=Prompting(roles=["user"], messages=[agent.challenge]),
+        synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]),
         timeout=timeout,
     )
 
@@ -75,7 +75,7 @@ async def run_step(
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
     reward_result = RewardResult(
-        self.reward_pipeline, task=agent.task, response_event=response_event, device=self.device
+        self.reward_pipeline, task=agent.task, response_event=response_event
     )
     bt.logging.info(f"Created RewardResult:\n {reward_result}")
 
@@ -85,21 +85,21 @@ async def run_step(
         top_response=response_event.completions[reward_result.rewards.argmax()],
     )
 
-    self.update_scores(uids, reward_result.rewards)
+    self.update_scores(reward_result.rewards, uids)
 
     # Log the step event.
     event = {
         "block": self.block,
         "step_time": time.time() - start_time,
         # can include time to use tools, create query/references
-        **asdict(agent.task),
+        **agent.task.__state_dict__(),
         # can include fine-gained rewards as well as times
-        **asdict(reward_result),
-        **asdict(response_event),
+        **reward_result.__state_dict__(),
+        **response_event.__state_dict__(),
     }
 
     bt.logging.debug(f"Step complete. Event:\n{event}")
-    self.log(event)
+    log_event(self, event)
 
     return event
 
@@ -135,11 +135,12 @@ async def forward(self):
         exclude_uids += event["uids"]
 
         ## TODO: Add max_turns and termination_probability parameters
-        if (
-            rounds > self.config.max_turns
-            or random.random() < self.config.termination_probability
-        ):
-            break
+        # if (
+        #     rounds > self.config.max_turns
+        #     or random.random() < self.config.termination_probability
+        # ):
+        #     
+        task.complete = True
 
         rounds += 1
 

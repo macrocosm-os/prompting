@@ -35,8 +35,8 @@ class DateQuestionAnsweringTask(Task):
         query = self.context["event"].strip(".") + " on what date?"
         reference = self.context["date"] + ", " + year.strip()
         super().__init__(
-            name="date_qa",
-            desc="get help on answering a question",
+            name="date-based question answering",
+            desc="get help answering a question",
             goal=f"to get the answer to the following question",
             query=query,
             reference=reference,
