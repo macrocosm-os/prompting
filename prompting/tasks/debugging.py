@@ -158,7 +158,7 @@ class DebuggingTask(Task):
         super().__init__(
             name="debugging",
             desc="get help with debugging",
-            goal=f"ask for help fixing the broken piece of code. When asking for help do not adjust the code in any way.",
+            goal="ask for help fixing the broken piece of code. When asking for help do not adjust the code in any way.",
             query=query,
             reference=reference,
             topic=self.context["repo_name"],

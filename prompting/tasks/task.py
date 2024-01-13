@@ -1,6 +1,6 @@
 import bittensor as bt
 from abc import ABC
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from enum import Enum
 from typing import List, Union
 from prompting.llm import HuggingFaceLLM
@@ -32,6 +32,10 @@ class Task(ABC):
     complete: bool = False
     static_reference: bool = False
     static_query: bool = False
+    reference_system_prompt = ""
+    reference_prompt = ""
+    query_system_prompt = ""
+    query_prompt = ""
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
@@ -72,10 +76,7 @@ class Task(ABC):
         )
         return self.query
 
-    def generate(self, system, prompt, llm=None):
-        if llm is None:
-            raise ValueError("OPENAI IS Broken")
-        else:
-            agent = HuggingFaceLLM(llm, system_prompt=system)
+    def generate(self, system, prompt, llm):
+        """Uses the llm to generate a response to a prompt"""
 
-        return agent.query(prompt)
+        return HuggingFaceLLM(llm, system_prompt=system).query(prompt)

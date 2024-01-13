@@ -16,16 +16,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN
 #  THE SOFTWARE.
+
 import time
-import torch
-import random
-import asyncio
 
 import numpy as np
 import bittensor as bt
 
 from typing import List
-from types import SimpleNamespace
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
 from prompting.conversation import create_task
@@ -139,73 +136,9 @@ async def forward(self):
         #     rounds > self.config.max_turns
         #     or random.random() < self.config.termination_probability
         # ):
-        #     
+        #
         task.complete = True
 
         rounds += 1
 
 
-if __name__ == "__main__":
-    # NOTE: TASKS MATH AND DATE_QA ARE NOT WORKING
-    tasks_sampling_distribution = {
-        "debugging": 0.0,
-        "qa": 0.0,
-        "summarization": 0.0,
-        "math": 1.0,
-        "date_qa": 0.0,
-    }
-
-    # Filter out tasks with 0 probability of being sampled to be highlighted in wandb
-    sampled_tasks = [
-        key for key, value in tasks_sampling_distribution.items() if value != 0
-    ]
-    wandb_config = SimpleNamespace(
-        project_name="agent_experiments",
-        entity="sn1",
-        # NOTE: CHECK APPROPIATE TAGS FOR YOUR TEST RUN
-        tags=["MOCK_TEST", "zephyr_4bits"] + sampled_tasks,
-        off=False,
-    )
-
-    #### CONFIG ####
-    config = SimpleNamespace(
-        model_id="HuggingFaceH4/zephyr-7b-beta",
-        neuron=SimpleNamespace(
-            tasks=list(tasks_sampling_distribution.keys()),
-            task_p=list(tasks_sampling_distribution.values()),
-            moving_average_alpha=0.1,
-        ),
-        mock=True,
-        sample_size=10,
-        timeout=15,
-        device="cuda",
-        max_turns=1,
-        termination_probability=1,
-        wandb=wandb_config,
-    )
-
-    from neurons.validator import Validator
-
-    mock_self = Validator(config)
-
-    # Note: Self could be abstracted into neuron class
-    # mock_self = SimpleNamespace(
-    #     config=config,
-    #     llm_pipeline=llm_pipeline,
-    #     reward_pipeline=RewardPipeline(selected_tasks=config.tasks),
-    #     dendrite=MockDendrite(),
-    #     subtensor=MockSubtensor(),
-    #     moving_averaged_scores=torch.zeros(1024).to(config.device),
-    #     device=config.device,
-    #     wandb=init_wandb(config)
-    # )
-
-    #### FLOW EXECUTION ####
-    num_steps = 4
-    for _ in range(num_steps):
-        asyncio.run(forward(mock_self))
-
-    mock_self.wandb.finish()
-
-    import pandas as pd
-    pd.DataFrame(mock_self.mock_log).to_csv("mock_log.csv")

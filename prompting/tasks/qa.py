@@ -66,7 +66,7 @@ class QuestionAnsweringTask(Task):
         super().__init__(
             name="question-answering",
             desc="get help on answering a question",
-            goal=f"to get the answer to the following question",
+            goal="to get the answer to the following question",
             query=query,
             reference=reference,
             topic=self.context["title"],

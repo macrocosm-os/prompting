@@ -5,8 +5,7 @@ from tenacity import retry, stop_after_attempt
 from prompting.tasks import Task
 from typing import Tuple
 
-
-criteria_generation_prompt = """\
+CRITERIA_GENERATION_PROMPT = """\
 We are brainstorming criteria with which to grade a language model on its responses in
 diverse situations.
 A ‘criteria‘ is some useful, real-world objective, and associated rubric for scores 1-5, that
@@ -21,7 +20,7 @@ New Criteria:
 """
 
 
-instruction_generation_prompt = """\
+INSTRUCTION_GENERATION_PROMPT = """\
 Your job is to generate a new novel problem and a response that is related to the given score
 rubric.
 The score rubric:
@@ -106,16 +105,16 @@ class GenericInstructionTask(Task):
         return problem, response
 
     def create_criteria(self, llm) -> str:
-        bt.logging.debug(f"🎲 Creating a generic criteria-scoring rubric ...")
+        bt.logging.debug("🎲 Creating a generic criteria-scoring rubric ...")
 
         # Generate a score rubric with defined criterias
-        criteria_generation_response = llm(criteria_generation_prompt)
+        criteria_generation_response = llm(CRITERIA_GENERATION_PROMPT)
         return criteria_generation_response
 
     @retry(stop=stop_after_attempt(5))
     def create_instruction_and_reference(self, llm) -> Tuple[str, str]:
         try:
-            bt.logging.debug(f"📋 🎯 Creating instruction and referece text...")
+            bt.logging.debug("📋 🎯 Creating instruction and referece text...")
 
             if not self.criteria:
                 raise ValueError(
@@ -124,7 +123,7 @@ class GenericInstructionTask(Task):
 
             # Create generic instruction with the score rubric
             instruction_generation_prompt_with_criteria = (
-                instruction_generation_prompt.format(CRITERIA=self.criteria)
+                INSTRUCTION_GENERATION_PROMPT.format(CRITERIA=self.criteria)
             )
             instruction_generation_response = llm(
                 instruction_generation_prompt_with_criteria

@@ -56,5 +56,5 @@ def create_task(llm_pipeline, task_name):
         raise ValueError(
             f"Task {task_name} not supported. Please choose a valid task"
         )
-        
+
     return task

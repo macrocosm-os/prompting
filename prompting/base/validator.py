@@ -15,7 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-
+import sys
 import copy
 import torch
 import asyncio
@@ -80,13 +80,11 @@ class BaseValidatorNeuron(BaseNeuron):
                 )
             except Exception as e:
                 bt.logging.error(f"Failed to serve Axon with exception: {e}")
-                pass
 
         except Exception as e:
             bt.logging.error(
                 f"Failed to create Axon initialize with exception: {e}"
             )
-            pass
 
     async def concurrent_forward(self):
         coroutines = [
@@ -145,7 +143,7 @@ class BaseValidatorNeuron(BaseNeuron):
         except KeyboardInterrupt:
             self.axon.stop()
             bt.logging.success("Validator killed by keyboard interrupt.")
-            exit()
+            sys.exit()
 
         # In case of unforeseen errors, the validator will log the error and continue operations.
         except Exception as err:
@@ -208,13 +206,13 @@ class BaseValidatorNeuron(BaseNeuron):
         # Check if self.scores contains any NaN values and log a warning if it does.
         if torch.isnan(self.scores).any():
             bt.logging.warning(
-                f"Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
+                "Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
             )
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
         raw_weights = torch.nn.functional.normalize(
-            self.moving_averaged_scores, p=1, dim=0
+            self.scores, p=1, dim=0
         )
 
         bt.logging.debug("raw_weights", raw_weights)

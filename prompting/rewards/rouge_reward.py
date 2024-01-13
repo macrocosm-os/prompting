@@ -1,6 +1,5 @@
 import time
 import torch
-import bittensor as bt
 from typing import List
 from rouge import Rouge
 from prompting.rewards import (
