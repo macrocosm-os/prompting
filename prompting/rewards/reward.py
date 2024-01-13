@@ -26,8 +26,8 @@ class RewardEvent:
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
         return {
-            f"{self.model_name}_raw_rewards": self.rewards,
-            f"{self.model_name}_timings": self.timings,
+            f"{self.model_name}_raw_rewards": self.rewards.tolist(),
+            f"{self.model_name}_timings": self.timings.tolist(),
             f"{self.model_name}_batch_time": self.batch_time,
             f"{self.model_name}_extra_info": self.extra_info,
         }
@@ -52,7 +52,7 @@ class RewardResult:
 
     def __state_dict__(self):
 
-        state = {"rewards": self.rewards}
+        state = {"rewards": self.rewards.tolist()}
         for event in self.reward_events:
             state.update(event.asdict())
 

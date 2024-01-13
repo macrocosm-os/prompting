@@ -1,3 +1,5 @@
+import time
+import torch
 from typing import List
 from angle_emb import AnglE
 from torch.nn.functional import cosine_similarity
@@ -31,15 +33,18 @@ class RelevanceRewardModel(BaseRewardModel):
     ) -> BatchRewardOutput:
         reference_embedding = self.model.encode(reference, to_numpy=False)
         completions_embeddings = self.model.encode(completions, to_numpy=False)
+        rewards = []
+        timings = []
 
-        rewards = cosine_similarity(
-            reference_embedding, completions_embeddings, dim=1
-        )
+        for emb in completions_embeddings:
+            t0 = time.time()
+            rewards.append(cosine_similarity(reference_embedding.reshape(1, -1), emb.reshape(1, -1)))
+            timings.append(time.time() - t0)
 
         output = BatchRewardOutput(
-            rewards=rewards,
+            rewards=torch.FloatTensor(rewards),
+            timings=torch.FloatTensor(timings),
             extra_info={"threshold": self.threshold},
-            timings=None,
         )
 
         return output

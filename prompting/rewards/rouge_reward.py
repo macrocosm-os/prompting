@@ -47,7 +47,7 @@ class RougeRewardModel(BaseRewardModel):
 
         output = BatchRewardOutput(
             rewards=torch.FloatTensor(rewards),
-            timings=timings,
+            timings=torch.FloatTensor(timings),
             extra_info={
                 "ngram": self.ngram,
                 "metric": self.metric,
