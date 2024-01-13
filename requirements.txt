@@ -1,6 +1,6 @@
 bittensor==6.5.0
 torch==2.1.1
-transformers==4.30.0
+transformers==4.32.1
 wandb==0.15.10
 datasets==2.14.6
 plotly==5.14.1
@@ -12,3 +12,6 @@ sentencepiece
 numpy==1.22.0
 mathgenerator # TODO: Use our own fork
 wandb
+angle_emb
+rouge
+bs4
