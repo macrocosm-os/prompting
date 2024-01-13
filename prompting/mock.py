@@ -1,12 +1,10 @@
 import torch
 import bittensor as bt
 
-from transformers import Pipeline
 
-
-class MockTokenizer(torch.nn.Module):
+class MockTokenizer:
     def __init__(self):
-        super(MockTokenizer, self).__init__()
+        super().__init__()
 
         self.role_expr = "<|mock-{role}|>"
 
@@ -22,7 +20,7 @@ class MockTokenizer(torch.nn.Module):
 
 class MockModel(torch.nn.Module):
     def __init__(self, phrase):
-        super(MockModel, self).__init__()
+        super().__init__()
 
         self.tokenizer = MockTokenizer()
         self.phrase = phrase
@@ -48,7 +46,7 @@ class MockPipeline:
         phrase="mock reply",
         model_kwargs=None,
     ):
-        super(MockPipeline, self).__init__()
+        super().__init__()
 
         self.model_id = model_id
         self.device_map = device_map
@@ -78,7 +76,7 @@ class MockPipeline:
 
 class MockSubtensor(bt.MockSubtensor):
     def __init__(self, netuid, n=16, wallet=None, network="mock"):
-        super(MockSubtensor, self).__init__(network=network)
+        super().__init__(network=network)
 
         if not self.subnet_exists(netuid):
             self.create_subnet(netuid)
@@ -106,7 +104,7 @@ class MockSubtensor(bt.MockSubtensor):
 
 class MockMetagraph(bt.metagraph):
     def __init__(self, netuid=1, network="mock", subtensor=None):
-        super(MockMetagraph, self).__init__(
+        super().__init__(
             netuid=netuid, network=network, sync=False
         )
 

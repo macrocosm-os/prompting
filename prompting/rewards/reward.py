@@ -1,9 +1,9 @@
 import torch
 import time
 import bittensor as bt
-from typing import List, Dict
+from typing import List
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from enum import Enum
 
 

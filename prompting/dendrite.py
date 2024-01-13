@@ -1,7 +1,6 @@
 import torch
 import bittensor as bt
 from typing import List
-from dataclasses import dataclass
 
 
 class DendriteResponseEvent:

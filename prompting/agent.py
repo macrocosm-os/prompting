@@ -1,9 +1,8 @@
-import torch
 import textwrap
 import bittensor as bt
 
 from prompting.tasks import Task
-from prompting.llm import HuggingFaceLLM, load_pipeline
+from prompting.llm import HuggingFaceLLM
 
 from prompting.persona import Persona, create_persona
 
@@ -98,32 +97,3 @@ class HumanAgent(HuggingFaceLLM):
             self.continue_conversation(miner_response=top_response)
 
 
-# TEST AGENT
-if __name__ == "__main__":
-    bt.logging.info("🤖 Loading LLM model...")
-
-    llm_pipeline = load_pipeline(
-        model_id="HuggingFaceH4/zephyr-7b-beta",
-        torch_dtype=torch.bfloat16,
-        device_map="auto",
-    )
-
-    # bt.logging.info("Creating task...")
-    # dataset = WikiDataset()
-    # context = dataset.next()
-
-    # task = SummarizationTask(llm_pipeline=llm_pipeline, context=context)
-
-    # bt.logging.info("Creating agent...")
-    # agent = HumanAgent(
-    #     task = task,
-    #     # TODO: better design dependency: Agent contains an LLM instead of being one, this will enable us to use different LLMs without changing the agent
-    #     llm=llm_pipeline,
-    #     system_template=None,
-    #     begin_conversation=True
-    # )
-
-    # bt.logging.info(f'Agent created with persona: {agent.persona}')
-    # bt.logging.info(f'Task query: {task.query}')
-    # bt.logging.info(f'Task reference: {task.reference}')
-    # bt.logging.info(f'Agent challenge: {agent.challenge}')

@@ -1,5 +1,4 @@
-import bittensor as bt
-from typing import List, Dict
+from typing import List
 
 from prompting.tasks import (
     DebuggingTask,
@@ -42,7 +41,7 @@ class RewardPipeline:
         return self.reward_models.get(__key)
 
     def get(self, __key: str) -> BaseRewardModel:
-        return self.__getitem__(__key)
+        return self.reward_models.get(__key)
 
     def __repr__(self):
         return f'RewardPipeline({self.reward_models})'
@@ -64,7 +63,8 @@ class RewardPipeline:
             name = model.get("name")
             if not name:
                 raise ValueError(f"Reward model {model} does not have a name. ")
-            elif name not in REWARD_MODELS:
+            
+            if name not in REWARD_MODELS:
                 raise ValueError(
                     f"Reward model {name} not supported. Please choose from {REWARD_MODELS.keys()}"
                 )

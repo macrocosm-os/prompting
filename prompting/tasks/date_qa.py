@@ -1,7 +1,5 @@
-import bittensor as bt
 from dataclasses import dataclass
 from prompting.tasks import Task
-import textwrap
 
 
 @dataclass
@@ -32,12 +30,15 @@ class DateQuestionAnsweringTask(Task):
         self.context = context
         year, _, *event = self.context["event"].split()
         self.context["event"] = " ".join(event)
-        query = self.context["event"].strip(".") + " on what date?"
+
+        options = {'Births':' was born ', 'Deaths':' died ', 'Events':' '}
+        query = self.context["event"].strip(".") + options[self.context["type"]] + 'on what date?'
+
         reference = self.context["date"] + ", " + year.strip()
         super().__init__(
             name="date-based question answering",
             desc="get help answering a question",
-            goal=f"to get the answer to the following question",
+            goal="to get the answer to the following question",
             query=query,
             reference=reference,
             topic=self.context["event"],

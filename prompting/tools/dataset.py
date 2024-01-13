@@ -351,9 +351,10 @@ class DateQADataset:
             # Step 1: Generate a random date
             year = 2000
             month = random.randint(1, 12)
-            day = random.randint(
-                1, 28
-            )  # Simplified to avoid dealing with different month lengths
+
+            max_days = 31 if month in (1, 3, 5, 7, 8, 10, 12) else 30
+            max_days = max_days if month != 2 else 28 + int(year % 4 == 0)
+            day = random.randint(1, max_days)
             random_date = datetime.date(year, month, day)
 
             # Step 2: Format the date for Wikipedia URL
@@ -361,39 +362,43 @@ class DateQADataset:
 
             # Step 3: Scrape Wikipedia
             url = f"https://en.wikipedia.org/wiki/{formatted_date}"
-            print(f"Retrieving {url}...")
             response = requests.get(url)
             events = []
 
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.content, "html.parser")
-                available_sections = []
-                for name in ["Events", "Births", "Deaths"]:
-                    section = soup.find("span", id=name)
-                    if section:
-                        available_sections.append(name)
-                section = random.choice(available_sections)
-                # Find the events section
-                events_list = soup.find(
-                    "span", id=section
-                ).parent.find_next_sibling("ul")
+            if response.status_code != 200:
+                bt.logging.debug(f'Received status code {response.status_code} for URL "{url}". Retrying ({tries}/{self.max_tries})...')
+                continue
 
-                for li in events_list.find_all("li"):
-                    events.append(li)
+            soup = BeautifulSoup(response.content, "html.parser")
+            available_sections = []
+            for name in ["Events", "Births", "Deaths"]:
+                section = soup.find("span", id=name)
+                if section:
+                    available_sections.append(name)
+            section = random.choice(available_sections)
+            # Find the events section
+            events_list = soup.find(
+                "span", id=section
+            ).parent.find_next_sibling("ul")
 
-                # Step 4: Extract Event Information and Step 5: Select an Event
-                if events:
-                    selected_event = random.choice(events)
-                    links = selected_event.find_all("a")
-                    # link_titles = [link.get("title") for link in links]
-                    if links:
-                        link = random.choice(links)
+            for li in events_list.find_all("li"):
+                events.append(li)
 
-                    return {
-                        "date": random_date.strftime("%B %d"),
-                        "event": selected_event.get_text(),
-                        "link": link.get("title"),
-                    }
+            # Step 4: Extract Event Information and Step 5: Select an Event
+            if not events:
+                continue
+
+            selected_event = random.choice(events)
+            links = selected_event.find_all("a")
+            if links:
+                link = random.choice(links)
+
+            return {
+                "date": random_date.strftime("%B %d"),
+                "event": selected_event.get_text(),
+                "next_page": link.get("title"),
+                "section": section,
+            }
 
     def next(self):
         bt.logging.debug("Retrieving data from prompting.dataset...")

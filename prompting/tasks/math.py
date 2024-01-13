@@ -17,7 +17,7 @@ class MathTask(Task):
         super().__init__(
             name="math",
             desc="get help solving a math problem",
-            goal=f"to get the answer to the following math question",
+            goal="to get the answer to the following math question",
             query=query,
             reference=reference,
             topic=self.context["problem"],
