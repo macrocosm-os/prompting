@@ -24,37 +24,13 @@ import mathgenerator
 import bittensor as bt
 from datasets import load_dataset
 from bs4 import BeautifulSoup
-from collections.abc import Iterator
 from sympy.parsing.latex import parse_latex
 
 # TODO: Use beautiful soup to parse things like wikipedia articles and stack overflow questions and answers
 
 
-class Dataset(Iterator):
-    def __init__(self, dataset_id, seed=None):
-        super().__init__()
-        if seed is None:
-            seed = random.randint(0, 1000)
-        self.seed = seed
-        self.dataset_id = dataset_id
-        self.dataset = iter(
-            load_dataset(dataset_id, split="train", streaming=True).shuffle(
-                seed=seed, buffer_size=10000
-            )
-        )
-
-    def __next__(self):
-        while True:
-            bt.logging.debug("Retrieving data from prompting.dataset...")
-            text = next(self.dataset)["text"]
-
-            # Check if the text is not empty or does not consist only of newline characters
-            if text.strip():
-                return {"text": text}
-
-
-class MockDataset(Iterator):
-    def __next__(self):
+class MockDataset():
+    def next(self):
         return {"text": "What is the capital of Texas?"}
 
 
@@ -258,16 +234,12 @@ class WikiDataset:
         return info
 
 
-class StackOverflowDataset(Iterator):
+class StackOverflowDataset():
     def __init__(self):
         # Stack Overflow API endpoint for a random article
         self.url = "https://api.stackexchange.com/2.3/questions"
         self.questions = []
-        super().__init__()
 
-    # @retry(
-    #    stop=stop_after_attempt(5), wait=wait_random_exponential(multiplier=1, max=10)
-    # )
     def get_stack_questions(self):
         url = "https://api.stackexchange.com/2.3/questions"
         params = {
@@ -304,9 +276,6 @@ class StackOverflowDataset(Iterator):
         answer = self.get_stack_answer(question)
         return {"question": question["title"], "answer": answer}
 
-    # @retry(
-    #    stop=stop_after_attempt(5), wait=wait_random_exponential(multiplier=1, max=10)
-    # )
     def get_stack_answer(self, question):
         question_id = question["question_id"]
         url_answers = (
@@ -331,7 +300,7 @@ class StackOverflowDataset(Iterator):
         full_content = soup.get_text(separator="\n")
         return full_content
 
-    def __next__(self):
+    def next(self):
         while True:
             bt.logging.debug("Retrieving data from prompting.dataset...")
             info = self.get_stack_question()
