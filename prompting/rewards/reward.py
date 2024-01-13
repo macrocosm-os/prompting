@@ -16,9 +16,9 @@ class RewardModelTypeEnum(Enum):
 @dataclass
 class RewardEvent:
     """Contains rewards for all the responses in a batch"""
+    model_name: str
     rewards: torch.FloatTensor
     timings: torch.FloatTensor
-    model_name: str
     model_type: RewardModelTypeEnum
     batch_time: float
     extra_info: dict
@@ -75,9 +75,6 @@ class RewardResult:
                 raise ValueError(
                     f"Reward model {reward_info['name']} not supported. Please choose from {self.reward_pipeline.keys()}"
                 )
-
-            bt.logging.warning(f'Task reference: {self.task.reference}')
-
             # Compute the rewards for the responses given the prompt
             reward_event = reward_model.apply(self.task.reference, self.response_event)
             reward_events.append(reward_event)
@@ -94,7 +91,6 @@ class RewardResult:
         for reward_type in RewardModelTypeEnum:
 
             for reward_info in self.task.reward_definition:
-                bt.logging.info(f"reward_info: {reward_info}")
 
                 for reward_event in filter(
                     lambda x: x.model_name == reward_info["name"] and x.model_type == reward_type,
@@ -112,6 +108,9 @@ class RewardResult:
                         )
 
         return rewards
+
+    def __str__(self):
+        return f"{self.__class__.__name__}(rewards={self.rewards!r}, reward_events={self.reward_events!r})"
 
 
 @dataclass
@@ -144,8 +143,6 @@ class BaseRewardModel(ABC):
 
     def apply(self, reference: str, response_event) -> RewardEvent:
 
-        bt.logging.warning(f'Reference: {reference}')
-        bt.logging.warning(f'Response event: {response_event}')
         t0 = time.time()
         batch_rewards_output = self.reward(
             reference, response_event.completions
@@ -153,9 +150,9 @@ class BaseRewardModel(ABC):
         batch_rewards_time = time.time() - t0
 
         return RewardEvent(
+            model_name=self.name,
             rewards=batch_rewards_output.rewards,
             model_type=self.model_type,
-            model_name=self.name,
             batch_time=batch_rewards_time,
             extra_info=batch_rewards_output.extra_info,
             timings=batch_rewards_output.timings,

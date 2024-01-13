@@ -21,7 +21,7 @@ import bittensor as bt
 
 # Bittensor Miner Template:
 import prompting
-
+from prompting.protocol import PromptingSynapse
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import Miner
 
@@ -40,7 +40,7 @@ class OpenAIMiner(Miner):
     """
 
     def __init__(self, config=None):
-        super(OpenAIMiner, self).__init__(config=config)
+        super().__init__(config=config)
 
         # Set openai key and other args
         self.model = ChatOpenAI(

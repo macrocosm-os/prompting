@@ -8,15 +8,15 @@ class DendriteResponseEvent:
         bt.logging.info(f"responses: {responses}")
 
         self.uids = uids
-        self.completions = [response.completion for response in responses]
+        self.completions = [synapse.completion for synapse in responses]
         self.timings = [
-            response.axon.process_time or 0 for response in responses
+            synapse.dendrite.process_time or 0 for synapse in responses
         ]
         self.status_messages = [
-            response.axon.status_message for response in responses
+            synapse.dendrite.status_message for synapse in responses
         ]
         self.status_codes = [
-            response.axon.status_code for response in responses
+            synapse.dendrite.status_code for synapse in responses
         ]
 
     def __state_dict__(self):

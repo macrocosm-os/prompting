@@ -22,9 +22,9 @@ import bittensor as bt
 
 # Bittensor Miner Template:
 import prompting
+from prompting.protocol import PromptingSynapse
 from prompting.llm import load_pipeline
 from prompting.llm import HuggingFaceLLM
-from prompting.protocol import PromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import Miner
@@ -40,7 +40,7 @@ class ZephyrMiner(Miner):
     """
 
     def __init__(self, config=None):
-        super(ZephyrMiner, self).__init__(config=config)
+        super().__init__(config=config)
 
         self.llm_pipeline = load_pipeline(
             model_id=self.config.model_id,
@@ -75,10 +75,12 @@ class ZephyrMiner(Miner):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
+        
+        message = self.model.tokenizer.apply_chat_template(messages, roles)
 
         # TODO: Make sure that we are sending the right parameters to the model
         return self.model.query(
-            message=synapse.messages[-1],
+            message=message,
             cleanup=True,
             role="user",
             disregard_system_prompt=False,
