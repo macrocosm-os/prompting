@@ -361,6 +361,7 @@ class DateQADataset:
                     return {
                         "date": random_date.strftime("%B %d"),
                         "event": selected_event.get_text(),
+                        "section": section,
                         "link": link.get("title"),
                     }
 

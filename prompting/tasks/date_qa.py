@@ -9,35 +9,23 @@ class DateQuestionAnsweringTask(Task):
     reward_definition = [
         dict(name="rouge", ngram="rouge-l", metric="f", weight=1.0),
     ]
-    # # Used to obtain the question [we actually can use a subset of the context]
-    # query_template = """\
-    # Ask a specific question about the date of the following event:
-
-    # #Event:
-    # {context}
-    # """
-
-    # # # Used to obtain reference answer
-    # # reference_prompt_template = """\
-    # # Answer the question you will receive in detail, utilizing the following context.
-
-    # # #Context:
-    # # {context}
-
-    # # # Question:
-    # # {question}
-    # # """
 
     def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
+        section = self.context["section"]
         year, _, *event = self.context["event"].split()
         self.context["event"] = " ".join(event)
-        query = self.context["event"].strip(".") + " on what date?"
+        if section == "events":
+            query = "what date did " + self.context["event"] + " take place?"
+        elif section == "births":
+            query = "when was " + self.context["event"] + " born?"
+        elif section == "deaths":
+            query = "when did " + self.context["event"] + " die?"
         reference = self.context["date"] + ", " + year.strip()
         super().__init__(
             name="date-based question answering",
             desc="get help answering a question",
-            goal=f"to get the answer to the following question",
+            goal=f"to get the answer to the following question about dates",
             query=query,
             reference=reference,
             topic=self.context["event"],
