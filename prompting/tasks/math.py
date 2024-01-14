@@ -19,7 +19,7 @@ class MathTask(Task):
             desc="get help solving a math problem",
             goal="to get the answer to the following math question",
             query=query,
-            reference=reference,
+            reference=str(reference),
             topic=self.context["problem"],
             subtopic="",
             tags="",
