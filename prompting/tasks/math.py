@@ -5,7 +5,7 @@ from prompting.tasks import Task
 @dataclass
 class MathTask(Task):
     reward_definition = [
-        dict(name='float_diff', ngram='rouge-l', metric='f'),
+        dict(name='float_diff', weight = 1.0),
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True):
