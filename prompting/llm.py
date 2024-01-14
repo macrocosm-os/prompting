@@ -7,10 +7,8 @@ from prompting.mock import MockPipeline
 
 
 def load_pipeline(model_id, device_map=None, torch_dtype=None, mock=False):
-    if mock:
-        return MockPipeline(
-            model_id, device_map=device_map, torch_dtype=torch_dtype
-        )
+    if mock or model_id == 'mock':
+        return MockPipeline(model_id)
 
     return pipeline(
         "text-generation",

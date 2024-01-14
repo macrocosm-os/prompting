@@ -23,7 +23,7 @@ def check_uid_availability(
     if metagraph.validator_permit[uid]:
         bt.logging.warning(f"uid: {uid} has validator permit")
         if metagraph.S[uid] > vpermit_tao_limit:
-            bt.logging.warning(f"uid: {uid} has stake > {vpermit_tao_limit}")
+            bt.logging.warning(f"uid: {uid} has stake ({metagraph.S[uid]}) > {vpermit_tao_limit}")
             return False
     # Available otherwise.
     return True

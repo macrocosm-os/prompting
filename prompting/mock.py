@@ -45,22 +45,16 @@ class MockPipeline:
 
     def __init__(
         self,
-        model_id="mock",
-        device_map="mock-cuda",
-        torch_dtype="torch.mock16",
         phrase="Mock llm output",
         model_kwargs=None,
     ):
         super().__init__()
 
-        self.model_id = model_id
-        self.device_map = device_map
-        self.torch_dtype = torch_dtype
         self.model_kwargs = model_kwargs or {}
         self.model = MockModel(phrase)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(model_id={self.model_id}, device_map={self.device_map}, torch_dtype={self.torch_dtype})"
+        return f"{self.__class__.__name__}(phrase={self.model.phrase})"
 
     def __call__(self, messages, **kwargs):
         return self.forward(messages, **kwargs)

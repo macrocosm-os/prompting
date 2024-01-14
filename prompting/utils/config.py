@@ -110,7 +110,7 @@ def add_args(cls, parser):
     )
 
     parser.add_argument(
-        "--neuron.model",
+        "--neuron.model_id",
         type=str,
         help="The model to use for the validator.",
         default="HuggingFaceH4/zephyr-7b-beta",
