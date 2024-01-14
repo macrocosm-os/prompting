@@ -5,7 +5,7 @@ from prompting.tasks import Task
 @dataclass
 class DateQuestionAnsweringTask(Task):
     reward_definition = [
-        dict(name="rouge", ngram="rouge-l", metric="f", weight=1.0),
+        dict(name='date', weight = 1),
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True):
