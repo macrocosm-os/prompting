@@ -31,6 +31,7 @@ REWARD_MODELS = {
     "relevance": RelevanceRewardModel,
     "diff": DiffRewardModel,
     'float_diff': FloatDiffModel,
+    'date': DateRewardModel,
 }
 
 
