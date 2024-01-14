@@ -131,7 +131,7 @@ def add_args(cls, parser):
             type=float,
             nargs="+",
             help="The probability of sampling each task.",
-            default=[0.5, 0.5, 0.0, 0.0, 0.0],
+            default=[0.3, 0.3, 0.1, 0.1, 0.2],
         )
 
         parser.add_argument(
@@ -208,15 +208,22 @@ def add_args(cls, parser):
             default=False,
         )
 
+    parser.add_argument(
+        "--neuron.phrase",
+        type=str,
+        help="The phrase to use when running a phrase (test) miner.",
+        default="Can you please repeat that?",
+    )
 
     parser.add_argument(
         "--wandb.off", action="store_true", help="Turn off wandb.", default=False
     )
+
     parser.add_argument(
         "--wandb.project_name",
         type=str,
         help="The name of the project where you are sending the new run.",
-        default="alpha-validators",
+        default="synapse_agent_experiments",
     )
 
     parser.add_argument(

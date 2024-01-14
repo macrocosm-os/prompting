@@ -1,6 +1,7 @@
 import textwrap
+import time
 import bittensor as bt
-
+from dataclasses import asdict
 from prompting.tasks import Task
 from prompting.llm import HuggingFaceLLM
 
@@ -63,10 +64,21 @@ class HumanAgent(HuggingFaceLLM):
 
     def create_challenge(self) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
+        t0 = time.time()
         self.challenge = super().query(
             message="Ask a question related to your goal"
         )
+        self.challenge_time = time.time() - t0
         return self.challenge.strip(' "')
+    
+    def __state_dict__(self):
+        return {
+            "challenge": self.challenge,   
+            "challenge_time": self.challenge_time,      
+            **self.task.__state_dict__(),
+            **asdict(self.persona),
+            "system_prompt": self.system_prompt,
+        }
 
     def __str__(self):
         return self.system_prompt

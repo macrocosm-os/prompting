@@ -45,6 +45,8 @@ def get_random_uids(
     avail_uids = []
 
     for uid in range(self.metagraph.n.item()):
+        if uid == self.uid:
+            continue
         uid_is_available = check_uid_availability(
             self.metagraph, uid, self.config.neuron.vpermit_tao_limit
         )

@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import time
 import random
 from typing import Dict
 import requests
@@ -27,11 +28,12 @@ from bs4 import BeautifulSoup
 from sympy.parsing.latex import parse_latex
 
 # TODO: Use beautiful soup to parse things like wikipedia articles and stack overflow questions and answers
-
+# TODO: Use decorators or a parent class to time the next method so that context always has a fetch_time field
 
 class MockDataset():
     def next(self):
         return {"text": "What is the capital of Texas?"}
+
 
 
 def chunk(text, sep, n_chunks=None):
@@ -47,6 +49,7 @@ def chunk(text, sep, n_chunks=None):
     )
 
     return sep.join(chunks[start_chunk : start_chunk + n_chunks])
+
 
 
 class CodingDataset:
@@ -85,9 +88,11 @@ class CodingDataset:
 
     def next(self, min_lines=5, max_lines=100):
         bt.logging.debug("Retrieving code from prompting.dataset...")
+        t0 = time.time()
         while True:
             code = next(self.dataset)
             if min_lines <= len(code["code"].splitlines()) <= max_lines:
+                code["fetch_time"] = time.time() - t0
                 return code
 
 
@@ -212,6 +217,7 @@ class WikiDataset:
     def next(self, subset=False, chunk_sep="\n", n_chunks=None):
         bt.logging.debug("Retrieving data from prompting.dataset...")
         tries = 0
+        t0 = time.time()
         while tries < self.max_tries:
             info = self.get_random_wikipedia_article()
             info["sections"] = self.get_wikipedia_article_content(info["title"])
@@ -231,6 +237,7 @@ class WikiDataset:
             text = chunk(text, sep=chunk_sep, n_chunks=n_chunks)
 
         info["text"] = text
+        info['fetch_time'] = time.time() - t0
         return info
 
 
@@ -301,10 +308,11 @@ class StackOverflowDataset():
         return full_content
 
     def next(self):
-        while True:
-            bt.logging.debug("Retrieving data from prompting.dataset...")
-            info = self.get_stack_question()
-            return info
+        bt.logging.debug("Retrieving data from prompting.dataset...")
+        t0 = time.time()
+        info = self.get_stack_question()
+        info['fetch_time'] = time.time() - t0
+        return info
 
 
 class DateQADataset:
@@ -371,7 +379,9 @@ class DateQADataset:
 
     def next(self):
         bt.logging.debug("Retrieving data from prompting.dataset...")
+        t0 = time.time()
         info = self.get_random_event()
+        info['fetch_time'] = time.time() - t0
         return info
 
 
@@ -444,4 +454,7 @@ class MathDataset:
             return {"problem": problem, "solution": solution}
 
     def next(self, parse=True):
-        return self.random_problem(parse)
+        t0 = time.time()
+        info = self.random_problem(parse)
+        info['fetch_time'] = time.time() - t0
+        return info

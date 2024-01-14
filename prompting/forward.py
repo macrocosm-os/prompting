@@ -89,7 +89,7 @@ async def run_step(
         "block": self.block,
         "step_time": time.time() - start_time,
         # can include time to use tools, create query/references
-        **agent.task.__state_dict__(),
+        **agent.__state_dict__(),
         # can include fine-gained rewards as well as times
         **reward_result.__state_dict__(),
         **response_event.__state_dict__(),
@@ -103,15 +103,26 @@ async def run_step(
 
 
 async def forward(self):
-    bt.logging.info(
-        f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
-    )
-    # Create a specific task
-    task_name = np.random.choice(
-        self.config.neuron.tasks, p=self.config.neuron.task_p
-    )
-    bt.logging.info(f"📋 Creating {task_name} task... ")
-    task = create_task(self.llm_pipeline, task_name)
+    
+    while True:
+
+        bt.logging.info(
+            f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
+        )
+        # Create a specific task
+        task_name = np.random.choice(
+            self.config.neuron.tasks, p=self.config.neuron.task_p
+        )
+        bt.logging.info(f"📋 Creating {task_name} task... ")
+        try:
+            task = create_task(self.llm_pipeline, task_name)
+            break
+        except Exception:
+            bt.logging.error(
+                f"📋 Failed to create {task_name} task. Skipping this step."
+            )
+            continue
+
 
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
