@@ -86,7 +86,7 @@ def load_llm(model: str, **kwargs):
     if model.startswith("gpt"):
         llm = ChatOpenAI(
             model_name=model,
-            api_key="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",
+            api_key=os.environ["OPENAI_API_KEY"],
             **kwargs,
         )
     else:
