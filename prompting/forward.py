@@ -72,7 +72,7 @@ async def run_step(
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
     reward_result = RewardResult(
-        self.reward_pipeline, task=agent.task, response_event=response_event
+        self.reward_pipeline, task=agent.task, response_event=response_event, device=self.device
     )
     bt.logging.info(f"Created RewardResult:\n {reward_result}")
 

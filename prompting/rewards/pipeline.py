@@ -33,8 +33,9 @@ REWARD_MODELS = {
 
 
 class RewardPipeline:
-    def __init__(self, selected_tasks: List[str]):
+    def __init__(self, selected_tasks: List[str], device):
         self.selected_tasks = selected_tasks
+        self.device = device
         self.load_pipeline()
 
     def __getitem__(self, __key: str) -> BaseRewardModel:
@@ -70,7 +71,8 @@ class RewardPipeline:
                 )
             cls = REWARD_MODELS[name]
 
-            reward_models[name] = cls(**{k: v for k, v in model.items() if k not in ["name", "weight"]})
+            params = {k: v for k, v in model.items() if k not in ["name", "weight"]}
+            reward_models[name] = cls(device=self.device, **params)
 
         self.reward_models = reward_models
 

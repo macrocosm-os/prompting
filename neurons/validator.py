@@ -43,7 +43,6 @@ class Validator(BaseValidatorNeuron):
             device=self.device,
             mock=self.config.mock,
         )
-        bt.logging.error(f"Loaded pipeline: {self.llm_pipeline.model}")
 
         if sum(self.config.neuron.task_p) != 1:
             raise ValueError("Task probabilities do not sum to 1.")
@@ -57,7 +56,7 @@ class Validator(BaseValidatorNeuron):
             if p > 0
         ]
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks)
+        self.reward_pipeline = RewardPipeline(self.active_tasks, device=self.device)
         
         for i, axon in enumerate(self.metagraph.axons):
             bt.logging.info(f"axons[{i}]: {axon}")

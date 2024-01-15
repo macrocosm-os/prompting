@@ -75,13 +75,13 @@ class Task(ABC):
 
     def generate_query(self, llm):
         """Generates a query to be used for generating the challenge"""
-        bt.logging.info("🤖 Generating query...")
         t0 = time.time()        
         if not self.static_query:
+            bt.logging.info("🤖 Generating query...")            
             self.query = self.generate(
                 system=self.query_system_prompt, prompt=self.query_prompt, llm=llm
             )
-        self.reference_time = time.time() - t0            
+        self.query_time = time.time() - t0            
         return self.query
 
     def generate(self, system, prompt, llm):
