@@ -75,16 +75,19 @@ class ZephyrMiner(Miner):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        
-        message = self.model.tokenizer.apply_chat_template(messages, roles)
+        try:
+            bt.logging.info(f"Forwarding synapse: {synapse}")
+            message = self.model.forward(synapse.messages)
 
-        # TODO: Make sure that we are sending the right parameters to the model
-        return self.model.query(
-            message=message,
-            cleanup=True,
-            role="user",
-            disregard_system_prompt=False,
-        )
+            # TODO: Make sure that we are sending the right parameters to the model
+            return self.model.query(
+                message=message,
+                cleanup=True,
+                role="user",
+                disregard_system_prompt=False,
+            )
+        except Exception as e:            
+            bt.logging.error(f"Error in forward: {e}")
 
 
 # This is the main function, which runs the miner.

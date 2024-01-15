@@ -20,6 +20,7 @@ import torch
 import asyncio
 import threading
 import traceback
+import wandb
 
 import bittensor as bt
 
@@ -55,6 +56,19 @@ class BaseMinerNeuron(BaseNeuron):
             priority_fn=self.priority,
         )
         bt.logging.info(f"Axon created: {self.axon}")
+
+        if self.config.wandb.on:
+            tags = [self.wallet.hotkey.ss58_address, f"netuid_{self.config.netuid}"]
+            self.wandb_run = wandb.init(
+                project=self.config.wandb.project_name,
+                entity=self.config.wandb.entity,
+                config=self.config,
+                mode="online" if self.config.wandb.on else "offline",
+                dir=self.config.miner.full_path,
+                magic=True,
+                tags=tags,
+            )
+
 
         # Instantiate runners
         self.should_exit: bool = False

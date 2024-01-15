@@ -18,7 +18,7 @@
 import time
 import typing
 import bittensor as bt
-
+import argparse
 # Bittensor Miner Template:
 import prompting
 from prompting.protocol import PromptingSynapse
@@ -31,23 +31,79 @@ from langchain.chat_models import ChatOpenAI
 
 
 class OpenAIMiner(Miner):
-    """
-    Your miner neuron class. You should use this class to define your miner's behavior. In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        """
+        Adds OpenAI-specific arguments to the command line parser.
+        """
+        parser.add_argument(
+            "--openai.model_name",
+            type=str,
+            default="gpt-4",
+            help="OpenAI model to use for completion.",
+        )
 
-    This class inherits from the BaseMinerNeuron class, which in turn inherits from BaseNeuron. The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc. You can override any of the methods in BaseNeuron if you need to customize the behavior.
+        parser.add_argument(
+            "--wandb.on",
+            type=bool,
+            default=True,
+            help="Enable wandb logging.",            
+        )
 
-    This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. If you need to define custom
-    """
+        parser.add_argument(
+            "--wandb.entity",
+            type=str,
+            default="sn1",
+            help="wandb entity to log to.",
+        )
+
+        parser.add_argument(
+            "--wandb.project",
+            type=str,
+            default="miners",
+        )
+
+    
+    def config(self) -> bt.config:
+        """
+        Provides the configuration for the OpenAIMiner.
+
+        This method returns a configuration object specific to the OpenAIMiner, containing settings
+        and parameters related to the OpenAI model and its interaction parameters. The configuration
+        ensures the miner's optimal operation with the OpenAI model and can be customized by adjusting
+        the command-line arguments introduced in the `add_args` method.
+
+        Returns:
+            bittensor.Config:
+                A configuration object specific to the OpenAIMiner, detailing the OpenAI model settings
+                and operational parameters.
+
+        Note:
+            If introducing new settings or parameters for OpenAI or the miner's operation, ensure they
+            are properly initialized and returned in this configuration method.
+        """
+        parser = argparse.ArgumentParser(description="OpenAI Miner Configs")
+        self.add_args(parser)
+        return bt.config(parser)
+
+    
 
     def __init__(self, config=None):
         super().__init__(config=config)
+        
+        bt.logging.info(f"Initializing with model {config.openai.model_name}...")
+
+        if self.config.wandb.on:
+            self.wandb_run.tags = self.wandb_run.tags + ["openai_miner", config.openai.model_name]
 
         # Set openai key and other args
         self.model = ChatOpenAI(
-            model_name="gpt-4",
+            model_name=self.config.openai.model_name,
             api_key="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",
             # **kwargs
         )
+
+        self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
 
     async def forward(
         self, synapse: PromptingSynapse
@@ -66,15 +122,26 @@ class OpenAIMiner(Miner):
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
         # TODO(developer): Replace with actual implementation logic.
+        try:
+            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
-        prompt = ChatPromptTemplate.from_messages([("{role}", "{input}")])
-        chain = prompt | self.model | StrOutputParser()
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", self.system_prompt),
+                ("user", "{input}")
+            ])
+            chain = prompt | self.model | StrOutputParser()
 
-        response = chain.invoke(
-            {"role": synapse.roles[-1], "input": synapse.messages[-1]}
-        )
+            bt.logging.debug(f"💬 Querying openai: {prompt}")
+            response = chain.invoke(
+                {"role": synapse.roles[-1], "input": synapse.messages[-1]}
+            )
 
-        synapse.response = response
+            synapse.completion = response
+
+            bt.logging.debug(f"✅ Served Response: {response}")
+            return synapse
+        except Exception as e:
+            bt.logging.error(f"Error in forward: {e}")
 
 
 # This is the main function, which runs the miner.
