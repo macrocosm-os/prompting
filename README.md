@@ -45,6 +45,8 @@ In our experience, we have found that it is tricky to evaluate whether miner res
 
 In the present version, the validator produces one or more **reference** answers which all miner responses are compared to. Those which are most similar to the reference answer will attain the highest rewards and ultimately gain the most incentive.
 
+**We presently use a combination of string literal similarity and semantic similarity as the basis for rewarding.**
+
 ## Tools
 Contexts, which are the basis of conversations, are from external APIs (which we call tools) which ensure that conversations remain grounded in factuality. 
 
