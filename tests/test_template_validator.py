@@ -24,11 +24,11 @@ import bittensor as bt
 from neurons.validator import Neuron as Validator
 from neurons.miner import Neuron as Miner
 
-from template.protocol import Dummy
-from template.validator.forward import forward
-from template.utils.uids import get_random_uids
-from template.validator.reward import get_rewards
-from template.base.validator import BaseValidatorNeuron
+from prompting.protocol import Dummy
+from prompting.validator.forward import forward
+from prompting.utils.uids import get_random_uids
+from prompting.validator.reward import get_rewards
+from prompting.base.validator import BaseValidatorNeuron
 
 
 class TemplateValidatorNeuronTestCase(unittest.TestCase):
@@ -66,9 +66,7 @@ class TemplateValidatorNeuronTestCase(unittest.TestCase):
 
         responses = self.neuron.dendrite.query(
             # Send the query to miners in the network.
-            axons=[
-                self.neuron.metagraph.axons[uid] for uid in self.miner_uids
-            ],
+            axons=[self.neuron.metagraph.axons[uid] for uid in self.miner_uids],
             # Construct a dummy query.
             synapse=Dummy(dummy_input=self.neuron.step),
             # All responses have the deserialize function called on them before returning.

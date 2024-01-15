@@ -77,7 +77,7 @@ class MyStreamingSynapse(bt.StreamingSynapse):
     messages: List[str] = pydantic.Field(
         ..., # this ellipsis (...) indicates the object is required
         title="Messages", # What is the name of this field?
-        description="A list of messages in the Prompting scenario. Immutable.",
+        description="A list of messages in the PromptingSynapse scenario. Immutable.",
         allow_mutation=False, # disallow modification of this field after creation
     )
     completion: str = pydantic.Field(
@@ -156,7 +156,7 @@ This will generate the tokens to be streamed in this prompting example.
 
 For brevity we will not be building a full miner, but inspecting the central components.
 ```python
-class MyStreamPromptingMiner(bt.Miner):
+class MyStreamPromptingSynapseMiner(bt.Miner):
     ... # any relevant methods you'd need for your miner
 
     # define your server forward here
@@ -251,7 +251,7 @@ class StreamingTemplateMiner(prompting.Miner):
         """
         pass
 
-    def prompt(self, synapse: StreamPrompting) -> StreamPrompting:
+    def prompt(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         """
         Generates a streaming response for the provided synapse.
 
@@ -261,10 +261,10 @@ class StreamingTemplateMiner(prompting.Miner):
         the incoming message, and then sends the response back to the client token by token.
 
         Args:
-            synapse (StreamPrompting): The incoming StreamPrompting instance containing the messages to be processed.
+            synapse (StreamPromptingSynapse): The incoming StreamPromptingSynapse instance containing the messages to be processed.
 
         Returns:
-            StreamPrompting: The streaming response object which can be used by other functions to
+            StreamPromptingSynapse: The streaming response object which can be used by other functions to
                             stream back the response to the client.
 
         Usage:
@@ -384,7 +384,7 @@ dendrite = bt.dendrite(wallet=wallet)
 
 This is an async function so we can use the `await` keyword when querying the server with the dendrite object.
 async def main():
-    # Send a request to the Axon using the Dendrite, passing in a StreamPrompting 
+    # Send a request to the Axon using the Dendrite, passing in a StreamPromptingSynapse 
     # instance with roles and messages. The response is awaited, as the Dendrite 
     # communicates asynchronously with the Axon. Returns a list of async generator.
     responses = await dendrite(
@@ -432,8 +432,8 @@ If you would like to see a complete standalone example that only depends on bitt
 import bittensor as bt
 import prompting
 
-# Create a StreamPrompting synapse object to house the request body
-syn = prompting.protocol.StreamPrompting(
+# Create a StreamPromptingSynapse synapse object to house the request body
+syn = prompting.protocol.StreamPromptingSynapse(
     roles=["user"], 
     messages=["hello this is a test of a streaming response. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."])
 syn
@@ -459,7 +459,7 @@ d
 
 async def main():
         
-    # Send a request to the Axon using the Dendrite, passing in a StreamPrompting 
+    # Send a request to the Axon using the Dendrite, passing in a StreamPromptingSynapse 
     # instance with roles and messages. The response is awaited, as the Dendrite 
     # communicates asynchronously with the Axon. Returns a list of async generator.
     responses = await d(

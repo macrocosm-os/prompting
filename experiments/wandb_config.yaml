@@ -1,0 +1,15 @@
+
+program: run_experiment.py
+n_trials: 500
+n_references: 5
+method: grid
+eval: false
+# Define the hyperparameters to sweep over
+parameters:
+    model_id:
+        values: ["HuggingFaceH4/zephyr-7b-beta", "Upstage/SOLAR-10.7B-Instruct-v1.0"]
+    system_prompt:
+        values: ['default', 'custom']
+    task:
+        values: ['debug', 'qa', 'summarization']
+
