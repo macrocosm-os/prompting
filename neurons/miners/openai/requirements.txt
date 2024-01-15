@@ -2,3 +2,4 @@
 # If so, we need to make it clear on the README. Otherwise, we should have a completely separated requirements for the miner
 openai
 langchain
+python-dotenv

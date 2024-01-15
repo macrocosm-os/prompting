@@ -15,8 +15,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import time
-import typing
 import bittensor as bt
 import argparse
 # Bittensor Miner Template:
@@ -28,6 +28,7 @@ from neurons.miner import Miner
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models import ChatOpenAI
+from dotenv import load_dotenv, find_dotenv
 
 
 class OpenAIMiner(Miner):
@@ -73,12 +74,15 @@ class OpenAIMiner(Miner):
 
         if self.config.wandb.on:
             self.wandb_run.tags = self.wandb_run.tags + ("openai_miner", ) + (self.config.openai.model_name, )
+        
+        _ = load_dotenv(find_dotenv()) 
+        api_key = os.environ.get("OPENAI_API_KEY")
+        
 
         # Set openai key and other args
         self.model = ChatOpenAI(
             model_name=self.config.openai.model_name,
-            api_key="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",
-            # **kwargs
+            api_key=api_key
         )
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
