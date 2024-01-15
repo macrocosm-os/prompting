@@ -48,21 +48,22 @@ class OpenAIMiner(Miner):
         parser.add_argument(
             "--wandb.on",
             type=bool,
-            default=True,
-            help="Enable wandb logging.",            
+            default=False,
+            help="Enable wandb logging.",
         )
 
         parser.add_argument(
             "--wandb.entity",
             type=str,
-            default="sn1",
-            help="wandb entity to log to.",
+            default="<<Add your wandb entity here>>",
+            help="Wandb entity to log to.",
         )
 
         parser.add_argument(
             "--wandb.project_name",
             type=str,
-            default="miners_experiments",
+            default="<<Add your wandb project name here>>",
+            help="Wandb project to log to.",
         )
 
     
