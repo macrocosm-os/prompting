@@ -104,15 +104,11 @@ python -m pip install -e .
 Currently, the incentive mechanism and miners are a work in progress, and should only be run on the test chain. If you require test tao, please reach out to ____.
 
 Prior to running a miner or validator, you must [create a wallet](https://github.com/opentensor/docs/blob/main/reference/btcli.md) and [register the wallet to a netuid](https://github.com/opentensor/docs/blob/main/subnetworks/registration.md). Once you have done so, you can run the miner and validator with the following commands.
-```bash
-# To run the miner
-python -m neurons/miners/bittensorLM/miner.py 
-    --netuid 61
-    --subtensor.network test 
-    --wallet.name <your miner wallet> # Must be created using the bittensor-cli
-    --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
-    --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 
+The validator and base miner are based on [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B.
+
+**To run a validator or zephyr miner you will need 40GB VRAM (we're working on bringing this down to 32).**
+```bash
 # To run the validator
 python neurons/validator.py
     --netuid 61
@@ -122,6 +118,16 @@ python neurons/validator.py
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 
+```
+
+```bash
+# To run the miner
+python -m neurons/miners/zephyr/miner.py 
+    --netuid 61
+    --subtensor.network test 
+    --wallet.name <your miner wallet> # Must be created using the bittensor-cli
+    --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
+    --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 ```
 
 
