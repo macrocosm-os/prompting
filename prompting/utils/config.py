@@ -21,6 +21,7 @@ import argparse
 import bittensor as bt
 from loguru import logger
 
+#TODO: enable 4bit and 8bit precision llms via config
 
 def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
@@ -96,19 +97,19 @@ def add_args(cls, parser):
         help="If set, we dont save events to a log file.",
         default=False,
     )
+    
+    parser.add_argument(
+        "--neuron.log_full",
+        action="store_true",
+        help="If set, logs more information.",
+        default=False,
+    )
 
     parser.add_argument(
         "--no_background_thread",
         action="store_true",
         help="If set, we dont run the neuron in a background thread.",
         default=False,
-    )
-
-    parser.add_argument(
-        "--neuron.model_id",
-        type=str,
-        help="The model to use for the validator.",
-        default="HuggingFaceH4/zephyr-7b-beta",
     )
 
     parser.add_argument(
@@ -138,14 +139,14 @@ def add_args(cls, parser):
 
 def add_miner_args(cls, parser):
     """Add miner specific arguments to the parser."""
-    
+
     parser.add_argument(
         "--neuron.name",
         type=str,
         help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
         default='miner',
-    )   
-        
+    )
+
     parser.add_argument(
         "--blacklist.force_validator_permit",
         action="store_true",
@@ -158,52 +159,59 @@ def add_miner_args(cls, parser):
         action="store_true",
         help="If set, miners will accept queries from non registered entities. (Dangerous!)",
         default=False,
-    )    
-    
+    )
+
     parser.add_argument(
         "--neuron.system_prompt",
         type=str,
         help="The system prompt to use for the miner.",
         default="You are a helpful AI assistant. You answer questions, summarize documents, and debug code. You are always straight to the point and honest.",
-    )    
-    
+    )
+
     parser.add_argument(
         "--neuron.max_tokens",
         type=int,
         default=256,
         help="The maximum number of tokens to generate in the completion.",
     )
-    
+
     parser.add_argument(
         "--neuron.temperature",
         type=float,
         default=0.7,
         help="Sampling temperature to use, between 0 and 2.",
     )
-    
+
     parser.add_argument(
         "--neuron.top_k",
         type=float,
         default=50,
         help="Nucleus sampling parameter, top_p probability mass.",
-    )        
-    
+    )
+
     parser.add_argument(
         "--neuron.top_p",
         type=float,
         default=0.95,
         help="Nucleus sampling parameter, top_p probability mass.",
-    )    
+    )
 
 def add_validator_args(cls, parser):
     """Add validator specific arguments to the parser."""
-    
+
     parser.add_argument(
         "--neuron.name",
         type=str,
         help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
         default='validator',
-    )    
+    )
+
+    parser.add_argument(
+        "--neuron.model_id",
+        type=str,
+        help="The model to use for the validator.",
+        default="HuggingFaceH4/zephyr-7b-beta",
+    )
 
     parser.add_argument(
         "--neuron.tasks",
