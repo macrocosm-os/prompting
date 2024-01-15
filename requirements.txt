@@ -1,6 +1,6 @@
 bittensor==6.5.0
 torch==2.1.1
-transformers==4.32.1
+transformers==4.36.0
 wandb==0.15.10
 datasets==2.14.6
 plotly==5.14.1
