@@ -45,7 +45,7 @@ class OpenAIMiner(Miner):
         # Set openai key and other args
         self.model = ChatOpenAI(
             model_name="gpt-4",
-            api_key="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",
+            api_key=os.environ["OPENAI_API_KEY"],
             # **kwargs
         )
 

@@ -1,4 +1,5 @@
 ## Utility functions for various notebooks...
+import os
 import torch
 import bittensor as bt
 
@@ -10,8 +11,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 OUTPUT_PARSER = StrOutputParser()
-OPENAI_API_KEY = "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"
-
+OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
 #### PROMETHEUS RUBRIC SCORING METRIC METHODOLOGY ####
 def prometheus_rubric():
