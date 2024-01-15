@@ -17,6 +17,7 @@
 
 import time
 import typing
+import argparse
 import bittensor as bt
 
 # Bittensor Miner Template:
@@ -32,6 +33,18 @@ class PhraseMiner(Miner):
     This little fella responds with whatever phrase you give it.
     """
 
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        
+        super().add_args(parser)
+
+        parser.add_argument(
+            "--neuron.phrase",
+            type=str,
+            help="The phrase to use when running a phrase (test) miner.",
+            default="Can you please repeat that?",
+        )
+    
     def __init__(self, config=None):
         super().__init__(config=config)
 
