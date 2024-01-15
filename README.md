@@ -35,13 +35,6 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-If you are running a specific server, you might need install server-specific requirements.
-
-```bash
-cd neurons/miners/bittensorLM
-python -m pip install -r requirements.txt
-```
-
 </div>
 
 ---
