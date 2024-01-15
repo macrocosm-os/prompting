@@ -15,22 +15,71 @@
 
 ---
 
-This template contains all the necessary files and functions to run Bittensor's Text-PromptingSynapse Subnet. You can try running miners on netuid 8 in Bittensor's test network.
+This repository is the **official codebase for Bittensor Subnet 1 (SN1) v3.0.0+**. To learn more about the Bittensor project and the underlying mechanics, [read here.](https://docs.bittensor.com/).
+
+
+This code is not yet running on mainnet but you are welcome run the incentive mechanism or test out miners on testnet (`--subtensor.network test --netuid 61`). Our estimated release date is Thursday 18th January 2024 📆.
 
 # Introduction
 
-[To learn more about the Bittensor project and the underlying mechanics, read here.](https://docs.bittensor.com/)
+This repo defines an incentive mechanism to create a distributed conversational AI. 
 
-This repository is a subnet for text prompting with large language models (LLM). Inside, you will find miners and validators designed by the Subnet 1 Development team to validate and serve language models. The current validator implementation uses internet-scale datasets and goal-driven agent behavior to drive human-like conversations. 
-
-To incentivise miner alignment, reference answers are used for scoring and are generated using information that the miner will not have available through the query. Furthermore, the agent's goal is wrapped in human-like natural language, resulting in a lossy "one-way" function between the query and the challenge. This incentivises miners to answer the challenge the agent has created, rather than reverse engineering the prompt and the corresponding desired reference. The former is a much easier task to solve, while the latter is highly unlikely. 
+Both the validator and miners are based on large language models (LLM). The [validation process](#validation) uses **[internet-scale datasets](#tools)** and **[goal-driven](#tasks)** behaviour to drive **[human-like conversations](#agents)**. 
 
 </div>
 
----
+# Validation
+The design of this incentive mechanism is based on two important requirements:
 
-# SN1 Overview
+### Validation should mimic human interactions
+
+It is imperative that the validation process engages with miners in the same way as real users. The reasons for this are as follows:
+- Miners will compete and continuously improve at performing the validation task(s), and so this fine tuning should be aligned with the goals of the subnet.
+- It should not be possible to distinguish between validation and API client queries so that miners always serve requests (even when they do not recieve emissions for doing so).
+
+In the context of this subnet, miners are required to be intelligent AI assistants that provide helpful and correct responses to a range of queries. 
+
+### Reward models should mimic human preferences
+
+In our experience, we have found that it is tricky to evaluate whether miner responses are high quality. Existing methods typically rely on using LLMs to score completions given a prompt, but this is often exploited and gives rise to many adversarial strategies.
+
+In the present version, the validator produces one or more **reference** answers which all miner responses are compared to. Those which are most similar to the reference answer will attain the highest rewards and ultimately gain the most incentive.
+
+## Tools
+Contexts, which are the basis of conversations, are from external APIs (which we call tools) which ensure that conversations remain grounded in factuality. 
+
+Contexts are also used to obtain ground-truth answers.
+
+## Tasks
+The validation process supports an ever-growing number of tasks. Tasks drive agent behaviour based on specific goals, such as; 
+- Question answering
+- Summarization
+- Code debugging
+- Mathematics
+ and more. 
+
+Tasks contain a **query** (basic question/problem) and a **reference** (ideal answer). You can see this in the [diagram below](#validation-diagram).
+
+## Agents
+
+In order to mimic human interactions, validators participate in a roleplaying game where they take on the persona of random human users. Equipped with this persona and a task, validators prompt miners in a style and tone that is similar to humans and drive the conversation in order to reach a pre-defined goal. We refer to these prompts as **challenges**. 
+
+Challenges are based on the query, but are wrapped in the agent persona which results in a lossy "one-way" function which colorful and overall less predictable.
+
+The [diagram below](#validation-diagram) illustrates the validation flow.
+
+#### Our approach innovatively transforms straightforward queries into complex challenges, a process akin to a 'hash function', requiring advanced NLP for resolution. This transformation is crucial for preventing simple lookups in source documents, ensuring that responses necessitate authentic analytical effort.
+
+
+## Validation Diagram
 ![sn1 overview](assets/sn1-overview.png)
+
+ # Mining
+
+Miners are scored based on the similarity between their completions and the reference answer. Furthermore, they should utilize the same API tools as the validators in order to be able to closely reproduce the reference answer.
+
+Miner experiments are ongoing - we will share our results on the expected performance of various miners in the coming days! 
+
 
 </div>
 
@@ -48,6 +97,7 @@ python -m pip install -e .
 </div>
 
 ---
+# Running
 
 Currently, the incentive mechanism and miners are a work in progress, and should only be run on the test chain. If you require test tao, please reach out to ____.
 
@@ -64,20 +114,21 @@ python -m neurons/miners/bittensorLM/miner.py
 # To run the validator
 python neurons/validator.py
     --netuid 61
-    --subtensor.network test 
+    --subtensor.network test
+    --neuron.device cuda
     --wallet.name <your validator wallet>  # Must be created using the bittensor-cli
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
+
 ```
+
+
+**Running instructions for main chain are coming soon!**
 
 </div>
 
 ---
 
-
-# Running
-
-Running instructions for main chain are coming soon!
 
 
 # Real-time monitoring with wandb integration
