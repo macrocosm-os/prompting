@@ -51,7 +51,7 @@ class RewardResult:
 
         self.rewards = self.total_reward()
 
-    def __state_dict__(self):
+    def __state_dict__(self, full=False):
 
         state = {"rewards": self.rewards.tolist()}
         for event in self.reward_events:

@@ -19,6 +19,7 @@ import sys
 import copy
 import torch
 import asyncio
+import argparse
 import threading
 import bittensor as bt
 
@@ -27,12 +28,19 @@ from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
+from prompting.utils.config import add_validator_args
 
 
 class BaseValidatorNeuron(BaseNeuron):
     """
     Base class for Bittensor validators. Your validator should inherit from this class.
     """
+    
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        super().add_args(parser)
+        add_validator_args(cls, parser)    
+ 
 
     def __init__(self, config=None):
         super().__init__(config=config)

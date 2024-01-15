@@ -89,9 +89,9 @@ async def run_step(
         "block": self.block,
         "step_time": time.time() - start_time,
         # can include time to use tools, create query/references
-        **agent.__state_dict__(),
+        **agent.__state_dict__(full=self.config.log_full),
         # can include fine-gained rewards as well as times
-        **reward_result.__state_dict__(),
+        **reward_result.__state_dict__(full=self.config.log_full),
         **response_event.__state_dict__(),
     }
 
