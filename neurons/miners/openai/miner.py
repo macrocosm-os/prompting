@@ -36,6 +36,7 @@ class OpenAIMiner(Miner):
         """
         Adds OpenAI-specific arguments to the command line parser.
         """
+        super().add_args(parser)
         parser.add_argument(
             "--openai.model_name",
             type=str,
@@ -58,43 +59,20 @@ class OpenAIMiner(Miner):
         )
 
         parser.add_argument(
-            "--wandb.project",
+            "--wandb.project_name",
             type=str,
-            default="miners",
+            default="miners_experiments",
         )
-
-    
-    def config(self) -> bt.config:
-        """
-        Provides the configuration for the OpenAIMiner.
-
-        This method returns a configuration object specific to the OpenAIMiner, containing settings
-        and parameters related to the OpenAI model and its interaction parameters. The configuration
-        ensures the miner's optimal operation with the OpenAI model and can be customized by adjusting
-        the command-line arguments introduced in the `add_args` method.
-
-        Returns:
-            bittensor.Config:
-                A configuration object specific to the OpenAIMiner, detailing the OpenAI model settings
-                and operational parameters.
-
-        Note:
-            If introducing new settings or parameters for OpenAI or the miner's operation, ensure they
-            are properly initialized and returned in this configuration method.
-        """
-        parser = argparse.ArgumentParser(description="OpenAI Miner Configs")
-        self.add_args(parser)
-        return bt.config(parser)
 
     
 
     def __init__(self, config=None):
         super().__init__(config=config)
         
-        bt.logging.info(f"Initializing with model {config.openai.model_name}...")
+        bt.logging.info(f"Initializing with model {self.config.openai.model_name}...")
 
         if self.config.wandb.on:
-            self.wandb_run.tags = self.wandb_run.tags + ["openai_miner", config.openai.model_name]
+            self.wandb_run.tags = self.wandb_run.tags + ("openai_miner", ) + (self.config.openai.model_name, )
 
         # Set openai key and other args
         self.model = ChatOpenAI(
@@ -123,6 +101,8 @@ class OpenAIMiner(Miner):
         """
         # TODO(developer): Replace with actual implementation logic.
         try:
+
+            t0 = time.time()
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
             prompt = ChatPromptTemplate.from_messages([
@@ -131,12 +111,23 @@ class OpenAIMiner(Miner):
             ])
             chain = prompt | self.model | StrOutputParser()
 
+            role = synapse.roles[-1]
+            message = synapse.messages[-1]
+            
             bt.logging.debug(f"💬 Querying openai: {prompt}")
             response = chain.invoke(
-                {"role": synapse.roles[-1], "input": synapse.messages[-1]}
+                {"role": role, "input": message}
             )
 
             synapse.completion = response
+            synapse_latency = time.time() - t0
+
+            self.log_event(
+                timing=synapse_latency, 
+                prompt=message,
+                completion=response
+            )
+
 
             bt.logging.debug(f"✅ Served Response: {response}")
             return synapse

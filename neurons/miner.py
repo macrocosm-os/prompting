@@ -14,11 +14,10 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
+import wandb
 import time
 import typing
 import bittensor as bt
-
 # Bittensor Miner Template:
 import prompting
 from prompting.protocol import PromptingSynapse
@@ -36,6 +35,19 @@ class Miner(BaseMinerNeuron):
 
     def __init__(self, config=None):
         super(Miner, self).__init__(config=config)
+        uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+
+        if self.config.wandb.on:
+            tags = [self.wallet.hotkey.ss58_address, f"netuid_{self.config.netuid}", f"uid_{uid}"]
+                        
+            self.wandb_run = wandb.init(
+                project=self.config.wandb.project_name,
+                entity=self.config.wandb.entity,
+                config=self.config,
+                mode="online" if self.config.wandb.on else "offline",
+                magic=True,
+                tags=tags,                
+            )
 
 
     async def blacklist(
@@ -114,6 +126,22 @@ class Miner(BaseMinerNeuron):
             f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
         )
         return prirority
+    
+    def log_event(self, timing: float, prompt: str, completion: str):
+        step_log = {
+            "epoch_time": timing,
+            # "block": self.last_epoch_block,
+            "prompt": prompt,
+            "completion": completion,
+            "uid": self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address),
+            "stake": self.metagraph.S[self.uid].item(),
+            "trust": self.metagraph.T[self.uid].item(),
+            "incentive": self.metagraph.I[self.uid].item(),
+            "consensus": self.metagraph.C[self.uid].item(),
+            "dividends": self.metagraph.D[self.uid].item(),
+        }
+
+        wandb.log(step_log)
 
 
 # This is the main function, which runs the miner.
