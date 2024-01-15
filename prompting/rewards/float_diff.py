@@ -1,5 +1,6 @@
 import time
 import torch
+import re
 from typing import List
 from rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
 
@@ -15,17 +16,11 @@ class FloatDiffModel(BaseRewardModel):
 
     def __init__(self, **kwargs):
         super().__init__()
-        # self.ngram = ngram
-        # self.metric = metric
-        # self.avg = avg
-        # TODO: Add init args to Rouge if required
-        # self.rouge = Rouge()
 
     def math_score(self, reference, completion):
-        # Extract all the digits and . from the completion
-        completion_digits = [char for char in completion if char.isdigit() or char == '.']
-        # Convert the list of digits to a string
-        completion_digits = ''.join(completion_digits)
+        # Extract all the digits and . from the completion and take only the last one
+        numbers = re.findall(r"[0-9]+(?:\.[0-9]+)?", completion)
+        completion_digits = float(numbers[-1])
         try:
             # Convert the string to a float
             completion_digits = float(completion_digits)
