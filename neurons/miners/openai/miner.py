@@ -130,7 +130,8 @@ class OpenAIMiner(Miner):
             self.log_event(
                 timing=synapse_latency, 
                 prompt=message,
-                completion=response
+                completion=response,
+                system_prompt=self.system_prompt
             )
 
 

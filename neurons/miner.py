@@ -127,12 +127,13 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
     
-    def log_event(self, timing: float, prompt: str, completion: str):
+    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str):
         step_log = {
             "epoch_time": timing,
             # "block": self.last_epoch_block,
             "prompt": prompt,
             "completion": completion,
+            "system_prompt": system_prompt,
             "uid": self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address),
             "stake": self.metagraph.S[self.uid].item(),
             "trust": self.metagraph.T[self.uid].item(),
