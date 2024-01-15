@@ -162,3 +162,5 @@ cython_debug/
 testing/
 core
 app.config.js
+wandb
+.vscode
