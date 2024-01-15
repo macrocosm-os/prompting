@@ -21,7 +21,9 @@ This template contains all the necessary files and functions to run Bittensor's 
 
 [To learn more about the Bittensor project and the underlying mechanics, read here.](https://docs.bittensor.com/)
 
-This repository is a subnet for text prompting with large language models (LLM). Inside, you will find miners and validators designed by the Subnet 1 Development team to validate and serve language models. The current validator implementation uses internet-scale datasets and goal-driven agent behavior to drive human-like conversations. 
+This repository is a subnet for text prompting with large language models (LLM). Inside, you will find miners and validators designed by the Subnet 1 Development team to validate and serve language models. The current validator implementation uses internet-scale datasets and goal-driven agent behavior to drive human-like conversations. References will now be used for scoring, and are generated using information that the miner will not have available through the query. 
+
+By wrapping the goal of the agent in natural language, the query goes through a one-way function, so miners are forced to answer the challenge that the agent had created, rather than being able to reverse engineer the prompt and then the reference. 
 
 </div>
 
