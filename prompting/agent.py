@@ -71,7 +71,7 @@ class HumanAgent(HuggingFaceLLM):
         self.challenge_time = time.time() - t0
         return self.challenge.strip(' "')
     
-    def __state_dict__(self):
+    def __state_dict__(self, full=False):
         return {
             "challenge": self.challenge,   
             "challenge_time": self.challenge_time,      

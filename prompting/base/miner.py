@@ -17,6 +17,7 @@
 
 import time
 import torch
+import argparse
 import asyncio
 import threading
 import traceback
@@ -25,12 +26,18 @@ import wandb
 import bittensor as bt
 
 from prompting.base.neuron import BaseNeuron
+from prompting.utils.config import add_miner_args
 
 
 class BaseMinerNeuron(BaseNeuron):
     """
     Base class for Bittensor miners.
     """
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        super().add_args(parser)  
+        add_miner_args(cls, parser)    
+
 
     def __init__(self, config=None):
         super().__init__(config=config)
