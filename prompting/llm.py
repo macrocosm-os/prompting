@@ -6,14 +6,14 @@ from transformers import Pipeline, pipeline
 from prompting.mock import MockPipeline
 
 
-def load_pipeline(model_id, device_map=None, torch_dtype=None, mock=False):
+def load_pipeline(model_id, device=None, torch_dtype=None, mock=False):
     if mock or model_id == 'mock':
         return MockPipeline(model_id)
 
     return pipeline(
         "text-generation",
         model=model_id,
-        device_map=device_map,
+        device=device,
         torch_dtype=torch_dtype,
     )
 

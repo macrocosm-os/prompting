@@ -104,6 +104,8 @@ async def run_step(
 
 async def forward(self):
     
+    bt.logging.info("🚀 Starting forward loop...")
+    
     while True:
 
         bt.logging.info(

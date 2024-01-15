@@ -40,9 +40,10 @@ class Validator(BaseValidatorNeuron):
         self.llm_pipeline = load_pipeline(
             model_id=self.config.neuron.model_id,
             torch_dtype=torch.bfloat16,
-            device_map=self.device,
+            device=self.device,
             mock=self.config.mock,
         )
+        bt.logging.error(f"Loaded pipeline: {self.llm_pipeline.model}")
 
         if sum(self.config.neuron.task_p) != 1:
             raise ValueError("Task probabilities do not sum to 1.")
@@ -73,6 +74,35 @@ class Validator(BaseValidatorNeuron):
         """
         return await forward(self)
 
+    def __enter__(self):
+        
+        if self.config.no_background_thread:
+            bt.logging.warning("Running validator in main thread.")
+            self.run()
+        else:
+            self.run_in_background_thread()
+    
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        """
+        Stops the validator's background operations upon exiting the context.
+        This method facilitates the use of the validator in a 'with' statement.
+
+        Args:
+            exc_type: The type of the exception that caused the context to be exited.
+                      None if the context was exited without an exception.
+            exc_value: The instance of the exception that caused the context to be exited.
+                       None if the context was exited without an exception.
+            traceback: A traceback object encoding the stack trace.
+                       None if the context was exited without an exception.
+        """
+        if self.is_running:
+            bt.logging.debug("Stopping validator in background thread.")
+            self.should_exit = True
+            self.thread.join(5)
+            self.is_running = False
+            bt.logging.debug("Stopped")
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":

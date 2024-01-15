@@ -108,6 +108,13 @@ def add_args(cls, parser):
         help="If set, we dont save events to a log file.",
         default=False,
     )
+    
+    parser.add_argument(
+        "--no_background_thread",
+        action="store_true",
+        help="If set, we dont run the neuron in a background thread.",
+        default=False,
+    )
 
     parser.add_argument(
         "--neuron.model_id",
