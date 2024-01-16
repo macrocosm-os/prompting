@@ -10,9 +10,13 @@ class MathTask(Task):
 
     def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
-        print(self.context)
         query = "How can I solve, " + self.context["problem"] + "?"
         reference = self.context["solution"]
+        
+        try:
+            float(reference)
+        except:
+            raise ValueError(f"Solution {reference} is not a float.") 
 
         super().__init__(
             name="math",
