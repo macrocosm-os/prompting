@@ -68,7 +68,9 @@ class HumanAgent(HuggingFaceLLM):
         self.challenge = super().query(
             message="Ask a question related to your goal"
         )
-        self.challenge_time = time.time() - t0
+        if self.task.name == "debugging":
+            # Add self.task.query to the challenge with a new line
+            self.challenge = self.challenge + "\n" + self.task.query 
         return self.challenge.strip(' "')
     
     def __state_dict__(self, full=False):

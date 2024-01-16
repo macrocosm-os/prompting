@@ -5,7 +5,7 @@ from prompting.tasks import Task
 @dataclass
 class MathTask(Task):
     reward_definition = [
-        dict(name="rouge", ngram="rouge-l", metric="f", weight=1.0),
+        dict(name='float_diff', weight = 1.0),
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True):
@@ -19,7 +19,7 @@ class MathTask(Task):
             desc="get help solving a math problem",
             goal="to get the answer to the following math question",
             query=query,
-            reference=reference,
+            reference=str(reference),
             topic=self.context["problem"],
             subtopic="",
             tags="",

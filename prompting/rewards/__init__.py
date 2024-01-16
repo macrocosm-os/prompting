@@ -8,4 +8,6 @@ from .reward import (
 from .code_diff import DiffRewardModel
 from .relevance import RelevanceRewardModel
 from .rouge_reward import RougeRewardModel
+from .float_diff import FloatDiffModel
+from .date import DateRewardModel
 from .pipeline import RewardPipeline
