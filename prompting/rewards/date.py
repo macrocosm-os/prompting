@@ -1,7 +1,7 @@
 import time
 import torch
 from typing import List
-from rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
+from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
 
 
 class DateRewardModel(BaseRewardModel):
