@@ -91,3 +91,8 @@ class Task(ABC):
         """Uses the llm to generate a response to a prompt"""
 
         return HuggingFaceLLM(llm, system_prompt=system).query(prompt)
+
+    def format_challenge(self, challenge):
+        """Formats the challenge to be used for the conversation"""
+        
+        return challenge
