@@ -44,8 +44,9 @@ class Task(ABC):
     def __repr__(self):
         return str(self)
 
-    def __state_dict__(self):
-        return {
+    def __state_dict__(self, full=False):
+        state = {
+            "task": self.name,
             "desc": self.desc,
             "goal": self.goal,
             "query": self.query,  # For now we just use the raw query but should add delimiters again
@@ -57,6 +58,10 @@ class Task(ABC):
             "context_time": self.context.get("fetch_time", 0.0),
             # "tags": self.tags,
         }
+        if full:
+            state.update(**self.context)
+        
+        return state
 
     def generate_reference(self, llm):
         """Generates a reference answer to be used for scoring miner completions"""
