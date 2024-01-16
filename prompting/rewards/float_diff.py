@@ -26,6 +26,8 @@ class FloatDiffModel(BaseRewardModel):
             try:
                 # Convert the string to a float                
                 completion_digits = float(word)
+                # this is okay beccause we already checked that the reference is a float
+                reference = float(reference)
                 # Convert the reference to a float
                 if completion_digits == reference:
                     return 1.0
