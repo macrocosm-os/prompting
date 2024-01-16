@@ -69,6 +69,7 @@ class HumanAgent(HuggingFaceLLM):
             message="Ask a question related to your goal"
         )
         self.challenge = self.task.format_challenge(self.challenge)
+        self.challenge_time = time.time() - t0
 
         return self.challenge.strip(' "')
     
