@@ -40,6 +40,39 @@ class ZephyrMiner(Miner):
     This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. If you need to define custom
     """
 
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        """
+        Adds OpenAI-specific arguments to the command line parser.
+        """
+        super().add_args(parser)
+        parser.add_argument(
+            "--neuron.model_id",
+            type=str,
+            default="HuggingFaceH4/zephyr-7b-alpha",            
+        )
+
+        parser.add_argument(
+            "--wandb.on",
+            type=bool,
+            default=False,
+            help="Enable wandb logging.",
+        )
+
+        parser.add_argument(
+            "--wandb.entity",
+            type=str,
+            default="sn1",
+            help="Wandb entity to log to.",
+        )
+
+        parser.add_argument(
+            "--wandb.project_name",
+            type=str,
+            default="miners_experiments",
+            help="Wandb project to log to.",
+        )
+
     def __init__(self, config=None):
         super().__init__(config=config)
 
@@ -77,17 +110,22 @@ class ZephyrMiner(Miner):
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
         
-        # chat = [{'role': role, 'message': message} for role, message in zip(synapse.roles, synapse.messages)]
-        
-        # message = self.model.tokenizer.apply_chat_template(chat)
+        try:        
+            response = self.model.query(
+                message=synapse.messages[-1], # For now we just take the last message
+                cleanup=True,
+                role="user",
+                disregard_system_prompt=False,
+            )
 
-        # TODO: Make sure that we are sending the right parameters to the model
-        return self.model.query(
-            message=synapse.messages[-1], # For now we just take the last message
-            cleanup=True,
-            role="user",
-            disregard_system_prompt=False,
-        )
+            synapse.completion = response
+        except Exception as e:
+            bt.logging.error(f"Error: {e}")            
+            synapse.completion = "Error: " + str(e)
+        finally:
+            return synapse
+        
+        
 
 
 # This is the main function, which runs the miner.
