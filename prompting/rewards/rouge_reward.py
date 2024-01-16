@@ -18,7 +18,7 @@ class RougeRewardModel(BaseRewardModel):
     def model_type(self) -> RewardModelTypeEnum:
         return RewardModelTypeEnum.WEIGHTED_REWARD
 
-    def __init__(self, ngram="rouge-l", metric="f", avg=False, **kwargs):
+    def __init__(self, ngram="rouge-l", metric="f", avg=False, device=None, **kwargs):
         super().__init__()
         self.ngram = ngram
         self.metric = metric

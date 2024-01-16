@@ -104,6 +104,7 @@ class BaseNeuron(ABC):
             f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
         )
         self.step = 0
+        
 
     @abstractmethod
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:

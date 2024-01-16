@@ -6,14 +6,19 @@ from transformers import Pipeline, pipeline
 from prompting.mock import MockPipeline
 
 
-def load_pipeline(model_id, device_map=None, torch_dtype=None, mock=False):
+def load_pipeline(model_id, device=None, torch_dtype=None, mock=False):
+    """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
+    
     if mock or model_id == 'mock':
         return MockPipeline(model_id)
+    
+    if not device.startswith("cuda"):
+        bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
     return pipeline(
         "text-generation",
         model=model_id,
-        device_map=device_map,
+        device=device,
         torch_dtype=torch_dtype,
     )
 
@@ -68,15 +73,17 @@ class HuggingFaceLLM:
     def forward(self, messages, cleanup=False, preformat_messages=False):
         prompt = self._make_prompt(messages)
         outputs = self.llm_pipeline(prompt, **self.kwargs)
-        bt.logging.info(f"Generated response: {outputs}")
         response = outputs[0]["generated_text"]
 
         response = response.replace(prompt, "").strip()
-        response.split("\n")
         if cleanup and response.startswith("Assistant:"):
-            print(f"Cleaning up response: {response}")
             response = (
                 response.strip("Assistant:").split("User:")[0].strip("\n")
             )
+            # Prune unfinished sentences
+            if not response.endswith("."):
+                bt.logging.debug("Pruning unfinished sentence.")
+                response = response[: response.rfind(".")]+'.'
 
+        bt.logging.info(f"{self.__class__.__name__} generated the following output:\n{response}")
         return response

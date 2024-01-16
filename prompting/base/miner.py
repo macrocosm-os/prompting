@@ -17,6 +17,7 @@
 
 import time
 import torch
+import argparse
 import asyncio
 import threading
 import traceback
@@ -24,12 +25,18 @@ import traceback
 import bittensor as bt
 
 from prompting.base.neuron import BaseNeuron
+from prompting.utils.config import add_miner_args
 
 
 class BaseMinerNeuron(BaseNeuron):
     """
     Base class for Bittensor miners.
     """
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        super().add_args(parser)  
+        add_miner_args(cls, parser)    
+
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -45,7 +52,7 @@ class BaseMinerNeuron(BaseNeuron):
             )
 
         # The axon handles request processing, allowing validators to send this miner requests.
-        self.axon = bt.axon(wallet=self.wallet, port=self.config.axon.port)
+        self.axon = bt.axon(wallet=self.wallet, config=self.config)
 
         # Attach determiners which functions are called when servicing a request.
         bt.logging.info(f"Attaching forward function to miner axon.")

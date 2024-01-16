@@ -18,6 +18,7 @@
 import time
 import torch
 import typing
+import argparse
 import bittensor as bt
 
 # Bittensor Miner Template:
@@ -43,20 +44,20 @@ class ZephyrMiner(Miner):
         super().__init__(config=config)
 
         self.llm_pipeline = load_pipeline(
-            model_id=self.config.model_id,
+            model_id=self.config.neuron.model_id,
             torch_dtype=torch.bfloat16,
-            device_map=self.device,
+            device=self.device,
             mock=self.config.mock,
         )
 
         self.model = HuggingFaceLLM(
             llm_pipeline=self.llm_pipeline,
-            system_prompt=self.config.system_prompt,
-            max_new_tokens=self.config.max_new_tokens,
-            do_sample=self.config.do_sample,
-            temperature=self.config.temperature,
-            top_k=self.config.top_k,
-            top_p=self.config.top_p,
+            system_prompt=self.config.neuron.system_prompt,
+            max_new_tokens=self.config.neuron.max_tokens,
+            do_sample=self.config.neuron.do_sample,
+            temperature=self.config.neuron.temperature,
+            top_k=self.config.neuron.top_k,
+            top_p=self.config.neuron.top_p,
         )
 
     async def forward(
@@ -76,11 +77,13 @@ class ZephyrMiner(Miner):
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
         
-        message = self.model.tokenizer.apply_chat_template(messages, roles)
+        # chat = [{'role': role, 'message': message} for role, message in zip(synapse.roles, synapse.messages)]
+        
+        # message = self.model.tokenizer.apply_chat_template(chat)
 
         # TODO: Make sure that we are sending the right parameters to the model
         return self.model.query(
-            message=message,
+            message=synapse.messages[-1], # For now we just take the last message
             cleanup=True,
             role="user",
             disregard_system_prompt=False,

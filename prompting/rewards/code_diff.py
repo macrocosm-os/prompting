@@ -56,8 +56,8 @@ class DiffRewardModel(BaseRewardModel):
 
         output = BatchRewardOutput(
             rewards=torch.FloatTensor(rewards),
+            timings=torch.FloatTensor(timings),            
             extra_info={"threshold": self.threshold, "lines": self.lines},
-            timings=timings,
         )
 
         return output

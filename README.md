@@ -1,7 +1,7 @@
 
 <div align="center">
 
-# **Bittensor Text-PromptingSynapse** <!-- omit in toc -->
+# **Bittensor SN1** <!-- omit in toc -->
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
 
@@ -15,12 +15,73 @@
 
 ---
 
-This template contains all the necessary files and functions to run Bittensor's Text-PromptingSynapse Subnet. You can try running miners on netuid 8 in Bittensor's test network.
+This repository is the **official codebase for Bittensor Subnet 1 (SN1) v3.0.0+**. To learn more about the Bittensor project and the underlying mechanics, [read here.](https://docs.bittensor.com/).
+
+
+This code is not yet running on mainnet but you are welcome run the incentive mechanism or test out miners on testnet (`--subtensor.network test --netuid 61`). Our estimated release date is Thursday 18th January 2024 📆.
 
 # Introduction
-The Bittensor blockchain hosts multiple self-contained incentive mechanisms 'subnets'. Subnets are playing fields through which miners (those producing value) and validators (those producing consensus) determine together the proper distribution of TAO for the purpose of incentivizing the creation of value, i.e. generating digital commodities, such as intelligence, or data. Each consists of a wire protocol through which miners and validators interact and their method of interacting with Bittensor's chain consensus engine [Yuma Consensus](https://bittensor.com/documentation/validating/yuma-consensus) which is designed to drive these actors into agreement about who is creating value.
 
-This repository is a subnet for text prompting with large language models (LLM). Inside, you will find miners and validators designed by the OpenTensor Foundation team to valdiate and serve language models. The current validator implementation queries the network for responses while servers responds to requests with their best completions. These completions are judged and ranked by the validators and passed to the chain. 
+This repo defines an incentive mechanism to create a distributed conversational AI. 
+
+Both the validator and miners are based on large language models (LLM). The [validation process](#validation) uses **[internet-scale datasets](#tools)** and **[goal-driven](#tasks)** behaviour to drive **[human-like conversations](#agents)**. 
+
+</div>
+
+# Validation
+The design of this incentive mechanism is based on two important requirements:
+
+### Validation should mimic human interactions
+
+It is imperative that the validation process engages with miners in the same way as real users. The reasons for this are as follows:
+- Miners will compete and continuously improve at performing the validation task(s), and so this fine tuning should be aligned with the goals of the subnet.
+- It should not be possible to distinguish between validation and API client queries so that miners always serve requests (even when they do not recieve emissions for doing so).
+
+In the context of this subnet, miners are required to be intelligent AI assistants that provide helpful and correct responses to a range of queries. 
+
+### Reward models should mimic human preferences
+
+In our experience, we have found that it is tricky to evaluate whether miner responses are high quality. Existing methods typically rely on using LLMs to score completions given a prompt, but this is often exploited and gives rise to many adversarial strategies.
+
+In the present version, the validator produces one or more **reference** answers which all miner responses are compared to. Those which are most similar to the reference answer will attain the highest rewards and ultimately gain the most incentive.
+
+**We presently use a combination of string literal similarity and semantic similarity as the basis for rewarding.**
+
+## Tools
+Contexts, which are the basis of conversations, are from external APIs (which we call tools) which ensure that conversations remain grounded in factuality. 
+
+Contexts are also used to obtain ground-truth answers.
+
+## Tasks
+The validation process supports an ever-growing number of tasks. Tasks drive agent behaviour based on specific goals, such as; 
+- Question answering
+- Summarization
+- Code debugging
+- Mathematics
+ and more. 
+
+Tasks contain a **query** (basic question/problem) and a **reference** (ideal answer). You can see this in the [diagram below](#validation-diagram).
+
+## Agents
+
+In order to mimic human interactions, validators participate in a roleplaying game where they take on the persona of random human users. Equipped with this persona and a task, validators prompt miners in a style and tone that is similar to humans and drive the conversation in order to reach a pre-defined goal. We refer to these prompts as **challenges**. 
+
+Challenges are based on the query, but are wrapped in the agent persona which results in a lossy "one-way" function which colorful and overall less predictable.
+
+The [diagram below](#validation-diagram) illustrates the validation flow.
+
+#### Our approach innovatively transforms straightforward queries into complex challenges, a process akin to a 'hash function', requiring advanced NLP for resolution. This transformation is crucial for preventing simple lookups in source documents, ensuring that responses necessitate authentic analytical effort.
+
+
+## Validation Diagram
+![sn1 overview](assets/sn1-overview.png)
+
+ # Mining
+
+Miners are scored based on the similarity between their completions and the reference answer. Furthermore, they should utilize the same API tools as the validators in order to be able to closely reproduce the reference answer.
+
+Miner experiments are ongoing - we will share our results on the expected performance of various miners in the coming days! 
+
 
 </div>
 
@@ -35,77 +96,52 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
-If you are running a specific server, you might need install server-specific requirements.
-
-```bash
-cd neurons/miners/bittensorLM
-python -m pip install -r requirements.txt
-```
-
 </div>
 
 ---
+# Running
+
+Currently, the incentive mechanism and miners are a work in progress, and should only be run on the test chain. If you require test tao, please reach out to ____.
 
 Prior to running a miner or validator, you must [create a wallet](https://github.com/opentensor/docs/blob/main/reference/btcli.md) and [register the wallet to a netuid](https://github.com/opentensor/docs/blob/main/subnetworks/registration.md). Once you have done so, you can run the miner and validator with the following commands.
+
+The validator and base miner are based on [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B.
+
+**To run a validator or zephyr miner you will need 40GB VRAM (we're working on bringing this down to 32).**
+```bash
+# To run the validator
+python neurons/validator.py
+    --netuid 61
+    --subtensor.network test
+    --neuron.device cuda
+    --wallet.name <your validator wallet>  # Must be created using the bittensor-cli
+    --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
+    --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
+
+```
+
 ```bash
 # To run the miner
-python -m neurons/miners/bittensorLM/miner.py 
-    --netuid 8  
+python -m neurons/miners/zephyr/miner.py 
+    --netuid 61
     --subtensor.network test 
     --wallet.name <your miner wallet> # Must be created using the bittensor-cli
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
-
-# To run the validator
-python -m neurons/validators/validator.py
-    --netuid 8
-    --subtensor.network test 
-    --wallet.name <your validator wallet>  # Must be created using the bittensor-cli
-    --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
-    --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 ```
+
+
+**Running instructions for main chain are coming soon!**
 
 </div>
 
 ---
 
 
-# Running
-
-These validators are designed to run and update themselves automatically. To run a validator, follow these steps:
-
-1. Install this repository, you can do so by following the steps outlined in [the installation section](#installation).
-2. Install [Weights and Biases](https://docs.wandb.ai/quickstart) and run `wandb login` within this repository. This will initialize Weights and Biases, enabling you to view KPIs and Metrics on your validator. (Strongly recommended to help the network improve from data sharing)
-3. Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` package](https://jqlang.github.io/jq/) on your system.
-   **On Linux**:
-   ```bash
-   sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm install pm2 -g && pm2 update
-   ``` 
-   **On Mac OS**
-   ```bash
-   brew update && brew install jq && brew install npm && sudo npm install pm2 -g && pm2 update
-   ```
-4. Run the `run.sh` script which will handle running your validator and pulling the latest updates as they are issued. 
-   ```bash
-   pm2 start run.sh --name text_prompt_validators_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key>
-   ```
-
-This will run **two** PM2 process: one for the validator which is called `text_prompt_validators_main_process` by default (you can change this in `run.sh`), and one for the run.sh script (in step 4, we named it `text_prompt_validators_autoupdate`). The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `text_prompt_validators_main_process` and then restart itself.
-
 
 # Real-time monitoring with wandb integration
-By default, the text prompting validator sends data to wandb, allowing users to monitor running validators and access key metrics in real time, such as:
-- Gating model loss
-- Hardware usage
-- Forward pass time
-- Block duration
 
-All the data sent to wandb is publicly available to the community at the following [link](https://wandb.ai/opentensor-dev/openvalidators).
-
-You don't need to have a wandb account to access the data or to generate a new run,
-but bear in mind that
-[data generated by anonymous users will be deleted after 7 days](https://docs.wandb.ai/guides/app/features/anon#:~:text=If%20there's%20no%20account%2C%20we,be%20available%20for%207%20days)
-as default wandb policy.
+A fresh wandb project is on its way!
 
 ## License
 This repository is licensed under the MIT License.

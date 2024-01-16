@@ -5,7 +5,6 @@ from typing import List
 
 class DendriteResponseEvent:
     def __init__(self, responses: List[bt.Synapse], uids: torch.LongTensor):
-        bt.logging.info(f"responses: {responses}")
 
         self.uids = uids
         self.completions = [synapse.completion for synapse in responses]

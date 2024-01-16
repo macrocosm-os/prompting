@@ -19,6 +19,7 @@ import sys
 import copy
 import torch
 import asyncio
+import argparse
 import threading
 import bittensor as bt
 
@@ -27,12 +28,19 @@ from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
+from prompting.utils.config import add_validator_args
 
 
 class BaseValidatorNeuron(BaseNeuron):
     """
     Base class for Bittensor validators. Your validator should inherit from this class.
     """
+    
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        super().add_args(parser)
+        add_validator_args(cls, parser)    
+ 
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -50,7 +58,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
-        self.scores = torch.zeros(self.metagraph.n, dtype=torch.float32)
+        self.scores = torch.zeros(self.metagraph.n, dtype=torch.float32, device=self.device)
 
         # Init sync with the network. Updates the metagraph.
         self.sync()
@@ -305,17 +313,15 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Compute forward pass rewards, assumes uids are mutually exclusive.
         # shape: [ metagraph.n ]
-        scattered_rewards: torch.FloatTensor = self.scores.scatter(
-            0, torch.tensor(uids).to(self.device), rewards
+        step_rewards = self.scores.scatter(
+            0, torch.tensor(uids).to(self.device), rewards.to(self.device)
         ).to(self.device)
         bt.logging.debug(f"Scattered rewards: {rewards}")
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
-        alpha: float = self.config.neuron.moving_average_alpha
-        self.scores: torch.FloatTensor = alpha * scattered_rewards + (
-            1 - alpha
-        ) * self.scores.to(self.device)
+        alpha = self.config.neuron.moving_average_alpha
+        self.scores = alpha * step_rewards + (1 - alpha) * self.scores
         bt.logging.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):

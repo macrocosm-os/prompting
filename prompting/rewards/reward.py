@@ -34,7 +34,7 @@ class RewardEvent:
 
 
 class RewardResult:
-    def __init__(self, reward_pipeline, task, response_event):
+    def __init__(self, reward_pipeline, task, response_event, device):
         """Passes the responses through the reward models and calculates the total reward
 
         Args:
@@ -46,11 +46,12 @@ class RewardResult:
         self.reward_pipeline = reward_pipeline
         self.response_event = response_event
         self.task = task
+        self.device = device
         self.reward_events = self.reward_responses()
 
         self.rewards = self.total_reward()
 
-    def __state_dict__(self):
+    def __state_dict__(self, full=False):
 
         state = {"rewards": self.rewards.tolist()}
         for event in self.reward_events:
@@ -86,7 +87,7 @@ class RewardResult:
 
         # TODO: How would using the Agent as a reward model fit into this flow?
         # Compute the rewards for the responses given the prompt
-        rewards = torch.zeros_like(self.response_event.uids, dtype=torch.float32)
+        rewards = torch.zeros_like(self.response_event.uids, dtype=torch.float32, device=self.device)
 
         for reward_type in RewardModelTypeEnum:
 
@@ -100,7 +101,7 @@ class RewardResult:
                     # Gets appropriate reward event for the reward model defined in the task
                     if reward_type == RewardModelTypeEnum.WEIGHTED_REWARD:
 
-                        rewards += reward_info.get("weight", 1) * reward_event.rewards.cpu()
+                        rewards += reward_info.get("weight", 1) * reward_event.rewards.to(self.device)
 
                     else:
                         raise ValueError(

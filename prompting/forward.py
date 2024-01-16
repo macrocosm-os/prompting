@@ -72,7 +72,7 @@ async def run_step(
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
     reward_result = RewardResult(
-        self.reward_pipeline, task=agent.task, response_event=response_event
+        self.reward_pipeline, task=agent.task, response_event=response_event, device=self.device
     )
     bt.logging.info(f"Created RewardResult:\n {reward_result}")
 
@@ -89,9 +89,9 @@ async def run_step(
         "block": self.block,
         "step_time": time.time() - start_time,
         # can include time to use tools, create query/references
-        **agent.task.__state_dict__(),
+        **agent.__state_dict__(full=self.config.log_full),
         # can include fine-gained rewards as well as times
-        **reward_result.__state_dict__(),
+        **reward_result.__state_dict__(full=self.config.log_full),
         **response_event.__state_dict__(),
     }
 
@@ -103,15 +103,28 @@ async def run_step(
 
 
 async def forward(self):
-    bt.logging.info(
-        f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
-    )
-    # Create a specific task
-    task_name = np.random.choice(
-        self.config.neuron.tasks, p=self.config.neuron.task_p
-    )
-    bt.logging.info(f"📋 Creating {task_name} task... ")
-    task = create_task(self.llm_pipeline, task_name)
+    
+    bt.logging.info("🚀 Starting forward loop...")
+    
+    while True:
+
+        bt.logging.info(
+            f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
+        )
+        # Create a specific task
+        task_name = np.random.choice(
+            self.config.neuron.tasks, p=self.config.neuron.task_p
+        )
+        bt.logging.info(f"📋 Creating {task_name} task... ")
+        try:
+            task = create_task(self.llm_pipeline, task_name)
+            break
+        except Exception:
+            bt.logging.error(
+                f"📋 Failed to create {task_name} task. Skipping this step."
+            )
+            continue
+
 
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")

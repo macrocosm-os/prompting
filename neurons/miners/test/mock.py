@@ -29,11 +29,7 @@ from neurons.miner import Miner
 
 class MockMiner(Miner):
     """
-    Your miner neuron class. You should use this class to define your miner's behavior. In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
-
-    This class inherits from the BaseMinerNeuron class, which in turn inherits from BaseNeuron. The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc. You can override any of the methods in BaseNeuron if you need to customize the behavior.
-
-    This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. If you need to define custom
+    This little fella responds with a static message.
     """
 
     def __init__(self, config=None):
@@ -44,7 +40,7 @@ class MockMiner(Miner):
         self, synapse: PromptingSynapse
     ) -> PromptingSynapse:
 
-        synapse.completion = 'Hey you reached mock miner. Please leave a message after the tone.. Beep!'
+        synapse.completion = f'Hey you reached mock miner {self.config.wallet.hotkey!r}. Please leave a message after the tone.. Beep!'
 
         return synapse
 
