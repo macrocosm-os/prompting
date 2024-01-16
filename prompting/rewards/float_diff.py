@@ -19,22 +19,26 @@ class FloatDiffModel(BaseRewardModel):
 
     def math_score(self, reference, completion):
         # Extract all the digits and . from the completion and take only the last one
-        numbers = re.findall(r"[0-9]+(?:\.[0-9]+)?", completion)
-        completion_digits = float(numbers[-1])
-        try:
-            # Convert the string to a float
-            completion_digits = float(completion_digits)
-            # Convert the reference to a float
-            reference = float(reference)
-            if completion_digits == reference:
-                return 1.0
-            # Compute the difference
-            diff = abs(reference - completion_digits)/(reference + 1e-6)
-            # Make sure the difference is between 0 and 1
-            diff = min(abs(diff), 1)
-            return 1.0 - diff
-        except ValueError:
-            return 0.0
+        #TODO: More flexible regex which catches rational fractions and scientific notation
+        # for loop over all words reversed and try to cast as a float, break when you find the first one
+        completion_digits = FileNotFoundError
+        for word in completion.split()[::-1]:
+            try:
+                # Convert the string to a float                
+                completion_digits = float(word)
+                # Convert the reference to a float
+                if completion_digits == reference:
+                    return 1.0
+                # Compute the difference
+                diff = abs(reference - completion_digits)/(reference + 1e-6)
+                # Make sure the difference is between 0 and 1
+                diff = min(abs(diff), 1)
+                return 1.0 - diff                
+                
+            except ValueError:
+                continue
+            
+        return 0.0
 
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
