@@ -2,7 +2,7 @@ import time
 import torch
 import re
 from typing import List
-from rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
+from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
 
 
 class FloatDiffModel(BaseRewardModel):
@@ -49,7 +49,7 @@ class FloatDiffModel(BaseRewardModel):
 
         output = BatchRewardOutput(
             rewards = torch.FloatTensor(rewards),
-            timings = timings,
+            timings = torch.FloatTensor(timings),
             extra_info = {'type': 'math', },
         )
         return output

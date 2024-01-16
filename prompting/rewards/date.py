@@ -1,7 +1,7 @@
 import time
 import torch
 from typing import List
-from rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
+from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
 
 
 class DateRewardModel(BaseRewardModel):
@@ -17,12 +17,12 @@ class DateRewardModel(BaseRewardModel):
         super().__init__()
 
     def date_score(self, reference, completion):
+        # TODO: cleanup code
         score = 1
         #Take the last 4 characters of the reference as the year
         year = reference[-4:]
         month = reference.split()[0].strip()
         month_num = str(time.strptime(month, "%B").tm_mon)
-        print(month_num)
         day = reference.split()[1].strip(',')
         number_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         not_in_month_day_year = set(str(month_num) + str(day) + str(year))
@@ -30,18 +30,14 @@ class DateRewardModel(BaseRewardModel):
         # Create a list of the months
         month_list = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
         months = [x for x in month_list if x not in month]
-        print(year)
+        
         if not year in completion:
-            print("year not in completion")
             score -= 0.5
-        print(month, completion)
         if not (month_num in completion or month in completion):
-            print("month not in completion")
             score -= 0.25
-        print(day, completion)
         if not day in completion:
-            print("day not in completion")
             score -= 0.25
+            
         if not score == 0:
             # Check if numbers are in completion
             for number in numbers:
@@ -66,7 +62,7 @@ class DateRewardModel(BaseRewardModel):
 
         output = BatchRewardOutput(
             rewards = torch.FloatTensor(rewards),
-            timings = timings,
+            timings = torch.FloatTensor(timings),
             extra_info = {'type': 'date', },
         )
         return output
