@@ -97,7 +97,7 @@ def add_args(cls, parser):
         help="If set, we dont save events to a log file.",
         default=False,
     )
-    
+
     parser.add_argument(
         "--neuron.log_full",
         action="store_true",
@@ -288,6 +288,19 @@ def add_validator_args(cls, parser):
             default=4096,
         )
 
+    parser.add_argument(
+        "--neuron.query_unique_coldkeys",
+        action="store_true",
+        help="Only query a single hotkey per coldkey.",
+        default=False,
+        )
+
+    parser.add_argument(
+        "--neuron.query_unique_ips",
+        action="store_true",
+        help="Only query a single hotkey per ip.",
+        default=False,
+        )
 
 def config(cls):
     """
