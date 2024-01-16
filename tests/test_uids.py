@@ -40,7 +40,7 @@ def make_mock_neuron(unique_coldkeys=False, unique_ips=False, vpermit_tao_limit=
         (False, True, 2, [0, 1]),
         (True, True, 2, [0, 3])
         ])
-def test_check_uid_availability(unique_coldkeys, unique_ips, k, expected_result):
+def test_get_random_uids(unique_coldkeys, unique_ips, k, expected_result):
 
     mock_neuron = make_mock_neuron(unique_coldkeys, unique_ips)
 
