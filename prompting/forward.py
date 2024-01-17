@@ -22,7 +22,6 @@ import sys
 import numpy as np
 import bittensor as bt
 
-from traceback import print_exc
 from typing import List
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
@@ -156,4 +155,6 @@ async def forward(self):
 
         rounds += 1
 
+    del agent
+    del task
 
