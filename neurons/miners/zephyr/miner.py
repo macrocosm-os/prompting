@@ -33,11 +33,13 @@ from neurons.miner import Miner
 
 class ZephyrMiner(Miner):
     """
-    Your miner neuron class. You should use this class to define your miner's behavior. In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
-
-    This class inherits from the BaseMinerNeuron class, which in turn inherits from BaseNeuron. The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc. You can override any of the methods in BaseNeuron if you need to customize the behavior.
-
-    This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. If you need to define custom
+    Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
+    
+    This requires a GPU with at least 40GB of memory.
+    
+    To run this miner from the project root directory:
+    
+    python neurons/miners/zephyr/miner.py --wallet.name <wallet_name> --wallet.hotkey <wallet_hotkey> --subtensor.network <network> --netuid <netuid> --axon.port <port> --axon.external_port <port> --logging.debug True --neuron.model_id HuggingFaceH4/zephyr-7b-beta --neuron.system_prompt "Hello, I am a chatbot. I am here to help you with your questions." --neuron.max_tokens 64 --neuron.do_sample True --neuron.temperature 0.9 --neuron.top_k 50 --neuron.top_p 0.95 --wandb.on True --wandb.entity sn1 --wandb.project_name miners_experiments
     """
 
     @classmethod
@@ -55,7 +57,7 @@ class ZephyrMiner(Miner):
         parser.add_argument(
             "--wandb.on",
             type=bool,
-            default=False,
+            default=True,
             help="Enable wandb logging.",
         )
 
