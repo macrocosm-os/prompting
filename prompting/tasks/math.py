@@ -1,3 +1,5 @@
+import sys
+import bittensor as bt
 from dataclasses import dataclass
 from prompting.tasks import Task
 
@@ -16,6 +18,7 @@ class MathTask(Task):
         try:
             float(reference)
         except:
+            bt.logging.error(f"Solution {reference} is not a float.{sys.exc_info()}")
             raise ValueError(f"Solution {reference} is not a float.") 
 
         super().__init__(
