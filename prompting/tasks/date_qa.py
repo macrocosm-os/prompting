@@ -10,11 +10,11 @@ class DateQuestionAnsweringTask(Task):
 
     def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
-        section = self.context["section"]
+        self.section = self.context["section"]
         year, _, *event = self.context["event"].split()
         self.context["event"] = " ".join(event)
         options = {'Births':' was born ', 'Deaths':' died ', 'Events':' '}
-        query = self.context["event"].strip(".") + options[self.context["type"]] + 'on what date?'
+        query = self.context["event"].strip(".") + options[self.section] + 'on what date?'
         reference = self.context["date"] + ", " + year.strip()
         super().__init__(
             name="date-based question answering",

@@ -1,3 +1,5 @@
+import sys
+import bittensor as bt
 from dataclasses import dataclass
 from prompting.tasks import Task
 
@@ -10,9 +12,14 @@ class MathTask(Task):
 
     def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
-        print(self.context)
         query = "How can I solve, " + self.context["problem"] + "?"
         reference = self.context["solution"]
+        
+        try:
+            float(reference)
+        except:
+            bt.logging.error(f"Solution {reference} is not a float.{sys.exc_info()}")
+            raise ValueError(f"Solution {reference} is not a float.") 
 
         super().__init__(
             name="math",

@@ -18,10 +18,11 @@
 #  THE SOFTWARE.
 
 import time
-
+import sys
 import numpy as np
 import bittensor as bt
 
+from traceback import print_exc
 from typing import List
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
@@ -119,9 +120,9 @@ async def forward(self):
         try:
             task = create_task(self.llm_pipeline, task_name)
             break
-        except Exception:
+        except Exception as e:
             bt.logging.error(
-                f"📋 Failed to create {task_name} task. Skipping this step."
+                f"📋 Failed to create {task_name} task. {sys.exc_info()}"
             )
             continue
 

@@ -19,7 +19,7 @@ class RelevanceRewardModel(BaseRewardModel):
     def model_type(self) -> RewardModelTypeEnum:
         return RewardModelTypeEnum.WEIGHTED_REWARD
 
-    def __init__(self, threshold=None, device="cuda", pooling_strategy="cls"):
+    def __init__(self, threshold=None, device=None, pooling_strategy="cls"):
         super().__init__()
         self.threshold = threshold
         self.model = AnglE.from_pretrained(
