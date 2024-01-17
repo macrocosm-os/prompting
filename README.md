@@ -122,7 +122,7 @@ python neurons/validator.py
 
 ```bash
 # To run the miner
-python -m neurons/miners/zephyr/miner.py 
+python neurons/miners/zephyr/miner.py 
     --netuid 61
     --subtensor.network test 
     --wallet.name <your miner wallet> # Must be created using the bittensor-cli
