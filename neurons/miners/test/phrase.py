@@ -47,6 +47,8 @@ class PhraseMiner(Miner):
     
     def __init__(self, config=None):
         super().__init__(config=config)
+        if self.config.wandb.on:
+            self.wandb_run.tags = self.wandb_run.tags + ("phrase_miner",)
 
 
     async def forward(

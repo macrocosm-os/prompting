@@ -25,6 +25,8 @@ from prompting.protocol import PromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import Miner
+import argparse
+
 
 
 class EchoMiner(Miner):
@@ -32,8 +34,16 @@ class EchoMiner(Miner):
     This little fella just repeats the last message it received.
     """
 
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):        
+        super().add_args(parser)
+
     def __init__(self, config=None):
         super().__init__(config=config)
+        
+        if self.config.wandb.on:
+            self.wandb_run.tags = self.wandb_run.tags + ("echo_miner", )
+            
 
 
     async def forward(
