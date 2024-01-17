@@ -21,7 +21,7 @@ class FloatDiffModel(BaseRewardModel):
         # Extract all the digits and . from the completion and take only the last one
         #TODO: More flexible regex which catches rational fractions and scientific notation
         # for loop over all words reversed and try to cast as a float, break when you find the first one
-        completion_digits = FileNotFoundError
+
         for word in completion.split()[::-1]:
             try:
                 # Convert the string to a float                
