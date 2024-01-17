@@ -15,33 +15,27 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import time
-import torch
-import typing
-import argparse
 import bittensor as bt
-
+import argparse
 # Bittensor Miner Template:
 import prompting
 from prompting.protocol import PromptingSynapse
-from prompting.llm import load_pipeline
-from prompting.llm import HuggingFaceLLM
-
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import Miner
 
+from langchain.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain.chat_models import ChatOpenAI
+from langchain.utilities import WikipediaAPIWrapper
+from dotenv import load_dotenv, find_dotenv
+from langchain import OpenAI
+from langchain.agents import Tool, initialize_agent
+from agent import WikiAgent
 
-class ZephyrMiner(Miner):
-    """
-    Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
-    
-    This requires a GPU with at least 40GB of memory.
-    
-    To run this miner from the project root directory:
-    
-    python neurons/miners/zephyr/miner.py --wallet.name <wallet_name> --wallet.hotkey <wallet_hotkey> --subtensor.network <network> --netuid <netuid> --axon.port <port> --axon.external_port <port> --logging.debug True --neuron.model_id HuggingFaceH4/zephyr-7b-beta --neuron.system_prompt "Hello, I am a chatbot. I am here to help you with your questions." --neuron.max_tokens 64 --neuron.do_sample True --neuron.temperature 0.9 --neuron.top_k 50 --neuron.top_p 0.95 --wandb.on True --wandb.entity sn1 --wandb.project_name miners_experiments
-    """
 
+class WikipediaAgentMiner(Miner):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         """
@@ -49,44 +43,47 @@ class ZephyrMiner(Miner):
         """
         super().add_args(parser)
         parser.add_argument(
-            "--neuron.model_id",
+            "--openai.model_name",
             type=str,
-            default="HuggingFaceH4/zephyr-7b-beta",            
+            default="gpt-4",
+            help="OpenAI model to use for completion.",
         )
 
         parser.add_argument(
             "--wandb.on",
             type=bool,
-            default=True,
+            default=False,
             help="Enable wandb logging.",
         )
 
         parser.add_argument(
             "--wandb.entity",
             type=str,
-            default="sn1",
+            default="<<Add your wandb entity here>>",
             help="Wandb entity to log to.",
         )
 
         parser.add_argument(
             "--wandb.project_name",
             type=str,
-            default="miners_experiments",
+            default="<<Add your wandb project name here>>",
             help="Wandb project to log to.",
         )
 
+
     def __init__(self, config=None):
         super().__init__(config=config)
+        
+        bt.logging.info(f"🤖📖 Initializing wikipedia agent with model {self.config.openai.model_name}...")
 
-        self.llm_pipeline = load_pipeline(
-            model_id=self.config.neuron.model_id,
-            torch_dtype=torch.float16,
-            device=self.device,
-            mock=self.config.mock,
-        )
+        if self.config.wandb.on:
+            self.wandb_run.tags = self.wandb_run.tags + ("wikipedia_agent_miner", ) + (self.config.openai.model_name, )
+        
+        _ = load_dotenv(find_dotenv()) 
         
         
-        self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
+        self.agent = WikiAgent()
+
 
     async def forward(
         self, synapse: PromptingSynapse
@@ -99,59 +96,41 @@ class ZephyrMiner(Miner):
             synapse (PromptingSynapse): The synapse object containing the 'dummy_input' data.
 
         Returns:
-            PromptingSynapse: The synapse object with the 'dummy_output' field set to twice the 'dummy_input' value.
+            PromptingSynapse: The synapse object with the '`dummy_output' field set to twice the 'dummy_input' value.
 
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        
+        # TODO(developer): Replace with actual implementation logic.
         try:
             t0 = time.time()
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+                        
+            message = synapse.messages[-1]
+            
+            bt.logging.debug(f"💬 Querying openai and wikipedia: {message}")
+            
+            response = self.agent.run(message)
 
-            prompt = synapse.messages[-1]
-            bt.logging.debug(f"💬 Querying zephyr: {prompt}")
-            response = HuggingFaceLLM(
-                llm_pipeline=self.llm_pipeline,
-                system_prompt=self.system_prompt,
-                max_new_tokens=self.config.neuron.max_tokens,
-                do_sample=self.config.neuron.do_sample,
-                temperature=self.config.neuron.temperature,
-                top_k=self.config.neuron.top_k,
-                top_p=self.config.neuron.top_p,
-            ).query(
-                message=prompt, # For now we just take the last message
-                cleanup=True,
-                role="user",
-                disregard_system_prompt=False,
-            )
             synapse.completion = response
             synapse_latency = time.time() - t0
 
-            if self.config.wandb.on:
-                # TODO: Add system prompt to wandb config and not on every step
-                self.log_event(
-                    timing=synapse_latency, 
-                    prompt=prompt,
-                    completion=response,
-                    system_prompt=self.system_prompt
-                )
-                        
+            self.log_event(
+                timing=synapse_latency, 
+                prompt=message,
+                completion=response,
+                system_prompt=None
+            )
+
             bt.logging.debug(f"✅ Served Response: {response}")
-            torch.cuda.empty_cache()
-            
-        except Exception as e:
-            bt.logging.error(f"Error: {e}")            
-            synapse.completion = "Error: " + str(e)
-        finally:
             return synapse
-        
-        
+        except Exception as e:
+            bt.logging.error(f"Error in forward: {e}")
 
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
-    with ZephyrMiner() as miner:
+    with WikipediaAgentMiner() as miner:
         while True:
             bt.logging.info("Miner running...", time.time())
             time.sleep(5)
