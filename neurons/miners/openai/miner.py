@@ -77,8 +77,7 @@ class OpenAIMiner(Miner):
             self.wandb_run.tags = self.wandb_run.tags + ("openai_miner", ) + (self.config.openai.model_name, )
         
         _ = load_dotenv(find_dotenv()) 
-        api_key = os.environ.get("OPENAI_API_KEY")
-        
+        api_key = os.environ.get("OPENAI_API_KEY")        
 
         # Set openai key and other args
         self.model = ChatOpenAI(
@@ -127,12 +126,13 @@ class OpenAIMiner(Miner):
             synapse.completion = response
             synapse_latency = time.time() - t0
 
-            self.log_event(
-                timing=synapse_latency, 
-                prompt=message,
-                completion=response,
-                system_prompt=self.system_prompt
-            )
+            if self.config.wandb.on:
+                self.log_event(
+                    timing=synapse_latency, 
+                    prompt=message,
+                    completion=response,
+                    system_prompt=self.system_prompt
+                )
 
 
             bt.logging.debug(f"✅ Served Response: {response}")
