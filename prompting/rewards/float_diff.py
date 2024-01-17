@@ -24,7 +24,7 @@ class FloatDiffModel(BaseRewardModel):
             try:
                 # Convert the string to a float
                 return parse_expr(word.replace('$', ''))
-            except ValueError:
+            except Exception:
                 continue
 
     @staticmethod
