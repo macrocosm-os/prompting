@@ -59,23 +59,13 @@ class ZephyrMiner(Miner):
 
         self.llm_pipeline = load_pipeline(
             model_id=self.config.neuron.model_id,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=torch.float16,
             device=self.device,
             mock=self.config.mock,
         )
         
         
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
-
-        self.model = HuggingFaceLLM(
-            llm_pipeline=self.llm_pipeline,
-            system_prompt=self.system_prompt,
-            max_new_tokens=self.config.neuron.max_tokens,
-            do_sample=self.config.neuron.do_sample,
-            temperature=self.config.neuron.temperature,
-            top_k=self.config.neuron.top_k,
-            top_p=self.config.neuron.top_p,
-        )
 
     async def forward(
         self, synapse: PromptingSynapse
@@ -99,13 +89,20 @@ class ZephyrMiner(Miner):
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
             prompt = synapse.messages[-1]
-            bt.logging.debug(f"💬 Querying openai: {prompt}")
-            response = self.model.query(
+            bt.logging.debug(f"💬 Querying zephyr: {prompt}")
+            response = HuggingFaceLLM(
+                llm_pipeline=self.llm_pipeline,
+                system_prompt=self.system_prompt,
+                max_new_tokens=self.config.neuron.max_tokens,
+                do_sample=self.config.neuron.do_sample,
+                temperature=self.config.neuron.temperature,
+                top_k=self.config.neuron.top_k,
+                top_p=self.config.neuron.top_p,
+            ).query(
                 message=prompt, # For now we just take the last message
                 cleanup=True,
                 role="user",
                 disregard_system_prompt=False,
-
             )
             synapse.completion = response
             synapse_latency = time.time() - t0
@@ -121,6 +118,7 @@ class ZephyrMiner(Miner):
                         
             bt.logging.debug(f"✅ Served Response: {response}")
             torch.cuda.empty_cache()
+            
         except Exception as e:
             bt.logging.error(f"Error: {e}")            
             synapse.completion = "Error: " + str(e)
