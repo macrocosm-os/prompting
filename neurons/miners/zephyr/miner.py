@@ -110,15 +110,32 @@ class ZephyrMiner(Miner):
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
         
-        try:        
+        try:
+            t0 = time.time()
+            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+
+            prompt = synapse.messages[-1]
+            bt.logging.debug(f"💬 Querying openai: {prompt}")
             response = self.model.query(
-                message=synapse.messages[-1], # For now we just take the last message
+                message=prompt, # For now we just take the last message
                 cleanup=True,
                 role="user",
                 disregard_system_prompt=False,
-            )
 
+            )
             synapse.completion = response
+            synapse_latency = time.time() - t0
+
+            if self.config.wandb.on:
+                self.log_event(
+                    timing=synapse_latency, 
+                    prompt=prompt,
+                    completion=response,
+                    system_prompt=self.system_prompt
+                )
+                        
+            bt.logging.debug(f"✅ Served Response: {response}")
+            torch.cuda.empty_cache()
         except Exception as e:
             bt.logging.error(f"Error: {e}")            
             synapse.completion = "Error: " + str(e)

@@ -119,7 +119,7 @@ class WikipediaAgentMiner(Miner):
                 timing=synapse_latency, 
                 prompt=message,
                 completion=response,
-                system_prompt=self.system_prompt
+                system_prompt=None
             )
 
             bt.logging.debug(f"✅ Served Response: {response}")
