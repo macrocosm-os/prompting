@@ -21,9 +21,7 @@ import argparse
 import asyncio
 import threading
 import traceback
-
 import bittensor as bt
-
 from prompting.base.neuron import BaseNeuron
 from prompting.utils.config import add_miner_args
 
@@ -61,7 +59,7 @@ class BaseMinerNeuron(BaseNeuron):
             blacklist_fn=self.blacklist,
             priority_fn=self.priority,
         )
-        bt.logging.info(f"Axon created: {self.axon}")
+        bt.logging.info(f"Axon created: {self.axon}")      
 
         # Instantiate runners
         self.should_exit: bool = False
