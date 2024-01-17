@@ -33,12 +33,47 @@ from neurons.miner import Miner
 
 class ZephyrMiner(Miner):
     """
-    Your miner neuron class. You should use this class to define your miner's behavior. In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
-
-    This class inherits from the BaseMinerNeuron class, which in turn inherits from BaseNeuron. The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc. You can override any of the methods in BaseNeuron if you need to customize the behavior.
-
-    This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. If you need to define custom
+    Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
+    
+    This requires a GPU with at least 40GB of memory.
+    
+    To run this miner from the project root directory:
+    
+    python neurons/miners/zephyr/miner.py --wallet.name <wallet_name> --wallet.hotkey <wallet_hotkey> --subtensor.network <network> --netuid <netuid> --axon.port <port> --axon.external_port <port> --logging.debug True --neuron.model_id HuggingFaceH4/zephyr-7b-beta --neuron.system_prompt "Hello, I am a chatbot. I am here to help you with your questions." --neuron.max_tokens 64 --neuron.do_sample True --neuron.temperature 0.9 --neuron.top_k 50 --neuron.top_p 0.95 --wandb.on True --wandb.entity sn1 --wandb.project_name miners_experiments
     """
+
+    @classmethod
+    def add_args(cls, parser: argparse.ArgumentParser):
+        """
+        Adds OpenAI-specific arguments to the command line parser.
+        """
+        super().add_args(parser)
+        parser.add_argument(
+            "--neuron.model_id",
+            type=str,
+            default="HuggingFaceH4/zephyr-7b-beta",            
+        )
+
+        parser.add_argument(
+            "--wandb.on",
+            type=bool,
+            default=True,
+            help="Enable wandb logging.",
+        )
+
+        parser.add_argument(
+            "--wandb.entity",
+            type=str,
+            default="sn1",
+            help="Wandb entity to log to.",
+        )
+
+        parser.add_argument(
+            "--wandb.project_name",
+            type=str,
+            default="miners_experiments",
+            help="Wandb project to log to.",
+        )
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -77,17 +112,39 @@ class ZephyrMiner(Miner):
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
         
-        # chat = [{'role': role, 'message': message} for role, message in zip(synapse.roles, synapse.messages)]
-        
-        # message = self.model.tokenizer.apply_chat_template(chat)
+        try:
+            t0 = time.time()
+            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
-        # TODO: Make sure that we are sending the right parameters to the model
-        return self.model.query(
-            message=synapse.messages[-1], # For now we just take the last message
-            cleanup=True,
-            role="user",
-            disregard_system_prompt=False,
-        )
+            prompt = synapse.messages[-1]
+            bt.logging.debug(f"💬 Querying openai: {prompt}")
+            response = self.model.query(
+                message=prompt, # For now we just take the last message
+                cleanup=True,
+                role="user",
+                disregard_system_prompt=False,
+
+            )
+            synapse.completion = response
+            synapse_latency = time.time() - t0
+
+            if self.config.wandb.on:
+                self.log_event(
+                    timing=synapse_latency, 
+                    prompt=prompt,
+                    completion=response,
+                    system_prompt=self.system_prompt
+                )
+                        
+            bt.logging.debug(f"✅ Served Response: {response}")
+            torch.cuda.empty_cache()
+        except Exception as e:
+            bt.logging.error(f"Error: {e}")            
+            synapse.completion = "Error: " + str(e)
+        finally:
+            return synapse
+        
+        
 
 
 # This is the main function, which runs the miner.
