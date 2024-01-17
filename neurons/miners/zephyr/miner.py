@@ -49,7 +49,7 @@ class ZephyrMiner(Miner):
         parser.add_argument(
             "--neuron.model_id",
             type=str,
-            default="HuggingFaceH4/zephyr-7b-alpha",            
+            default="HuggingFaceH4/zephyr-7b-beta",            
         )
 
         parser.add_argument(
