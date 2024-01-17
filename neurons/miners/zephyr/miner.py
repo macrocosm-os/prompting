@@ -84,10 +84,13 @@ class ZephyrMiner(Miner):
             device=self.device,
             mock=self.config.mock,
         )
+        
+        
+        self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
 
         self.model = HuggingFaceLLM(
             llm_pipeline=self.llm_pipeline,
-            system_prompt=self.config.neuron.system_prompt,
+            system_prompt=self.system_prompt,
             max_new_tokens=self.config.neuron.max_tokens,
             do_sample=self.config.neuron.do_sample,
             temperature=self.config.neuron.temperature,
@@ -129,6 +132,7 @@ class ZephyrMiner(Miner):
             synapse_latency = time.time() - t0
 
             if self.config.wandb.on:
+                # TODO: Add system prompt to wandb config and not on every step
                 self.log_event(
                     timing=synapse_latency, 
                     prompt=prompt,
