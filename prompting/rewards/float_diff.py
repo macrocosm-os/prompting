@@ -37,6 +37,7 @@ class FloatDiffModel(BaseRewardModel):
             return 0.0
 
         # Convert reference to float (this is okay because we already checked that the reference is a float)
+        # TODO: More flexible parsing of the reference (just as with the completion)
         ref = float(reference)
         if pred == ref:
             return 1.0
