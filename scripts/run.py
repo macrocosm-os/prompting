@@ -1,5 +1,6 @@
 import subprocess
 
+# hi mom!
 coldkey = 'sn1-test'
 netuid = 61
 network = 'test'
