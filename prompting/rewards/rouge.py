@@ -41,9 +41,8 @@ class RougeRewardModel(BaseRewardModel):
 
         for completion in completions:
             t0 = time.time()
-            self.rouge_score(reference, completion)
-            timings.append(time.time() - t0)
             rewards.append(self.rouge_score(reference, completion))
+            timings.append(time.time() - t0)
 
         output = BatchRewardOutput(
             rewards=torch.FloatTensor(rewards),

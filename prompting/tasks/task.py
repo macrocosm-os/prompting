@@ -35,10 +35,8 @@ class Task(ABC):
     static_query: bool = False
     reference_system_prompt = ""
     reference_prompt = ""
-    reference_time: float = 0.0
     query_system_prompt = ""
     query_prompt = ""
-    query_time: float = 0.0
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
@@ -46,19 +44,24 @@ class Task(ABC):
     def __repr__(self):
         return str(self)
 
-    def __state_dict__(self):
-        return {
+    def __state_dict__(self, full=False):
+        state = {
+            "task": self.name,
             "desc": self.desc,
             "goal": self.goal,
             "query": self.query,  # For now we just use the raw query but should add delimiters again
-            "query_time": self.query_time,
+            "query_time": getattr(self, 'query_time', 0),
             "reference": self.reference,
-            "reference_time": self.reference_time,
+            "reference_time": getattr(self, 'reference_time', 0),
             "topic": self.topic,
             "subtopic": self.subtopic,
             "context_time": self.context.get("fetch_time", 0.0),
             # "tags": self.tags,
         }
+        if full:
+            state.update(**self.context)
+        
+        return state
 
     def generate_reference(self, llm):
         """Generates a reference answer to be used for scoring miner completions"""
@@ -88,3 +91,8 @@ class Task(ABC):
         """Uses the llm to generate a response to a prompt"""
 
         return HuggingFaceLLM(llm, system_prompt=system).query(prompt)
+
+    def format_challenge(self, challenge):
+        """Formats the challenge to be used for the conversation"""
+        
+        return challenge

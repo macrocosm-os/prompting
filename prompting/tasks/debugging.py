@@ -161,6 +161,7 @@ class DebuggingTask(Task):
             goal="ask for help fixing the broken piece of code. When asking for help do not adjust the code in any way.",
             query=query,
             reference=reference,
+            delimiter="```",
             topic=self.context["repo_name"],
             subtopic=self.context["path"],
             tags=self.context["language"],
@@ -190,3 +191,6 @@ class DebuggingTask(Task):
     def generate_reference(self, llm=None):
         """Overrides the default reference generation to just return the reference code"""
         return self.context["code"]
+
+    def format_challenge(self, challenge):
+        return f'{challenge}\n{self.delimiter}\n{self.query}\n{self.delimiter}'
