@@ -107,7 +107,7 @@ Prior to running a miner or validator, you must [create a wallet](https://github
 
 The validator and base miner are based on [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B.
 
-**To run a validator or zephyr miner you will need 20GB VRAM**
+**To run a validator you will need 24GB of VRAM or 18GB of VRAM for a zephyr miner**
 ```bash
 # To run the validator
 python neurons/validator.py
