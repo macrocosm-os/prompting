@@ -6,7 +6,7 @@ from enum import Enum
 from typing import List, Union, Dict
 from prompting.llm import HuggingFaceLLM
 from transformers import Pipeline
-from prompting.cleaners import CleanerPipeline
+from prompting.cleaners.cleaner import CleanerPipeline
 
 
 class TaskEvaluationType(Enum):

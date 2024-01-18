@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from prompting.tasks import Task
-from prompting.cleaners import CleanerPipeline
+from prompting.cleaners.cleaner import CleanerPipeline
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 # TODO
