@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from typing import List, Dict
 
 import bittensor as bt
@@ -12,14 +11,8 @@ SUPPORTED_CLEANERS = {
 }
 
 
-class GenerationCleaner(ABC):
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        ...
-
-    @abstractmethod
-    def __init__(self, **kwargs):
+class CleanerPipeline:
+    def __init__(self) -> None:
         pass
 
     def apply(self, generation: str, cleaning_pipeline: List[Dict]) -> str:
