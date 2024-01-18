@@ -25,11 +25,10 @@ class DateQuestionAnsweringTask(Task):
         query = (
             self.context["event"].strip(".") + options[self.section] + "on what date?"
         )
-        # query = self.cleaner.apply(generation=query, task_name = NAME) #Might not want to apply cleaning to query.
 
         reference = self.context["date"] + ", " + year.strip()
-        reference = CleanerPipeline().apply(
-            generation=reference, cleaning_pipeline=self.cleaning_pipeline
+        reference = CleanerPipeline(cleaning_pipeline=self.cleaning_pipeline).apply(
+            generation=reference
         )
 
         super().__init__(

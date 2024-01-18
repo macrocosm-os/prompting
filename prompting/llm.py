@@ -6,6 +6,8 @@ import bittensor as bt
 from transformers import Pipeline, pipeline
 from prompting.mock import MockPipeline
 
+from prompting.cleaners.cleaner import CleanerPipeline
+
 
 def load_pipeline(model_id, device=None, torch_dtype=None, mock=False):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
@@ -53,6 +55,7 @@ class HuggingFaceLLM:
         message: List[Dict[str, str]],
         role: str = "user",
         disregard_system_prompt: bool = False,
+        cleaner: CleanerPipeline = None,
     ):
         messages = self.messages + [{"content": message, "role": role}]
 
@@ -61,6 +64,9 @@ class HuggingFaceLLM:
 
         tbeg = time.time()
         response = self.forward(messages=messages)
+
+        if cleaner is not None:
+            messages = cleaner.apply(generation=messages)
 
         self.messages = messages + [{"content": response, "role": "assistant"}]
         self.times = self.times + [0, time.time() - tbeg]

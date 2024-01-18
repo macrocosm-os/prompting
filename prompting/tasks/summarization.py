@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from prompting.tasks import Task
 from transformers import Pipeline
-from prompting.cleaners.cleaner import CleanerPipeline
 
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
@@ -54,11 +53,7 @@ class SummarizationTask(Task):
             context=self.context["text"]
         )
         if create_reference:
-            reference = self.generate_reference(llm=llm_pipeline)
-            reference = CleanerPipeline().apply(
-                generation=reference, cleaning_pipeline=self.cleaning_pipeline
-            )
-
+            reference = self.generate_reference(llm=llm_pipeline, clean=True)
         else:
             reference = None
 
