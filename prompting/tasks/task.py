@@ -6,7 +6,6 @@ from enum import Enum
 from typing import List, Union
 from prompting.llm import HuggingFaceLLM
 from transformers import Pipeline
-
 from prompting.utils.clean_generation import GenerationCleaner
 
 
@@ -40,9 +39,7 @@ class Task(ABC):
     reference_prompt = ""
     query_system_prompt = ""
     query_prompt = ""
-
-    def __post_init__(self):
-        self.cleaner = GenerationCleaner()
+    cleaner = GenerationCleaner()  # TODO: Remove?
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
@@ -73,10 +70,9 @@ class Task(ABC):
         """Uses the llm to generate a response to a prompt"""
 
         generation = HuggingFaceLLM(llm, system_prompt=system).query(prompt)
-        generation = self.cleaner.apply(generation=generation, task_name=self.name)
         return generation
 
-    def generate_reference(self, llm) -> str:
+    def generate_reference(self, llm: Pipeline) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         t0 = time.time()
         if not self.static_reference:
@@ -91,7 +87,7 @@ class Task(ABC):
         self.reference_time = time.time() - t0
         return self.reference
 
-    def generate_query(self, llm) -> str:
+    def generate_query(self, llm: Pipeline) -> str:
         """Generates a query to be used for generating the challenge"""
         t0 = time.time()
         if not self.static_query:
