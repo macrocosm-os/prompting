@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from prompting.tasks import Task
 from transformers import Pipeline
-from prompting.utils.clean_generation import GenerationCleaner
 
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
@@ -32,11 +31,15 @@ class SummarizationTask(Task):
         dict(name="relevance", threshold=None, weight=1.0),
     ]
 
-    cleaner_pipeline = []
-
     def __init__(self, llm_pipeline: Pipeline, context: str, create_reference=True):
-        NAME = "summarization"
-        self.cleaner = GenerationCleaner()
+        # This is where you define cleaning procedures for the generation.
+        # Can be used when wanting to clean the challenge.
+        self.cleaning_pipeline = [
+            dict(name="remove_quotes"),
+            dict(name="prune_ending"),
+            dict(name="remove_roles"),
+        ]
+
         self.context = context
 
         self.query_prompt = None
@@ -50,14 +53,12 @@ class SummarizationTask(Task):
             context=self.context["text"]
         )
         if create_reference:
-            reference = self.generate_reference(llm=llm_pipeline)
-            reference = self.cleaner.apply(generation=reference, task_name=NAME)
-
+            reference = self.generate_reference(llm=llm_pipeline, clean=True)
         else:
             reference = None
 
         super().__init__(
-            name=NAME,
+            name="summarization",
             desc="get help with summarization",
             goal="summarize the following topic",
             query=query,
