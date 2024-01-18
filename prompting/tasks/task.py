@@ -41,7 +41,7 @@ class Task(ABC):
     reference_prompt = ""
     query_system_prompt = ""
     query_prompt = ""
-    cleaner = CleanerPipeline()  # TODO: Remove?
+    cleaner = None
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
@@ -68,13 +68,17 @@ class Task(ABC):
 
         return state
 
-    def generate(self, system: str, prompt: str, llm: Pipeline) -> str:
+    def generate(self, system: str, prompt: str, llm: Pipeline, clean=True) -> str:
         """Uses the llm to generate a response to a prompt"""
 
-        generation = HuggingFaceLLM(llm, system_prompt=system).query(prompt)
-        return generation
+        cleaner = (
+            CleanerPipeline(cleaning_pipeline=self.cleaning_pipeline) if clean else None
+        )
+        return HuggingFaceLLM(llm, system_prompt=system).query(
+            message=prompt, cleaner=cleaner
+        )
 
-    def generate_reference(self, llm: Pipeline) -> str:
+    def generate_reference(self, llm: Pipeline, clean=True) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         t0 = time.time()
         if not self.static_reference:
@@ -84,12 +88,13 @@ class Task(ABC):
                 system=self.reference_system_prompt,
                 prompt=self.reference_prompt,
                 llm=llm,
+                clean=clean,
             )
 
         self.reference_time = time.time() - t0
         return self.reference
 
-    def generate_query(self, llm: Pipeline) -> str:
+    def generate_query(self, llm: Pipeline, clean=True) -> str:
         """Generates a query to be used for generating the challenge"""
         t0 = time.time()
         if not self.static_query:
@@ -97,15 +102,11 @@ class Task(ABC):
             self.query = self.generate(
                 system=self.query_system_prompt,
                 prompt=self.query_prompt,
-                llm=llm
+                llm=llm,
+                clean=clean,
             )
         self.query_time = time.time() - t0
         return self.query
-
-    def clean_challenge(self, challenge: str, cleaning_pipeline: List[Dict]) -> str:
-        return self.cleaner.apply(
-            generation=challenge, cleaning_pipeline=cleaning_pipeline
-        )
 
     def format_challenge(self, challenge) -> str:
         """Formats the challenge to be used for the conversation"""

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import bittensor as bt
+import re
 
 
 class BaseCleaner(ABC):
@@ -44,6 +45,13 @@ class RemoveRoles(BaseCleaner):
     def __init__(self, **kwargs):
         pass
 
+    def capitalize_sentences(self, input_string):
+        """capitalize the first character after .!?"""
+        sentences = re.split(r"(?<=[.!?])\s+", input_string)
+        capitalized_sentences = [sentence.capitalize() for sentence in sentences]
+        result_string = " ".join(capitalized_sentences)
+        return result_string
+
     def apply(self, generation: str) -> str:
         roles = [
             "User: ",
@@ -58,6 +66,6 @@ class RemoveRoles(BaseCleaner):
             if role in generation:
                 generation = generation.replace(role, "")
 
-        return (
-            generation.capitalize()
+        return self.capitalize_sentences(
+            input_string=generation
         )  # LLMs are good at being formal. Do the same if we remove a prefix.
