@@ -35,7 +35,7 @@ class ZephyrMiner(Miner):
     """
     Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
     
-    This requires a GPU with at least 40GB of memory.
+    This requires a GPU with at least 20GB of memory.
     
     To run this miner from the project root directory:
     
@@ -45,7 +45,7 @@ class ZephyrMiner(Miner):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         """
-        Adds OpenAI-specific arguments to the command line parser.
+        Adds arguments to the command line parser.
         """
         super().add_args(parser)
         parser.add_argument(
