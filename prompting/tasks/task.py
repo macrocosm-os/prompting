@@ -7,6 +7,8 @@ from typing import List, Union
 from prompting.llm import HuggingFaceLLM
 from transformers import Pipeline
 
+from prompting.utils.clean_generation import GenerationCleaner
+
 
 class TaskEvaluationType(Enum):
     REWARD_STACK = "reward"
@@ -39,6 +41,9 @@ class Task(ABC):
     query_system_prompt = ""
     query_prompt = ""
 
+    def __post_init__(self):
+        self.cleaner = GenerationCleaner()
+
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
 
@@ -67,7 +72,9 @@ class Task(ABC):
     def generate(self, system: str, prompt: str, llm: Pipeline) -> str:
         """Uses the llm to generate a response to a prompt"""
 
-        return HuggingFaceLLM(llm, system_prompt=system).query(prompt)
+        generation = HuggingFaceLLM(llm, system_prompt=system).query(prompt)
+        generation = self.cleaner.apply(generation=generation, task_name=self.name)
+        return generation
 
     def generate_reference(self, llm) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
@@ -99,5 +106,6 @@ class Task(ABC):
 
     def format_challenge(self, challenge) -> str:
         """Formats the challenge to be used for the conversation"""
+        challenge = self.cleaner.apply(generation=challenge, task_name=self.name)
 
         return challenge
