@@ -51,7 +51,9 @@ class GenerationCleaner:
         ):
             index = max(generation.rfind(char) for char in punctuation_chars)
             return generation[: index + 1] #Go to the index of where the punctuation is, and include it (+1)
-
+        else:
+            return generation
+        
     def remove_quotes(self, generation: str):
         """Remove quotes and spaces from the generation"""
         return generation.strip("\"'")
