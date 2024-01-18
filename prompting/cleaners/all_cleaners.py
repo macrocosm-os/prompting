@@ -1,13 +1,18 @@
-from typing import Dict, List
+from abc import ABC, abstractmethod
 import bittensor as bt
-from prompting.cleaners import BaseCleaner
+
+
+class BaseCleaner(ABC):
+    @abstractmethod
+    def __init__(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def apply(self, generation: str) -> str:
+        pass
 
 
 class RemoveQuotes(BaseCleaner):
-    @property
-    def name(self) -> str:
-        return "remove_quotes"
-
     def __init__(self, **kwargs) -> None:
         pass
 
@@ -17,10 +22,6 @@ class RemoveQuotes(BaseCleaner):
 
 
 class PruneEnding(BaseCleaner):
-    @property
-    def name(self) -> str:
-        return "prune_ending"
-
     def __init__(self, **kwargs):
         pass
 
@@ -40,10 +41,6 @@ class PruneEnding(BaseCleaner):
 
 
 class RemoveRoles(BaseCleaner):
-    @property
-    def name(self) -> str:
-        return "remove_roles"
-
     def __init__(self, **kwargs):
         pass
 
