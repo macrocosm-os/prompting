@@ -92,7 +92,7 @@ This repository requires python3.8 or higher. To install, simply clone this repo
 ```bash
 git clone https://github.com/opentensor/prompting.git
 cd prompting
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt -r prompting/requirements.txt
 python -m pip install -e .
 ```
 
@@ -107,7 +107,7 @@ Prior to running a miner or validator, you must [create a wallet](https://github
 
 The validator and base miner are based on [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B.
 
-**To run a validator or zephyr miner you will need 40GB VRAM (we're working on bringing this down to 32).**
+**To run a validator you will need 24GB of VRAM or 18GB of VRAM for a zephyr miner**
 ```bash
 # To run the validator
 python neurons/validator.py
