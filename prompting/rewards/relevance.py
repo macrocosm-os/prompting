@@ -32,13 +32,17 @@ class RelevanceRewardModel(BaseRewardModel):
         self, reference: str, completions: List[str]
     ) -> BatchRewardOutput:
         reference_embedding = self.model.encode(reference, to_numpy=False)
-        completions_embeddings = self.model.encode(completions, to_numpy=False)
         rewards = []
         timings = []
 
-        for emb in completions_embeddings:
+        for comp in completions:
             t0 = time.time()
-            rewards.append(cosine_similarity(reference_embedding.reshape(1, -1), emb.reshape(1, -1)))
+            score = 0
+            if comp:
+                emb = self.model.encode(completions, to_numpy=False)
+                score = cosine_similarity(reference_embedding.reshape(1, -1), emb.reshape(1, -1))
+
+            rewards.append(score)
             timings.append(time.time() - t0)
 
         output = BatchRewardOutput(
