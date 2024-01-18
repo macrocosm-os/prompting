@@ -1,4 +1,5 @@
 from prompting.tasks import (
+    Task,
     DebuggingTask,
     QuestionAnsweringTask,
     SummarizationTask,
@@ -12,8 +13,10 @@ from prompting.tools import (
     DateQADataset,
 )
 
+from transformers import Pipeline
 
-def create_task(llm_pipeline, task_name):
+
+def create_task(llm_pipeline: Pipeline, task_name: str) -> Task:
     wiki_based_tasks = ["summarization", "qa"]
     coding_based_tasks = ["debugging"]
     # TODO Add math and date_qa to this structure
@@ -32,14 +35,10 @@ def create_task(llm_pipeline, task_name):
         dataset = DateQADataset()
 
     if task_name == "summarization":
-        task = SummarizationTask(
-            llm_pipeline=llm_pipeline, context=dataset.next()
-        )
+        task = SummarizationTask(llm_pipeline=llm_pipeline, context=dataset.next())
 
     elif task_name == "qa":
-        task = QuestionAnsweringTask(
-            llm_pipeline=llm_pipeline, context=dataset.next()
-        )
+        task = QuestionAnsweringTask(llm_pipeline=llm_pipeline, context=dataset.next())
 
     elif task_name == "debugging":
         task = DebuggingTask(llm_pipeline=llm_pipeline, context=dataset.next())
@@ -53,8 +52,6 @@ def create_task(llm_pipeline, task_name):
         )
 
     else:
-        raise ValueError(
-            f"Task {task_name} not supported. Please choose a valid task"
-        )
+        raise ValueError(f"Task {task_name} not supported. Please choose a valid task")
 
     return task

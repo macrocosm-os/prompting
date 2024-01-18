@@ -86,12 +86,3 @@ class HuggingFaceLLM:
             f"{self.__class__.__name__} generated the following output:\n{response}"
         )
         return response
-
-        # and response.startswith("Assistant:"):
-        #     response = (
-        #         response.strip("Assistant:").split("User:")[0].strip("\n")
-        #     )
-        #     # Prune unfinished sentences
-        #     if not response.endswith("."):
-        #         bt.logging.debug("Pruning unfinished sentence.")
-        #         response = response[: response.rfind(".")]+'.'
