@@ -23,12 +23,22 @@ class GenerationCleaner:
 
     def remove_roles(self, generation: str):
         """Remove roles from the generation."""
-        roles = ["User: ", "System: ", "Assistant: "]
+        roles = [
+            "User: ",
+            "System: ",
+            "Assistant: ",
+            "Assistant, ",
+            "Dear AI, ",
+            "Dear AI ",
+            "#Question: ",
+        ]
         for role in roles:
             if role in generation:
                 generation = generation.replace(role, "")
 
-        return generation
+        return (
+            generation.capitalize()
+        )  # LLMs are good at being formal. Do the same if we remove a prefix.
 
     def prune_ending(self, generation: str):
         """Prune unfinished sentences to the most recent period, and replaces it with a default ending punctuation."""
