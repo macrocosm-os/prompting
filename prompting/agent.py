@@ -66,7 +66,7 @@ class HumanAgent(HuggingFaceLLM):
             if hasattr(self.task.cleaning_pipeline):
                 bt.logging.info("🤖 Cleaning challenge...")
                 self.challenge = CleanerPipeline(
-                    cleaning_pipeline=self.cleaning_pipeline
+                    cleaning_pipeline=self.task.cleaning_pipeline
                 ).apply(
                     generation=self.challenge,
                 )
