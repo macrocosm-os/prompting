@@ -3,10 +3,10 @@ import bittensor as bt
 from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Union
+from typing import List, Union, Dict
 from prompting.llm import HuggingFaceLLM
 from transformers import Pipeline
-from prompting.utils.clean_generation import GenerationCleaner
+from prompting.cleaners import CleanerPipeline
 
 
 class TaskEvaluationType(Enum):
@@ -41,7 +41,7 @@ class Task(ABC):
     reference_prompt = ""
     query_system_prompt = ""
     query_prompt = ""
-    cleaner = GenerationCleaner()  # TODO: Remove?
+    cleaner = CleanerPipeline()  # TODO: Remove?
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
@@ -102,8 +102,11 @@ class Task(ABC):
         self.query_time = time.time() - t0
         return self.query
 
+    def clean_challenge(self, challenge: str, cleaning_pipeline: List[Dict]) -> str:
+        return self.cleaner.apply(
+            generation=challenge, cleaning_pipeline=cleaning_pipeline
+        )
+
     def format_challenge(self, challenge) -> str:
         """Formats the challenge to be used for the conversation"""
-        challenge = self.cleaner.apply(generation=challenge, task_name=self.name)
-
         return challenge

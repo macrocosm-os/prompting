@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from prompting.tasks import Task
-from prompting.utils.clean_generation import GenerationCleaner
+from prompting.cleaners import CleanerPipeline
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 # TODO
@@ -51,8 +51,12 @@ class QuestionAnsweringTask(Task):
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True):
-        NAME = "question-answering"
-        self.cleaner = GenerationCleaner()
+        self.cleaning_pipeline = [
+            dict(name="remove_quotes"),
+            dict(name="prune_ending"),
+            dict(name="remove_roles"),
+        ]
+
         self.context = context
 
         self.query_system_prompt = QUERY_SYSTEM_PROMPT
@@ -67,12 +71,14 @@ class QuestionAnsweringTask(Task):
         )
         if create_reference:
             reference = self.generate_reference(llm_pipeline)
-            reference = self.cleaner.apply(generation=reference, task_name=NAME)
+            reference = CleanerPipeline().apply(
+                generation=reference, cleaning_pipeline=self.cleaning_pipeline
+            )
         else:
             reference = None
 
         super().__init__(
-            name=NAME,
+            name="question-answering",
             desc="get help on answering a question",
             goal="to get the answer to the following question",
             query=query,

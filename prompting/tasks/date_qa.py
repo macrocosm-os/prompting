@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from prompting.tasks import Task
-from prompting.utils.clean_generation import GenerationCleaner
+from prompting.cleaners import CleanerPipeline
 
 
 @dataclass
@@ -11,8 +11,12 @@ class DateQuestionAnsweringTask(Task):
     penalty_definition = []
 
     def __init__(self, llm_pipeline, context, create_reference=True):
-        NAME = "date-based question answering"
-        self.cleaner = GenerationCleaner()
+        self.cleaning_pipeline = [
+            dict(name="remove_quotes"),
+            dict(name="prune_ending"),
+            dict(name="remove_roles"),
+        ]
+
         self.context = context
         
         # The section is in {"Births", "Deaths", "Events"}
@@ -27,10 +31,12 @@ class DateQuestionAnsweringTask(Task):
         # query = self.cleaner.apply(generation=query, task_name = NAME) #Might not want to apply cleaning to query.
 
         reference = self.context["date"] + ", " + year.strip()
-        reference = self.cleaner.apply(generation=reference, task_name=NAME)
+        reference = CleanerPipeline().apply(
+            generation=reference, cleaning_pipeline=self.cleaning_pipeline
+        )
 
         super().__init__(
-            name=NAME,
+            name="date-based question answering",
             desc="get help answering a question",
             goal="to get the answer to the following question",
             query=query,
