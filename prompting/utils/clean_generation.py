@@ -62,9 +62,8 @@ class GenerationCleaner:
             pipeline = self.cleaning_pipelines[task_name]
 
             # TODO: I don't love this check, is there a better way?
-            if len(pipeline) > 0:
-                for func in pipeline:  # apply all the filters for the specific task.
-                    generation = func(generation=generation)
+        for func in self.cleaning_pipelines.get(task_name, []):  # apply all the filters for the specific task.
+                generation = func(generation=generation)
 
             return generation
 
