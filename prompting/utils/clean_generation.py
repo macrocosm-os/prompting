@@ -50,19 +50,17 @@ class GenerationCleaner:
             and not generation.endswith("!")
         ):
             index = max(generation.rfind(char) for char in punctuation_chars)
-            return generation[:index] + f"."
+            return generation[: index + 1] #Go to the index of where the punctuation is, and include it (+1)
 
     def remove_quotes(self, generation: str):
         """Remove quotes and spaces from the generation"""
-        return generation.strip('"\'')
+        return generation.strip("\"'")
 
     def apply(self, generation: str, task_name: str):
         """Apply the entire task specific pipeline to the generation."""
         try:
-            pipeline = self.cleaning_pipelines[task_name]
-
-            # TODO: I don't love this check, is there a better way?
-        for func in self.cleaning_pipelines.get(task_name, []):  # apply all the filters for the specific task.
+            for func in self.cleaning_pipelines.get(task_name, []):
+                # apply all the filters for the specific task.
                 generation = func(generation=generation)
 
             return generation
