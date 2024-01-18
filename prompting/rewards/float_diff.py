@@ -42,13 +42,15 @@ class FloatDiffModel(BaseRewardModel):
         if pred == ref:
             return 1.0
 
-        # Compute the difference
-        diff = abs(ref - pred)/(ref + 1e-6)
-        # Make sure the difference is between 0 and 1
-        diff = min(abs(diff), 1)
+        try:
+            # Compute the difference
+            diff = abs(ref - pred)/(ref + 1e-6)
+            # Make sure the difference is between 0 and 1
+            diff = min(abs(diff), 1)
 
-        return 1.0 - diff
-
+            return 1.0 - diff
+        except:
+            return 0.0
 
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
