@@ -54,7 +54,7 @@ class GenerationCleaner:
 
     def remove_quotes(self, generation: str):
         """Remove quotes and spaces from the generation"""
-        return generation.strip(' "')
+        return generation.strip('"\'')
 
     def apply(self, generation: str, task_name: str):
         """Apply the entire task specific pipeline to the generation."""
