@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from prompting.tasks import Task
-from prompting.cleaners import CleanerPipeline
+from prompting.cleaners.cleaner import CleanerPipeline
 
 
 @dataclass

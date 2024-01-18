@@ -4,7 +4,7 @@ import bittensor as bt
 from dataclasses import asdict
 from prompting.tasks import Task
 from prompting.llm import HuggingFaceLLM
-from prompting.cleaners import CleanerPipeline
+from prompting.cleaners.cleaner import CleanerPipeline
 
 from prompting.persona import Persona, create_persona
 
