@@ -35,7 +35,7 @@ class RelevanceRewardModel(BaseRewardModel):
             t0 = time.time()
             score = 0
             if comp:
-                emb = self.model.encode(completions, to_numpy=False)
+                emb = self.model.encode(comp, to_numpy=False)
                 score = cosine_similarity(reference_embedding.reshape(1, -1), emb.reshape(1, -1))
 
             rewards.append(score)
