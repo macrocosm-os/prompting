@@ -1,4 +1,4 @@
 from .cleaner import (
-    BaseCleaner,
+    CleanerPipeline,
 )
 from .all_cleaners import RemoveQuotes, RemoveRoles, PruneEnding

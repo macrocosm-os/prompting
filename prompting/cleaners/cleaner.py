@@ -12,7 +12,7 @@ SUPPORTED_CLEANERS = {
 }
 
 
-class BaseCleaner(ABC):
+class GenerationCleaner(ABC):
     @property
     @abstractmethod
     def name(self) -> str:
@@ -44,7 +44,7 @@ class BaseCleaner(ABC):
                 func = SUPPORTED_CLEANERS[cleaner["name"]]
 
                 kwargs = cleaner.get("kwargs", {})
-                func = func(**kwargs)
+                func = func(**kwargs)  # instantiate the cleaner with the kwargs
 
                 # apply all the filters for the specific task.
                 generation = func.apply(generation=generation)
