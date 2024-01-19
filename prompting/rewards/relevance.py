@@ -15,10 +15,6 @@ class RelevanceRewardModel(BaseRewardModel):
     def name(self) -> str:
         return "relevance"
 
-    @property
-    def model_type(self) -> RewardModelTypeEnum:
-        return RewardModelTypeEnum.WEIGHTED_REWARD
-
     def __init__(self, threshold=None, device=None, pooling_strategy="cls"):
         super().__init__()
         self.threshold = threshold
