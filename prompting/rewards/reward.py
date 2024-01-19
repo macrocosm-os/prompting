@@ -124,7 +124,7 @@ class BatchRewardOutput:
         if self.rewards.shape != self.timings.shape:
             raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
         
-        self.rewards_normalized = (self.rewards-self.rewards.min())/(self.rewards.max()-self.rewards.min())
+        self.rewards_normalized = (self.rewards-self.rewards.min())/(self.rewards.max()-self.rewards.min()+1e-6)
 
 
 class BaseRewardModel(ABC):
