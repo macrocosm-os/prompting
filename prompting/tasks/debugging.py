@@ -128,8 +128,7 @@ def diff(query, reference):
 @dataclass
 class DebuggingTask(Task):
     reward_definition = [
-        dict(name="diff", lines=False, threshold=0.5, weight=1.0),
-        dict(name="relevance", threshold=None, weight=1.0),
+        dict(name="diff", lines=False, threshold=0.5, weight=1.0)
     ]
     penalty_definition = []
 
