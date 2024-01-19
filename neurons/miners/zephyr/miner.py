@@ -33,12 +33,10 @@ from neurons.miner import Miner
 
 class ZephyrMiner(Miner):
     """
-    Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
-    
+    Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)    
     This requires a GPU with at least 20GB of memory.
-    
     To run this miner from the project root directory:
-    
+
     python neurons/miners/zephyr/miner.py --wallet.name <wallet_name> --wallet.hotkey <wallet_hotkey> --subtensor.network <network> --netuid <netuid> --axon.port <port> --axon.external_port <port> --logging.debug True --neuron.model_id HuggingFaceH4/zephyr-7b-beta --neuron.system_prompt "Hello, I am a chatbot. I am here to help you with your questions." --neuron.max_tokens 64 --neuron.do_sample True --neuron.temperature 0.9 --neuron.top_k 50 --neuron.top_p 0.95 --wandb.on True --wandb.entity sn1 --wandb.project_name miners_experiments
     """
 
@@ -51,7 +49,7 @@ class ZephyrMiner(Miner):
         parser.add_argument(
             "--neuron.model_id",
             type=str,
-            default="HuggingFaceH4/zephyr-7b-beta",            
+            default="HuggingFaceH4/zephyr-7b-beta",
         )
 
         parser.add_argument(
@@ -84,13 +82,10 @@ class ZephyrMiner(Miner):
             device=self.device,
             mock=self.config.mock,
         )
-        
-        
+
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
 
-    async def forward(
-        self, synapse: PromptingSynapse
-    ) -> PromptingSynapse:
+    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
         """
         Processes the incoming synapse by performing a predefined operation on the input data.
         This method should be replaced with actual logic relevant to the miner's purpose.
@@ -104,13 +99,14 @@ class ZephyrMiner(Miner):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        
+
         try:
             t0 = time.time()
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
             prompt = synapse.messages[-1]
             bt.logging.debug(f"💬 Querying zephyr: {prompt}")
+
             response = HuggingFaceLLM(
                 llm_pipeline=self.llm_pipeline,
                 system_prompt=self.system_prompt,
@@ -120,33 +116,31 @@ class ZephyrMiner(Miner):
                 top_k=self.config.neuron.top_k,
                 top_p=self.config.neuron.top_p,
             ).query(
-                message=prompt, # For now we just take the last message
-                cleanup=True,
+                message=prompt,  # For now we just take the last message
                 role="user",
                 disregard_system_prompt=False,
             )
+
             synapse.completion = response
             synapse_latency = time.time() - t0
 
             if self.config.wandb.on:
                 # TODO: Add system prompt to wandb config and not on every step
                 self.log_event(
-                    timing=synapse_latency, 
+                    timing=synapse_latency,
                     prompt=prompt,
                     completion=response,
-                    system_prompt=self.system_prompt
+                    system_prompt=self.system_prompt,
                 )
-                        
+
             bt.logging.debug(f"✅ Served Response: {response}")
             torch.cuda.empty_cache()
-            
+
         except Exception as e:
-            bt.logging.error(f"Error: {e}")            
+            bt.logging.error(f"Error: {e}")
             synapse.completion = "Error: " + str(e)
         finally:
             return synapse
-        
-        
 
 
 # This is the main function, which runs the miner.
