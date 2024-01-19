@@ -18,6 +18,7 @@ class RewardEvent:
     """Contains rewards for all the responses in a batch"""
     model_name: str
     rewards: torch.FloatTensor
+    rewards_normalized: torch.FloatTensor
     timings: torch.FloatTensor
     model_type: RewardModelTypeEnum
     batch_time: float
@@ -27,6 +28,7 @@ class RewardEvent:
     def asdict(self) -> dict:
         return {
             f"{self.model_name}_raw_rewards": self.rewards.tolist(),
+            f"{self.model_name}_rewards": self.rewards_normalized.tolist(),
             f"{self.model_name}_timings": self.timings.tolist(),
             f"{self.model_name}_batch_time": self.batch_time,
             f"{self.model_name}_extra_info": self.extra_info,
@@ -119,6 +121,12 @@ class BatchRewardOutput:
     rewards: torch.FloatTensor
     timings: torch.FloatTensor
     extra_info: dict
+    
+    def __post_init__(self):
+        if self.rewards.shape != self.timings.shape:
+            raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
+        
+        self.rewards_normalized = (self.rewards-self.rewards.min())/(self.rewards.max()-self.rewards.min())
 
 
 class BaseRewardModel(ABC):
@@ -153,6 +161,7 @@ class BaseRewardModel(ABC):
         return RewardEvent(
             model_name=self.name,
             rewards=batch_rewards_output.rewards,
+            rewards_normalized=batch_rewards_output.rewards_normalized,
             model_type=self.model_type,
             batch_time=batch_rewards_time,
             extra_info=batch_rewards_output.extra_info,
