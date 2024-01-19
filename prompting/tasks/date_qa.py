@@ -7,24 +7,30 @@ class DateQuestionAnsweringTask(Task):
     reward_definition = [
         dict(name='date', weight = 1),
     ]
+    penalty_definition = []
 
     def __init__(self, llm_pipeline, context, create_reference=True):
+        
+        
+        self.name = "date-based question answering"
+        self.desc = "get help answering a specific date-based question"
+        self.goal = "to get the answer to the following date-based question"
+        
         self.context = context
-        self.section = self.context["section"]
+        
+        # The section is in {"Births", "Deaths", "Events"}
+        section = self.context["section"]
         year, _, *event = self.context["event"].split()
         self.context["event"] = " ".join(event)
+        
         options = {'Births':' was born ', 'Deaths':' died ', 'Events':' '}
-        query = self.context["event"].strip(".") + options[self.section] + 'on what date?'
-        reference = self.context["date"] + ", " + year.strip()
-        super().__init__(
-            name="date-based question answering",
-            desc="get help answering a question",
-            goal="to get the answer to the following question",
-            query=query,
-            reference=reference,
-            topic=self.context["event"],
-            subtopic="",
-            tags="",
-            static_reference=True,
-            static_query=True,
-        )
+        
+        self.query = self.context["event"].strip(".") + options[section] + 'on what exact date?'
+        self.reference = self.context["date"] + ", " + year.strip()
+
+        self.topic = section
+        self.subtopic = year
+        self.tags = []
+        self.static_reference = True
+        self.static_query = True
+        
