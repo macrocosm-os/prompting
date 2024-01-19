@@ -103,7 +103,7 @@ This repository requires python3.8 or higher. To install, simply clone this repo
 ```bash
 git clone https://github.com/opentensor/prompting.git
 cd prompting
-python -m pip install -r requirements.txt -r prompting/requirements.txt
+python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
