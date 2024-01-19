@@ -21,17 +21,6 @@ Introduce a bug to the following {language} code snippet in triple backticks (``
 """
 
 
-# Query is the student exercise containing only the broken code
-# Reference is the solution to the exercise
-
-# REFERENCE_PROMPT_TEMPLATE = """\
-# You are an expert coding teacher, designed to help a student with a question.
-
-# # Question:
-# {query}
-# """
-
-
 def corrupt(
     code,
     n_remove=0,
@@ -139,33 +128,28 @@ def diff(query, reference):
 @dataclass
 class DebuggingTask(Task):
     reward_definition = [
-        dict(name="diff", lines=False, threshold=0.5, weight=1.0),
-        dict(name="relevance", threshold=None, weight=1.0),
+        dict(name="diff", lines=False, threshold=0.5, weight=1.0)
     ]
+    penalty_definition = []
 
     def __init__(self, llm_pipeline, context, create_reference=True):
+
+        self.name = "debugging"
+        self.desc = "get help with debugging"
+        self.goal = "ask for help fixing the broken piece of code. When asking for help do not adjust the code in any way."
+
         self.context = context
 
-        # Query involves breaking the code somehow
-        # self.query_system_prompt = QUERY_SYSTEM_PROMPT
-        # self.query_prompt = QUERY_PROMPT_TEMPLATE.format(language=self.context['language'], context=self.context['code'])
-        # query = self.generate_query(llm_pipeline)
-
         # No LLM involved in generating the query, we just apply some language-independent corruption to the code
-        query = self.generate_query()
-        reference = self.generate_reference()
+        self.query = self.generate_query()
 
-        super().__init__(
-            name="debugging",
-            desc="get help with debugging",
-            goal="ask for help fixing the broken piece of code. When asking for help do not adjust the code in any way.",
-            query=query,
-            reference=reference,
-            delimiter="```",
-            topic=self.context["repo_name"],
-            subtopic=self.context["path"],
-            tags=self.context["language"],
-        )
+        if create_reference:
+            self.reference = self.generate_reference()
+
+        self.delimiter="```"
+        self.topic=self.context["repo_name"]
+        self.subtopic=self.context["path"]
+        self.tags=[self.context["language"]]
 
     def generate_query(
         self,

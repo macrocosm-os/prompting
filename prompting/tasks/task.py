@@ -27,9 +27,11 @@ class Task(ABC):
     topic: str
     subtopic: str
     tags: List[str]
-    reward_definition = List[dict]
+    context: dict
+    reward_definition: List[dict] 
+    penalty_definition: List[dict] = None
     reward_threshold: float = 0.0
-    reference: Union[str, List[str]] = None
+    reference: Union[str, List[str]] = ""
     criteria: str = ("",)
     delimiter: str = ""
     complete: bool = False
@@ -97,7 +99,6 @@ class Task(ABC):
         t0 = time.time()
         if not self.static_query:
             bt.logging.info("🤖 Generating query...")
-
             self.query = self.generate(
                 system=self.query_system_prompt,
                 prompt=self.query_prompt,
@@ -111,3 +112,4 @@ class Task(ABC):
     def format_challenge(self, challenge) -> str:
         """Formats the challenge to be used for the conversation"""
         return challenge
+

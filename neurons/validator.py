@@ -56,7 +56,7 @@ class Validator(BaseValidatorNeuron):
             if p > 0
         ]
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(self.active_tasks, device=self.device)
+        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
         
         for i, axon in enumerate(self.metagraph.axons):
             bt.logging.info(f"axons[{i}]: {axon}")
