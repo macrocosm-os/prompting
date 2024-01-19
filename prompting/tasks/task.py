@@ -25,9 +25,11 @@ class Task(ABC):
     topic: str
     subtopic: str
     tags: List[str]
-    reward_definition = List[dict]
+    context: dict
+    reward_definition: List[dict] 
+    penalty_definition: List[dict] = None
     reward_threshold: float = 0.0
-    reference: Union[str, List[str]] = None
+    reference: Union[str, List[str]] = ""
     criteria: str = ("",)
     delimiter: str = ""
     complete: bool = False
@@ -60,7 +62,7 @@ class Task(ABC):
         }
         if full:
             state.update(**self.context)
-        
+
         return state
 
     def generate_reference(self, llm):
@@ -78,13 +80,15 @@ class Task(ABC):
 
     def generate_query(self, llm):
         """Generates a query to be used for generating the challenge"""
-        t0 = time.time()        
+        t0 = time.time()
         if not self.static_query:
-            bt.logging.info("🤖 Generating query...")            
+            bt.logging.info("🤖 Generating query...")
             self.query = self.generate(
-                system=self.query_system_prompt, prompt=self.query_prompt, llm=llm
+                system=self.query_system_prompt,
+                prompt=self.query_prompt,
+                llm=llm
             )
-        self.query_time = time.time() - t0            
+        self.query_time = time.time() - t0
         return self.query
 
     def generate(self, system, prompt, llm):
@@ -94,5 +98,5 @@ class Task(ABC):
 
     def format_challenge(self, challenge):
         """Formats the challenge to be used for the conversation"""
-        
+
         return challenge
