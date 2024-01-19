@@ -14,10 +14,6 @@ class DiffRewardModel(BaseRewardModel):
     def name(self) -> str:
         return "diff"
 
-    @property
-    def model_type(self) -> RewardModelTypeEnum:
-        return RewardModelTypeEnum.WEIGHTED_REWARD
-
     def __init__(self, lines=False, threshold=None, **kwargs):
         super().__init__()
         self.lines = lines
