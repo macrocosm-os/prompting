@@ -386,6 +386,9 @@ class DateQADataset:
 
 
 class MathDataset:
+    
+    topics_list = mathgenerator.getGenList()
+    
     def random_problem(self, parse):
         if parse:
             parseable_list = [
@@ -442,16 +445,18 @@ class MathDataset:
             options = parseable_list
             choice = random.choice((options))
             problem, solution = mathgenerator.genById(choice)
-            # problem = parse_latex(str(problem).replace('$', '').strip())
+            _, subtopic, _, _, topic, _ = self.topics_list[choice]
+
             solution = parse_latex(
                 str(solution).replace("$", "").strip()
             ).evalf()
-            return {"problem": problem, "solution": solution}
+            return {"problem": problem, "solution": solution, "topic": topic, "subtopic": subtopic}
         else:
             options = mathgenerator.getGenList()
             choice = random.choice(range(len(options)))
             problem, solution = mathgenerator.genById(choice)
-            return {"problem": problem, "solution": solution}
+            _, subtopic, _, _, topic, _ = self.topics_list[choice]
+            return {"problem": problem, "solution": solution, "topic": topic, "subtopic": subtopic}
 
     def next(self, parse=True):
         t0 = time.time()
