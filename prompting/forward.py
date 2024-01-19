@@ -18,7 +18,7 @@
 #  THE SOFTWARE.
 
 import time
-
+import sys
 import numpy as np
 import bittensor as bt
 
@@ -89,9 +89,9 @@ async def run_step(
         "block": self.block,
         "step_time": time.time() - start_time,
         # can include time to use tools, create query/references
-        **agent.__state_dict__(full=self.config.log_full),
+        **agent.__state_dict__(full=self.config.neuron.log_full),
         # can include fine-gained rewards as well as times
-        **reward_result.__state_dict__(full=self.config.log_full),
+        **reward_result.__state_dict__(full=self.config.neuron.log_full),
         **response_event.__state_dict__(),
     }
 
@@ -119,9 +119,9 @@ async def forward(self):
         try:
             task = create_task(self.llm_pipeline, task_name)
             break
-        except Exception:
+        except Exception as e:
             bt.logging.error(
-                f"📋 Failed to create {task_name} task. Skipping this step."
+                f"📋 Failed to create {task_name} task. {sys.exc_info()}"
             )
             continue
 
@@ -155,4 +155,6 @@ async def forward(self):
 
         rounds += 1
 
+    del agent
+    del task
 

@@ -22,8 +22,8 @@ miners = [
 ]
 
 validators = [
-    {'hotkey':'v1', 'port':9000 , 'file':'neurons/validator.py', 'type':'real', 'config': '--neuron.sample_size 5 --neuron.device cuda'},        
-    {'hotkey':'v2', 'port':9011 , 'file':'neurons/validator.py', 'type':'mock', 'config': '--neuron.sample_size 5 --neuron.model_id mock'},
+    {'hotkey':'v1', 'port':9000 , 'file':'neurons/validator.py', 'type':'real', 'config': '--neuron.log_full --neuron.sample_size 5 --neuron.device cuda'},        
+    {'hotkey':'v2', 'port':9011 , 'file':'neurons/validator.py', 'type':'mock', 'config': '--neuron.log_full --neuron.sample_size 5 --neuron.model_id mock'},
 ]
 
 neurons = miners + validators
@@ -33,6 +33,6 @@ for neuron in neurons:
     # Construct the PM2 start command
     command = f"pm2 start {neuron['file']} --interpreter python3 --name {neuron['hotkey']}:{neuron['type']} --"\
             +f" --wallet.name {coldkey} --wallet.hotkey {neuron['hotkey']} --subtensor.network {network} --netuid {netuid}"\
-            +f" --axon.port {neuron['port']} --axon.external_port {neuron['port']} --logging.debug {neuron.get('config')}"
+            +f" --axon.port {neuron['port']} --logging.debug {neuron.get('config')}"
     print(command)
     subprocess.run(command, shell=True)

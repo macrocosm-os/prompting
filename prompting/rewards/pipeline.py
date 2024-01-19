@@ -12,6 +12,8 @@ from prompting.rewards import (
     RougeRewardModel,
     DiffRewardModel,
     RelevanceRewardModel,
+    FloatDiffModel,
+    DateRewardModel,
 )
 
 
@@ -28,6 +30,8 @@ REWARD_MODELS = {
     "rouge": RougeRewardModel,
     "relevance": RelevanceRewardModel,
     "diff": DiffRewardModel,
+    'float_diff': FloatDiffModel,
+    'date': DateRewardModel,
 }
 
 

@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
+import torch
 import argparse
 import bittensor as bt
 from loguru import logger
@@ -67,7 +68,7 @@ def add_args(cls, parser):
         "--neuron.device",
         type=str,
         help="Device to run on.",
-        default="cpu",
+        default="cuda" if torch.cuda.is_available() else "cpu",
     )
 
     parser.add_argument(
@@ -116,12 +117,6 @@ def add_args(cls, parser):
         "--wandb.off", action="store_true", help="Turn off wandb.", default=False
     )
 
-    parser.add_argument(
-        "--wandb.project_name",
-        type=str,
-        help="The name of the project where you are sending the new run.",
-        default="synapse_agent_experiments",
-    )
 
     parser.add_argument(
         "--wandb.offline",
@@ -287,6 +282,14 @@ def add_validator_args(cls, parser):
         help="The maximum number of TAO allowed to query a validator with a vpermit.",
             default=4096,
         )
+    
+    parser.add_argument(
+        "--wandb.project_name",
+        type=str,
+        help="The name of the project where you are sending the new run.",
+        default="synapse_agent_experiments",
+    )
+
 
     parser.add_argument(
         "--neuron.query_unique_coldkeys",

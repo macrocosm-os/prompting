@@ -48,7 +48,7 @@ class HuggingFaceLLM:
         self.times = [0]
 
     def query(
-        self, message, cleanup=True, role="user", disregard_system_prompt=False
+        self, message, cleanup=False, role="user", disregard_system_prompt=False
     ):
         messages = self.messages + [{"content": message, "role": role}]
 
