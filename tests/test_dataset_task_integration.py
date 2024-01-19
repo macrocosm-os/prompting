@@ -16,8 +16,8 @@ What we want:
 TASKS = [
         QuestionAnsweringTask,
         SummarizationTask,
-        DebuggingTask,
-        MathTask,
+        #DebuggingTask,
+        #MathTask,
         DateQuestionAnsweringTask,
     ]
 CONTEXTS = {
