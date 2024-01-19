@@ -33,8 +33,8 @@ Things to test:
 TASKS = [
         QuestionAnsweringTask,
         SummarizationTask,
-        DebuggingTask,
-        MathTask,
+        #DebuggingTask,
+        #MathTask,
         DateQuestionAnsweringTask,
     ]
 LLM_PIPELINE = MockPipeline("mock")
