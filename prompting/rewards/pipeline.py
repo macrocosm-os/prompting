@@ -61,6 +61,7 @@ class RewardPipeline:
                     f"Task {task} not supported. Please choose from {SUPPORTED_TASKS.keys()}"
                 )
             active_reward_models += SUPPORTED_TASKS[task].reward_definition
+            active_reward_models += SUPPORTED_TASKS[task].penalty_definition
 
         # Instantiate only the required reward models
         reward_models = {}
@@ -68,11 +69,13 @@ class RewardPipeline:
             name = model.get("name")
             if not name:
                 raise ValueError(f"Reward model {model} does not have a name. ")
-            
             if name not in REWARD_MODELS:
                 raise ValueError(
                     f"Reward model {name} not supported. Please choose from {REWARD_MODELS.keys()}"
                 )
+            elif name in reward_models: # Prevents duplicate reward models
+                continue
+
             cls = REWARD_MODELS[name]
 
             params = {k: v for k, v in model.items() if k not in ["name", "weight"]}
