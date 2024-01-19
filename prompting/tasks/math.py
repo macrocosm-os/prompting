@@ -13,7 +13,7 @@ class MathTask(Task):
 
     def __init__(self, llm_pipeline, context, create_reference=True):
         
-        reference = self.context["solution"]
+        reference = context["solution"]
         
         try:
             float(reference)
@@ -26,12 +26,12 @@ class MathTask(Task):
         
         self.context = context
 
-        query = "How can I solve, " + self.context["problem"] + "?"
+        query = "How can I solve, " + context["problem"] + "?"
         
         self.query=query
         self.reference=str(reference)
-        self.topic=self.context["topic"]
-        self.subtopic=self.context["subtopic"]
+        self.topic=context["topic"]
+        self.subtopic=context["subtopic"]
         self.tags=[]
         self.static_reference=True
         self.static_query=True

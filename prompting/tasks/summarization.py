@@ -26,12 +26,11 @@ Summarize the following context in a concise and accurate manner:
 class SummarizationTask(Task):
     
     reward_definition = [
-        dict(name="rouge", ngram="rouge-l", metric="f", weight=1.0),
-        dict(name="relevance", threshold=None, weight=1.0),
+        dict(name="rouge", ngram="rouge-l", metric="f", weight=0.5),
+        dict(name="relevance", threshold=None, weight=0.5),
     ]
     penalty_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=1.0),
-        dict(name="relevance", threshold=None, weight=1.0),
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=1.0)
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True):
