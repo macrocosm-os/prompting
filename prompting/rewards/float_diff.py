@@ -36,18 +36,21 @@ class FloatDiffModel(BaseRewardModel):
         if pred is None:
             return 0.0
 
-        # Convert reference to float (this is okay because we already checked that the reference is a float)
-        # TODO: More flexible parsing of the reference (just as with the completion)
-        ref = float(reference)
-        if pred == ref:
-            return 1.0
+        try:
 
-        # Compute the difference
-        diff = abs(ref - pred)/(ref + 1e-6)
-        # Make sure the difference is between 0 and 1
-        diff = min(abs(diff), 1)
+            # Convert reference to float (this is okay because we already checked that the reference is a float)
+            # TODO: More flexible parsing of the reference (just as with the completion)
+            ref = float(reference)
+            if pred == ref:
+                return 1.0            
+            # Compute the difference
+            diff = abs(ref - pred)/(ref + 1e-6)
+            # Make sure the difference is between 0 and 1
+            diff = min(abs(diff), 1)
 
-        return 1.0 - diff
+            return 1.0 - diff
+        except Exception:
+            return 0.0
 
 
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:

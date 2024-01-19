@@ -33,10 +33,8 @@ from neurons.miner import Miner
 
 class ZephyrMiner(Miner):
     """
-    Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
-
-    This requires a GPU with at least 40GB of memory.
-
+    Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)    
+    This requires a GPU with at least 20GB of memory.
     To run this miner from the project root directory:
 
     python neurons/miners/zephyr/miner.py --wallet.name <wallet_name> --wallet.hotkey <wallet_hotkey> --subtensor.network <network> --netuid <netuid> --axon.port <port> --axon.external_port <port> --logging.debug True --neuron.model_id HuggingFaceH4/zephyr-7b-beta --neuron.system_prompt "Hello, I am a chatbot. I am here to help you with your questions." --neuron.max_tokens 64 --neuron.do_sample True --neuron.temperature 0.9 --neuron.top_k 50 --neuron.top_p 0.95 --wandb.on True --wandb.entity sn1 --wandb.project_name miners_experiments
@@ -45,7 +43,7 @@ class ZephyrMiner(Miner):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         """
-        Adds OpenAI-specific arguments to the command line parser.
+        Adds arguments to the command line parser.
         """
         super().add_args(parser)
         parser.add_argument(

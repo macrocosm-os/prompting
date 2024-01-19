@@ -165,11 +165,11 @@ class BaseNeuron(ABC):
         ) > self.config.neuron.epoch_length
 
     def save_state(self):
-        bt.logging.warning(
+        bt.logging.debug(
             "save_state() not implemented for this neuron. You can implement this function to save model checkpoints or other useful data."
         )
 
     def load_state(self):
-        bt.logging.warning(
+        bt.logging.debug(
             "load_state() not implemented for this neuron. You can implement this function to load model checkpoints or other useful data."
         )

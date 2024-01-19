@@ -98,8 +98,6 @@ async def run_step(
         **response_event.__state_dict__(),
     }
 
-    bt.logging.debug(f"Step complete. Event:\n{event}")
-    # BUG: Make sure everything we log is on CPU not GPU
     log_event(self, event)
 
     return event
