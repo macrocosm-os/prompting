@@ -42,5 +42,4 @@ jobs:
         black .
     - name: Test with pytest
       run: |
-        # run tests in tests/ dir and only fail if there are failures or errors
-        pytest tests/ --verbose --failed-first --exitfirst --disable-warnings
+        pytest tests/
