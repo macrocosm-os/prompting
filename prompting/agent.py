@@ -63,18 +63,17 @@ class HumanAgent(HuggingFaceLLM):
             # initiates the conversation with the miner
             self.challenge = self.create_challenge()
 
-            if hasattr(self.task.cleaning_pipeline):
-                bt.logging.info("🤖 Cleaning challenge...")
-                self.challenge = CleanerPipeline(
-                    cleaning_pipeline=self.task.cleaning_pipeline
-                ).apply(
-                    generation=self.challenge,
-                )
-
     def create_challenge(self) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
         t0 = time.time()
-        self.challenge = super().query(message="Ask a question related to your goal")
+
+        cleaner = None
+        if hasattr(self.task, 'cleaning_pipeline'):            
+            cleaner = CleanerPipeline(
+                cleaning_pipeline=self.task.cleaning_pipeline
+            )
+            
+        self.challenge = super().query(message="Ask a question related to your goal", cleaner=cleaner)
         self.challenge = self.task.format_challenge(self.challenge)
         self.challenge_time = time.time() - t0
 

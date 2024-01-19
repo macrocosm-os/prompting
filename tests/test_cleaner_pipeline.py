@@ -1,7 +1,7 @@
 from prompting.cleaners.cleaner import CleanerPipeline
 
 
-def test_clean():
+def test_cleaning_pipeline():
     cleaning_pipeline = [
         dict(name="remove_quotes"),
         dict(name="prune_ending"),
@@ -18,3 +18,24 @@ def test_clean():
     )
 
     assert clean_generation == answer
+
+
+def test_phrase_without_any_punctuation():
+    # arrange
+    cleaning_pipeline = [                
+        dict(name="prune_ending"),        
+    ]
+
+    generation = (
+        'Austin is the capital of texas'
+    )    
+
+    # act
+    clean_generation = CleanerPipeline(cleaning_pipeline=cleaning_pipeline).apply(
+        generation=generation
+    )
+    
+    # assert
+    assert clean_generation == generation
+
+
