@@ -308,7 +308,14 @@ def add_validator_args(cls, parser):
         "--wandb.project_name",
         type=str,
         help="The name of the project where you are sending the new run.",
-        default="synapse_agent_experiments",
+        default="alpha-validators",
+    )
+
+    parser.add_argument(
+        "--wandb.entity",
+        type=str,
+        help="The name of the project where you are sending the new run.",
+        default="opentensor-dev",
     )
 
 
