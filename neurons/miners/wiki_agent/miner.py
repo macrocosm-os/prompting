@@ -33,6 +33,22 @@ from dotenv import load_dotenv, find_dotenv
 from langchain import OpenAI
 from langchain.agents import Tool, initialize_agent
 from agent import WikiAgent
+from langchain.callbacks import get_openai_callback
+
+
+def get_cost_logging(cb) -> dict:        
+    bt.logging.info(f"Total Tokens: {cb.total_tokens}")
+    bt.logging.info(f"Prompt Tokens: {cb.prompt_tokens}")
+    bt.logging.info(f"Completion Tokens: {cb.completion_tokens}")
+    bt.logging.info(f"Total Cost (USD): ${cb.total_cost}")
+
+    return  {
+        'total_tokens': cb.total_tokens,
+        'prompt_tokens': cb.prompt_tokens,
+        'completion_tokens': cb.completion_tokens,
+        'total_cost': cb.total_cost,
+    }
+
 
 
 class WikipediaAgentMiner(Miner):
@@ -83,23 +99,26 @@ class WikipediaAgentMiner(Miner):
         # TODO(developer): Replace with actual implementation logic.
         try:
             t0 = time.time()
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
-                        
-            message = synapse.messages[-1]
-            
-            bt.logging.debug(f"💬 Querying openai and wikipedia: {message}")
-            
-            response = self.agent.run(message)
 
-            synapse.completion = response
-            synapse_latency = time.time() - t0
+            with get_openai_callback() as cb:
+                bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+                            
+                message = synapse.messages[-1]
+                
+                bt.logging.debug(f"💬 Querying openai and wikipedia: {message}")
+                
+                response = self.agent.run(message)
 
-            self.log_event(
-                timing=synapse_latency, 
-                prompt=message,
-                completion=response,
-                system_prompt=None
-            )
+                synapse.completion = response
+                synapse_latency = time.time() - t0
+
+                self.log_event(
+                    timing=synapse_latency, 
+                    prompt=message,
+                    completion=response,
+                    system_prompt=None,
+                    extra_info=get_cost_logging(cb)
+                )
 
             bt.logging.debug(f"✅ Served Response: {response}")
             return synapse
