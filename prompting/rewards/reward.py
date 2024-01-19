@@ -102,11 +102,11 @@ class RewardResult:
 
         for event in self.reward_events:
              for reward_info in filter(lambda x: x['name'] == event.model_name, self.task_rewards):
-                rewards += reward_info.get("weight", 1) * event.rewards.to(self.device)
+                rewards += reward_info["weight"] * event.rewards.to(self.device)
 
         for event in self.penalty_events:
             for reward_info in filter(lambda x: x['name'] == event.model_name, self.task_penalties):
-                rewards *= (1 - reward_info.get("weight", 1) * event.rewards.to(self.device))
+                rewards *= (1 - reward_info["weight"] * event.rewards.to(self.device))
 
         return rewards
 
