@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from prompting.tasks import Task
+from prompting.cleaners.cleaner import CleanerPipeline
 
 
 @dataclass
 class DateQuestionAnsweringTask(Task):
     reward_definition = [
-        dict(name='date', weight = 1),
+        dict(name="date", weight=1),
     ]
     penalty_definition = []
 
@@ -16,6 +17,10 @@ class DateQuestionAnsweringTask(Task):
         self.desc = "get help answering a specific date-based question"
         self.goal = "to get the answer to the following date-based question"
         
+        self.cleaning_pipeline = [
+            dict(name="remove_quotes"),
+            dict(name="remove_roles"),
+        ]
         self.context = context
         
         # The section is in {"Births", "Deaths", "Events"}
@@ -33,4 +38,4 @@ class DateQuestionAnsweringTask(Task):
         self.tags = []
         self.static_reference = True
         self.static_query = True
-        
+

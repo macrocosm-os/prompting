@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from prompting.tasks import Task
+from transformers import Pipeline
+
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 
@@ -33,7 +35,7 @@ class SummarizationTask(Task):
         dict(name="rouge", ngram="rouge-1", metric="f", weight=1.0)
     ]
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
+    def __init__(self, llm_pipeline: Pipeline, context: str, create_reference=True):
 
         self.name = "summarization"
         self.desc = "get help with summarization"
@@ -43,6 +45,22 @@ class SummarizationTask(Task):
 
         # Query is just the article title
         self.query = self.context["title"]
+
+        # This is where you define cleaning procedures for the generation.
+        # Can be used when wanting to clean the challenge.
+        self.cleaning_pipeline = [
+            dict(name="remove_quotes"),
+            dict(name="prune_ending"),
+            dict(name="remove_roles"),
+        ]
+
+        self.context = context
+
+        self.query_prompt = None
+        # NOTE: We do not perform an inference here and just use the article title as the query.
+        # This is because the article title is usually a good summary of the article itself.
+        # Query is just the article title.
+        query = self.context["title"]
 
         self.reference_system_prompt = SUMMARIZATION_SYSTEM_PROMPT
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
@@ -54,3 +72,4 @@ class SummarizationTask(Task):
         self.topic = self.context["title"]
         self.subtopic = self.context["categories"][0]
         self.tags = self.context["categories"]
+

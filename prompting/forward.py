@@ -101,11 +101,9 @@ async def run_step(
 
 
 async def forward(self):
-    
     bt.logging.info("🚀 Starting forward loop...")
-    
-    while True:
 
+    while True:
         bt.logging.info(
             f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
         )
@@ -115,14 +113,11 @@ async def forward(self):
         )
         bt.logging.info(f"📋 Creating {task_name} task... ")
         try:
-            task = create_task(self.llm_pipeline, task_name)
+            task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name)
             break
         except Exception as e:
-            bt.logging.error(
-                f"📋 Failed to create {task_name} task. {sys.exc_info()}"
-            )
+            bt.logging.error(f"📋 Failed to create {task_name} task. {sys.exc_info()}")
             continue
-
 
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
@@ -155,4 +150,3 @@ async def forward(self):
 
     del agent
     del task
-
