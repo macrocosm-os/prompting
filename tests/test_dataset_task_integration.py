@@ -1,9 +1,7 @@
 import pytest
-from prompting.tasks import Task, QuestionAnsweringTask, SummarizationTask, DebuggingTask, MathTask, DateQuestionAnsweringTask
-from prompting.tools import MockDataset, CodingDataset, WikiDataset, StackOverflowDataset, DateQADataset, MathDataset
-from prompting.mock import MockPipeline
 
-
+from fixtures.llm import LLM_PIPELINE
+from fixtures.tasks import CONTEXTS, TASKS
 """
 What we want: 
 
@@ -11,24 +9,6 @@ What we want:
 - The task contains a query using dataset
 - The task contains a reference answer using dataset
 """
-
-
-TASKS = [
-        QuestionAnsweringTask,
-        SummarizationTask,
-        #DebuggingTask,
-        #MathTask,
-        DateQuestionAnsweringTask,
-    ]
-CONTEXTS = {
-    QuestionAnsweringTask: WikiDataset().next(),
-    SummarizationTask: WikiDataset().next(),
-    DebuggingTask: CodingDataset().next(),
-    MathTask: MathDataset().next(),
-    DateQuestionAnsweringTask: DateQADataset().next(),
-}
-
-LLM_PIPELINE = MockPipeline("mock")
 
 @pytest.mark.parametrize('task', TASKS)
 def test_task_creation_with_dataset_context(task: Task):
