@@ -28,6 +28,10 @@ class PruneEnding(BaseCleaner):
 
     def apply(self, generation: str) -> str:
         punctuation_chars = [".", "?", "!"]
+
+        if not any(char in generation for char in punctuation_chars):
+            return generation
+
         if (
             not generation.endswith(".")
             and not generation.endswith("?")

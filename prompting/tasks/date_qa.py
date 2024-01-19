@@ -13,7 +13,6 @@ class DateQuestionAnsweringTask(Task):
     def __init__(self, llm_pipeline, context, create_reference=True):
         self.cleaning_pipeline = [
             dict(name="remove_quotes"),
-            dict(name="prune_ending"),
             dict(name="remove_roles"),
         ]
 
@@ -30,9 +29,6 @@ class DateQuestionAnsweringTask(Task):
         )
 
         reference = self.context["date"] + ", " + year.strip()
-        reference = CleanerPipeline(cleaning_pipeline=self.cleaning_pipeline).apply(
-            generation=reference
-        )
 
         super().__init__(
             name="date-based question answering",
