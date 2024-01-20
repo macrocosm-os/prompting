@@ -46,31 +46,9 @@ class WikipediaAgentMiner(Miner):
         parser.add_argument(
             "--openai.model_name",
             type=str,
-            default="gpt-3.5-turbo-1106",
+            default="gpt-4-1106-preview",
             help="OpenAI model to use for completion.",
-        )
-
-        parser.add_argument(
-            "--wandb.on",
-            type=bool,
-            default=False,
-            help="Enable wandb logging.",
-        )
-
-        parser.add_argument(
-            "--wandb.entity",
-            type=str,
-            default="<<Add your wandb entity here>>",
-            help="Wandb entity to log to.",
-        )
-
-        parser.add_argument(
-            "--wandb.project_name",
-            type=str,
-            default="<<Add your wandb project name here>>",
-            help="Wandb project to log to.",
-        )
-
+        )    
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -148,7 +126,7 @@ class WikipediaAgentMiner(Miner):
                         timing=synapse_latency, 
                         prompt=message,
                         completion=response,
-                        system_prompt=self.system_prompt,
+                        system_prompt='',
                         extra_info=self.get_cost_logging(cb)
                     )
 
