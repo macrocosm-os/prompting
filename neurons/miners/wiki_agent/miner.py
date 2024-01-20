@@ -33,6 +33,7 @@ from dotenv import load_dotenv, find_dotenv
 from langchain import OpenAI
 from langchain.agents import Tool, initialize_agent
 from agent import WikiAgent
+from langchain.callbacks import get_openai_callback
 
 
 class WikipediaAgentMiner(Miner):
@@ -45,7 +46,7 @@ class WikipediaAgentMiner(Miner):
         parser.add_argument(
             "--openai.model_name",
             type=str,
-            default="gpt-4",
+            default="gpt-3.5-turbo-1106",
             help="OpenAI model to use for completion.",
         )
 
@@ -80,9 +81,35 @@ class WikipediaAgentMiner(Miner):
             self.wandb_run.tags = self.wandb_run.tags + ("wikipedia_agent_miner", ) + (self.config.openai.model_name, )
         
         _ = load_dotenv(find_dotenv()) 
-        
-        
+                
         self.agent = WikiAgent()
+        self.accumulated_total_tokens = 0
+        self.accumulated_prompt_tokens = 0
+        self.accumulated_completion_tokens = 0
+        self.accumulated_total_cost = 0
+
+
+    def get_cost_logging(self, cb):
+        bt.logging.info(f"Total Tokens: {cb.total_tokens}")
+        bt.logging.info(f"Prompt Tokens: {cb.prompt_tokens}")
+        bt.logging.info(f"Completion Tokens: {cb.completion_tokens}")
+        bt.logging.info(f"Total Cost (USD): ${cb.total_cost}")
+
+        self.accumulated_total_tokens += cb.total_tokens
+        self.accumulated_prompt_tokens += cb.prompt_tokens
+        self.accumulated_completion_tokens += cb.completion_tokens
+        self.accumulated_total_cost += cb.total_cost
+
+        return  {
+            'total_tokens': cb.total_tokens,
+            'prompt_tokens': cb.prompt_tokens,
+            'completion_tokens': cb.completion_tokens,
+            'total_cost': cb.total_cost,
+            'accumulated_total_tokens': self.accumulated_total_tokens,
+            'accumulated_prompt_tokens': self.accumulated_prompt_tokens,
+            'accumulated_completion_tokens': self.accumulated_completion_tokens,
+            'accumulated_total_cost': self.accumulated_total_cost,
+        }
 
 
     async def forward(
@@ -103,24 +130,27 @@ class WikipediaAgentMiner(Miner):
         """
         # TODO(developer): Replace with actual implementation logic.
         try:
-            t0 = time.time()
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
-                        
-            message = synapse.messages[-1]
-            
-            bt.logging.debug(f"💬 Querying openai and wikipedia: {message}")
-            
-            response = self.agent.run(message)
+            with get_openai_callback() as cb:
+                t0 = time.time()
+                bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+                            
+                message = synapse.messages[-1]
+                
+                bt.logging.debug(f"💬 Querying openai and wikipedia: {message}")
+                
+                response = self.agent.run(message)
 
-            synapse.completion = response
-            synapse_latency = time.time() - t0
+                synapse.completion = response
+                synapse_latency = time.time() - t0
 
-            self.log_event(
-                timing=synapse_latency, 
-                prompt=message,
-                completion=response,
-                system_prompt=None
-            )
+                if self.config.wandb.on:
+                    self.log_event(
+                        timing=synapse_latency, 
+                        prompt=message,
+                        completion=response,
+                        system_prompt=self.system_prompt,
+                        extra_info=self.get_cost_logging(cb)
+                    )
 
             bt.logging.debug(f"✅ Served Response: {response}")
             return synapse
