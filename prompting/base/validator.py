@@ -157,10 +157,11 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.success("Validator killed by keyboard interrupt.")
             sys.exit()
 
-        # In case of unforeseen errors, the validator will log the error and continue operations.
+        # In case of unforeseen errors, the validator will log the error and quit
         except Exception as err:
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
+            sys.exit()
 
     def run_in_background_thread(self):
         """
