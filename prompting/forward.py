@@ -19,6 +19,7 @@
 
 import time
 import sys
+import asyncio
 import numpy as np
 import bittensor as bt
 
@@ -56,14 +57,19 @@ async def run_step(
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
 
-    axons = [self.metagraph.axons[uid] for uid in uids]
     # Make calls to the network with the prompt.
-    responses: List[PromptingSynapse] = await self.dendrite(
-        axons=axons,
-        # TODO: Should this be entire history?
+    dendrite_call = asyncio.create_task(
+        self.dendrite(
+        axons=[self.metagraph.axons[uid] for uid in uids],
         synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]),
         timeout=timeout,
+        )
     )
+    
+    if not getattr(agent.task, 'reference', None):
+        agent.task.generate_reference(llm=agent.llm_pipeline)
+    
+    responses: List[PromptingSynapse] = await dendrite_call
 
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses, uids)
@@ -88,11 +94,10 @@ async def run_step(
     event = {
         "block": self.block,
         "step_time": time.time() - start_time,
-        # can include time to use tools, create query/references
         **agent.__state_dict__(full=self.config.neuron.log_full),
-        # can include fine-gained rewards as well as times
         **reward_result.__state_dict__(full=self.config.neuron.log_full),
         **response_event.__state_dict__(),
+        "scores": self.scores.tolist(),
     }
 
     log_event(self, event)
@@ -113,7 +118,7 @@ async def forward(self):
         )
         bt.logging.info(f"📋 Creating {task_name} task... ")
         try:
-            task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name)
+            task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name, create_reference=False)
             break
         except Exception as e:
             bt.logging.error(f"📋 Failed to create {task_name} task. {sys.exc_info()}")
@@ -129,14 +134,19 @@ async def forward(self):
     exclude_uids = []
     while not agent.finished:
         # when run_step is called, the agent updates its progress
-        event = await run_step(
-            self,
-            agent,
-            k=self.config.neuron.sample_size,
-            timeout=self.config.neuron.timeout,
-            exclude=exclude_uids,
-        )
-        exclude_uids += event["uids"]
+        
+        try:
+            event = await run_step(
+                self,
+                agent,
+                k=self.config.neuron.sample_size,
+                timeout=self.config.neuron.timeout,
+                exclude=exclude_uids,
+            )
+            exclude_uids += event["uids"]
+        except Exception as e:
+            bt.logging.error(f"📋 Failed to run step. {sys.exc_info()}")
+            break
 
         ## TODO: Add max_turns and termination_probability parameters
         # if (
