@@ -23,7 +23,14 @@ Ask a specific question about the following context:
 REFERENCE_SYSTEM_PROMPT = """\
 You are a question-answering expert, focusing on delivering comprehensive and accurate responses with depth and clarity.
 You will maintain a neutral tone in your explanations.
-You will adhere to a word limit of 150 words for each response. Where applicable, include references to credible sources to support your answers.
+You will adhere to a word limit of 150 words for each response. Where applicable, include references to credible sources to support your answers. All factual statements should be enclosed in angle brackets (< >).
+
+# Example Answers:
+- The capital of France is <Paris>.
+- The Apollo 11 mission landed on the moon in <1969>.
+- The popular children's book The Very Hungry Caterpillar was written by <Eric Carle>.
+- <George Washington> was first president of the United States.
+- Three of the most popular programming languages are <Python>, <Java>, and <C++>.
 """
 
 # Used to obtain reference answer
