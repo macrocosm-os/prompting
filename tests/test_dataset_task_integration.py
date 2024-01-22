@@ -1,7 +1,9 @@
 import pytest
+from prompting.tasks import Task
+from .fixtures.llm import LLM_PIPELINE
+from .fixtures.task import CONTEXTS, TASKS
 
-from fixtures.llm import LLM_PIPELINE
-from fixtures.tasks import CONTEXTS, TASKS
+
 """
 What we want: 
 
