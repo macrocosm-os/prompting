@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -32,6 +32,10 @@ from dotenv import load_dotenv, find_dotenv
 
 
 class OpenAIMiner(Miner):
+    """Langchain-based miner which uses OpenAI's API as the LLM.
+
+    You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
+    """
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         """
@@ -66,18 +70,18 @@ class OpenAIMiner(Miner):
             help="Wandb project to log to.",
         )
 
-    
+
 
     def __init__(self, config=None):
         super().__init__(config=config)
-        
+
         bt.logging.info(f"Initializing with model {self.config.openai.model_name}...")
 
         if self.config.wandb.on:
             self.wandb_run.tags = self.wandb_run.tags + ("openai_miner", ) + (self.config.openai.model_name, )
-        
-        _ = load_dotenv(find_dotenv()) 
-        api_key = os.environ.get("OPENAI_API_KEY")        
+
+        _ = load_dotenv(find_dotenv())
+        api_key = os.environ.get("OPENAI_API_KEY")
 
         # Set openai key and other args
         self.model = ChatOpenAI(
@@ -103,7 +107,6 @@ class OpenAIMiner(Miner):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        # TODO(developer): Replace with actual implementation logic.
         try:
 
             t0 = time.time()
@@ -117,7 +120,7 @@ class OpenAIMiner(Miner):
 
             role = synapse.roles[-1]
             message = synapse.messages[-1]
-            
+
             bt.logging.debug(f"💬 Querying openai: {prompt}")
             response = chain.invoke(
                 {"role": role, "input": message}
@@ -128,7 +131,7 @@ class OpenAIMiner(Miner):
 
             if self.config.wandb.on:
                 self.log_event(
-                    timing=synapse_latency, 
+                    timing=synapse_latency,
                     prompt=message,
                     completion=response,
                     system_prompt=self.system_prompt

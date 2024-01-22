@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -36,6 +36,10 @@ from agent import WikiAgent
 
 
 class WikipediaAgentMiner(Miner):
+    """Langchain-based miner which uses OpenAI's API as the LLM. This uses the ReAct framework.
+    
+    You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
+    """
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         """
@@ -101,7 +105,6 @@ class WikipediaAgentMiner(Miner):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        # TODO(developer): Replace with actual implementation logic.
         try:
             t0 = time.time()
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")

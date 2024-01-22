@@ -16,10 +16,10 @@ The following is a set of guidelines for contributing to the Bittensor ecosystem
 
 
 ## How Can I Contribute?
-TODO(developer): Define your desired contribution procedure.
+We welcome community contributions. Please make an issue or a PR if you encounter any issues or want to make suggested improvements.
 
 ## Communication Channels
-TODO(developer): Place your communication channels here
+You can reach out to the SN1 team on the offical bittensor discord channel [here](https://discord.com/channels/799672011265015819/1161764867166961704).
 
 > Please follow the Bittensor Subnet [style guide](./STYLE.md) regardless of your contribution type. 
 
