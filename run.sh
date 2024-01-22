@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Initialize variables
-script="neurons/validators/validator.py"
+script="neurons/validator.py"
 autoRunLoc=$(readlink -f "$0")
 proc_name="text_prompt_validators_main_process" 
 args=()
