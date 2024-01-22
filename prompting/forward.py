@@ -70,7 +70,10 @@ async def run_step(
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
     reward_result = RewardResult(
-        self.reward_pipeline, agent=agent, response_event=response_event, device=self.device
+        self.reward_pipeline,
+        agent=agent,
+        response_event=response_event,
+        device=self.device,
     )
     bt.logging.info(f"Created RewardResult:\n {reward_result}")
 
@@ -112,7 +115,9 @@ async def forward(self):
             task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name)
             break
         except Exception as e:
-            bt.logging.error(f"📋 Failed to create {task_name} task. {sys.exc_info()}")
+            bt.logging.error(
+                f"📋 Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task.
+            ")
             continue
 
     # Create random agent with task, topic, profile...
