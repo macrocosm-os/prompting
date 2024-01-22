@@ -150,6 +150,8 @@ class DebuggingTask(Task):
         self.topic=self.context["repo_name"]
         self.subtopic=self.context["path"]
         self.tags=[self.context["language"]]
+        self.static_reference = True
+        self.static_query = True
 
     def generate_query(
         self,
