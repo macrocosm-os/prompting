@@ -9,7 +9,7 @@ from prompting.mock import MockPipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 
 
-def load_pipeline(model_id, device=None, torch_dtype=None, mock=False):
+def load_pipeline(model_id, device=None, torch_dtype=None, mock=False, **model_kwargs):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
 
     if mock or model_id == "mock":
@@ -23,6 +23,7 @@ def load_pipeline(model_id, device=None, torch_dtype=None, mock=False):
         model=model_id,
         device=device,
         torch_dtype=torch_dtype,
+        model_kwargs=model_kwargs
     )
 
 
