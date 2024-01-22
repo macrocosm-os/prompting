@@ -35,6 +35,7 @@ class Miner(BaseMinerNeuron):
 
     def __init__(self, config=None):
         super(Miner, self).__init__(config=config)                
+        self.identity_tags = None
          
 
     async def blacklist(
@@ -116,7 +117,11 @@ class Miner(BaseMinerNeuron):
     
     def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict):
         if not getattr(self, "wandb_run", None):
+            uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
             tags = [self.wallet.hotkey.ss58_address, f"netuid_{self.config.netuid}", f"uid_{uid}"]
+                        
+            if self.identity_tags:
+                tags += self.identity_tags
                         
             # inits wandb in case it hasn't been inited yet
             self.wandb_run = wandb.init(
@@ -128,7 +133,7 @@ class Miner(BaseMinerNeuron):
                 tags=tags,                
             )
 
-        uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+        
         step_log = {
             "epoch_time": timing,
             # "block": self.last_epoch_block,

@@ -53,7 +53,7 @@ class OpenAIMiner(Miner):
         bt.logging.info(f"Initializing with model {self.config.openai.model_name}...")
 
         if self.config.wandb.on:
-            self.wandb_run.tags = self.wandb_run.tags + ("openai_miner", ) + (self.config.openai.model_name, )
+            self.identity_tags =  ("openai_miner", ) + (self.config.openai.model_name, )
         
         _ = load_dotenv(find_dotenv()) 
         api_key = os.environ.get("OPENAI_API_KEY")        

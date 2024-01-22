@@ -56,7 +56,7 @@ class WikipediaAgentMiner(Miner):
         bt.logging.info(f"🤖📖 Initializing wikipedia agent with model {self.config.openai.model_name}...")
 
         if self.config.wandb.on:
-            self.wandb_run.tags = self.wandb_run.tags + ("wikipedia_agent_miner", ) + (self.config.openai.model_name, )
+            self.identity_tags = ("wikipedia_agent_miner", ) + (self.config.openai.model_name, )
         
         _ = load_dotenv(find_dotenv()) 
                 
