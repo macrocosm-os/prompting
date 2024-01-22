@@ -50,17 +50,33 @@ class ZephyrMiner(Miner):
             "--neuron.model_id",
             type=str,
             default="HuggingFaceH4/zephyr-7b-beta",
-        )     
+        )
+
+        parser.add_argument(
+            "--neuron.load_quantized",
+            type=str,
+            default=False,
+        )
 
     def __init__(self, config=None):
         super().__init__(config=config)
+
+        model_kwargs = None
+        if self.config.neuron.load_quantized:
+            bt.logging.info("Loading quantized model...")
+            model_kwargs = dict(
+                torch_dtype=torch.float16,
+                load_in_8bit=True,
+            )
 
         self.llm_pipeline = load_pipeline(
             model_id=self.config.neuron.model_id,
             torch_dtype=torch.float16,
             device=self.device,
             mock=self.config.mock,
+            model_kwargs=model_kwargs,
         )
+        
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
 

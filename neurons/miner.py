@@ -34,21 +34,9 @@ class Miner(BaseMinerNeuron):
     """
 
     def __init__(self, config=None):
-        super(Miner, self).__init__(config=config)
-        uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
-
-        if self.config.wandb.on:
-            tags = [self.wallet.hotkey.ss58_address, f"netuid_{self.config.netuid}", f"uid_{uid}"]
-                        
-            self.wandb_run = wandb.init(
-                project=self.config.wandb.project_name,
-                entity=self.config.wandb.entity,
-                config=self.config,
-                mode="online" if self.config.wandb.on else "offline",
-                magic=True,
-                tags=tags,                
-            )
-
+        super(Miner, self).__init__(config=config)                
+        self.identity_tags = None
+         
 
     async def blacklist(
         self, synapse: PromptingSynapse
@@ -126,6 +114,24 @@ class Miner(BaseMinerNeuron):
         return prirority
     
     def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict):
+        if not getattr(self, "wandb_run", None):
+            uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+            tags = [self.wallet.hotkey.ss58_address, f"netuid_{self.config.netuid}", f"uid_{uid}"]
+                        
+            if self.identity_tags:
+                tags += self.identity_tags
+                        
+            # inits wandb in case it hasn't been inited yet
+            self.wandb_run = wandb.init(
+                project=self.config.wandb.project_name,
+                entity=self.config.wandb.entity,
+                config=self.config,
+                mode="online" if self.config.wandb.on else "offline",
+                magic=True,
+                tags=tags,                
+            )
+
+        
         step_log = {
             "epoch_time": timing,
             # "block": self.last_epoch_block,
