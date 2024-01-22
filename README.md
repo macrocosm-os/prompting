@@ -15,7 +15,7 @@
 
 ---
 
-This repository is the **official codebase for Bittensor Subnet 1 (SN1) v3.0.0+**. To learn more about the Bittensor project and the underlying mechanics, [read here.](https://docs.bittensor.com/).
+This repository is the **official codebase for Bittensor Subnet 1 (SN1) v1.0.0+, which was released on 22nd January 2024**. To learn more about the Bittensor project and the underlying mechanics, [read here.](https://docs.bittensor.com/).
 
 
 This code is not yet running on mainnet but you are welcome run the incentive mechanism or test out miners on testnet (`--subtensor.network test --netuid 61`). Our estimated release date is Monday 22nd, January 2024 📆.
