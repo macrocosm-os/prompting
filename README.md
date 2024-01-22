@@ -112,8 +112,8 @@ This will run **two** PM2 process: one for the validator which is called `s1_val
 
 Miners are scored based on the similarity between their completions and the reference answer. Furthermore, they should utilize the same API tools as the validators in order to be able to closely reproduce the reference answer. We currently provide the following miners out-of-the-box:
 1. [Zephyr 7B](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
-2. OpenAI (GPT variants)
-3. wiki-agent (GPT ReAct agent with langchain)
+2. [OpenAI](https://platform.openai.com/docs/introduction) (GPT variants)
+3. wiki-agent ([GPT ReAct agent with langchain](https://python.langchain.com/docs/modules/agents/agent_types/react))
     
 
 </div>
