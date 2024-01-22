@@ -18,6 +18,7 @@
 
 import time
 import random
+import string
 from typing import Dict
 import requests
 import datetime
@@ -214,12 +215,15 @@ class WikiDataset:
 
         return text
 
-    def next(self, subset=False, chunk_sep="\n", n_chunks=None):
+    def next(self, subset=False, chunk_sep="\n", n_chunks=None, info=None):
         bt.logging.debug("Retrieving data from prompting.dataset...")
         tries = 0
         t0 = time.time()
         while tries < self.max_tries:
-            info = self.get_random_wikipedia_article()
+            
+            if info is None:
+                info = self.get_random_wikipedia_article()
+
             info["sections"] = self.get_wikipedia_article_content(info["title"])
             text = "\n".join(info["sections"].values())
             tries += 1
@@ -386,9 +390,16 @@ class DateQADataset:
 
 
 class MathDataset:
-    
+
     topics_list = mathgenerator.getGenList()
-    
+
+    def __init__(self, seed=None):
+        
+        # NOTE: Unfortunately, mathgenerator does not provide a way to seed the random number generator and get the same problem every time
+        
+        self.seed = seed
+        self.rng = random.Random(seed)
+
     def random_problem(self, parse):
         if parse:
             parseable_list = [
@@ -443,17 +454,25 @@ class MathDataset:
                 123,
             ]
             options = parseable_list
-            choice = random.choice((options))
+            choice = self.rng.choice((options))
+            #TODO: When the solution contains the symbol x we should specify the x value and substitute it in the solution
             problem, solution = mathgenerator.genById(choice)
             _, subtopic, _, _, topic, _ = self.topics_list[choice]
 
-            solution = parse_latex(
+            subs = {}
+            # check if solution contains letters
+            if 'x' in solution:
+                subs['x'] = 10
+                bt.logging.warning('Coercing a symbolic expression to a numeric expression by substituting x=10')
+
+            # BUG: parse latex assumes that all letters are variables and so solutions like $No$ are interpreted as 'N * o'
+            solution_numeric = parse_latex(
                 str(solution).replace("$", "").strip()
-            ).evalf()
-            return {"problem": problem, "solution": solution, "topic": topic, "subtopic": subtopic}
+            ).evalf(subs=subs)
+            return {"problem": problem, "solution": solution_numeric, "solution_raw": solution, "topic": topic, "subtopic": subtopic}
         else:
             options = mathgenerator.getGenList()
-            choice = random.choice(range(len(options)))
+            choice = self.rng.choice(range(len(options)))
             problem, solution = mathgenerator.genById(choice)
             _, subtopic, _, _, topic, _ = self.topics_list[choice]
             return {"problem": problem, "solution": solution, "topic": topic, "subtopic": subtopic}

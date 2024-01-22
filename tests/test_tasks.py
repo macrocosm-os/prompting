@@ -1,6 +1,8 @@
 import pytest
-from prompting.tasks import Task, QuestionAnsweringTask, SummarizationTask, DebuggingTask, MathTask, DateQuestionAnsweringTask
-from prompting.mock import MockPipeline
+
+from prompting.tasks import Task
+from fixtures.task import CONTEXTS, TASKS
+from fixtures.llm import LLM_PIPELINE
 
 """
 What we want to test for each task:
@@ -14,24 +16,6 @@ What we want to test for each task:
 - Tasks have reward definitions
 """
 
-
-LLM_PIPELINE = MockPipeline("mock")
-CONTEXT = {"text": "This is a context.", "title": "this is a title"}
-
-TASKS = [
-        QuestionAnsweringTask,
-        SummarizationTask,
-        DebuggingTask,
-        MathTask,
-        DateQuestionAnsweringTask,
-    ]
-CONTEXTS = {
-    QuestionAnsweringTask: {"text": "This is a context.", "title": "this is a title", "categories": ['some','categories']},
-    SummarizationTask: {"text": "This is a context.", "title": "this is a title", "categories": ['some','categories']},
-    DebuggingTask: {"code": "This is code","repo_name":'prompting',"path":'this/is/a/path', "language":'python'},
-    MathTask: {"problem": "This is a problem","solution":'3.1415','topic':'math','subtopic':'calculus'},
-    DateQuestionAnsweringTask: {"section": "Events", "event":"1953 - Battle of Hastings in UK", 'date':"1 January"},
-}
 
 # TODO: Math task only works when solution is floatable
 # TODO: DateQA only accepts section in {Births, Deaths, Events}

@@ -1,18 +1,8 @@
 import pytest
 
-from prompting.tools import MockDataset, CodingDataset, WikiDataset, StackOverflowDataset, DateQADataset, MathDataset
-
-
-
-
-DATASETS = [
-    MockDataset,
-    CodingDataset,
-    WikiDataset,
-    # StackOverflowDataset,
-    DateQADataset,
-    MathDataset,
-]
+from fixtures.llm import LLM_PIPELINE
+from fixtures.tasks import CONTEXTS, TASKS
+from fixtures.dataset import DATASETS
 
 CONTEXTS = {
     WikiDataset: {"text": "This is a context.", "title": "this is a title", "categories": ['some','categories']},
@@ -39,3 +29,7 @@ def test_next_returns_fields(dataset):
     context = data.next()
     for field in CONTEXTS[dataset].keys():
         assert field in context
+@pytest.mark.parametrize('dataset', CONTEXTS)
+def test_context_fields(context):
+    assert context is not None
+    

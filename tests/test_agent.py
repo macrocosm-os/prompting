@@ -1,9 +1,9 @@
 import pytest 
 from prompting.agent import Persona
 from prompting.agent import HumanAgent
-from prompting.tasks import Task, QuestionAnsweringTask, SummarizationTask, DebuggingTask, MathTask, DateQuestionAnsweringTask
-from prompting.tools import MockDataset, CodingDataset, WikiDataset, StackOverflowDataset, DateQADataset, MathDataset
-from prompting.mock import MockPipeline
+
+from fixtures.llm import LLM_PIPELINE
+from fixtures.tasks import CONTEXTS, TASKS
 
 """
 Things to test:
@@ -29,22 +29,9 @@ Things to test:
         - Task contains a complete flag
 
 
+rewards = 0.5 * (rouge(reference, completion)_bn + relevance(reference,completion)_bn) * (1 - rouge(challenge,completion)_bn)
 """
-TASKS = [
-        QuestionAnsweringTask,
-        SummarizationTask,
-        #DebuggingTask,
-        #MathTask,
-        DateQuestionAnsweringTask,
-    ]
-LLM_PIPELINE = MockPipeline("mock")
-CONTEXTS = {
-    QuestionAnsweringTask: WikiDataset().next(),
-    SummarizationTask: WikiDataset().next(),
-    DebuggingTask: CodingDataset().next(),
-    MathTask: MathDataset().next(),
-    DateQuestionAnsweringTask: DateQADataset().next(),
-}
+
 
 @pytest.mark.parametrize('task', TASKS)
 def test_agent_creation_with_dataset_context(task: Task):
