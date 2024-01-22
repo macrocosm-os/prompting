@@ -221,7 +221,7 @@ def add_validator_args(cls, parser):
         type=float,
         nargs="+",
         help="The probability of sampling each task.",
-        default=[0.3, 0.3, 0.1, 0.1, 0.2],
+        default=[0.5, 0.5, 0, 0, 0],
     )
 
     parser.add_argument(
