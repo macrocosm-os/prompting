@@ -116,8 +116,8 @@ async def forward(self):
             break
         except Exception as e:
             bt.logging.error(
-                f"📋 Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task.
-            ")
+                f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
+            )
             continue
 
     # Create random agent with task, topic, profile...
