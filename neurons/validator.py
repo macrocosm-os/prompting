@@ -109,3 +109,8 @@ if __name__ == "__main__":
         while True:
             bt.logging.info("Validator running...", time.time())
             time.sleep(5)
+
+            if validator.should_exit:
+                bt.logging.warning("Ending validator...")
+                break
+            

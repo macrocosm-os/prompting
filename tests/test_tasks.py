@@ -1,8 +1,8 @@
 import pytest
 
 from prompting.tasks import Task
-from fixtures.task import CONTEXTS, TASKS
-from fixtures.llm import LLM_PIPELINE
+from .fixtures.task import CONTEXTS, TASKS
+from .fixtures.llm import LLM_PIPELINE
 
 """
 What we want to test for each task:
@@ -56,6 +56,12 @@ def test_task_contains_desc(task: Task):
 
     task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task].copy())
     assert task.desc is not None
+
+@pytest.mark.parametrize('task', TASKS)
+def test_task_complete_is_false_on_init(task: Task):
+
+    task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task].copy())
+    assert task.complete == False
 
 @pytest.mark.parametrize('task', TASKS)
 def test_task_contains_tags(task: Task):

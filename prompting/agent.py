@@ -54,8 +54,9 @@ class HumanAgent(HuggingFaceLLM):
         begin_conversation=True,
     ):
         if persona is None:
-            self.persona = create_persona()
+            persona = create_persona()
 
+        self.persona = persona
         self.task = task
         self.llm_pipeline = llm_pipeline
 
@@ -84,11 +85,11 @@ class HumanAgent(HuggingFaceLLM):
         t0 = time.time()
 
         cleaner = None
-        if hasattr(self.task, 'cleaning_pipeline'):            
+        if hasattr(self.task, 'cleaning_pipeline'):
             cleaner = CleanerPipeline(
                 cleaning_pipeline=self.task.cleaning_pipeline
             )
-            
+
         self.challenge = super().query(message="Ask a question related to your goal", cleaner=cleaner)
         self.challenge = self.task.format_challenge(self.challenge)
         self.challenge_time = time.time() - t0

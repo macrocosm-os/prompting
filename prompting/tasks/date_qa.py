@@ -6,7 +6,7 @@ from prompting.cleaners.cleaner import CleanerPipeline
 @dataclass
 class DateQuestionAnsweringTask(Task):
     reward_definition = [
-        dict(name="date", weight=1),
+        dict(name="date", weight=1.0),
     ]
     penalty_definition = []
 

@@ -125,7 +125,7 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
     
-    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str):
+    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict):
         step_log = {
             "epoch_time": timing,
             # "block": self.last_epoch_block,
@@ -138,8 +138,10 @@ class Miner(BaseMinerNeuron):
             "incentive": self.metagraph.I[self.uid].item(),
             "consensus": self.metagraph.C[self.uid].item(),
             "dividends": self.metagraph.D[self.uid].item(),
+            **extra_info
         }
 
+        bt.logging.info('Logging event to wandb...', step_log)
         wandb.log(step_log)
 
 

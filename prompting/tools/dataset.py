@@ -67,7 +67,7 @@ class CodingDataset:
     }
 
     def __init__(
-        self, dataset_id="codeparrot/github-code", seed=None, languages=None
+        self, dataset_id="codeparrot/github-code", seed=None, languages=None, buffer_size=10000
     ):
         if seed is None:
             seed = random.randint(0, 1000)
@@ -84,7 +84,7 @@ class CodingDataset:
                 split="train",
                 streaming=True,
                 languages=self.languages,
-            ).shuffle(seed=seed, buffer_size=10000)
+            ).shuffle(seed=seed, buffer_size=buffer_size)
         )
 
     def next(self, min_lines=5, max_lines=100):
@@ -320,8 +320,10 @@ class StackOverflowDataset():
 
 
 class DateQADataset:
-    def __init__(self, max_tries: int = 10):
+    def __init__(self, max_tries: int = 10, seed=None):
         self.max_tries = max_tries
+        self.seed = seed
+        self.rng = random.Random(seed)
 
     def get_random_event(self) -> Dict:
         tries = 0
@@ -331,11 +333,11 @@ class DateQADataset:
 
             # Step 1: Generate a random date
             year = 2000
-            month = random.randint(1, 12)
+            month = self.rng.randint(1, 12)
 
             max_days = 31 if month in (1, 3, 5, 7, 8, 10, 12) else 30
             max_days = max_days if month != 2 else 28 + int(year % 4 == 0)
-            day = random.randint(1, max_days)
+            day = self.rng.randint(1, max_days)
             random_date = datetime.date(year, month, day)
 
             # Step 2: Format the date for Wikipedia URL
@@ -356,7 +358,7 @@ class DateQADataset:
                 section = soup.find("span", id=name)
                 if section:
                     available_sections.append(name)
-            section = random.choice(available_sections)
+            section = self.rng.choice(available_sections)
             # Find the events section
             events_list = soup.find(
                 "span", id=section
@@ -372,7 +374,7 @@ class DateQADataset:
             selected_event = random.choice(events)
             links = selected_event.find_all("a")
             if links:
-                link = random.choice(links)
+                link = self.rng.choice(links)
 
             return {
                 "date": random_date.strftime("%B %d"),
