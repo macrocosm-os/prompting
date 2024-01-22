@@ -29,6 +29,8 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
+from langchain.callbacks import get_openai_callback
+
 
 
 class OpenAIMiner(Miner):
@@ -41,32 +43,9 @@ class OpenAIMiner(Miner):
         parser.add_argument(
             "--openai.model_name",
             type=str,
-            default="gpt-4",
+            default="gpt-4-1106-preview",
             help="OpenAI model to use for completion.",
         )
-
-        parser.add_argument(
-            "--wandb.on",
-            type=bool,
-            default=False,
-            help="Enable wandb logging.",
-        )
-
-        parser.add_argument(
-            "--wandb.entity",
-            type=str,
-            default="<<Add your wandb entity here>>",
-            help="Wandb entity to log to.",
-        )
-
-        parser.add_argument(
-            "--wandb.project_name",
-            type=str,
-            default="<<Add your wandb project name here>>",
-            help="Wandb project to log to.",
-        )
-
-    
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -86,6 +65,32 @@ class OpenAIMiner(Miner):
         )
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
+        self.accumulated_total_tokens = 0
+        self.accumulated_prompt_tokens = 0
+        self.accumulated_completion_tokens = 0
+        self.accumulated_total_cost = 0
+
+    def get_cost_logging(self, cb):
+        bt.logging.info(f"Total Tokens: {cb.total_tokens}")
+        bt.logging.info(f"Prompt Tokens: {cb.prompt_tokens}")
+        bt.logging.info(f"Completion Tokens: {cb.completion_tokens}")
+        bt.logging.info(f"Total Cost (USD): ${cb.total_cost}")
+
+        self.accumulated_total_tokens += cb.total_tokens
+        self.accumulated_prompt_tokens += cb.prompt_tokens
+        self.accumulated_completion_tokens += cb.completion_tokens
+        self.accumulated_total_cost += cb.total_cost
+
+        return  {
+            'total_tokens': cb.total_tokens,
+            'prompt_tokens': cb.prompt_tokens,
+            'completion_tokens': cb.completion_tokens,
+            'total_cost': cb.total_cost,
+            'accumulated_total_tokens': self.accumulated_total_tokens,
+            'accumulated_prompt_tokens': self.accumulated_prompt_tokens,
+            'accumulated_completion_tokens': self.accumulated_completion_tokens,
+            'accumulated_total_cost': self.accumulated_total_cost,
+        }
 
     async def forward(
         self, synapse: PromptingSynapse
@@ -105,35 +110,35 @@ class OpenAIMiner(Miner):
         """
         # TODO(developer): Replace with actual implementation logic.
         try:
+            with get_openai_callback() as cb:
+                t0 = time.time()
+                bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
-            t0 = time.time()
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+                prompt = ChatPromptTemplate.from_messages([
+                    ("system", self.system_prompt),
+                    ("user", "{input}")
+                ])
+                chain = prompt | self.model | StrOutputParser()
 
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", self.system_prompt),
-                ("user", "{input}")
-            ])
-            chain = prompt | self.model | StrOutputParser()
-
-            role = synapse.roles[-1]
-            message = synapse.messages[-1]
-            
-            bt.logging.debug(f"💬 Querying openai: {prompt}")
-            response = chain.invoke(
-                {"role": role, "input": message}
-            )
-
-            synapse.completion = response
-            synapse_latency = time.time() - t0
-
-            if self.config.wandb.on:
-                self.log_event(
-                    timing=synapse_latency, 
-                    prompt=message,
-                    completion=response,
-                    system_prompt=self.system_prompt
+                role = synapse.roles[-1]
+                message = synapse.messages[-1]
+                
+                bt.logging.debug(f"💬 Querying openai: {prompt}")
+                response = chain.invoke(
+                    {"role": role, "input": message}
                 )
 
+                synapse.completion = response
+                synapse_latency = time.time() - t0
+
+                if self.config.wandb.on:
+                    self.log_event(
+                        timing=synapse_latency, 
+                        prompt=message,
+                        completion=response,
+                        system_prompt=self.system_prompt,
+                        extra_info=self.get_cost_logging(cb)
+                    )
 
             bt.logging.debug(f"✅ Served Response: {response}")
             return synapse
