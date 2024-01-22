@@ -62,7 +62,8 @@ class ZephyrMiner(Miner):
         super().__init__(config=config)
 
         model_kwargs = None
-        if self.config.neuron.load_in_4_bit:
+        if self.config.neuron.load_quantized:
+            bt.logging.info("Loading quantized model...")
             model_kwargs = dict(
                 torch_dtype=torch.float16,
                 load_in_8bit=True,

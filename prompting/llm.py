@@ -9,7 +9,7 @@ from prompting.mock import MockPipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 
 
-def load_pipeline(model_id, device=None, torch_dtype=None, mock=False, **model_kwargs):
+def load_pipeline(model_id, device=None, torch_dtype=None, mock=False, model_kwargs:dict = None):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
 
     if mock or model_id == "mock":
@@ -18,13 +18,23 @@ def load_pipeline(model_id, device=None, torch_dtype=None, mock=False, **model_k
     if not device.startswith("cuda"):
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
-    return pipeline(
-        "text-generation",
-        model=model_id,
-        device=device,
-        torch_dtype=torch_dtype,
-        model_kwargs=model_kwargs
-    )
+    # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
+    if model_kwargs is None:
+        llm_pipeline = pipeline(
+            "text-generation",
+            model=model_id,
+            device=device,
+            torch_dtype=torch_dtype,            
+        )
+    else:
+        llm_pipeline = pipeline(
+            "text-generation",
+            model=model_id,
+            device_map=device,
+            model_kwargs=model_kwargs
+        )
+
+    return llm_pipeline
 
 
 class HuggingFaceLLM:
