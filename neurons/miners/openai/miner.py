@@ -113,35 +113,6 @@ class OpenAIMiner(Miner):
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
         try:
-<<<<<<< HEAD
-
-            t0 = time.time()
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
-
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", self.system_prompt),
-                ("user", "{input}")
-            ])
-            chain = prompt | self.model | StrOutputParser()
-
-            role = synapse.roles[-1]
-            message = synapse.messages[-1]
-
-            bt.logging.debug(f"💬 Querying openai: {prompt}")
-            response = chain.invoke(
-                {"role": role, "input": message}
-            )
-
-            synapse.completion = response
-            synapse_latency = time.time() - t0
-
-            if self.config.wandb.on:
-                self.log_event(
-                    timing=synapse_latency,
-                    prompt=message,
-                    completion=response,
-                    system_prompt=self.system_prompt
-=======
             with get_openai_callback() as cb:
                 t0 = time.time()
                 bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
@@ -158,7 +129,6 @@ class OpenAIMiner(Miner):
                 bt.logging.debug(f"💬 Querying openai: {prompt}")
                 response = chain.invoke(
                     {"role": role, "input": message}
->>>>>>> 2478a65151ef2af9c561c71cdf354d950132c329
                 )
 
                 synapse.completion = response
