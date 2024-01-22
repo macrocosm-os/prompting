@@ -50,28 +50,7 @@ class ZephyrMiner(Miner):
             "--neuron.model_id",
             type=str,
             default="HuggingFaceH4/zephyr-7b-beta",
-        )
-
-        parser.add_argument(
-            "--wandb.on",
-            type=bool,
-            default=True,
-            help="Enable wandb logging.",
-        )
-
-        parser.add_argument(
-            "--wandb.entity",
-            type=str,
-            default="sn1",
-            help="Wandb entity to log to.",
-        )
-
-        parser.add_argument(
-            "--wandb.project_name",
-            type=str,
-            default="miners_experiments",
-            help="Wandb project to log to.",
-        )
+        )     
 
     def __init__(self, config=None):
         super().__init__(config=config)
