@@ -134,13 +134,12 @@ python -m pip install -e .
 ---
 # Running
 
-Currently, the incentive mechanism and miners are a work in progress, and should only be run on the test chain. If you require test tao, please reach out to ____.
+We encourage miners to use testnet as this gives you a risk-free playground before running on mainnet. If you require test tao, please reach out to steffen@opentensor.dev
 
 Prior to running a miner or validator, you must [create a wallet](https://github.com/opentensor/docs/blob/main/reference/btcli.md) and [register the wallet to a netuid](https://github.com/opentensor/docs/blob/main/subnetworks/registration.md). Once you have done so, you can run the miner and validator with the following commands.
 
 The validator and base miner are based on [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B.
 
-**To run a validator you will need 24GB of VRAM or 18GB of VRAM for a zephyr miner**
 ```bash
 # To run the validator
 python neurons/validator.py
