@@ -13,3 +13,4 @@ rouge
 scipy==1.10.1
 sentencepiece
 wandb==0.15.10
+tenacity
