@@ -29,6 +29,7 @@ from traceback import print_exception
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
 from prompting.utils.config import add_validator_args
+from prompting import __spec_version__
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -262,7 +263,7 @@ class BaseValidatorNeuron(BaseNeuron):
             weights=uint_weights,
             wait_for_finalization=False,
             wait_for_inclusion=True,
-            version_key=self.spec_version,
+            version_key=__spec_version__,
         )
         if result is True:
             bt.logging.info("set_weights on chain successfully!")
