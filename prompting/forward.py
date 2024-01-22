@@ -1,6 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -60,7 +59,6 @@ async def run_step(
     # Make calls to the network with the prompt.
     responses: List[PromptingSynapse] = await self.dendrite(
         axons=axons,
-        # TODO: Should this be entire history?
         synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]),
         timeout=timeout,
     )
@@ -88,9 +86,7 @@ async def run_step(
     event = {
         "block": self.block,
         "step_time": time.time() - start_time,
-        # can include time to use tools, create query/references
         **agent.__state_dict__(full=self.config.neuron.log_full),
-        # can include fine-gained rewards as well as times
         **reward_result.__state_dict__(full=self.config.neuron.log_full),
         **response_event.__state_dict__(),
     }
@@ -137,13 +133,6 @@ async def forward(self):
             exclude=exclude_uids,
         )
         exclude_uids += event["uids"]
-
-        ## TODO: Add max_turns and termination_probability parameters
-        # if (
-        #     rounds > self.config.max_turns
-        #     or random.random() < self.config.termination_probability
-        # ):
-        #
         task.complete = True
 
         rounds += 1
