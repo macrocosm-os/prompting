@@ -141,7 +141,7 @@ python neurons/miners/zephyr/miner.py
 
 # Real-time monitoring with wandb integration
 
-A fresh wandb project is on its way!
+Check out real-time public logging by looking at the project [here](https://wandb.ai/opentensor-dev/alpha-validators)
 
 ## License
 This repository is licensed under the MIT License.
