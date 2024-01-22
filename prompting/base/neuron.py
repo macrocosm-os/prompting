@@ -80,12 +80,8 @@ class BaseNeuron(ABC):
         # The wallet holds the cryptographic key pairs for the miner.
         if self.config.mock:
             self.wallet = bt.MockWallet(config=self.config)
-            self.subtensor = MockSubtensor(
-                self.config.netuid, wallet=self.wallet
-            )
-            self.metagraph = MockMetagraph(
-                self.config.netuid, subtensor=self.subtensor
-            )
+            self.subtensor = MockSubtensor(self.config.netuid, wallet=self.wallet)
+            self.metagraph = MockMetagraph(self.config.netuid, subtensor=self.subtensor)
         else:
             self.wallet = bt.wallet(config=self.config)
             self.subtensor = bt.subtensor(config=self.config)
@@ -104,7 +100,6 @@ class BaseNeuron(ABC):
             f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
         )
         self.step = 0
-        
 
     @abstractmethod
     async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
@@ -165,9 +160,7 @@ class BaseNeuron(ABC):
         ) > self.config.neuron.epoch_length
 
     def save_state(self):
-        bt.logging.debug(
-            "save_state() not implemented for this neuron. You can implement this function to save model checkpoints or other useful data."
-        )
+        pass
 
     def load_state(self):
         bt.logging.debug(
