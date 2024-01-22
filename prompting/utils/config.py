@@ -191,6 +191,27 @@ def add_miner_args(cls, parser):
         help="Nucleus sampling parameter, top_p probability mass.",
     )
 
+    parser.add_argument(
+        "--wandb.on",
+        type=bool,
+        default=False,
+        help="Enable wandb logging.",
+    )
+
+    parser.add_argument(
+        "--wandb.entity",
+        type=str,
+        default="opentensor-dev",
+        help="Wandb entity to log to.",
+    )
+
+    parser.add_argument(
+        "--wandb.project_name",
+        type=str,
+        default="alpha-miners",
+        help="Wandb project to log to.",
+    )
+
 def add_validator_args(cls, parser):
     """Add validator specific arguments to the parser."""
 
@@ -221,7 +242,7 @@ def add_validator_args(cls, parser):
         type=float,
         nargs="+",
         help="The probability of sampling each task.",
-        default=[0.3, 0.3, 0.1, 0.1, 0.2],
+        default=[0.5, 0.5, 0.0, 0.0, 0.0],
     )
 
     parser.add_argument(
