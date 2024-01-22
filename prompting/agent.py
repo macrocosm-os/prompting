@@ -4,6 +4,7 @@ import bittensor as bt
 from dataclasses import asdict
 from prompting.tasks import Task
 from prompting.llm import HuggingFaceLLM
+from prompting.cleaners.cleaner import CleanerPipeline
 
 from prompting.persona import Persona, create_persona
 
@@ -37,8 +38,9 @@ class HumanAgent(HuggingFaceLLM):
         begin_conversation=True,
     ):
         if persona is None:
-            self.persona = create_persona()
+            persona = create_persona()
 
+        self.persona = persona
         self.task = task
         self.llm_pipeline = llm_pipeline
 
@@ -65,18 +67,23 @@ class HumanAgent(HuggingFaceLLM):
     def create_challenge(self) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
         t0 = time.time()
-        self.challenge = super().query(
-            message="Ask a question related to your goal"
-        )
+
+        cleaner = None
+        if hasattr(self.task, 'cleaning_pipeline'):
+            cleaner = CleanerPipeline(
+                cleaning_pipeline=self.task.cleaning_pipeline
+            )
+
+        self.challenge = super().query(message="Ask a question related to your goal", cleaner=cleaner)
         self.challenge = self.task.format_challenge(self.challenge)
         self.challenge_time = time.time() - t0
 
-        return self.challenge.strip(' "')
-    
+        return self.challenge
+
     def __state_dict__(self, full=False):
         return {
-            "challenge": self.challenge,   
-            "challenge_time": self.challenge_time,      
+            "challenge": self.challenge,
+            "challenge_time": self.challenge_time,
             **self.task.__state_dict__(full=full),
             **asdict(self.persona),
             "system_prompt": self.system_prompt,
@@ -109,5 +116,3 @@ class HumanAgent(HuggingFaceLLM):
                 "↪ Agent did not finish its goal, continuing conversation..."
             )
             self.continue_conversation(miner_response=top_response)
-
-

@@ -1,17 +1,20 @@
 import time
 
+from typing import List, Dict
 import bittensor as bt
 
 from transformers import Pipeline, pipeline
 from prompting.mock import MockPipeline
 
+from prompting.cleaners.cleaner import CleanerPipeline
+
 
 def load_pipeline(model_id, device=None, torch_dtype=None, mock=False):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
-    
-    if mock or model_id == 'mock':
+
+    if mock or model_id == "mock":
         return MockPipeline(model_id)
-    
+
     if not device.startswith("cuda"):
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
@@ -48,7 +51,11 @@ class HuggingFaceLLM:
         self.times = [0]
 
     def query(
-        self, message, cleanup=False, role="user", disregard_system_prompt=False
+        self,
+        message: List[Dict[str, str]],
+        role: str = "user",
+        disregard_system_prompt: bool = False,
+        cleaner: CleanerPipeline = None,
     ):
         messages = self.messages + [{"content": message, "role": role}]
 
@@ -56,34 +63,35 @@ class HuggingFaceLLM:
             messages = messages[1:]
 
         tbeg = time.time()
-        response = self.forward(messages, cleanup=cleanup)
+        response = self.forward(messages=messages)
+
+        if cleaner is not None:            
+            clean_response = cleaner.apply(generation=response)
+            if clean_response != response:
+                bt.logging.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
+            response = clean_response
 
         self.messages = messages + [{"content": response, "role": "assistant"}]
         self.times = self.times + [0, time.time() - tbeg]
+
         return response
 
-    def __call__(self, messages):
-        return self.forward(messages)
+    def __call__(self, messages: List[Dict[str, str]]):
+        return self.forward(messages=messages)
 
-    def _make_prompt(self, messages):
+    def _make_prompt(self, messages: List[Dict[str, str]]):
         return self.llm_pipeline.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
 
-    def forward(self, messages, cleanup=False, preformat_messages=False):
+    def forward(self, messages: List[Dict[str, str]], preformat_messages: bool = False):
         prompt = self._make_prompt(messages)
         outputs = self.llm_pipeline(prompt, **self.kwargs)
         response = outputs[0]["generated_text"]
 
         response = response.replace(prompt, "").strip()
-        if cleanup and response.startswith("Assistant:"):
-            response = (
-                response.strip("Assistant:").split("User:")[0].strip("\n")
-            )
-            # Prune unfinished sentences
-            if not response.endswith("."):
-                bt.logging.debug("Pruning unfinished sentence.")
-                response = response[: response.rfind(".")]+'.'
 
-        bt.logging.info(f"{self.__class__.__name__} generated the following output:\n{response}")
+        bt.logging.info(
+            f"{self.__class__.__name__} generated the following output:\n{response}"
+        )
         return response

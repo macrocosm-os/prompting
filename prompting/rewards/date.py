@@ -9,10 +9,6 @@ class DateRewardModel(BaseRewardModel):
     def name(self) -> str:
         return 'date'
 
-    @property
-    def model_type(self) -> RewardModelTypeEnum:
-        return RewardModelTypeEnum.WEIGHTED_REWARD
-
     def __init__(self, **kwargs):
         super().__init__()
 
