@@ -59,7 +59,7 @@ class Validator(BaseValidatorNeuron):
         self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
 
         for i, axon in enumerate(self.metagraph.axons):
-            bt.logging.info(f"axons[{i}]: {axon}")
+            bt.logging.debug(f"axons[{i}]: {axon}")
             check_uid_availability(self.metagraph, i, self.config.neuron.vpermit_tao_limit)
 
     async def forward(self):
