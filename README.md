@@ -85,7 +85,7 @@ The [diagram below](#validation-diagram) illustrates the validation flow.
 # Validation Diagram
 ![sn1 overview](assets/sn1-overview.png)
 
-# Running validators
+# Running Validators
 These validators are designed to run and update themselves automatically. To run a validator, follow these steps:
 
 1. Install this repository, you can do so by following the steps outlined in [the installation section](#installation).
@@ -108,7 +108,7 @@ This will run **two** PM2 process: one for the validator which is called `s1_val
 
 
 
-# Mining
+# Available Miners
 
 Miners are scored based on the similarity between their completions and the reference answer. Furthermore, they should utilize the same API tools as the validators in order to be able to closely reproduce the reference answer. We currently provide the following miners out-of-the-box:
 1. [Zephyr 7B](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
@@ -138,7 +138,6 @@ We encourage miners to use testnet as this gives you a risk-free playground befo
 
 Prior to running a miner or validator, you must [create a wallet](https://github.com/opentensor/docs/blob/main/reference/btcli.md) and [register the wallet to a netuid](https://github.com/opentensor/docs/blob/main/subnetworks/registration.md). Once you have done so, you can run the miner and validator with the following commands.
 
-The validator and base miner are based on [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B.
 
 ```bash
 # To run the validator
@@ -154,16 +153,16 @@ python neurons/validator.py
 
 ```bash
 # To run the miner
-python neurons/miners/zephyr/miner.py 
+python neurons/miners/BASE_MINER/miner.py 
     --netuid 61
     --subtensor.network test 
     --wallet.name <your miner wallet> # Must be created using the bittensor-cli
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 ```
+where `BASE_MINER` is [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B, however you can choose any of the supplied models found in `neurons/miners`. 
 
-
-**Running instructions for main chain are coming soon!**
+The commands above will run a validator or miner on the `test` chain. To run on main, you can change `test` to either `finney` or `local`. 
 
 </div>
 
