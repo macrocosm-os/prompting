@@ -17,12 +17,12 @@
 
 # Define the version of the template module.
 #__version__ = "3.0.0"
-__version__ = "0.0.2"
+__version__ = "1.0.0"
 version_split = __version__.split(".")
 __spec_version__ = (
-    (1000 * int(version_split[0]))
-    + (10 * int(version_split[1]))
-    + (1 * int(version_split[2]))
+    (10000 * int(version_split[0]))
+    + (100 * int(version_split[1]))
+    + (10 * int(version_split[2]))
 )
 
 # Import all submodules.
