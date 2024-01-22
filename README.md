@@ -17,9 +17,6 @@
 
 This repository is the **official codebase for Bittensor Subnet 1 (SN1) v1.0.0+, which was released on 22nd January 2024**. To learn more about the Bittensor project and the underlying mechanics, [read here.](https://docs.bittensor.com/).
 
-
-This code is not yet running on mainnet but you are welcome run the incentive mechanism or test out miners on testnet (`--subtensor.network test --netuid 61`). Our estimated release date is Monday 22nd, January 2024 📆.
-
 # Introduction
 
 This repo defines an incentive mechanism to create a distributed conversational AI. 
@@ -90,9 +87,11 @@ The [diagram below](#validation-diagram) illustrates the validation flow.
 
 # Mining
 
-Miners are scored based on the similarity between their completions and the reference answer. Furthermore, they should utilize the same API tools as the validators in order to be able to closely reproduce the reference answer.
-
-Miner experiments are ongoing - we will share our results on the expected performance of various miners in the coming days! 
+Miners are scored based on the similarity between their completions and the reference answer. Furthermore, they should utilize the same API tools as the validators in order to be able to closely reproduce the reference answer. We currently provide the following miners out-of-the-box:
+1. [Zephyr 7B](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
+2. OpenAI (GPT variants)
+3. wiki-agent (GPT ReAct agent with langchain)
+    
 
 </div>
 
