@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -50,28 +50,7 @@ class ZephyrMiner(Miner):
             "--neuron.model_id",
             type=str,
             default="HuggingFaceH4/zephyr-7b-beta",
-        )
-
-        parser.add_argument(
-            "--wandb.on",
-            type=bool,
-            default=True,
-            help="Enable wandb logging.",
-        )
-
-        parser.add_argument(
-            "--wandb.entity",
-            type=str,
-            default="sn1",
-            help="Wandb entity to log to.",
-        )
-
-        parser.add_argument(
-            "--wandb.project_name",
-            type=str,
-            default="miners_experiments",
-            help="Wandb project to log to.",
-        )
+        )     
 
     def __init__(self, config=None):
         super().__init__(config=config)

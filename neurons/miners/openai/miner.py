@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -34,6 +34,10 @@ from langchain.callbacks import get_openai_callback
 
 
 class OpenAIMiner(Miner):
+    """Langchain-based miner which uses OpenAI's API as the LLM.
+
+    You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
+    """
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         """
@@ -49,14 +53,14 @@ class OpenAIMiner(Miner):
 
     def __init__(self, config=None):
         super().__init__(config=config)
-        
+
         bt.logging.info(f"Initializing with model {self.config.openai.model_name}...")
 
         if self.config.wandb.on:
             self.wandb_run.tags = self.wandb_run.tags + ("openai_miner", ) + (self.config.openai.model_name, )
-        
-        _ = load_dotenv(find_dotenv()) 
-        api_key = os.environ.get("OPENAI_API_KEY")        
+
+        _ = load_dotenv(find_dotenv())
+        api_key = os.environ.get("OPENAI_API_KEY")
 
         # Set openai key and other args
         self.model = ChatOpenAI(
@@ -108,7 +112,6 @@ class OpenAIMiner(Miner):
         The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
         the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
-        # TODO(developer): Replace with actual implementation logic.
         try:
             with get_openai_callback() as cb:
                 t0 = time.time()
