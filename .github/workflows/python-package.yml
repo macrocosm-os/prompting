@@ -29,7 +29,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest black
         pip install -e .
-        pip install -r prompting/requirements.txt
+        pip install -r requirements.txt
 
     - name: Lint with flake8
       run: |
