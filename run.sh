@@ -3,9 +3,9 @@
 # Initialize variables
 script="neurons/validator.py"
 autoRunLoc=$(readlink -f "$0")
-proc_name="text_prompt_validators_main_process" 
+proc_name="s1_validator_main_process" 
 args=()
-version_location="./prompting/validators/__init__.py"
+version_location="./prompting/__init__.py"
 version="__version__"
 
 old_args=$@

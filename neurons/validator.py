@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -57,7 +57,7 @@ class Validator(BaseValidatorNeuron):
         ]
         # Load the reward pipeline
         self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
-        
+
         for i, axon in enumerate(self.metagraph.axons):
             bt.logging.info(f"axons[{i}]: {axon}")
             check_uid_availability(self.metagraph, i, self.config.neuron.vpermit_tao_limit)
@@ -74,13 +74,13 @@ class Validator(BaseValidatorNeuron):
         return await forward(self)
 
     def __enter__(self):
-        
+
         if self.config.no_background_thread:
             bt.logging.warning("Running validator in main thread.")
             self.run()
         else:
             self.run_in_background_thread()
-    
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
