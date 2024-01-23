@@ -113,7 +113,7 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
     
-    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict):
+    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict = {}):
         if not getattr(self, "wandb_run", None):
             uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
             tags = [self.wallet.hotkey.ss58_address, f"netuid_{self.config.netuid}", f"uid_{uid}"]
