@@ -164,11 +164,7 @@ class BaseMinerNeuron(BaseNeuron):
         Starts the miner's operations in a background thread upon entering the context.
         This method facilitates the use of the miner in a 'with' statement.
         """
-        if self.config.no_background_thread:
-            bt.logging.warning("Running validator in main thread.")
-            self.run()
-        else:
-            self.run_in_background_thread()
+        self.run_in_background_thread()
 
         return self
 
