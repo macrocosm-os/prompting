@@ -20,10 +20,10 @@ import torch
 import argparse
 import asyncio
 import threading
-import traceback
 import bittensor as bt
 from prompting.base.neuron import BaseNeuron
 from prompting.utils.config import add_miner_args
+from traceback import print_exception
 
 
 class BaseMinerNeuron(BaseNeuron):
@@ -130,8 +130,10 @@ class BaseMinerNeuron(BaseNeuron):
             exit()
 
         # In case of unforeseen errors, the miner will log the error and continue operations.
-        except Exception as e:
-            bt.logging.error(traceback.format_exc())
+        except Exception as err:
+            bt.logging.error("Error during mining", str(err))
+            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
+            self.should_exit = True
 
     def run_in_background_thread(self):
         """
@@ -162,7 +164,12 @@ class BaseMinerNeuron(BaseNeuron):
         Starts the miner's operations in a background thread upon entering the context.
         This method facilitates the use of the miner in a 'with' statement.
         """
-        self.run_in_background_thread()
+        if self.config.no_background_thread:
+            bt.logging.warning("Running validator in main thread.")
+            self.run()
+        else:
+            self.run_in_background_thread()
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):

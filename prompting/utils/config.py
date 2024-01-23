@@ -192,6 +192,13 @@ def add_miner_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.stop_on_forward_exception",
+        type=bool,
+        default=False,
+        help="Set miner to stop on forward exception.",
+    )
+
+    parser.add_argument(
         "--wandb.on",
         type=bool,
         default=False,

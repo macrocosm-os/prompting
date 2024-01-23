@@ -156,3 +156,7 @@ if __name__ == "__main__":
         while True:
             bt.logging.info("Miner running...", time.time())
             time.sleep(5)
+
+            if miner.should_exit:
+                bt.logging.warning("Ending miner...")
+                break
