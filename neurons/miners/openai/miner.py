@@ -47,7 +47,7 @@ class OpenAIMiner(Miner):
         parser.add_argument(
             "--openai.model_name",
             type=str,
-            default="gpt-4-1106-preview",
+            default="gpt-3.5-turbo-1106",
             help="OpenAI model to use for completion.",
         )
 

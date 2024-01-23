@@ -23,6 +23,7 @@ import prompting
 from prompting.protocol import PromptingSynapse
 # import base miner class which takes care of most of the boilerplate
 from prompting.base.miner import BaseMinerNeuron
+from datetime import datetime
 
 class Miner(BaseMinerNeuron):
     """
@@ -113,23 +114,46 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
     
-    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict = {}):
-        if not getattr(self, "wandb_run", None):
-            uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
-            tags = [self.wallet.hotkey.ss58_address, f"netuid_{self.config.netuid}", f"uid_{uid}"]
-                        
-            if self.identity_tags:
-                tags += self.identity_tags
-                        
-            # inits wandb in case it hasn't been inited yet
-            self.wandb_run = wandb.init(
-                project=self.config.wandb.project_name,
-                entity=self.config.wandb.entity,
-                config=self.config,
-                mode="online" if self.config.wandb.on else "offline",
-                tags=tags,                
-            )
+    def init_wandb(self):
+        bt.logging.info("Initializing wandb...")
+        
+        uid = f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
+        net_uid = f"netuid_{self.config.netuid}"
+        tags = [
+            self.wallet.hotkey.ss58_address, 
+            net_uid, 
+            f"uid_{uid}",
+            prompting.__version__,
+            str(prompting.__spec_version__),
+        ]
+        
+        run_name = None
+        if self.identity_tags:
+            # Add identity tags to run tags
+            tags += self.identity_tags     
 
+            # Create run name from identity tags       
+            run_name_tags = [str(tag) for tag in self.identity_tags]            
+            
+            # Add uid, netuid and timestamp to run name
+            run_name_tags += [uid, net_uid, datetime.now().strftime('%Y_%m_%d_%H_%M_%S')]
+
+            # Compose run name
+            run_name = '_'.join(run_name_tags)                
+                    
+        # inits wandb in case it hasn't been inited yet
+        self.wandb_run = wandb.init(
+            name=run_name,
+            project=self.config.wandb.project_name,
+            entity=self.config.wandb.entity,
+            config=self.config,
+            mode="online" if self.config.wandb.on else "offline",
+            tags=tags,                
+        )
+    
+    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict = {}):        
+        if not getattr(self, "wandb_run", None):
+            self.init_wandb()
         
         step_log = {
             "epoch_time": timing,
