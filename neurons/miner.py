@@ -127,7 +127,6 @@ class Miner(BaseMinerNeuron):
                 entity=self.config.wandb.entity,
                 config=self.config,
                 mode="online" if self.config.wandb.on else "offline",
-                magic=True,
                 tags=tags,                
             )
 
