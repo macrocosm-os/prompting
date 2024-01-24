@@ -49,10 +49,10 @@ class OpenAIMiner(Miner):
     def __init__(self, config=None):
         super().__init__(config=config)
 
-        bt.logging.info(f"Initializing with model {self.config.neuron.model_name}...")
+        bt.logging.info(f"Initializing with model {self.config.neuron.model_id}...")
 
         if self.config.wandb.on:
-            self.identity_tags =  ("openai_miner", ) + (self.config.neuron.model_name, )
+            self.identity_tags =  ("openai_miner", ) + (self.config.neuron.model_id, )
         
         _ = load_dotenv(find_dotenv()) 
         api_key = os.environ.get("OPENAI_API_KEY")        
@@ -63,8 +63,6 @@ class OpenAIMiner(Miner):
             model_name=self.config.neuron.model_id,
             max_tokens = self.config.neuron.max_tokens,
             temperature = self.config.neuron.temperature,            
-            presence_penalty = self.config.neuron.presence_penalty,
-            frequency_penalty = self.config.neuron.frequency_penalty,
         )
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
@@ -77,7 +75,7 @@ class OpenAIMiner(Miner):
         bt.logging.info(f"Total Tokens: {cb.total_tokens}")
         bt.logging.info(f"Prompt Tokens: {cb.prompt_tokens}")
         bt.logging.info(f"Completion Tokens: {cb.completion_tokens}")
-        bt.logging.info(f"Total Cost (USD): ${cb.total_cost}")
+        bt.logging.info(f"Total Cost (USD): ${round(cb.total_cost,4)}")
 
         self.accumulated_total_tokens += cb.total_tokens
         self.accumulated_prompt_tokens += cb.prompt_tokens

@@ -206,20 +206,6 @@ def add_miner_args(cls, parser):
     )
 
     parser.add_argument(
-        "--neuron.presence_penalty",
-        type=float,
-        default=0.1,
-        help="Penalty for tokens based on their presence in the text so far.",
-    )
-    
-    parser.add_argument(
-        "--neuron.frequency_penalty",
-        type=float,
-        default=0.1,
-        help="Penalty for tokens based on their frequency in the text so far.",
-    )
-
-    parser.add_argument(
         "--neuron.stop_on_forward_exception",
         type=bool,
         default=False,
