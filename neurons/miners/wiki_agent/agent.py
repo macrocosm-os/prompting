@@ -3,7 +3,7 @@ from langchain.agents import Tool
 from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser
 from langchain.schema import AgentAction, AgentFinish, OutputParserException
 import re
-import wikipedia
+import bittensor as bt
 from typing import Union
 from typing import List
 from langchain.prompts import StringPromptTemplate
@@ -84,7 +84,7 @@ class CustomOutputParser(AgentOutputParser):
 
 
 class WikiAgent:
-    def __init__(self):
+    def __init__(self, model_id: str, model_temperature: float):
         self.wikipedia = WikipediaAPIWrapper()
         tools = [    
             Tool(
@@ -102,7 +102,8 @@ class WikiAgent:
             input_variables=["input", "intermediate_steps"]
         )
 
-        llm = OpenAI(temperature=0)
+        bt.logging.info(f"Initializing agent with model_id: {model_id} and model_temperature: {model_temperature}")
+        llm = OpenAI(model_name=model_id, temperature=model_temperature)
 
 
         llm_chain = LLMChain(llm=llm, prompt=prompt)
@@ -112,10 +113,10 @@ class WikiAgent:
             llm_chain=llm_chain,
             output_parser=output_parser,
             stop=["\nObservation:"],
-            allowed_tools=tools
+            allowed_tools=tools,            
         )
 
-        self.agent_executor = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True)
+        self.agent_executor = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
         
 
     def run(self, input: str) -> str:

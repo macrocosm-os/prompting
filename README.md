@@ -142,8 +142,8 @@ Prior to running a miner or validator, you must [create a wallet](https://github
 ```bash
 # To run the validator
 python neurons/validator.py
-    --netuid 61
-    --subtensor.network test
+    --netuid 1
+    --subtensor.network <finney/local/test>
     --neuron.device cuda
     --wallet.name <your validator wallet>  # Must be created using the bittensor-cli
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
@@ -154,15 +154,15 @@ python neurons/validator.py
 ```bash
 # To run the miner
 python neurons/miners/BASE_MINER/miner.py 
-    --netuid 61
-    --subtensor.network test 
+    --netuid 1
+    --subtensor.network <finney/local/test>
     --wallet.name <your miner wallet> # Must be created using the bittensor-cli
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 ```
 where `BASE_MINER` is [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B, however you can choose any of the supplied models found in `neurons/miners`. 
 
-The commands above will run a validator or miner on the `test` chain. To run on main, you can change `test` to either `finney` or `local`. 
+For users who are new to the Bittensor ecosystem, 'finney' is the recommended subtensor, but more advanced users are encouraged to run a subtensor locally for greater performance and stability. 
 
 </div>
 

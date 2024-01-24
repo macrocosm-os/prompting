@@ -26,6 +26,18 @@ For more configuration options related to the wallet, axon, subtensor, logging, 
 
 To run the OpenAI Bittensor Miner with default settings, use the following command:
 
+```bash
+python3 neurons/miners/openai/miner.py \
+    --wallet.name <<your-wallet-name>> \
+    --wallet.hotkey <<your-hotkey>>     
 ```
-python3 neurons/miners/openai/miner.py
+
+You can easily change some key parameters at the CLI, e.g.:
+```bash
+python3 neurons/miners/openai/miner.py \
+    --wallet.name <<your-wallet-name>> \
+    --wallet.hotkey <<your-hotkey>> 
+    --neuron.model_id gpt-4-1106-preview # default value is gpt3.5 turbo
+    --neuron.max_tokens 1024 # default value is 256    
+    --neuron.temperature 0.9 # default value is 0.7
 ```

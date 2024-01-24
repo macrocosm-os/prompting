@@ -31,10 +31,10 @@ from sympy.parsing.latex import parse_latex
 # TODO: Use beautiful soup to parse things like wikipedia articles and stack overflow questions and answers
 # TODO: Use decorators or a parent class to time the next method so that context always has a fetch_time field
 
-class MockDataset():
+
+class MockDataset:
     def next(self):
         return {"text": "What is the capital of Texas?"}
-
 
 
 def chunk(text, sep, n_chunks=None):
@@ -45,12 +45,9 @@ def chunk(text, sep, n_chunks=None):
         n_chunks = random.randint(1, len(chunks))
 
     start_chunk = random.randint(0, len(chunks) - n_chunks)
-    bt.logging.info(
-        f"Choosing {n_chunks} chunks starting at index {start_chunk}."
-    )
+    bt.logging.info(f"Choosing {n_chunks} chunks starting at index {start_chunk}.")
 
     return sep.join(chunks[start_chunk : start_chunk + n_chunks])
-
 
 
 class CodingDataset:
@@ -67,7 +64,11 @@ class CodingDataset:
     }
 
     def __init__(
-        self, dataset_id="codeparrot/github-code", seed=None, languages=None, buffer_size=10000
+        self,
+        dataset_id="codeparrot/github-code",
+        seed=None,
+        languages=None,
+        buffer_size=10000,
     ):
         if seed is None:
             seed = random.randint(0, 1000)
@@ -153,9 +154,7 @@ class WikiDataset:
                     for cat in page_info.get("categories", [{}])
                 ]
                 # filter out any mention of articles
-                categories = [
-                    cat for cat in categories if "article" not in cat.lower()
-                ]
+                categories = [cat for cat in categories if "article" not in cat.lower()]
                 extract = page_info.get("extract")
 
                 if (
@@ -215,20 +214,38 @@ class WikiDataset:
 
         return text
 
-    def next(self, subset=False, chunk_sep="\n", n_chunks=None, info=None):
+    def next(
+        self, subset=False, chunk_sep="\n", n_chunks: int = None, info: Dict = None
+    ) -> Dict:
+        """Iterate through random wikipedia articles
+
+        Args:
+            subset (bool, optional): Randomly sample a chunk the article . Defaults to False.
+            chunk_sep (str, optional): If subsetting, define the delimiter to separate on. Defaults to "\n".
+            n_chunks (int, optional): If subsetting, define the number of chunks you want. Defaults to None.
+            info (Dict, optional): Select a known wikipedia article. Defaults to None.
+
+        Raises:
+            Exception: If minimum number of words is less than min_length_words after max_tries tries.
+
+        Returns:
+            Dict: information about the article
+        """
         bt.logging.debug("Retrieving data from prompting.dataset...")
         tries = 0
         t0 = time.time()
         while tries < self.max_tries:
-            
             if info is None:
                 info = self.get_random_wikipedia_article()
 
             info["sections"] = self.get_wikipedia_article_content(info["title"])
             text = "\n".join(info["sections"].values())
             tries += 1
+
             if len(text.split()) >= self.min_length_words:
                 break
+            else:
+                info = None
 
         if tries == self.max_tries:
             raise Exception(
@@ -241,11 +258,11 @@ class WikiDataset:
             text = chunk(text, sep=chunk_sep, n_chunks=n_chunks)
 
         info["text"] = text
-        info['fetch_time'] = time.time() - t0
+        info["fetch_time"] = time.time() - t0
         return info
 
 
-class StackOverflowDataset():
+class StackOverflowDataset:
     def __init__(self):
         # Stack Overflow API endpoint for a random article
         self.url = "https://api.stackexchange.com/2.3/questions"
@@ -304,9 +321,7 @@ class StackOverflowDataset():
         if not answers:
             bt.logging.warning("No answers found for the question!")
 
-        highest_voted_answer = answers[
-            0
-        ]  # The first answer is the highest voted
+        highest_voted_answer = answers[0]  # The first answer is the highest voted
         soup = BeautifulSoup(highest_voted_answer["body"], "html.parser")
         full_content = soup.get_text(separator="\n")
         return full_content
@@ -315,7 +330,7 @@ class StackOverflowDataset():
         bt.logging.debug("Retrieving data from prompting.dataset...")
         t0 = time.time()
         info = self.get_stack_question()
-        info['fetch_time'] = time.time() - t0
+        info["fetch_time"] = time.time() - t0
         return info
 
 
@@ -349,7 +364,9 @@ class DateQADataset:
             events = []
 
             if response.status_code != 200:
-                bt.logging.debug(f'Received status code {response.status_code} for URL "{url}". Retrying ({tries}/{self.max_tries})...')
+                bt.logging.debug(
+                    f'Received status code {response.status_code} for URL "{url}". Retrying ({tries}/{self.max_tries})...'
+                )
                 continue
 
             soup = BeautifulSoup(response.content, "html.parser")
@@ -360,9 +377,7 @@ class DateQADataset:
                     available_sections.append(name)
             section = self.rng.choice(available_sections)
             # Find the events section
-            events_list = soup.find(
-                "span", id=section
-            ).parent.find_next_sibling("ul")
+            events_list = soup.find("span", id=section).parent.find_next_sibling("ul")
 
             for li in events_list.find_all("li"):
                 events.append(li)
@@ -387,18 +402,16 @@ class DateQADataset:
         bt.logging.debug("Retrieving data from prompting.dataset...")
         t0 = time.time()
         info = self.get_random_event()
-        info['fetch_time'] = time.time() - t0
+        info["fetch_time"] = time.time() - t0
         return info
 
 
 class MathDataset:
-
     topics_list = mathgenerator.getGenList()
 
     def __init__(self, seed=None):
-        
         # NOTE: Unfortunately, mathgenerator does not provide a way to seed the random number generator and get the same problem every time
-        
+
         self.seed = seed
         self.rng = random.Random(seed)
 
@@ -457,30 +470,43 @@ class MathDataset:
             ]
             options = parseable_list
             choice = self.rng.choice((options))
-            #TODO: When the solution contains the symbol x we should specify the x value and substitute it in the solution
+            # TODO: When the solution contains the symbol x we should specify the x value and substitute it in the solution
             problem, solution = mathgenerator.genById(choice)
             _, subtopic, _, _, topic, _ = self.topics_list[choice]
 
             subs = {}
             # check if solution contains letters
-            if 'x' in solution:
-                subs['x'] = 10
-                bt.logging.warning('Coercing a symbolic expression to a numeric expression by substituting x=10')
+            if "x" in solution:
+                subs["x"] = 10
+                bt.logging.warning(
+                    "Coercing a symbolic expression to a numeric expression by substituting x=10"
+                )
 
             # BUG: parse latex assumes that all letters are variables and so solutions like $No$ are interpreted as 'N * o'
             solution_numeric = parse_latex(
                 str(solution).replace("$", "").strip()
             ).evalf(subs=subs)
-            return {"problem": problem, "solution": solution_numeric, "solution_raw": solution, "topic": topic, "subtopic": subtopic}
+            return {
+                "problem": problem,
+                "solution": solution_numeric,
+                "solution_raw": solution,
+                "topic": topic,
+                "subtopic": subtopic,
+            }
         else:
             options = mathgenerator.getGenList()
             choice = self.rng.choice(range(len(options)))
             problem, solution = mathgenerator.genById(choice)
             _, subtopic, _, _, topic, _ = self.topics_list[choice]
-            return {"problem": problem, "solution": solution, "topic": topic, "subtopic": subtopic}
+            return {
+                "problem": problem,
+                "solution": solution,
+                "topic": topic,
+                "subtopic": subtopic,
+            }
 
     def next(self, parse=True):
         t0 = time.time()
         info = self.random_problem(parse)
-        info['fetch_time'] = time.time() - t0
+        info["fetch_time"] = time.time() - t0
         return info

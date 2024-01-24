@@ -44,28 +44,25 @@ class OpenAIMiner(Miner):
         Adds OpenAI-specific arguments to the command line parser.
         """
         super().add_args(parser)
-        parser.add_argument(
-            "--openai.model_name",
-            type=str,
-            default="gpt-4-1106-preview",
-            help="OpenAI model to use for completion.",
-        )
+
 
     def __init__(self, config=None):
         super().__init__(config=config)
 
-        bt.logging.info(f"Initializing with model {self.config.openai.model_name}...")
+        bt.logging.info(f"Initializing with model {self.config.neuron.model_id}...")
 
         if self.config.wandb.on:
-            self.identity_tags =  ("openai_miner", ) + (self.config.openai.model_name, )
+            self.identity_tags =  ("openai_miner", ) + (self.config.neuron.model_id, )
         
         _ = load_dotenv(find_dotenv()) 
         api_key = os.environ.get("OPENAI_API_KEY")        
 
         # Set openai key and other args
         self.model = ChatOpenAI(
-            model_name=self.config.openai.model_name,
-            api_key=api_key
+            api_key=api_key,
+            model_name=self.config.neuron.model_id,
+            max_tokens = self.config.neuron.max_tokens,
+            temperature = self.config.neuron.temperature,            
         )
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
@@ -78,7 +75,7 @@ class OpenAIMiner(Miner):
         bt.logging.info(f"Total Tokens: {cb.total_tokens}")
         bt.logging.info(f"Prompt Tokens: {cb.prompt_tokens}")
         bt.logging.info(f"Completion Tokens: {cb.completion_tokens}")
-        bt.logging.info(f"Total Cost (USD): ${cb.total_cost}")
+        bt.logging.info(f"Total Cost (USD): ${round(cb.total_cost,4)}")
 
         self.accumulated_total_tokens += cb.total_tokens
         self.accumulated_prompt_tokens += cb.prompt_tokens
@@ -147,6 +144,11 @@ class OpenAIMiner(Miner):
             return synapse
         except Exception as e:
             bt.logging.error(f"Error in forward: {e}")
+            synapse.completion = "Error: " + str(e)
+        finally:
+            if self.config.neuron.stop_on_forward_exception:
+                self.should_exit = True
+            return synapse
 
 
 # This is the main function, which runs the miner.
@@ -155,3 +157,7 @@ if __name__ == "__main__":
         while True:
             bt.logging.info("Miner running...", time.time())
             time.sleep(5)
+
+            if miner.should_exit:
+                bt.logging.warning("Ending miner...")
+                break   
