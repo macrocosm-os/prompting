@@ -15,23 +15,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import os
 import time
 import bittensor as bt
 import argparse
 # Bittensor Miner Template:
-import prompting
 from prompting.protocol import PromptingSynapse
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import Miner
-
-from langchain.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain.chat_models import ChatOpenAI
-from langchain.utilities import WikipediaAPIWrapper
 from dotenv import load_dotenv, find_dotenv
-from langchain import OpenAI
-from langchain.agents import Tool, initialize_agent
 from agent import WikiAgent
 from langchain.callbacks import get_openai_callback
 
@@ -47,20 +38,14 @@ class WikipediaAgentMiner(Miner):
         Adds OpenAI-specific arguments to the command line parser.
         """
         super().add_args(parser)
-        parser.add_argument(
-            "--openai.model_name",
-            type=str,
-            default="gpt-3.5-turbo-16k",
-            help="OpenAI model to use for completion.",
-        )    
 
     def __init__(self, config=None):
         super().__init__(config=config)
         
-        bt.logging.info(f"🤖📖 Initializing wikipedia agent with model {self.config.openai.model_name}...")
+        bt.logging.info(f"🤖📖 Initializing wikipedia agent with model {self.config.neuron.model_id}...")
 
         if self.config.wandb.on:
-            self.identity_tags = ("wikipedia_agent_miner", ) + (self.config.openai.model_name, )
+            self.identity_tags = ("wikipedia_agent_miner", ) + (self.config.neuron.model_id, )
         
         _ = load_dotenv(find_dotenv()) 
                 

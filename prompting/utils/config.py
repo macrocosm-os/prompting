@@ -143,6 +143,20 @@ def add_miner_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.model_id",
+        type=str,
+        help="The model to use for the validator.",
+        default="gpt-3.5-turbo-1106",
+    )
+
+    parser.add_argument(
+        "--neuron.load_quantized",
+        type=str,
+        default=False,
+        help="Load quantized model.",
+    )
+
+    parser.add_argument(
         "--blacklist.force_validator_permit",
         action="store_true",
         help="If set, we will force incoming requests to have a permit.",
@@ -189,6 +203,20 @@ def add_miner_args(cls, parser):
         type=float,
         default=0.95,
         help="Nucleus sampling parameter, top_p probability mass.",
+    )
+
+    parser.add_argument(
+        "--neuron.presence_penalty",
+        type=float,
+        default=0.1,
+        help="Penalty for tokens based on their presence in the text so far.",
+    )
+    
+    parser.add_argument(
+        "--neuron.frequency_penalty",
+        type=float,
+        default=0.1,
+        help="Penalty for tokens based on their frequency in the text so far.",
     )
 
     parser.add_argument(

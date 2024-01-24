@@ -44,62 +44,27 @@ class OpenAIMiner(Miner):
         Adds OpenAI-specific arguments to the command line parser.
         """
         super().add_args(parser)
-        parser.add_argument(
-            "--openai.model_name",
-            type=str,
-            default="gpt-3.5-turbo-1106",
-            help="OpenAI model to use for completion.",
-        )
-
-        parser.add_argument(
-            "--openai.temperature",
-            type=float,
-            default=0.9,
-            help="Temperature of openai model",
-        )
-
-        parser.add_argument(
-            "--openai.max_tokens",
-            type=int,
-            default=500,
-            help="The maximum number of tokens to generate in the completion.",
-        )
-
-        parser.add_argument(
-            "--openai.presence_penalty",
-            type=float,
-            default=0.1,
-            help="Penalty for tokens based on their presence in the text so far.",
-        )
-        
-        parser.add_argument(
-            "--openai.frequency_penalty",
-            type=float,
-            default=0.1,
-            help="Penalty for tokens based on their frequency in the text so far.",
-        )
-
 
 
     def __init__(self, config=None):
         super().__init__(config=config)
 
-        bt.logging.info(f"Initializing with model {self.config.openai.model_name}...")
+        bt.logging.info(f"Initializing with model {self.config.neuron.model_name}...")
 
         if self.config.wandb.on:
-            self.identity_tags =  ("openai_miner", ) + (self.config.openai.model_name, )
+            self.identity_tags =  ("openai_miner", ) + (self.config.neuron.model_name, )
         
         _ = load_dotenv(find_dotenv()) 
         api_key = os.environ.get("OPENAI_API_KEY")        
 
         # Set openai key and other args
         self.model = ChatOpenAI(
-            model_name=self.config.openai.model_name,
-            api_key=api_key,                        
-            max_tokens = self.config.openai.max_tokens,
-            temperature = self.config.openai.temperature,            
-            presence_penalty = self.config.openai.presence_penalty,
-            frequency_penalty = self.config.openai.frequency_penalty,
+            api_key=api_key,
+            model_name=self.config.neuron.model_id,
+            max_tokens = self.config.neuron.max_tokens,
+            temperature = self.config.neuron.temperature,            
+            presence_penalty = self.config.neuron.presence_penalty,
+            frequency_penalty = self.config.neuron.frequency_penalty,
         )
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
