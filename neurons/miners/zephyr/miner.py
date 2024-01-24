@@ -17,7 +17,6 @@
 
 import time
 import torch
-import typing
 import argparse
 import bittensor as bt
 
@@ -39,24 +38,12 @@ class ZephyrMiner(Miner):
 
     python neurons/miners/zephyr/miner.py --wallet.name <wallet_name> --wallet.hotkey <wallet_hotkey> --subtensor.network <network> --netuid <netuid> --axon.port <port> --axon.external_port <port> --logging.debug True --neuron.model_id HuggingFaceH4/zephyr-7b-beta --neuron.system_prompt "Hello, I am a chatbot. I am here to help you with your questions." --neuron.max_tokens 64 --neuron.do_sample True --neuron.temperature 0.9 --neuron.top_k 50 --neuron.top_p 0.95 --wandb.on True --wandb.entity sn1 --wandb.project_name miners_experiments
     """
-
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         """
         Adds arguments to the command line parser.
         """
         super().add_args(parser)
-        parser.add_argument(
-            "--neuron.model_id",
-            type=str,
-            default="HuggingFaceH4/zephyr-7b-beta",
-        )
-
-        parser.add_argument(
-            "--neuron.load_quantized",
-            type=str,
-            default=False,
-        )
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -81,8 +68,7 @@ class ZephyrMiner(Miner):
             device=self.device,
             mock=self.config.mock,
             model_kwargs=model_kwargs,
-        )
-        
+        )        
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
 
