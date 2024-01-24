@@ -49,7 +49,7 @@ class WikipediaAgentMiner(Miner):
         
         _ = load_dotenv(find_dotenv()) 
                 
-        self.agent = WikiAgent()
+        self.agent = WikiAgent(self.config.neuron.model_id, self.config.neuron.temperature)
         self.accumulated_total_tokens = 0
         self.accumulated_prompt_tokens = 0
         self.accumulated_completion_tokens = 0
