@@ -47,9 +47,39 @@ class OpenAIMiner(Miner):
         parser.add_argument(
             "--openai.model_name",
             type=str,
-            default="gpt-4-1106-preview",
+            default="gpt-3.5-turbo-1106",
             help="OpenAI model to use for completion.",
         )
+
+        parser.add_argument(
+            "--openai.temperature",
+            type=float,
+            default=0.9,
+            help="Temperature of openai model",
+        )
+
+        parser.add_argument(
+            "--openai.max_tokens",
+            type=int,
+            default=500,
+            help="The maximum number of tokens to generate in the completion.",
+        )
+
+        parser.add_argument(
+            "--openai.presence_penalty",
+            type=float,
+            default=0.1,
+            help="Penalty for tokens based on their presence in the text so far.",
+        )
+        
+        parser.add_argument(
+            "--openai.frequency_penalty",
+            type=float,
+            default=0.1,
+            help="Penalty for tokens based on their frequency in the text so far.",
+        )
+
+
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -65,7 +95,11 @@ class OpenAIMiner(Miner):
         # Set openai key and other args
         self.model = ChatOpenAI(
             model_name=self.config.openai.model_name,
-            api_key=api_key
+            api_key=api_key,                        
+            max_tokens = self.config.openai.max_tokens,
+            temperature = self.config.openai.temperature,            
+            presence_penalty = self.config.openai.presence_penalty,
+            frequency_penalty = self.config.openai.frequency_penalty,
         )
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
@@ -147,6 +181,11 @@ class OpenAIMiner(Miner):
             return synapse
         except Exception as e:
             bt.logging.error(f"Error in forward: {e}")
+            synapse.completion = "Error: " + str(e)
+        finally:
+            if self.config.neuron.stop_on_forward_exception:
+                self.should_exit = True
+            return synapse
 
 
 # This is the main function, which runs the miner.
@@ -155,3 +194,7 @@ if __name__ == "__main__":
         while True:
             bt.logging.info("Miner running...", time.time())
             time.sleep(5)
+
+            if miner.should_exit:
+                bt.logging.warning("Ending miner...")
+                break   

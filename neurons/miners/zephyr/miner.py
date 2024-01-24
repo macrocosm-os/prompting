@@ -69,6 +69,12 @@ class ZephyrMiner(Miner):
                 load_in_8bit=True,
             )
 
+        if self.config.wandb.on:
+            self.identity_tags = ("zephyr_miner", )
+
+            if self.config.neuron.load_quantized:
+                self.identity_tags += ("8bits_quantization", )
+
         self.llm_pipeline = load_pipeline(
             model_id=self.config.neuron.model_id,
             torch_dtype=torch.float16,
@@ -118,7 +124,7 @@ class ZephyrMiner(Miner):
 
             synapse.completion = response
             synapse_latency = time.time() - t0
-
+            
             if self.config.wandb.on:
                 # TODO: Add system prompt to wandb config and not on every step
                 self.log_event(
@@ -134,7 +140,9 @@ class ZephyrMiner(Miner):
         except Exception as e:
             bt.logging.error(f"Error: {e}")
             synapse.completion = "Error: " + str(e)
-        finally:
+        finally:             
+            if self.config.neuron.stop_on_forward_exception:
+                self.should_exit = True
             return synapse
 
 
@@ -144,3 +152,7 @@ if __name__ == "__main__":
         while True:
             bt.logging.info("Miner running...", time.time())
             time.sleep(5)
+
+            if miner.should_exit:
+                bt.logging.warning("Ending miner...")
+                break   
