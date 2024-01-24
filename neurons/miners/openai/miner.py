@@ -51,6 +51,36 @@ class OpenAIMiner(Miner):
             help="OpenAI model to use for completion.",
         )
 
+        parser.add_argument(
+            "--openai.temperature",
+            type=float,
+            default=0.9,
+            help="Temperature of openai model",
+        )
+
+        parser.add_argument(
+            "--openai.max_tokens",
+            type=int,
+            default=500,
+            help="The maximum number of tokens to generate in the completion.",
+        )
+
+        parser.add_argument(
+            "--openai.presence_penalty",
+            type=float,
+            default=0.1,
+            help="Penalty for tokens based on their presence in the text so far.",
+        )
+        
+        parser.add_argument(
+            "--openai.frequency_penalty",
+            type=float,
+            default=0.1,
+            help="Penalty for tokens based on their frequency in the text so far.",
+        )
+
+
+
     def __init__(self, config=None):
         super().__init__(config=config)
 
@@ -65,7 +95,11 @@ class OpenAIMiner(Miner):
         # Set openai key and other args
         self.model = ChatOpenAI(
             model_name=self.config.openai.model_name,
-            api_key=api_key
+            api_key=api_key,                        
+            max_tokens = self.config.openai.max_tokens,
+            temperature = self.config.openai.temperature,            
+            presence_penalty = self.config.openai.presence_penalty,
+            frequency_penalty = self.config.openai.frequency_penalty,
         )
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
