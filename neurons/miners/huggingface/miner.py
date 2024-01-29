@@ -30,7 +30,7 @@ from prompting.llm import HuggingFaceLLM
 from neurons.miner import Miner
 
 
-class ZephyrMiner(Miner):
+class HuggingFaceMiner(Miner):
     """
     Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)    
     This requires a GPU with at least 20GB of memory.
@@ -57,7 +57,7 @@ class ZephyrMiner(Miner):
             )
 
         if self.config.wandb.on:
-            self.identity_tags = ("zephyr_miner", )
+            self.identity_tags = ("hf_miner", )
 
             if self.config.neuron.load_quantized:
                 self.identity_tags += ("8bits_quantization", )
@@ -134,7 +134,7 @@ class ZephyrMiner(Miner):
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
-    with ZephyrMiner() as miner:
+    with HuggingFaceMiner() as miner:
         while True:
             bt.logging.info("Miner running...", time.time())
             time.sleep(5)
