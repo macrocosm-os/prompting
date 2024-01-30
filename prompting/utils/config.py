@@ -150,10 +150,17 @@ def add_miner_args(cls, parser):
     )
 
     parser.add_argument(
-        "--neuron.load_quantized",
+        "--neuron.load_in_8bit",
         type=str,
         default=False,
-        help="Load quantized model.",
+        help="Load quantized model in 8 bits. Note that this parameter only applies to hugging face miners.",
+    )
+
+    parser.add_argument(
+        "--neuron.load_in_4bit",
+        type=str,
+        default=False,
+        help="Load quantized model in 4 bits. Note that this parameter only applies to hugging face miners.",
     )
 
     parser.add_argument(
