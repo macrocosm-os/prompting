@@ -2,6 +2,7 @@ import time
 import torch
 import re
 import pandas as pd
+import numpy as np
 from typing import List
 from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
 
@@ -57,7 +58,7 @@ class DateRewardModel(BaseRewardModel):
             return score
         ref_date = self.parse_dates_from_text(reference)
         comp_date = self.parse_dates_from_text(completion)
-        score = 1**(-self.date_diff(ref_date, comp_date))
+        score = 1-np.exp(-self.date_diff(ref_date, comp_date)/5)
         return score
 
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
