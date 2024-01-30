@@ -69,11 +69,14 @@ class HuggingFaceMiner(Miner):
                 self.identity_tags += ("8bit_quantization", )            
             elif self.config.neuron.load_in_4bit:
                 self.identity_tags += ("4bit_quantization", )
+        
+        # Forces model loading behaviour over mock flag 
+        mock = False if self.config.neuron.should_force_model_loading else self.config.mock
 
         self.llm_pipeline = load_pipeline(
             model_id=self.config.neuron.model_id,            
             device=self.device,
-            mock=self.config.mock,
+            mock=mock,
             model_kwargs=model_kwargs,
         )        
 

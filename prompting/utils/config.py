@@ -22,8 +22,6 @@ import argparse
 import bittensor as bt
 from loguru import logger
 
-#TODO: enable 4bit and 8bit precision llms via config
-
 def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
     bt.logging.check_config(config)
@@ -116,7 +114,6 @@ def add_args(cls, parser):
     parser.add_argument(
         "--wandb.off", action="store_true", help="Turn off wandb.", default=False
     )
-
 
     parser.add_argument(
         "--wandb.offline",
@@ -218,6 +215,13 @@ def add_miner_args(cls, parser):
         default=False,
         help="Set miner to stop on forward exception.",
     )
+
+    parser.add_argument(
+        "--neuron.should_force_model_loading",
+        type=bool,
+        default=False,
+        help="Force model loading independent of mock flag.",
+    ) 
 
     parser.add_argument(
         "--wandb.on",
