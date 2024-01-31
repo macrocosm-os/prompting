@@ -83,7 +83,7 @@ class HuggingFaceMiner(BasePromptingMiner):
         )
 
         self.model_id = self.config.neuron.model_id
-        self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
+        self.system_prompt = self.config.neuron.system_prompt
 
     async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
         """

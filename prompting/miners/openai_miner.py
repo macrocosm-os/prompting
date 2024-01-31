@@ -65,7 +65,7 @@ class OpenAIMiner(BasePromptingMiner):
             temperature=self.config.neuron.temperature,
         )
 
-        self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
+        self.system_prompt = self.config.neuron.system_prompt
         self.accumulated_total_tokens = 0
         self.accumulated_prompt_tokens = 0
         self.accumulated_completion_tokens = 0
