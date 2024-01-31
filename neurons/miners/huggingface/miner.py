@@ -28,4 +28,4 @@ if __name__ == "__main__":
 
             if miner.should_exit:
                 bt.logging.warning("Ending miner...")
-                break   
+                break

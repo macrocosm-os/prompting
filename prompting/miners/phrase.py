@@ -32,7 +32,6 @@ class PhraseMiner(BasePromptingMiner):
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
-        
         super().add_args(parser)
 
         parser.add_argument(
@@ -41,24 +40,18 @@ class PhraseMiner(BasePromptingMiner):
             help="The phrase to use when running a phrase (test) miner.",
             default="Can you please repeat that?",
         )
-    
+
     def __init__(self, config=None):
         super().__init__(config=config)
 
-
-    async def forward(
-        self, synapse: PromptingSynapse
-    ) -> PromptingSynapse:
-
+    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
         synapse.completion = self.config.neuron.phrase
         bt.logging.success(f"✅ Phrase miner replied with {synapse.completion}")
 
         return synapse
 
-    async def blacklist(
-        self, synapse: PromptingSynapse
-    ) -> typing.Tuple[bool, str]:
-        return False, 'All good here'
+    async def blacklist(self, synapse: PromptingSynapse) -> typing.Tuple[bool, str]:
+        return False, "All good here"
 
     async def priority(self, synapse: PromptingSynapse) -> float:
         return 1e6

@@ -32,20 +32,14 @@ class MockMiner(BasePromptingMiner):
     def __init__(self, config=None):
         super().__init__(config=config)
 
-
-    async def forward(
-        self, synapse: PromptingSynapse
-    ) -> PromptingSynapse:
-
-        synapse.completion = f'Hey you reached mock miner {self.config.wallet.hotkey!r}. Please leave a message after the tone.. Beep!'
+    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
+        synapse.completion = f"Hey you reached mock miner {self.config.wallet.hotkey!r}. Please leave a message after the tone.. Beep!"
         bt.logging.success(f"✅ Mock miner replied with {synapse.completion}")
 
         return synapse
 
-    async def blacklist(
-        self, synapse: PromptingSynapse
-    ) -> typing.Tuple[bool, str]:
-        return False, 'All good here'
+    async def blacklist(self, synapse: PromptingSynapse) -> typing.Tuple[bool, str]:
+        return False, "All good here"
 
     async def priority(self, synapse: PromptingSynapse) -> float:
         return 1e6

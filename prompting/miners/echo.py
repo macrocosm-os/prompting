@@ -32,21 +32,15 @@ class EchoMiner(BasePromptingMiner):
     def __init__(self, config=None):
         super().__init__(config=config)
 
-
-    async def forward(
-        self, synapse: PromptingSynapse
-    ) -> PromptingSynapse:
-
+    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
         synapse.completion = synapse.messages[-1]
 
-        bt.logging.success(f'✅ Echoing the message {synapse.completion}...')
+        bt.logging.success(f"✅ Echoing the message {synapse.completion}...")
 
         return synapse
 
-    async def blacklist(
-        self, synapse: PromptingSynapse
-    ) -> typing.Tuple[bool, str]:
-        return False, 'All good here'
+    async def blacklist(self, synapse: PromptingSynapse) -> typing.Tuple[bool, str]:
+        return False, "All good here"
 
     async def priority(self, synapse: PromptingSynapse) -> float:
         return 1e6

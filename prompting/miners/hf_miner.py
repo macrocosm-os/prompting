@@ -31,11 +31,12 @@ from prompting.base.prompting_miner import BasePromptingMiner
 
 class HuggingFaceMiner(BasePromptingMiner):
     """
-    Base 🤗 Hugging Face miner, integrated with hf pipeline.    
+    Base 🤗 Hugging Face miner, integrated with hf pipeline.
     To run this miner from the project root directory:
 
     python neurons/miners/huggingface/miner.py --wallet.name <wallet_name> --wallet.hotkey <wallet_hotkey> --neuron.model_id <model_id> --subtensor.network <network> --netuid <netuid> --axon.port <port> --axon.external_port <port> --logging.debug True --neuron.model_id HuggingFaceH4/zephyr-7b-beta --neuron.system_prompt "Hello, I am a chatbot. I am here to help you with your questions." --neuron.max_tokens 64 --neuron.do_sample True --neuron.temperature 0.9 --neuron.top_k 50 --neuron.top_p 0.95 --wandb.on True --wandb.entity sn1 --wandb.project_name miners_experiments
     """
+
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         """
@@ -62,22 +63,24 @@ class HuggingFaceMiner(BasePromptingMiner):
             )
 
         if self.config.wandb.on:
-            self.identity_tags = ("hf_miner", )
+            self.identity_tags = ("hf_miner",)
 
             if self.config.neuron.load_in_8bit:
-                self.identity_tags += ("8bit_quantization", )            
+                self.identity_tags += ("8bit_quantization",)
             elif self.config.neuron.load_in_4bit:
-                self.identity_tags += ("4bit_quantization", )
-        
-        # Forces model loading behaviour over mock flag 
-        mock = False if self.config.neuron.should_force_model_loading else self.config.mock
+                self.identity_tags += ("4bit_quantization",)
+
+        # Forces model loading behaviour over mock flag
+        mock = (
+            False if self.config.neuron.should_force_model_loading else self.config.mock
+        )
 
         self.llm_pipeline = load_pipeline(
-            model_id=self.config.neuron.model_id,            
+            model_id=self.config.neuron.model_id,
             device=self.device,
             mock=mock,
             model_kwargs=model_kwargs,
-        )        
+        )
 
         self.model_id = self.config.neuron.model_id
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
@@ -120,7 +123,7 @@ class HuggingFaceMiner(BasePromptingMiner):
 
             synapse.completion = response
             synapse_latency = time.time() - t0
-            
+
             if self.config.wandb.on:
                 # TODO: Add system prompt to wandb config and not on every step
                 self.log_event(
@@ -136,7 +139,7 @@ class HuggingFaceMiner(BasePromptingMiner):
         except Exception as e:
             bt.logging.error(f"Error: {e}")
             synapse.completion = "Error: " + str(e)
-        finally:             
+        finally:
             if self.config.neuron.stop_on_forward_exception:
                 self.should_exit = True
             return synapse
@@ -151,4 +154,4 @@ if __name__ == "__main__":
 
             if miner.should_exit:
                 bt.logging.warning("Ending miner...")
-                break   
+                break
