@@ -25,7 +25,7 @@ from prompting.protocol import PromptingSynapse
 from prompting.base.miner import BaseMinerNeuron
 from datetime import datetime
 
-class Miner(BaseMinerNeuron):
+class BasePromptingMiner(BaseMinerNeuron):
     """
     Your miner neuron class. You should use this class to define your miner's behavior. In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
 
@@ -35,7 +35,7 @@ class Miner(BaseMinerNeuron):
     """
 
     def __init__(self, config=None):
-        super(Miner, self).__init__(config=config)                
+        super().__init__(config=config)                
         self.identity_tags = None
          
 
@@ -172,15 +172,3 @@ class Miner(BaseMinerNeuron):
 
         bt.logging.info('Logging event to wandb...', step_log)
         wandb.log(step_log)
-
-
-# This is the main function, which runs the miner.
-if __name__ == "__main__":
-    with Miner() as miner:
-        while True:
-            bt.logging.info("Miner running...", time.time())
-            time.sleep(5)
-
-            if miner.should_exit:
-                bt.logging.warning("Ending miner...")
-                break

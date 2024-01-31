@@ -14,13 +14,39 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import time
+import typing
 import bittensor as bt
-from prompting.miners import MockMiner
 
-# This is the main function, which runs the miner.
-if __name__ == "__main__":
-    with MockMiner() as miner:
-        while True:
-            bt.logging.info("Miner running...", time.time())
-            time.sleep(5)
+# Bittensor Miner Template:
+from prompting.protocol import PromptingSynapse
+
+# import base miner class which takes care of most of the boilerplate
+from prompting.base.prompting_miner import BasePromptingMiner
+
+
+class EchoMiner(BasePromptingMiner):
+    """
+    This little fella just repeats the last message it received.
+    """
+
+    def __init__(self, config=None):
+        super().__init__(config=config)
+
+
+    async def forward(
+        self, synapse: PromptingSynapse
+    ) -> PromptingSynapse:
+
+        synapse.completion = synapse.messages[-1]
+
+        bt.logging.success(f'✅ Echoing the message {synapse.completion}...')
+
+        return synapse
+
+    async def blacklist(
+        self, synapse: PromptingSynapse
+    ) -> typing.Tuple[bool, str]:
+        return False, 'All good here'
+
+    async def priority(self, synapse: PromptingSynapse) -> float:
+        return 1e6

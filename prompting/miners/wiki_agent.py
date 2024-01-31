@@ -56,8 +56,6 @@ class CustomPromptTemplate(StringPromptTemplate):
         # Create a list of tool names for the tools provided
         kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
         return self.template.format(**kwargs)
-    
-
 
 
 class CustomOutputParser(AgentOutputParser):
@@ -81,8 +79,6 @@ class CustomOutputParser(AgentOutputParser):
         return AgentAction(tool=action, tool_input=action_input.strip(" ").strip('"'), log=llm_output)
 
 
-
-
 class WikiAgent:
     def __init__(self, model_id: str, model_temperature: float):
         self.wikipedia = WikipediaAPIWrapper()
@@ -92,7 +88,6 @@ class WikiAgent:
                 func= self.wikipedia.run,
                 description="Useful for when you need to look up a topic, country or person on wikipedia"
         )]
-
 
         prompt = CustomPromptTemplate(
             template=template,
@@ -117,7 +112,7 @@ class WikiAgent:
         )
 
         self.agent_executor = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
-        
+
 
     def run(self, input: str) -> str:
         return self.agent_executor.run(input)
