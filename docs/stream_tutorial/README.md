@@ -8,12 +8,12 @@ If you prefer to jump right into a complete stand-alone example, see:
 
 Start your miner:
 ```bash
-python miner.py --netuid 8 --wallet.name default --wallet.hotkey miner --subtensor.network test --axon.port 10000 --logging.trace
+python miner.py --netuid 61 --wallet.name default --wallet.hotkey miner --subtensor.network test --axon.port 10000 --logging.trace
 ```
 
 Run the client:
 ```bash
-python client.py --netuid 8 --my_uid 1 --network test
+python client.py --netuid 61 --my_uid 1 --network test
 ```
 
 ## Overview
@@ -30,7 +30,7 @@ You will need to implement two methods:
 - `process_streaming_response`
 - `extract_response_json`
 
-These two methods are the core of your streaming protocol. The first method process_streaming_response is called as the response is being streamed from the network. It is responsible for handling the streaming response, such as parsing and accumulating data. The second method extract_response_json is  called after the response has been processed and is responsible for retrieving structured data to be post-processed in the dendrite in bittensor core code.
+These two methods are the core of your streaming protocol. The first method `process_streaming_response` is called as the response is being streamed from the network. It is responsible for handling the streaming response, such as parsing and accumulating data. The second method `extract_response_json` is  called after the response has been processed and is responsible for retrieving structured data to be post-processed in the dendrite in bittensor core code.
 
 ```python
 class StreamingSynapse(bittensor.Synapse, ABC):

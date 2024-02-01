@@ -24,17 +24,19 @@ import bittensor as bt
 from prompting.base.neuron import BaseNeuron
 from prompting.utils.config import add_miner_args
 from traceback import print_exception
+from abc import ABC, abstractmethod
+from prompting.protocol import StreamPromptingSynapse
 
 
 class BaseMinerNeuron(BaseNeuron):
     """
     Base class for Bittensor miners.
     """
+
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
-        super().add_args(parser)  
-        add_miner_args(cls, parser)    
-
+        super().add_args(parser)
+        add_miner_args(cls, parser)
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -59,7 +61,7 @@ class BaseMinerNeuron(BaseNeuron):
             blacklist_fn=self.blacklist,
             priority_fn=self.priority,
         )
-        bt.logging.info(f"Axon created: {self.axon}")      
+        bt.logging.info(f"Axon created: {self.axon}")
 
         # Instantiate runners
         self.should_exit: bool = False
@@ -209,9 +211,7 @@ class BaseMinerNeuron(BaseNeuron):
             )
 
         except Exception as e:
-            bt.logging.error(
-                f"Failed to set weights on chain with exception: { e }"
-            )
+            bt.logging.error(f"Failed to set weights on chain with exception: { e }")
 
         bt.logging.info(f"Set weights: {chain_weights}")
 
@@ -221,3 +221,56 @@ class BaseMinerNeuron(BaseNeuron):
 
         # Sync the metagraph.
         self.metagraph.sync(subtensor=self.subtensor)
+
+
+class BaseStreamMiner(ABC):
+    def _prompt(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        """
+        A wrapper method around the `prompt` method that will be defined by the subclass.
+
+        This method acts as an intermediary layer to perform pre-processing before calling the
+        actual `prompt` method implemented in the subclass. Specifically, it checks whether a
+        prompt is in cache to avoid reprocessing recent requests. If the prompt is not in the
+        cache, the subclass `prompt` method is called.
+
+        Args:
+            synapse (StreamPrompting): The incoming request object encapsulating the details of the request.
+
+        Returns:
+            StreamPrompting: The response object to be sent back in reply to the incoming request, essentially
+            the filled synapse request object.
+
+        Raises:
+            ValueError: If the prompt is found in the cache indicating it was sent recently.
+
+        Example:
+            This method is not meant to be called directly but is invoked internally when a request
+            is received, and it subsequently calls the `prompt` method of the subclass.
+        """
+        return self.prompt(synapse=synapse)
+
+    @abstractmethod
+    def prompt(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        """
+        Abstract method to handle and respond to incoming requests to the miner.
+
+        Subclasses should implement this method to define their custom logic for processing and
+        responding to requests. This method is designed to be overridden, and its behavior will
+        be dependent on the specific implementation provided in the subclass.
+
+        Args:
+            synapse (StreamPrompting): The incoming request object encapsulating the details
+                of the request. This must contain `messages` and `roles` as fields.
+
+        Returns:
+            StreamPrompting: The response object that should be sent back in reply to the
+                incoming request. This is essentially the filled synapse request object.
+
+        Example:
+            class CustomMiner(Miner):
+                def prompt(self, synapse: StreamPrompting) -> StreamPrompting:
+                    # Custom logic to process and respond to the request.
+                    synapse.completion = "The meaning of life is 42."
+                    return synapse
+        """
+        ...

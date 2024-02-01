@@ -18,12 +18,17 @@ import wandb
 import time
 import typing
 import bittensor as bt
+
 # Bittensor Miner Template:
 import prompting
-from prompting.protocol import PromptingSynapse
+from prompting.protocol import PromptingSynapse, StreamPromptingSynapse
+
 # import base miner class which takes care of most of the boilerplate
-from prompting.base.miner import BaseMinerNeuron
+from prompting.base.miner import BaseMinerNeuron, BaseStreamMiner
 from datetime import datetime
+
+from typing import Union
+
 
 class Miner(BaseMinerNeuron):
     """
@@ -35,12 +40,11 @@ class Miner(BaseMinerNeuron):
     """
 
     def __init__(self, config=None):
-        super(Miner, self).__init__(config=config)                
+        super(Miner, self).__init__(config=config)
         self.identity_tags = None
-         
 
     async def blacklist(
-        self, synapse: PromptingSynapse
+        self, synapse: Union[PromptingSynapse, StreamPromptingSynapse]
     ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -83,7 +87,9 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def priority(self, synapse: PromptingSynapse) -> float:
+    async def priority(
+        self, synapse: Union[PromptingSynapse, StreamPromptingSynapse]
+    ) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -113,34 +119,38 @@ class Miner(BaseMinerNeuron):
             f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
         )
         return prirority
-    
+
     def init_wandb(self):
         bt.logging.info("Initializing wandb...")
-        
+
         uid = f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
         net_uid = f"netuid_{self.config.netuid}"
         tags = [
-            self.wallet.hotkey.ss58_address, 
-            net_uid, 
+            self.wallet.hotkey.ss58_address,
+            net_uid,
             f"uid_{uid}",
             prompting.__version__,
             str(prompting.__spec_version__),
         ]
-        
+
         run_name = None
         if self.identity_tags:
             # Add identity tags to run tags
-            tags += self.identity_tags     
+            tags += self.identity_tags
 
-            # Create run name from identity tags       
-            run_name_tags = [str(tag) for tag in self.identity_tags]            
-            
+            # Create run name from identity tags
+            run_name_tags = [str(tag) for tag in self.identity_tags]
+
             # Add uid, netuid and timestamp to run name
-            run_name_tags += [uid, net_uid, datetime.now().strftime('%Y_%m_%d_%H_%M_%S')]
+            run_name_tags += [
+                uid,
+                net_uid,
+                datetime.now().strftime("%Y_%m_%d_%H_%M_%S"),
+            ]
 
             # Compose run name
-            run_name = '_'.join(run_name_tags)                
-                    
+            run_name = "_".join(run_name_tags)
+
         # inits wandb in case it hasn't been inited yet
         self.wandb_run = wandb.init(
             name=run_name,
@@ -148,13 +158,20 @@ class Miner(BaseMinerNeuron):
             entity=self.config.wandb.entity,
             config=self.config,
             mode="online" if self.config.wandb.on else "offline",
-            tags=tags,                
+            tags=tags,
         )
-    
-    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict = {}):        
+
+    def log_event(
+        self,
+        timing: float,
+        prompt: str,
+        completion: str,
+        system_prompt: str,
+        extra_info: dict = {},
+    ):
         if not getattr(self, "wandb_run", None):
             self.init_wandb()
-        
+
         step_log = {
             "epoch_time": timing,
             # "block": self.last_epoch_block,
@@ -167,11 +184,33 @@ class Miner(BaseMinerNeuron):
             "incentive": self.metagraph.I[self.uid].item(),
             "consensus": self.metagraph.C[self.uid].item(),
             "dividends": self.metagraph.D[self.uid].item(),
-            **extra_info
+            **extra_info,
         }
 
-        bt.logging.info('Logging event to wandb...', step_log)
+        bt.logging.info("Logging event to wandb...", step_log)
         wandb.log(step_log)
+
+
+class StreamMiner(Miner, BaseStreamMiner):
+    """Multiple inheritence to have the base methods set in BaseStreamMinerNeuron(BaseMinerNeuron),
+    as well as to access the init_wandb and log_event method from the Miner class.
+    """
+
+    def __init__(self, config=None):
+        super(StreamMiner, self).__init__(config)
+
+        # # recreate the axon because the forward method is not what we will
+        # # be attaching to it.
+        # self.axon = bt.axon(wallet=self.wallet, config=self.config)
+
+        # # # Attach determiners which functions are called when servicing a request.
+        # # bt.logging.info(f"Attaching forward function to miner axon.")
+        # # self.axon.attach(
+        # #     forward_fn=self.forward,
+        # #     blacklist_fn=self.blacklist,
+        # #     priority_fn=self.priority,
+        # # )
+        # # bt.logging.info(f"Axon created: {self.axon}")
 
 
 # This is the main function, which runs the miner.
