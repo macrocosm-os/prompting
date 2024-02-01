@@ -144,14 +144,3 @@ class HuggingFaceMiner(BasePromptingMiner):
                 self.should_exit = True
             return synapse
 
-
-# This is the main function, which runs the miner.
-if __name__ == "__main__":
-    with HuggingFaceMiner() as miner:
-        while True:
-            bt.logging.info("Miner running...", time.time())
-            time.sleep(5)
-
-            if miner.should_exit:
-                bt.logging.warning("Ending miner...")
-                break
