@@ -40,7 +40,8 @@ def check_config(cls, config: "bt.Config"):
     if not os.path.exists(config.neuron.full_path):
         os.makedirs(config.neuron.full_path, exist_ok=True)
 
-    if not config.neuron.dont_save_events:
+    log_level_exists = "EVENTS" in logger._core.levels
+    if not config.neuron.dont_save_events and not log_level_exists:
         # Add custom event logger for the events.
         logger.level("EVENTS", no=38, icon="📝")
         logger.add(
