@@ -58,8 +58,8 @@ class BaseMinerNeuron(BaseNeuron):
         bt.logging.info(f"Attaching forward function to miner axon.")
         self.axon.attach(
             forward_fn=self.forward,
-            blacklist_fn=self.blacklist,
-            priority_fn=self.priority,
+            # blacklist_fn=self.blacklist,
+            # priority_fn=self.priority,
         )
         bt.logging.info(f"Axon created: {self.axon}")
 
@@ -234,10 +234,10 @@ class BaseStreamMiner(ABC):
         cache, the subclass `prompt` method is called.
 
         Args:
-            synapse (StreamPrompting): The incoming request object encapsulating the details of the request.
+            synapse (StreamPromptingSynapse): The incoming request object encapsulating the details of the request.
 
         Returns:
-            StreamPrompting: The response object to be sent back in reply to the incoming request, essentially
+            StreamPromptingSynapse: The response object to be sent back in reply to the incoming request, essentially
             the filled synapse request object.
 
         Raises:
@@ -247,6 +247,8 @@ class BaseStreamMiner(ABC):
             This method is not meant to be called directly but is invoked internally when a request
             is received, and it subsequently calls the `prompt` method of the subclass.
         """
+        bt.logging.info(f"Synapse: {synapse}")
+        bt.logging.info(f"Synapse type: {synapse.__class__.__name__}")
         return self.prompt(synapse=synapse)
 
     @abstractmethod
@@ -259,16 +261,16 @@ class BaseStreamMiner(ABC):
         be dependent on the specific implementation provided in the subclass.
 
         Args:
-            synapse (StreamPrompting): The incoming request object encapsulating the details
+            synapse (StreamPromptingSynapse): The incoming request object encapsulating the details
                 of the request. This must contain `messages` and `roles` as fields.
 
         Returns:
-            StreamPrompting: The response object that should be sent back in reply to the
+            StreamPromptingSynapse: The response object that should be sent back in reply to the
                 incoming request. This is essentially the filled synapse request object.
 
         Example:
             class CustomMiner(Miner):
-                def prompt(self, synapse: StreamPrompting) -> StreamPrompting:
+                def prompt(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
                     # Custom logic to process and respond to the request.
                     synapse.completion = "The meaning of life is 42."
                     return synapse
