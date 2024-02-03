@@ -128,6 +128,10 @@ async def forward(self):
 
     rounds = 0
     exclude_uids = []
+    # TODO: Design loop with ContextCrawler. Does progress still make sense as a design?
+    # TODO: Make new agent for each task, or try to make a single agent with all tasks.
+    # TODO: Design system prompt such that it indicates the completion level of each task.
+    # TODO: Experiment with what happens if we spend multiple steps on the same task (based on completion threshold)
     while not agent.finished:
         # when run_step is called, the agent updates its progress
         event = await run_step(
