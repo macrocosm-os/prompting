@@ -16,3 +16,4 @@ wandb==0.15.10
 tenacity
 antlr4-python3-runtime==4.11
 wikipedia
+wikipedia_sections
