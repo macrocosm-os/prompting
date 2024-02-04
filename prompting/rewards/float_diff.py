@@ -16,31 +16,32 @@ class FloatDiffModel(BaseRewardModel):
     @staticmethod
     def extract_number(text):
         # loop over all words reversed and try to cast as a float, break when you find the first one
-        for word in text.split()[::-1]:
+        words = text.split()
+        words = list(reversed(words))
+        for word in words:
             try:
-                # Convert the string to a float
-                return parse_expr(word.replace('$', ''))
+                return float(parse_expr(word.strip('.').replace(',', '')).evalf())
             except Exception:
-                continue
+                try:
+                    return float(word.strip('.').replace(',', ''))
+                except Exception:
+                    continue
 
     @staticmethod
     def math_score(reference, completion):
         # Extract all the digits and numerical expressions from the completion and take only the last one (assuming it's the answer)
 
         # Convert the string to a float
+        reference = float(reference)
         pred = FloatDiffModel.extract_number(completion)
         if pred is None:
             return 0.0
 
         try:
-
-            # Convert reference to float (this is okay because we already checked that the reference is a float)
-            # TODO: More flexible parsing of the reference (just as with the completion)
-            ref = float(reference)
-            if pred == ref:
+            if pred == reference:
                 return 1.0            
             # Compute the difference
-            diff = abs(ref - pred)/(ref + 1e-6)
+            diff = abs(reference - pred)/(reference + 1e-6)
             # Make sure the difference is between 0 and 1
             diff = min(abs(diff), 1)
 

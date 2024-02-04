@@ -14,11 +14,6 @@ class MathTask(Task):
     def __init__(self, llm_pipeline, context, create_reference=True):
         
         reference = context["solution"]
-        
-        try:
-            float(reference)
-        except:
-            raise ValueError(f"Solution {reference} is not a float.") 
 
         self.name="math"
         self.desc="get help solving a math problem"
@@ -35,4 +30,3 @@ class MathTask(Task):
         self.tags=[]
         self.static_reference=True
         self.static_query=True
-        

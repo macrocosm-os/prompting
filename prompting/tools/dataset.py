@@ -22,7 +22,7 @@ import string
 from typing import Dict
 import requests
 import datetime
-import mathgenerator
+import mathgenerator as mg
 import bittensor as bt
 from datasets import load_dataset
 from bs4 import BeautifulSoup
@@ -407,106 +407,15 @@ class DateQADataset:
 
 
 class MathDataset:
-    topics_list = mathgenerator.getGenList()
-
     def __init__(self, seed=None):
-        # NOTE: Unfortunately, mathgenerator does not provide a way to seed the random number generator and get the same problem every time
-
         self.seed = seed
         self.rng = random.Random(seed)
 
-    def random_problem(self, parse):
-        if parse:
-            parseable_list = [
-                2,
-                7,
-                11,
-                15,
-                19,
-                21,
-                24,
-                27,
-                29,
-                30,
-                32,
-                33,
-                35,
-                36,
-                42,
-                45,
-                48,
-                49,
-                52,
-                59,
-                60,
-                64,
-                66,
-                67,
-                68,
-                69,
-                70,
-                73,
-                76,
-                78,
-                81,
-                82,
-                83,
-                84,
-                85,
-                86,
-                87,
-                92,
-                94,
-                95,
-                96,
-                97,
-                105,
-                108,
-                109,
-                111,
-                115,
-                122,
-                123,
-            ]
-            options = parseable_list
-            choice = self.rng.choice((options))
-            # TODO: When the solution contains the symbol x we should specify the x value and substitute it in the solution
-            problem, solution = mathgenerator.genById(choice)
-            _, subtopic, _, _, topic, _ = self.topics_list[choice]
-
-            subs = {}
-            # check if solution contains letters
-            if "x" in solution:
-                subs["x"] = 10
-                bt.logging.warning(
-                    "Coercing a symbolic expression to a numeric expression by substituting x=10"
-                )
-
-            # BUG: parse latex assumes that all letters are variables and so solutions like $No$ are interpreted as 'N * o'
-            solution_numeric = parse_latex(
-                str(solution).replace("$", "").strip()
-            ).evalf(subs=subs)
-            return {
-                "problem": problem,
-                "solution": solution_numeric,
-                "solution_raw": solution,
-                "topic": topic,
-                "subtopic": subtopic,
-            }
-        else:
-            options = mathgenerator.getGenList()
-            choice = self.rng.choice(range(len(options)))
-            problem, solution = mathgenerator.genById(choice)
-            _, subtopic, _, _, topic, _ = self.topics_list[choice]
-            return {
-                "problem": problem,
-                "solution": solution,
-                "topic": topic,
-                "subtopic": subtopic,
-            }
-
-    def next(self, parse=True):
-        t0 = time.time()
-        info = self.random_problem(parse)
-        info["fetch_time"] = time.time() - t0
-        return info
+    def next(self):
+        while True:
+            t0 = time.time()
+            info = mg.generate_context()
+            info["fetch_time"] = time.time() - t0
+            print(info)
+            if info['reward_type'] == 'float':
+                return info
