@@ -7,7 +7,7 @@ torch==2.1.1
 torchmetrics
 transformers==4.36.2
 pre-commit==3.3.2
-mathgenerator # TODO: Use our own fork
+mathgenerator @ git+https://github.com/synapse-alpha/mathgenerator.git@main
 numpy==1.22.0
 rouge
 scipy==1.10.1
