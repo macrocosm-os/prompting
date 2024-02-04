@@ -1,3 +1,9 @@
+import random
+import pandas as pd
+import bittensor as bt
+
+from typing import List
+
 from prompting.tasks import (
     Task,
     DebuggingTask,
@@ -7,10 +13,12 @@ from prompting.tasks import (
     DateQuestionAnsweringTask,
 )
 from prompting.tools import (
+    Context,
     WikiDataset,
     HFCodingDataset,
     MathDataset,
     WikiDateDataset,
+    MockDataset
 )
 
 from transformers import Pipeline
@@ -106,17 +114,6 @@ probs =  [
     [0.3, 0.2, 0.0, 0.0, 0.5],  # Mathematics
 ]
 
-
-for i in range(1,11):
-    mat = TransitionMatrix(labels=labels, probs=probs, seed=None)
-    num_steps = random.randint(1, 8)
-    for j in range(num_steps):
-        mat.next(last=j == num_steps-1)
-    print(f'{i}: {mat.history}')
-
-
-
-
 class ContextChain:
 
     CHAIN_RULE = {
@@ -143,7 +140,7 @@ class ContextChain:
         'Mathematics': {
             'internal': 'get',
             'external': 'search',
-            'dataset': MockDataset()
+            'dataset': MathDataset()
             },
     }
 
@@ -264,16 +261,17 @@ class ContextChain:
     def __len__(self):
         return self.num_steps
 
-mat = TransitionMatrix(labels=labels, probs=probs, seed=42)
-num_steps = 5
-for j in range(num_steps-1):
-    mat.next(last=j == num_steps-1)
-print(mat.history)
+if __name__ == '__main__':
+    mat = TransitionMatrix(labels=labels, probs=probs, seed=42)
+    num_steps = 5
+    for j in range(num_steps-1):
+        mat.next(last=j == num_steps-1)
+    print(mat.history)
 
-# Reset the matrix (but keep the seed)
-matrix = TransitionMatrix(labels=labels, probs=probs, seed=42)
-chain = ContextChain(matrix=matrix, num_steps=num_steps, seed=None, mock=False)
+    # Reset the matrix (but keep the seed)
+    matrix = TransitionMatrix(labels=labels, probs=probs, seed=42)
+    chain = ContextChain(matrix=matrix, num_steps=num_steps, seed=None, mock=False)
 
-for i,context in enumerate(chain, start=1):
-    task_name = chain.task_name
-    print(f'Step {i}. {task_name:<14}: {context}')
+    for i,context in enumerate(chain, start=1):
+        task_name = chain.task_name
+        print(f'Step {i}. {task_name:<14}: {context}')
