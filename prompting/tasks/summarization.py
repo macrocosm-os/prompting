@@ -43,8 +43,6 @@ class SummarizationTask(Task):
 
         self.context = context
 
-        # Query is just the article title
-        self.query = self.context["title"]
 
         # This is where you define cleaning procedures for the generation.
         # Can be used when wanting to clean the challenge.
@@ -60,7 +58,7 @@ class SummarizationTask(Task):
         # NOTE: We do not perform an inference here and just use the article title as the query.
         # This is because the article title is usually a good summary of the article itself.
         # Query is just the article title.
-        query = self.context["title"]
+        self.query = self.context["title"] + ', ' + self.context.topic
 
         self.reference_system_prompt = SUMMARIZATION_SYSTEM_PROMPT
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
