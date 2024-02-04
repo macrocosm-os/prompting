@@ -21,6 +21,8 @@ import random
 import mathgenerator
 import bittensor as bt
 from sympy.parsing.latex import parse_latex
+from typing import Dict, Union, List, Tuple
+
 
 from .base import Dataset
 from ..selector import Selector
@@ -33,98 +35,38 @@ class MathDataset(Dataset):
         self.seed = seed
         self.rng = random.Random(seed)
 
-    def random_problem(self, parse):
-        if parse:
-            parseable_list = [
-                2,
-                7,
-                11,
-                15,
-                19,
-                21,
-                24,
-                27,
-                29,
-                30,
-                32,
-                33,
-                35,
-                36,
-                42,
-                45,
-                48,
-                49,
-                52,
-                59,
-                60,
-                64,
-                66,
-                67,
-                68,
-                69,
-                70,
-                73,
-                76,
-                78,
-                81,
-                82,
-                83,
-                84,
-                85,
-                86,
-                87,
-                92,
-                94,
-                95,
-                96,
-                97,
-                105,
-                108,
-                109,
-                111,
-                115,
-                122,
-                123,
-            ]
-            options = parseable_list
-            choice = self.rng.choice((options))
-            # TODO: When the solution contains the symbol x we should specify the x value and substitute it in the solution
-            problem, solution = mathgenerator.genById(choice)
-            _, subtopic, _, _, topic, _ = self.topics_list[choice]
+    def get(self, name: str, selector: Selector = None, include: List = None, exclude: List = None, **kwargs) -> Dict:
+        """Get a math problem.
 
-            subs = {}
-            # check if solution contains letters
-            if "x" in solution:
-                subs["x"] = 10
-                bt.logging.warning(
-                    "Coercing a symbolic expression to a numeric expression by substituting x=10"
-                )
+        Args:
+            name (str): Name of math problem to generate.
+            selector (Selector, optional): Selector instance to choose a specific problem. Defaults to None.
+            include (List, optional): _description_. Defaults to None.
+            exclude (List, optional): _description_. Defaults to None.
 
-            # BUG: parse latex assumes that all letters are variables and so solutions like $No$ are interpreted as 'N * o'
-            solution_numeric = parse_latex(
-                str(solution).replace("$", "").strip()
-            ).evalf(subs=subs)
-            return {
-                "problem": problem,
-                "solution": solution_numeric,
-                "solution_raw": solution,
-                "topic": topic,
-                "subtopic": subtopic,
-            }
-        else:
-            options = mathgenerator.getGenList()
-            choice = self.rng.choice(range(len(options)))
-            problem, solution = mathgenerator.genById(choice)
-            _, subtopic, _, _, topic, _ = self.topics_list[choice]
-            return {
-                "problem": problem,
-                "solution": solution,
-                "topic": topic,
-                "subtopic": subtopic,
-            }
+        Returns:
+            Dict: _description_
+        """
+        info = mathgenerator.generate_context(name, **kwargs)
+        if info['reward_type'] != 'float':
+            return None
 
-    def next(self, parse=True):
-        t0 = time.time()
-        info = self.random_problem(parse)
-        info["fetch_time"] = time.time() - t0
-        return info
+        return {
+            "title": info['name'], # title of math problem
+            "topic": info['topic'], # title of problem topic
+            'subtopic': info['subtopic'], # title of problem subtopic
+            'content': info['problem'], # problem statement
+            'internal_links': self._make_internal_links(info),
+            'external_links': self._make_external_links(info),
+            'source': 'Mathgenerator',
+            'extra': {'reward_type': info['reward_type']}
+        }
+
+    def search(self, name, selector: Selector, include: List = None, exclude: List = None) -> Dict:
+        raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
+
+
+    def random(self, selector: Selector, **kwargs):
+        """Create a random math problem."""
+        return self.get(selector=selector, **kwargs)
+
