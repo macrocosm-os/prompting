@@ -53,8 +53,7 @@ def read_requirements(path):
                 processed_requirements.append(req)
         return processed_requirements
 
-additional_requirements = ["mathgenerator @ git+https://github.com/bkb2135/mathgenerator.git@main"]
-requirements = read_requirements("requirements.txt").extend(additional_requirements)
+requirements = read_requirements("requirements.txt")
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, "README.md"), encoding="utf-8") as f:

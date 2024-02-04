@@ -417,5 +417,5 @@ class MathDataset:
             info = mg.generate_context()
             info["fetch_time"] = time.time() - t0
             print(info)
-            if info['reward_model'] == 'float':
+            if info['reward_type'] == 'float':
                 return info
