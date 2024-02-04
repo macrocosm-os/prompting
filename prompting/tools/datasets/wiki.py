@@ -41,6 +41,13 @@ def _get_page(title, pageid=None, auto_suggest=True, redirect=True) -> wiki.Wiki
         bt.logging.error(f"{e.__class__.__name__} loading page {title!r}: {e}")
         return None
 
+@lru_cache(maxsize=1000)
+def _get_random_titles(pages=10, seed=42) -> List:
+    """Approximately deterministic random titles. This is useful for testing.
+    NOTE: the actually cached result will change each session, but the result will be the same within a session.
+    """
+    return wiki.random(pages=pages)
+
 def process_page(page, valid_header: callable = None, valid_content: callable = None) -> Dict:
     """Process a Wikipedia page and return a dictionary of sections with their content.
 
@@ -108,7 +115,7 @@ class WikiDataset(Dataset):
         self.max_links = max_links
 
 
-    def get(self, name, pageid=None, auto_suggest=True, redirect=True, selector: Selector = None, include: List = None, exclude: List = None) -> Dict:
+    def get(self, name: str, selector: Selector = None, include: List = None, exclude: List = None, **kwargs) -> Dict:
         """Get a specified Wikipedia page and extract a section based on the selector.
 
         Args:
@@ -124,7 +131,7 @@ class WikiDataset(Dataset):
             Dict: _description_
         """
 
-        page = _get_page(title=name, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
+        page = _get_page(title=name, **kwargs)
         if page is None:
             return None
 
@@ -150,12 +157,13 @@ class WikiDataset(Dataset):
         }
 
     def search(self, name, results=3, selector: Selector = None) -> Dict:
+        # TODO: Cache for deterministic results
         titles = wiki.search(name, results=results)
         title = selector(titles)
         return self.get(title, selector=selector)
 
-    def random(self, pages=10, selector: Selector = None) -> Dict:
-        titles = wiki.random(pages=pages)
+    def random(self, pages=10, seed=None, selector: Selector = None) -> Dict:
+        titles = wiki.random(pages=pages) if seed is None else _get_random_titles(pages=pages, seed=seed)
         title = selector(titles)
         return self.get(title, selector=selector)
 
@@ -224,7 +232,7 @@ class WikiDateDataset(Dataset):
         }
 
     def search(self, name, results=5, selector: Selector = None) -> Dict:
-        raise NotImplementedError("Search is not implemented for WikiDateDataset")
+        raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
 
     def random(self, selector: Selector = None, **kwargs) -> Dict:
         date = self._random_date()
