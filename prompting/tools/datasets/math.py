@@ -51,15 +51,16 @@ class MathDataset(Dataset):
         if info['reward_type'] != 'float':
             return None
 
+
         return {
-            "title": info['name'], # title of math problem
+            "title": info['topic'], # title of math problem
             "topic": info['topic'], # title of problem topic
             'subtopic': info['subtopic'], # title of problem subtopic
             'content': info['problem'], # problem statement
-            'internal_links': self._make_internal_links(info),
-            'external_links': self._make_external_links(info),
+            'internal_links': [info['topic'], info['subtopic']], # internal links
+            'external_links': info['forward_words'],
             'source': 'Mathgenerator',
-            'extra': {'reward_type': info['reward_type']}
+            'extra': {'reward_type': info['reward_type'], 'solution': info['solution']}
         }
 
     def search(self, name, selector: Selector, include: List = None, exclude: List = None) -> Dict:
@@ -68,5 +69,5 @@ class MathDataset(Dataset):
 
     def random(self, selector: Selector, **kwargs):
         """Create a random math problem."""
-        return self.get(selector=selector, **kwargs)
+        return self.get(name=None, selector=selector, **kwargs)
 
