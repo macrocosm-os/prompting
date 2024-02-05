@@ -9,14 +9,13 @@ from langchain.agents import (
 from langchain.schema import AgentAction, AgentFinish, OutputParserException
 import re
 import bittensor as bt
-from prompting.miners.agents.utils import get_tools, load_hf_llm
+from prompting.miners.agents.utils import load_hf_llm
 from prompting.miners.agents.base_agent import BaseAgent
 from typing import Union
 from typing import List
 from langchain.prompts import StringPromptTemplate
-from langchain import OpenAI
+from langchain.chat_models import ChatOpenAI
 from langchain.agents import Tool
-from langchain.agents import initialize_agent
 from langchain.chains import LLMChain
 from langchain.agents import (
     Tool,
@@ -24,7 +23,7 @@ from langchain.agents import (
     LLMSingleActionAgent,
     AgentOutputParser,
 )
-
+from langchain.tools import WikipediaQueryRun
 
 # Set up the base template
 template = """Answer the following questions as best you can. You have access to the following tools:
@@ -103,7 +102,14 @@ class SingleActionAgent(BaseAgent):
                 load_in_8bits: bool = False,
                 load_in_4bits: bool = False
         ):
-        tools = get_tools()
+        self.wikipedia = WikipediaQueryRun(api_wrapper=WikipediaAPIWrapper())
+        tools = [
+            Tool(
+                name="Wikipedia",
+                func=self.wikipedia.run,
+                description="Useful for when you need to look up a topic, country or person on wikipedia",
+            )
+        ]
 
         prompt = CustomPromptTemplate(
             template=template,
@@ -124,7 +130,7 @@ class SingleActionAgent(BaseAgent):
         if 'gpt' not in model_id:            
             llm = load_hf_llm(model_id, max_new_tokens, load_in_8bits, load_in_4bits)
         else:
-            llm = OpenAI(model_name=model_id, temperature=model_temperature)
+            llm = ChatOpenAI(model_name=model_id, temperature=model_temperature)
 
         llm_chain = LLMChain(llm=llm, prompt=prompt)
         output_parser = CustomOutputParser()

@@ -1,20 +1,5 @@
 import torch
-from langchain.utilities import WikipediaAPIWrapper
-from langchain.agents import Tool
 from langchain.llms.huggingface_pipeline import HuggingFacePipeline
-
-
-def get_tools():
-    wikipedia = WikipediaAPIWrapper()
-    tools = [
-        Tool(
-            name="wikipedia",
-            func=wikipedia.run,
-            description="Useful for when you need to look up a topic, country or person on wikipedia",
-        )
-    ]
-
-    return tools
 
 
 def load_hf_llm(model_id:str, max_new_tokens:int, load_in_8bits: bool ,load_in_4bits: bool):

@@ -17,5 +17,6 @@ tenacity
 antlr4-python3-runtime==4.11
 wikipedia
 openai==1.9.0
-langchain==0.1.0
+langchain==0.1.5
+langchainhub==0.1.14
 python-dotenv
