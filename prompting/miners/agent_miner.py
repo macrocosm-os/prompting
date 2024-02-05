@@ -67,7 +67,7 @@ class AgentMiner(BasePromptingMiner):
             self.agent = ReactAgent(
                 self.config.neuron.model_id, 
                 self.config.neuron.temperature,
-                self.config.neuron.max_new_tokens,
+                self.config.neuron.max_tokens,
                 self.config.neuron.load_in_8bits,
                 self.config.neuron.load_in_4bits
             )
@@ -75,7 +75,7 @@ class AgentMiner(BasePromptingMiner):
             self.agent = SingleActionAgent(
                 self.config.neuron.model_id, 
                 self.config.neuron.temperature,
-                self.config.neuron.max_new_tokens,
+                self.config.neuron.max_tokens,
                 self.config.neuron.load_in_8bits,
                 self.config.neuron.load_in_4bits
             )
