@@ -13,8 +13,9 @@ def load_hf_llm(model_id:str, max_new_tokens:int, load_in_8bits: bool ,load_in_4
     
     llm = HuggingFacePipeline.from_model_id(
         model_id=model_id,
-        task="text-generation",        
-        device_map="auto",        
+        task="text-generation",    
+        # TODO: Add device from config dynamically    
+        device=0,
         pipeline_kwargs={"max_new_tokens": max_new_tokens},
         model_kwargs=model_kwargs
     )
