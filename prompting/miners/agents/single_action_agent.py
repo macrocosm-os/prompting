@@ -142,8 +142,8 @@ class SingleActionAgent(BaseAgent):
             allowed_tools=tools,
         )
 
-        self.agent_executor = AgentExecutor.from_agent_and_tools(
-            agent=agent, tools=tools, verbose=True, handle_parsing_errors=True
+        self.agent_executor = AgentExecutor(
+            agent=agent, tools=tools, verbose=True, handle_parsing_errors=True, max_iterations=5
         )
 
     def run(self, input: str) -> str:

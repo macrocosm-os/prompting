@@ -44,7 +44,7 @@ class ReactAgent(BaseAgent):
         agent = create_react_agent(llm, tools, prompt)
 
         # Create an agent executor by passing in the agent and tools
-        self.agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)    
+        self.agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True, max_iterations=5)
 
 
     def run(self, input: str) -> str:
