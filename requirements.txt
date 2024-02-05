@@ -15,4 +15,4 @@ wandb==0.15.10
 tenacity
 antlr4-python3-runtime==4.11
 wikipedia
-mathgenerator @ git+https://github.com/bkb2135/mathgenerator.git@main
+git+https://github.com/bkb2135/mathgenerator.git@main
