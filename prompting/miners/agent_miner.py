@@ -25,11 +25,11 @@ from prompting.protocol import PromptingSynapse
 # import base miner class which takes care of most of the boilerplate
 from prompting.base.prompting_miner import BasePromptingMiner
 from dotenv import load_dotenv, find_dotenv
-from prompting.miners.wiki_agent import WikiAgent
+from prompting.miners.agents import SingleActionAgent, ReactAgent
 from langchain.callbacks import get_openai_callback
 
 
-class WikipediaAgentMiner(BasePromptingMiner):
+class AgentMiner(BasePromptingMiner):
     """Langchain-based miner which uses OpenAI's API as the LLM. This uses the ReAct framework.
 
     You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
@@ -41,6 +41,13 @@ class WikipediaAgentMiner(BasePromptingMiner):
         Adds OpenAI-specific arguments to the command line parser.
         """
         super().add_args(parser)
+
+        parser.add_argument(
+            "--use_react_agent",
+            type=bool,
+            default=False,
+            help="Flag to enable the ReAct agent",
+        )
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -56,9 +63,24 @@ class WikipediaAgentMiner(BasePromptingMiner):
 
         _ = load_dotenv(find_dotenv())
 
-        self.agent = WikiAgent(
-            self.config.neuron.model_id, self.config.neuron.temperature
-        )
+        if self.config.use_react_agent:
+            self.agent = ReactAgent(
+                self.config.neuron.model_id, 
+                self.config.neuron.temperature,
+                self.config.neuron.max_new_tokens,
+                self.config.neuron.load_in_8bits,
+                self.config.neuron.load_in_4bits
+            )
+        else:
+            self.agent = SingleActionAgent(
+                self.config.neuron.model_id, 
+                self.config.neuron.temperature,
+                self.config.neuron.max_new_tokens,
+                self.config.neuron.load_in_8bits,
+                self.config.neuron.load_in_4bits
+            )
+
+
         self.accumulated_total_tokens = 0
         self.accumulated_prompt_tokens = 0
         self.accumulated_completion_tokens = 0

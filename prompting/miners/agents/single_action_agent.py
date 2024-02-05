@@ -9,6 +9,8 @@ from langchain.agents import (
 from langchain.schema import AgentAction, AgentFinish, OutputParserException
 import re
 import bittensor as bt
+from prompting.miners.agents.utils import get_tools, load_hf_llm
+from prompting.miners.agents.base_agent import BaseAgent
 from typing import Union
 from typing import List
 from langchain.prompts import StringPromptTemplate
@@ -93,16 +95,15 @@ class CustomOutputParser(AgentOutputParser):
         )
 
 
-class WikiAgent:
-    def __init__(self, model_id: str, model_temperature: float):
-        self.wikipedia = WikipediaAPIWrapper()
-        tools = [
-            Tool(
-                name="wikipedia",
-                func=self.wikipedia.run,
-                description="Useful for when you need to look up a topic, country or person on wikipedia",
-            )
-        ]
+class SingleActionAgent(BaseAgent):
+    def __init__(self,
+                model_id: str, 
+                model_temperature: float,            
+                max_new_tokens: int = 1024,
+                load_in_8bits: bool = False,
+                load_in_4bits: bool = False
+        ):
+        tools = get_tools()
 
         prompt = CustomPromptTemplate(
             template=template,
@@ -112,10 +113,18 @@ class WikiAgent:
             input_variables=["input", "intermediate_steps"],
         )
 
-        bt.logging.info(
-            f"Initializing agent with model_id: {model_id} and model_temperature: {model_temperature}"
+        bt.logging.info(f"""Initializing single action agent with follow parameters:
+        - model_id: {model_id} 
+        - model_temperature: {model_temperature}
+        - max_new_tokens: {max_new_tokens}
+        - load_in_8bits: {load_in_8bits}
+        - load_in_4bits: {load_in_4bits}"""
         )
-        llm = OpenAI(model_name=model_id, temperature=model_temperature)
+
+        if 'gpt' not in model_id:            
+            llm = load_hf_llm(model_id, max_new_tokens, load_in_8bits, load_in_4bits)
+        else:
+            llm = OpenAI(model_name=model_id, temperature=model_temperature)
 
         llm_chain = LLMChain(llm=llm, prompt=prompt)
         output_parser = CustomOutputParser()

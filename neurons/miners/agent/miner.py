@@ -16,11 +16,11 @@
 # DEALINGS IN THE SOFTWARE.
 import time
 import bittensor as bt
-from prompting.miners import WikipediaAgentMiner
+from prompting.miners import AgentMiner
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
-    with WikipediaAgentMiner() as miner:
+    with AgentMiner() as miner:
         while True:
             bt.logging.info("Miner running...", time.time())
             time.sleep(5)
