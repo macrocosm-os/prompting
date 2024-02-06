@@ -38,6 +38,8 @@ from dotenv import load_dotenv, find_dotenv
 from langchain.callbacks import AsyncIteratorCallbackHandler
 from langchain.schema import HumanMessage
 
+import pdb
+
 
 class OpenAIStreamMiner(StreamMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.
@@ -81,11 +83,10 @@ class OpenAIStreamMiner(StreamMiner, OpenAIUtils):
         self.accumulated_completion_tokens = 0
         self.accumulated_total_cost = 0
 
-        self.BATCH_SIZE = 3
-        self.buffer = []  # Stream buffer
-
     async def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        bt.logging.debug("RUNNING THE FORWARD METHOD OF OPENAISTREAM MINER")
+        bt.logging.debug(
+            "RUNNING THE FORWARD METHOD OF OPENAISTREAM MINER"
+        )  # This shouldn't run.
         pass  # This is a placeholder for the forward method since it's mandatory to have.
 
     def prompt(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
@@ -104,7 +105,9 @@ class OpenAIStreamMiner(StreamMiner, OpenAIUtils):
             )
             return r
 
-        async def _prompt(self, message: str, send: Send) -> Awaitable:
+        async def _prompt(message: str, send: Send) -> Awaitable:
+            buffer = []
+            BATCH_SIZE = 3
             bt.logging.debug("ENTERING _PROMPT IN OPENAISTREAM MINER")
 
             async def wrap_done(fn: Awaitable, event: asyncio.Event):
@@ -122,23 +125,24 @@ class OpenAIStreamMiner(StreamMiner, OpenAIUtils):
             # asyncio creates a generator called "task"
             task = asyncio.create_task(
                 wrap_done(
-                    self.model.agenerate(messages=[[HumanMessage(content=message)]]),
-                    self.async_callback.done,
+                    fn=self.model.agenerate(messages=[[HumanMessage(content=message)]]),
+                    event=self.async_callback.done,
                 ),
             )
 
-            bt.logging.debug("CREATED THE TASK IN _PROMPT")
-
             async for token in self.async_callback.aiter():
-                self.buffer.append(token)
+                # for token in ["This", "is", "a", "test"]:
+                # pdb.set_trace(header="\ninside token loop")
 
-                bt.logging.debug(f"token: {token}")
+                buffer.append(token)
 
-                if len(self.buffer) == self.BATCH_SIZE:
-                    print("Current buffer: ", self.buffer)
+                # bt.logging.debug(f"token: {token}")
+
+                if len(buffer) == BATCH_SIZE:
+                    print("Current buffer: ", buffer)
                     # r = format_return(self.buffer, more_body=True, send=send)
 
-                    joined_buffer = "".join(self.buffer)
+                    joined_buffer = "".join(buffer)
 
                     bt.logging.info(f"Joined buffer: {joined_buffer}")
 
@@ -151,12 +155,12 @@ class OpenAIStreamMiner(StreamMiner, OpenAIUtils):
                     )
 
                     # await r
-                    self.buffer = []
+                    buffer = []
 
-            if self.buffer:
-                print("Final buffer: ", self.buffer)
+            if buffer:
                 # r = format_return(self.buffer, more_body=False, send=send)
                 # await r
+                joined_buffer = "".join(buffer)
                 await send(
                     {
                         "type": "http.response.body",
@@ -165,25 +169,14 @@ class OpenAIStreamMiner(StreamMiner, OpenAIUtils):
                     }
                 )
 
-            await task  # Tasks are Awaitables that represent the execution of a coroutine in the background.
+            # await task  # Tasks are Awaitables that represent the execution of a coroutine in the background.
 
         message = synapse.messages[0]
-        bt.logging.info(f"message in _prompt: {message}")
+        bt.logging.debug(f"message in _prompt: {message}")
         token_streamer = partial(_prompt, message)
-        bt.logging.info(f"token streamer: {token_streamer}")
+        bt.logging.debug(f"token streamer: {token_streamer}")
 
-        bt_streaming_response = synapse.create_streaming_response(token_streamer)
-
-        bt.logging.debug(
-            f"bt_streaming response: {bt_streaming_response.__class__.__name__}"
-        )
-
-        # debug logging to tell you all the attributes of bt_streaming_response:
-        for attr in dir(bt_streaming_response):
-            if not attr.startswith("__"):
-                bt.logging.debug(f"bt_streaming_response attribute: {attr}")
-
-        return bt_streaming_response
+        return synapse.create_streaming_response(token_streamer)
 
 
 # This is the main function, which runs the miner.

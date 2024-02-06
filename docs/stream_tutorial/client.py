@@ -2,6 +2,9 @@ import argparse
 import asyncio
 import bittensor as bt
 
+from typing import List, Awaitable
+import pdb
+
 from prompting.protocol import StreamPromptingSynapse, PromptingSynapse
 
 """
@@ -47,65 +50,68 @@ def setup(synapse_protocol, wallet_name, hotkey, network, netuid, uid):
     return syn, dendrite, metagraph
 
 
-async def handle_response(uid: str, responses) -> tuple[str, str]:
+async def handle_response(uid: str, responses: List[Awaitable]) -> tuple[str, str]:
     full_response = ""
     for resp in responses:
+        print(f"\nresp: {resp}", end="", flush=True)
+        ii = 0
         async for chunk in resp:
-            if isinstance(chunk, str):
-                bt.logging.trace(chunk)
-                full_response += chunk
-        bt.logging.debug(f"full_response for uid {uid}: {full_response}")
+            print(f"\nchunk for resp {ii}: {chunk}", end="", flush=True)
+            # pdb.set_trace(header="inside handle_response")
+
+        synapse = (
+            chunk  # last object yielded is the synapse itself with completion filled
+        )
         break
     return uid, full_response
 
 
-async def query_stream_miner(syn, dendrite, metagraph, uid):
-    if syn.__class__.__name__ == "StreamPromptingSynapse":
-        streaming = True
-    else:
-        streaming = False
+async def query_stream_miner(
+    synapse_protocol, wallet_name, hotkey, network, netuid, uid
+):
+    syn = synapse_protocol(
+        roles=["user"],
+        messages=["hello this is a test of a streaming response."],
+    )
 
-    try:
-        responses = await dendrite(
-            [metagraph.axons[uid]],
-            syn,
-            deserialize=False,
-            timeout=20,
-            streaming=streaming,
-        )
-        print(f"Responses: {responses}")
-        return responses
-    #     return await handle_response(uid, responses)
+    # create a wallet instance with provided wallet name and hotkey
+    wallet = bt.wallet(name=wallet_name, hotkey=hotkey)
 
-    except Exception as e:
-        print(f"Exception during query for uid {uid}: {e}")
-        return uid, None
+    # instantiate the metagraph with provided network and netuid
+    metagraph = bt.metagraph(netuid=netuid, network=network, sync=True, lite=False)
 
+    # Grab the axon you're serving
+    axon = metagraph.axons[uid]
 
-def query_miner(syn, dendrite, metagraph, uid):
-    if syn.__class__.__name__ == "StreamPromptingSynapse":
-        streaming = True
-    else:
-        streaming = False
+    # Create a Dendrite instance to handle client-side communication.
+    dendrite = bt.dendrite(wallet=wallet)
 
-    try:
-        responses = dendrite(
-            [metagraph.axons[uid]],
-            syn,
-            deserialize=False,
-            timeout=20,
-            streaming=streaming,
-        )
-        return responses
-    #     return await handle_response(uid, responses)
+    print("dendrite: ", dendrite)
 
-    except Exception as e:
-        print(f"Exception during query for uid {uid}: {e}")
-        return uid, None
+    print(f"Synapse: {syn}")
+    print(f"Synapse type: {syn.__class__.__name__}")
+
+    async def main():
+        try:
+            responses = await dendrite(  # responses is an async generator that yields the response tokens
+                [metagraph.axons[uid]],
+                syn,
+                deserialize=False,
+                timeout=20,
+                streaming=True,
+            )
+            # return responses
+            return await handle_response(uid, responses)
+
+        except Exception as e:
+            print(f"Exception during query for uid {uid}: {e}")
+            return uid, None
+
+    await main()
 
 
-async def query_synapse(my_uid, wallet_name, hotkey, network, netuid):
-    syn = StreamPrompting(
+def query_miner(synapse_protocol, wallet_name, hotkey, network, netuid, uid):
+    syn = synapse_protocol(
         roles=["user"],
         messages=[
             "hello this is a test of a streaming response. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
@@ -119,29 +125,31 @@ async def query_synapse(my_uid, wallet_name, hotkey, network, netuid):
     metagraph = bt.metagraph(netuid=netuid, network=network, sync=True, lite=False)
 
     # Grab the axon you're serving
-    axon = metagraph.axons[my_uid]
+    axon = metagraph.axons[uid]
 
     # Create a Dendrite instance to handle client-side communication.
     dendrite = bt.dendrite(wallet=wallet)
 
-    async def main():
-        responses = await dendrite([axon], syn, deserialize=False, streaming=True)
+    print("metagraph.axons: ", metagraph.axons)
+    print("axon: ", axon)
+    print("dendrite: ", dendrite)
 
-        for resp in responses:
-            i = 0
-            async for chunk in resp:
-                i += 1
-                if i % 5 == 0:
-                    print()
-                if isinstance(chunk, list):
-                    print(chunk[0], end="", flush=True)
-                else:
-                    # last object yielded is the synapse itself with completion filled
-                    synapse = chunk
-            break
+    print(f"Synapse: {syn}")
+    print(f"Synapse type: {syn.__class__.__name__}")
 
-    # Run the main function with asyncio
-    await main()
+    try:
+        responses = dendrite(
+            [metagraph.axons[uid]],
+            syn,
+            deserialize=False,
+            timeout=20,
+            streaming=False,
+        )
+        return responses
+
+    except Exception as e:
+        print(f"Exception during query for uid {uid}: {e}")
+        return uid, None
 
 
 if __name__ == "__main__":
@@ -151,7 +159,7 @@ if __name__ == "__main__":
 
     # Adding arguments
     parser.add_argument(
-        "--my_uid",
+        "--uid",
         type=int,
         required=True,
         help="Your unique miner ID on the chain",
@@ -175,11 +183,12 @@ if __name__ == "__main__":
 
     # Running the async function with provided arguments
     asyncio.run(
-        query_synapse(
-            args.my_uid,
-            args.wallet_name,
-            args.hotkey,
-            args.network,
-            args.netuid,
+        query_stream_miner(
+            synapse_protocol=StreamPromptingSynapse,
+            wallet_name=args.wallet_name,
+            hotkey=args.hotkey,
+            network=args.network,
+            netuid=args.netuid,
+            uid=args.uid,
         )
     )
