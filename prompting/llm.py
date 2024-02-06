@@ -35,7 +35,7 @@ def load_pipeline(
     torch_dtype=None,
     mock=False,
     model_kwargs: dict = None,
-    streamer=None,
+    is_streamer=False,
 ):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
 
@@ -45,9 +45,12 @@ def load_pipeline(
     if not device.startswith("cuda"):
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
-    # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_MAPPINGS[model_id])
 
+    # This should work based on the docs?
+    streamer = None if not is_streamer else TextStreamer(tokenizer=tokenizer)
+
+    # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
     if model_kwargs is None:
         llm_pipeline = pipeline(
             "text-generation",
