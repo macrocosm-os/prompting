@@ -30,10 +30,6 @@ from prompting.llm import HuggingFaceLLM
 
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import StreamMiner
-from neurons.utils import TOKENIZER_MAPPINGS
-
-from transformers import TextStreamer
-
 
 class ZephyrStreamMiner(StreamMiner):
     """
@@ -74,7 +70,7 @@ class ZephyrStreamMiner(StreamMiner):
             device=self.device,
             mock=self.config.mock,
             model_kwargs=model_kwargs,
-            # streamer=streamer,
+            is_streamer=True, #You could check this somewhere else to automatically set. 
         )
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
@@ -142,7 +138,7 @@ class ZephyrStreamMiner(StreamMiner):
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
-    with ZephyrMiner() as miner:
+    with ZephyrStreamMiner() as miner:
         while True:
             bt.logging.info("Miner running...", time.time())
             time.sleep(5)
