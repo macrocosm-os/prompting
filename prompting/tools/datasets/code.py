@@ -28,7 +28,7 @@ from .base import Dataset
 from ..selector import Selector
 from datasets import load_dataset
 
-languages = {
+all_languages = {
     "C++": {
         'keywords': ['auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extern', 'float', 'for', 'goto', 'if', 'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static', 'struct', 'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile', 'while'],
         'libraries': ['iostream', 'fstream', 'string', 'vector', 'map', 'set', 'algorithm', 'cmath', 'cstdio', 'cstdlib', 'ctime', 'cstring', 'cassert', 'cctype', 'cerrno', 'cfloat', 'ciso646', 'climits', 'clocale', 'cmath', 'csetjmp', 'csignal', 'cstdarg', 'cstddef', 'cstdio', 'cstdlib', 'cstring', 'ctime', 'cwchar', 'cwctype', 'complex', 'deque', 'exception', 'fstream', 'functional', 'iomanip', 'ios', 'iosfwd', 'iostream', 'istream', 'iterator', 'limits', 'list', 'locale', 'map', 'memory', 'new', 'numeric', 'ostream', 'queue', 'set', 'sstream', 'stack', 'stdexcept', 'streambuf', 'string', 'typeinfo', 'utility', 'valarray', 'vector'],
@@ -66,6 +66,7 @@ languages = {
     },
 }
 
+#TODO: why not define the chain_in, chain_out logic in the class itself?
 class HFCodingDataset(Dataset):
 
     def __init__(
@@ -80,7 +81,7 @@ class HFCodingDataset(Dataset):
         self.seed = seed
 
         if languages is None:
-            languages = list(languages.keys())
+            languages = list(all_languages.keys())
         self.languages = languages
 
         self.dataset_id = dataset_id
@@ -93,18 +94,32 @@ class HFCodingDataset(Dataset):
             ).shuffle(seed=seed, buffer_size=buffer_size)
         )
 
-    def next(self, min_lines=5, max_lines=100):
-        bt.logging.debug("Retrieving code from prompting.dataset...")
-        t0 = time.time()
-        while True:
-            code = next(self.dataset)
-            if min_lines <= len(code["code"].splitlines()) <= max_lines:
-                code["fetch_time"] = time.time() - t0
-                return code
+    def get(self, min_lines=5, max_lines=100, selector: Selector = None):
 
-    def search(self, query, min_lines=5, max_lines=100):
+        info = next(self.dataset)
+
+        if not (min_lines <= len(info["code"].splitlines()) <= max_lines):
+            return None
+
+        present_keywords, present_libraries, forward_term = self.get_special_contents(info["code"], info["language"])
+
+        return {
+            "title": info['repo_name'], # title of wiki article
+            "topic": info["language"], # title of wiki section
+            'subtopic': info['path'],
+            'content': info["code"],
+            'internal_links': [info['repo_name'], info['path']],
+            'external_links': list(present_keywords) + list(present_libraries),
+            'source': 'Wikipedia',
+            'extra': {'size': info['size'], 'license': info['license']}
+        }
+
+    def search(self, query, min_lines=5, max_lines=100, selector: Selector = None, **kwargs):
         # TODO: Would be great to be able to get other files from the same repo
-        ...
+        raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
+
+    def random(self, min_lines=5, max_lines=100, selector: Selector = None, **kwargs):
+        return self.get(min_lines, max_lines, selector)
 
     def filter_comments(self, code, language):
         # TODO: multiline comments
@@ -116,7 +131,7 @@ class HFCodingDataset(Dataset):
         lines = []
         for line in code.splitlines():
             # TODO: use regex
-            if any(line.strip().startswith(symbol) for symbol in languages[language]['comments']):
+            if any(line.strip().startswith(symbol) for symbol in all_languages[language]['comments']):
                 continue
 
             lines.append(line.lower())
@@ -127,7 +142,7 @@ class HFCodingDataset(Dataset):
         matches = set()
 
         # check which keywords and libraries are present in the code
-        for keyword in languages[language].get(field,[]):
+        for keyword in all_languages[language].get(field,[]):
             if re.search(r'\b' + keyword + r'\b', code):
                 matches.add(keyword)
 
