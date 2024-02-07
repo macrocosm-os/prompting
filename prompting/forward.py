@@ -31,6 +31,8 @@ from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 
+async def async_generate_reference(loop, agent):
+    return await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
 
 async def run_step(
     self, agent: HumanAgent, k: int, timeout: float, exclude: list = None
@@ -66,8 +68,9 @@ async def run_step(
         )
     )
 
+    # If the task doesn't have a static reference, generate one asynchronously
     if not agent.task.static_reference:
-        agent.task.generate_reference(llm=agent.llm_pipeline)
+        await async_generate_reference(self.loop, agent)
 
     responses: List[PromptingSynapse] = await dendrite_call
 
