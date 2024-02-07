@@ -1,0 +1,2 @@
+openai==1.9.0
+python-dotenv
