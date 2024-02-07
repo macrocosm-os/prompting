@@ -21,6 +21,7 @@ import bittensor as bt
 from typing import List, AsyncIterator
 from starlette.responses import StreamingResponse
 
+import pdb
 
 class PromptingSynapse(bt.Synapse):
     """
@@ -207,16 +208,15 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
         """
 
         bt.logging.debug("Inside of process_streaming_response")
-        bt.logging.debug(f"Completion is: {self.completion}")
 
         if self.completion is None:
             self.completion = ""
+
         async for chunk in response.content.iter_any():
-            bt.logging.debug(f"chunk is: {chunk}")
-            tokens = chunk.decode("utf-8").split("\n")
-            for token in tokens:
-                if token:
-                    self.completion += token
+            # tokens = chunk.decode("utf-8").split("\n")
+            tokens = chunk.decode("utf-8").split("<|assistant|>")[-1].split("\n") #temp            
+            self.completion = self.completion + ''.join([t for t in tokens if t])
+            bt.logging.debug(f"Completion is: {self.completion}")
             yield tokens
 
     def deserialize(self) -> str:
