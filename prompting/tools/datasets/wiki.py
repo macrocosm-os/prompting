@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import re
+import sys
 import random
 import datetime
 import bittensor as bt
@@ -27,18 +28,24 @@ from functools import lru_cache
 from .base import Dataset
 from ..selector import Selector
 
-# TODO: we need a way to do an 'internal' step through a current document (e.g another section or line of a current context)
-# Since we are caching the page fetch we should just call get again with the same page name and hope that it selects a different section/line
-# this means we use the context.title field to search again, rather than internal links... but we need to make sure that the context is different
-# DO WE NEED INTERAL LINKS??
+# DO WE NEED INTERNAL LINKS??
 
 # speed up page loading
 @lru_cache(maxsize=1000)
-def _get_page(title, pageid=None, auto_suggest=True, redirect=True) -> wiki.WikipediaPage:
+def _get_page(title, pageid=None, auto_suggest=False, redirect=True, seed=None) -> wiki.WikipediaPage:
     try:
         return wiki.page(title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
-    except (wiki.PageError, wiki.DisambiguationError) as e:
-        bt.logging.error(f"{e.__class__.__name__} loading page {title!r}: {e}")
+
+    except wiki.DisambiguationError as e:
+        bt.logging.debug(f"{e.__class__.__name__} loading page {title!r}: {e}")
+        pages = sys.exc_info()[1].args
+        title = random.Random(seed).choice(pages)
+        return _get_page(title, auto_suggest=auto_suggest, redirect=redirect)
+
+    except wiki.PageError as e:
+        bt.logging.warning(f"{e.__class__.__name__} loading page {title!r}: {e}")
+        if not auto_suggest:
+            return _get_page(title, auto_suggest=True, redirect=redirect)
         return None
 
 @lru_cache(maxsize=1000)
@@ -162,7 +169,7 @@ class WikiDataset(Dataset):
         title = selector(titles)
         return self.get(title, selector=selector)
 
-    def random(self, pages=10, seed=None, selector: Selector = None) -> Dict:
+    def random(self, pages=10, seed=None, selector: Selector = None, **kwargs) -> Dict:
         titles = wiki.random(pages=pages) if seed is None else _get_random_titles(pages=pages, seed=seed)
         title = selector(titles)
         return self.get(title, selector=selector)
