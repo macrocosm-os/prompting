@@ -18,6 +18,7 @@
 
 import time
 import random
+import itertools
 import mathgenerator
 import bittensor as bt
 from sympy.parsing.latex import parse_latex
@@ -47,10 +48,19 @@ class MathDataset(Dataset):
         Returns:
             Dict: _description_
         """
+        bt.logging.info(f"Getting math problem {name!r}")
         info = mathgenerator.generate_context(name, **kwargs)
         if info['reward_type'] != 'float':
             return None
 
+        math_words = ['math','mathematics','mathematical','math problem','math technique']
+        external_links = []
+        # construct external links from randomly shuffled trigrams containing 2 words from the problem and 1 random math word
+        # binary_to_decimal -> ['binary to', 'to decimal']
+        for bigram in itertools.combinations(info['forward_words'], 2):
+            words = list(bigram) + [random.choice(math_words)]
+            # shuffle the words e.g. ['binary', 'decimal', 'math problem'] -> 'decimal binary math problem'
+            external_links.append(' '.join(random.sample(words, len(words))))
 
         return {
             "title": info['topic'], # title of math problem
@@ -58,7 +68,7 @@ class MathDataset(Dataset):
             'subtopic': info['subtopic'], # title of problem subtopic
             'content': info['problem'], # problem statement
             'internal_links': [info['topic'], info['subtopic']], # internal links
-            'external_links': info['forward_words'],
+            'external_links': external_links,
             'source': 'Mathgenerator',
             'extra': {'reward_type': info['reward_type'], 'solution': info['solution']}
         }
