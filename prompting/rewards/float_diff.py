@@ -41,10 +41,12 @@ class FloatDiffModel(BaseRewardModel):
             if pred == reference:
                 return 1.0            
             # Compute the difference
-            diff = abs(reference - pred)/(reference + 1e-6)
+            diff = abs(reference - pred)/(reference + 1e-10)
             # Make sure the difference is between 0 and 1
             diff = min(abs(diff), 1)
-
+            # Clip any very small scores
+            if diff > 0.999:
+                diff = 1.0
             return 1.0 - diff
         except Exception:
             return 0.0
