@@ -1,5 +1,5 @@
 import torch
-import random
+import numpy as np
 import bittensor as bt
 from typing import List
 
@@ -21,7 +21,7 @@ def get_random_uids(
     coldkeys = {}
     ips = {}
     # shuffled list of all UIDs
-    all_uids = random.choices(self.metagraph.uids.tolist(), k=self.metagraph.n.item())
+    all_uids = np.random.choice(range(self.metagraph.n.item()), size=self.metagraph.n.item(), replace=False)
     all_coldkeys = self.metagraph.coldkeys
     all_ips = [axon.ip for axon in self.metagraph.axons]
     for uid in all_uids:
@@ -55,7 +55,7 @@ def get_random_uids(
             ip_threshold = (1-self.config.neuron.unique_ip_prob) ** ip_counts
 
             # Take the product of the two probabilities as the likelihood of querying the same coldkey and ip again
-            if random.random() > ck_threshold * ip_threshold:
+            if np.random.random() > ck_threshold * ip_threshold:
                 continue
 
         coldkeys[coldkey] = coldkeys.get(coldkey, 0 ) + 1
