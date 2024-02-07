@@ -62,7 +62,7 @@ def get_random_uids(
         ips[ip] = ips.get(ip, 0 ) + 1
 
         uids.append(uid)
-        if len(uids) == self.step_size:
+        if len(uids) == self.config.neuron.sample_size:
             break
 
     self._selected_coldkeys = coldkeys
