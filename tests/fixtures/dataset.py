@@ -46,6 +46,6 @@ CONTEXTS = {
 CONTEXT_FIELDS = {
     WikiDataset: {"text", "title", "categories", "url", "sections", "fetch_time", "length", "backlinks", "extract"},
     CodingDataset: {"code", "repo_name", "path", "language", "size", "fetch_time", "license"},
-    MathDataset: {"problem", "solution", 'topic', 'subtopic', "fetch_time", "solution_raw"},
+    MathDataset: {"problem", "solution", 'topic', 'subtopic', "fetch_time", "reward_type"},
     DateQADataset: {"section", "event", 'date', "next_page", "fetch_time"},
 }
