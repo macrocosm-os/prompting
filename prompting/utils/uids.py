@@ -5,16 +5,15 @@ from typing import List
 
 
 def get_random_uids(
-    self, k: int, exclude: List[int] = None
+    self, exclude: List[int] = None
 ) -> torch.LongTensor:
     """Returns k available random uids from the metagraph.
     Args:
-        k (int): Number of uids to return.
         exclude (List[int]): List of uids to exclude from the random sampling.
     Returns:
         uids (torch.LongTensor): Randomly sampled available uids.
     Notes:
-        If `k` is larger than the number of available `uids`, set `k` to the number of available `uids`.
+        If self.config.neuron.sample_size is larger than the number of available `uids`, the function will return all available `uids`.
     """
 
     uids = []
@@ -67,6 +66,6 @@ def get_random_uids(
 
     self._selected_coldkeys = coldkeys
     self._selected_ips = ips
-    if len(uids) < k:
+    if len(uids) < self.config.neuron.sample_size:
         bt.logging.warning(f"Only {len(uids)} uids available for querying, requested {k}.")
     return torch.tensor(uids)
