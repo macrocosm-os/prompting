@@ -14,6 +14,7 @@ from dotenv import load_dotenv, find_dotenv
 from langchain.callbacks import get_openai_callback
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from traceback import print_exception
 
 
 class ToolMiner(BasePromptingMiner):    
@@ -56,14 +57,19 @@ class ToolMiner(BasePromptingMiner):
                 message = synapse.messages[-1]
 
                 matches = wikipedia.search(message)
-                title = matches[0]
-                page = wikipedia.page(title)
-                context = page.content
 
-                if len(context) > 12_000:
-                    context = context[:12_000]
+                # If we find a match, we add the context to the system prompt
+                if len(matches) > 0:
+                    title = matches[0]
+                    page = wikipedia.page(title)
+                    context = page.content
 
-                formatted_system_prompt = self.system_prompt.format(context=context)
+                    if len(context) > 12_000:
+                        context = context[:12_000]
+
+                    formatted_system_prompt = self.system_prompt.format(context=context)
+                else:
+                    formatted_system_prompt = self.config.neuron.system_prompt
 
                 prompt = ChatPromptTemplate.from_messages(
                     [("system", formatted_system_prompt), ("user", "{input}")]
@@ -90,6 +96,7 @@ class ToolMiner(BasePromptingMiner):
             return synapse
         except Exception as e:
             bt.logging.error(f"Error in forward: {e}")
+            bt.logging.error(print_exception(value=e))
             synapse.completion = "Error: " + str(e)
         finally:
             if self.config.neuron.stop_on_forward_exception:
