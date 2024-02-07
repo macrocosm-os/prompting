@@ -70,5 +70,11 @@ class Dataset(ABC):
                     f"Could not find an sample which meets {self.__class__.__name__} requirements after {tries} tries."
                 )
 
-        info['stats'] = {'fetch_time': time.time() - t0, 'num_tries': tries, 'fetch_method': method}
+        info['stats'] = {
+            'creator': self.__class__.__name__,
+            'fetch_time': time.time() - t0,
+            'num_tries': tries,
+            'fetch_method': method,
+            'next_kwargs': kwargs
+            }
         return Context(**info)
