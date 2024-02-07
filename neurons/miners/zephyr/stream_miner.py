@@ -33,6 +33,8 @@ from prompting.llm import HuggingFaceLLM
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import StreamMiner
 
+import pdb
+
 class ZephyrStreamMiner(StreamMiner):
     """
     Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
@@ -94,6 +96,9 @@ class ZephyrStreamMiner(StreamMiner):
 
                     if len(buffer) == BATCH_SIZE: 
                         joined_buffer = "".join(buffer)
+
+                        bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+
                         await send(
                             {
                                 "type": "http.response.body",
@@ -101,9 +106,8 @@ class ZephyrStreamMiner(StreamMiner):
                                 "more_body": True,
                             }
                         )
-
-                    bt.logging.info(f"Streamed tokens: {joined_buffer}")
-                    buffer = [] #Clearing the buffer. 
+                    
+                        buffer = [] #Clearing the buffer. 
 
                 if buffer:
                     joined_buffer = "".join(buffer)
@@ -114,9 +118,10 @@ class ZephyrStreamMiner(StreamMiner):
                             "more_body": False,
                         }
                     )
-                    bt.logging.info(f"Streamed tokens: {joined_buffer}")
+                    bt.logging.debug(f"Streamed tokens: {joined_buffer}")
 
-                    streamer.on_finalized_text(text = "Complete", stream_end = True)
+                    # streamer.on_finalized_text(text = "Complete", stream_end = True)
+                    torch.cuda.empty_cache()
             
 
                 # synapse.completion = response
@@ -145,7 +150,7 @@ class ZephyrStreamMiner(StreamMiner):
         prompt = synapse.messages[-1]
 
         #Create an async thread to generate the data in parallel to the streamer. 
-        thread = Thread(HuggingFaceLLM(
+        thread = Thread(target = HuggingFaceLLM(
             llm_pipeline=self.llm_pipeline,
             system_prompt=self.system_prompt,
             max_new_tokens=self.config.neuron.max_tokens,
@@ -166,8 +171,9 @@ class ZephyrStreamMiner(StreamMiner):
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
     with ZephyrStreamMiner() as miner:
+        bt.logging.info("Miner running...")
         while True:
-            bt.logging.info("Miner running...", time.time())
+            # bt.logging.info("Miner running...", time.time())
             time.sleep(5)
 
             if miner.should_exit:

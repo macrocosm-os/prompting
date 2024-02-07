@@ -52,16 +52,20 @@ def setup(synapse_protocol, wallet_name, hotkey, network, netuid, uid):
 
 async def handle_response(uid: str, responses: List[Awaitable]) -> tuple[str, str]:
     full_response = ""
+    ii = 0
     for resp in responses:
-        print(f"\nresp: {resp}", end="", flush=True)
-        ii = 0
+        # pdb.set_trace(header="inside handle_response")
         async for chunk in resp:
             print(f"\nchunk for resp {ii}: {chunk}", end="", flush=True)
-            # pdb.set_trace(header="inside handle_response")
+            # pdb.set_trace(header="\nCheck chunk")
+
+        ii += 1 
 
         synapse = (
             chunk  # last object yielded is the synapse itself with completion filled
         )
+
+        print(f"Final Synapse: {synapse}")
         break
     return uid, full_response
 
@@ -71,7 +75,7 @@ async def query_stream_miner(
 ):
     syn = synapse_protocol(
         roles=["user"],
-        messages=["hello this is a test of a streaming response."],
+        messages=["Give me some information about the night sky."],
     )
 
     # create a wallet instance with provided wallet name and hotkey

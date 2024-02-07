@@ -45,7 +45,7 @@ def load_pipeline(
     if not device.startswith("cuda"):
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
-    tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_MAPPINGS[model_id])
+    tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_MAPPINGS[model_id]) if model_id in TOKENIZER_MAPPINGS else None
 
     # This should work based on the docs?
     streamer = TextIteratorStreamer(tokenizer=tokenizer) if is_streamer else None
