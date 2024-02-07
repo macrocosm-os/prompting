@@ -19,37 +19,6 @@ Steps:
 - Iterate over the async generator to extract the yielded tokens on the server side
 """
 
-
-def setup(synapse_protocol, wallet_name, hotkey, network, netuid, uid):
-    syn = synapse_protocol(
-        roles=["user"],
-        messages=[
-            "hello this is a test of a streaming response. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-        ],
-    )
-
-    # create a wallet instance with provided wallet name and hotkey
-    wallet = bt.wallet(name=wallet_name, hotkey=hotkey)
-
-    # instantiate the metagraph with provided network and netuid
-    metagraph = bt.metagraph(netuid=netuid, network=network, sync=True, lite=False)
-
-    # Grab the axon you're serving
-    axon = metagraph.axons[uid]
-
-    # Create a Dendrite instance to handle client-side communication.
-    dendrite = bt.dendrite(wallet=wallet)
-
-    print("metagraph.axons: ", metagraph.axons)
-    print("axon: ", axon)
-    print("dendrite: ", dendrite)
-
-    print(f"Synapse: {syn}")
-    print(f"Synapse type: {syn.__class__.__name__}")
-
-    return syn, dendrite, metagraph
-
-
 async def handle_response(uid: str, responses: List[Awaitable]) -> tuple[str, str]:
     full_response = ""
     ii = 0
