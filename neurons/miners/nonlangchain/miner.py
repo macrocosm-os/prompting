@@ -109,7 +109,9 @@ class OpenAIMiner(Miner):
                 messages=[
                     {"role": "system", "content": self.system_prompt},
                     {"role": role, "content": message}
-                ]
+                ],
+                max_tokens=self.config.neuron.max_tokens,
+                temperature=self.config.neuron.temperature,
             )
             completion = response.choices[0].message.content
 
