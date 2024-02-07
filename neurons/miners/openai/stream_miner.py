@@ -38,9 +38,6 @@ from dotenv import load_dotenv, find_dotenv
 from langchain.callbacks import AsyncIteratorCallbackHandler
 from langchain.schema import HumanMessage
 
-import pdb
-
-
 class OpenAIStreamMiner(StreamMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.
 
@@ -131,13 +128,7 @@ class OpenAIStreamMiner(StreamMiner, OpenAIUtils):
             )
 
             async for token in self.async_callback.aiter():
-                # for token in ["This", "is", "a", "test"]:
-                # pdb.set_trace(header="\ninside token loop")
-
                 buffer.append(token)
-
-                # bt.logging.debug(f"token: {token}")
-
                 if len(buffer) == BATCH_SIZE:
                     print("Current buffer: ", buffer)
                     # r = format_return(self.buffer, more_body=True, send=send)

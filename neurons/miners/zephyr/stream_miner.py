@@ -33,16 +33,7 @@ from prompting.llm import HuggingFaceLLM
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import StreamMiner
 
-import pdb
-
 class ZephyrStreamMiner(StreamMiner):
-    """
-    Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
-    This requires a GPU with at least 20GB of memory.
-    To run this miner from the project root directory:
-
-    python neurons/miners/zephyr/miner.py --wallet.name <wallet_name> --wallet.hotkey <wallet_hotkey> --subtensor.network <network> --netuid <netuid> --axon.port <port> --axon.external_port <port> --logging.debug True --neuron.model_id HuggingFaceH4/zephyr-7b-beta --neuron.system_prompt "Hello, I am a chatbot. I am here to help you with your questions." --neuron.max_tokens 64 --neuron.do_sample True --neuron.temperature 0.9 --neuron.top_k 50 --neuron.top_p 0.95 --wandb.on True --wandb.entity sn1 --wandb.project_name miners_experiments
-    """
 
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
@@ -80,16 +71,19 @@ class ZephyrStreamMiner(StreamMiner):
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
 
     async def forward (self, synapse: StreamPromptingSynapse):
+        """Needed since BaseMinerNeuron requires an async forward."""
         pass
 
     def prompt(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         async def _prompt(streamer: TextIteratorStreamer, send: Send):
+            """
+            TextIteratorStreamer: stores print-ready text in a queue, to be used by a downstream application as an iterator. 
+            """
             try:
-                t0 = time.time()
                 bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
                 buffer = [] 
-                BATCH_SIZE = 12
+                BATCH_SIZE = 12 #TODO: Is there somewhere global we can put this? 
 
                 for token in streamer: 
                     buffer.append(token) 
@@ -119,14 +113,12 @@ class ZephyrStreamMiner(StreamMiner):
                         }
                     )
                     bt.logging.debug(f"Streamed tokens: {joined_buffer}")
-
-                    # streamer.on_finalized_text(text = "Complete", stream_end = True)
-                    torch.cuda.empty_cache()
+                
+                torch.cuda.empty_cache()
             
 
-                # synapse.completion = response
-                # synapse_latency = time.time() - t0
 
+                #TODO: Wandb logging here won't work. 
                 # if self.config.wandb.on:
                 #     # TODO: Add system prompt to wandb config and not on every step
                 #     self.log_event(
@@ -135,9 +127,6 @@ class ZephyrStreamMiner(StreamMiner):
                 #         completion=response,
                 #         system_prompt=self.system_prompt,
                 #     )
-
-                # bt.logging.debug(f"✅ Served Response: {response}")
-                # torch.cuda.empty_cache()
 
             except Exception as e:
                 bt.logging.error(f"Error: {e}")
@@ -149,6 +138,7 @@ class ZephyrStreamMiner(StreamMiner):
 
         prompt = synapse.messages[-1]
 
+        #TODO: is there a way to close this thread? Not sure if this is hanging or not. 
         #Create an async thread to generate the data in parallel to the streamer. 
         thread = Thread(target = HuggingFaceLLM(
             llm_pipeline=self.llm_pipeline,

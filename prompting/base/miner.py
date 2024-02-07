@@ -247,8 +247,6 @@ class BaseStreamMiner(ABC):
             This method is not meant to be called directly but is invoked internally when a request
             is received, and it subsequently calls the `prompt` method of the subclass.
         """
-        bt.logging.info(f"Synapse: {synapse}")
-        bt.logging.info(f"Synapse type: {synapse.__class__.__name__}")
         return self.prompt(synapse=synapse)
 
     @abstractmethod

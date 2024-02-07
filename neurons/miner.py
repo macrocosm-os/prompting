@@ -194,21 +194,22 @@ class Miner(BaseMinerNeuron):
 class StreamMiner(Miner, BaseStreamMiner):
     """Multiple inheritence to have the base methods set in BaseStreamMinerNeuron(BaseMinerNeuron),
     as well as to access the init_wandb and log_event method from the Miner class.
+
+    Miner(BaseMinerNeuron) requires that you have an *async* forward function, but for streaming, 
+    we don't want to require that we have an outer level async forward. Therefore, we need to 
+    recreate the axon such that it calls the BaseStreamMiner's abstract method self._prompt. 
+    This way, we can still have the necessary abstraction for non-stream miners, but change it 
+    as needed for stream miners.
     """
 
     def __init__(self, config=None):
         super(StreamMiner, self).__init__(config)
 
-        # recreate the axon because the forward method is not what we will
-        # be attaching to it.
+        # recreate the axon.
         self.axon = bt.axon(wallet=self.wallet, config=self.config)
-
-        # Attach determiners which functions are called when servicing a request.
-        bt.logging.info(f"Attaching forward function to miner axon.")
-
         self.axon.attach(
             forward_fn=self._prompt,
-            # blacklist_fn=self.blacklist,
+            # blacklist_fn=self.blacklist, #TODO: This isn't working for some reason? 
             # priority_fn=self.priority,
         )
         bt.logging.info(f"Axon recreated for streaming: {self.axon}")
