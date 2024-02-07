@@ -92,6 +92,7 @@ async def run_step(
         **agent.__state_dict__(full=self.config.neuron.log_full),
         **reward_result.__state_dict__(full=self.config.neuron.log_full),
         **response_event.__state_dict__(),
+        'scores': self.scores.tolist(),
     }
 
     log_event(self, event)
