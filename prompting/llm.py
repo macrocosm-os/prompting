@@ -19,8 +19,8 @@ import time
 
 from typing import List, Dict
 import bittensor as bt
-
-from transformers import Pipeline, pipeline, AutoTokenizer, TextStreamer
+ 
+from transformers import Pipeline, pipeline, AutoTokenizer, TextIteratorStreamer
 from prompting.mock import MockPipeline
 
 from prompting.cleaners.cleaner import CleanerPipeline
@@ -48,7 +48,9 @@ def load_pipeline(
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_MAPPINGS[model_id])
 
     # This should work based on the docs?
-    streamer = None if not is_streamer else TextStreamer(tokenizer=tokenizer)
+    streamer = TextIteratorStreamer(tokenizer=tokenizer) if is_streamer else None
+    if streamer is not None: 
+        bt.logging.debug(f"Loading pipeline in streaming mode with {streamer.__class__.__name__}")
 
     # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
     if model_kwargs is None:
@@ -70,7 +72,10 @@ def load_pipeline(
             streamer=streamer,
         )
 
-    return llm_pipeline
+    if is_streamer:
+        return llm_pipeline, streamer
+    else:
+        return llm_pipeline
 
 
 class HuggingFaceLLM:
@@ -99,11 +104,11 @@ class HuggingFaceLLM:
 
     def query(
         self,
-        message: List[Dict[str, str]],
+        message: str,
         role: str = "user",
         disregard_system_prompt: bool = False,
         cleaner: CleanerPipeline = None,
-    ):
+    ) -> str:
         messages = self.messages + [{"content": message, "role": role}]
 
         if disregard_system_prompt:
@@ -140,7 +145,7 @@ class HuggingFaceLLM:
 
         response = response.replace(prompt, "").strip()
 
-        bt.logging.info(
-            f"{self.__class__.__name__} generated the following output:\n{response}"
-        )
+        # bt.logging.info(
+        #     f"{self.__class__.__name__} generated the following output:\n{response}"
+        # )
         return response

@@ -20,10 +20,12 @@ import torch
 import argparse
 from starlette.types import Send
 from functools import partial
+from threading import Thread
 
 import bittensor as bt
 
 # Bittensor Miner Template:
+from transformers import TextIteratorStreamer
 from prompting.protocol import StreamPromptingSynapse
 from prompting.llm import load_pipeline
 from prompting.llm import HuggingFaceLLM
@@ -64,7 +66,7 @@ class ZephyrStreamMiner(StreamMiner):
             if self.config.neuron.load_quantized:
                 self.identity_tags += ("8bits_quantization",)
 
-        self.llm_pipeline = load_pipeline(
+        self.llm_pipeline, self.streamer = load_pipeline(
             model_id=self.config.neuron.model_id,
             torch_dtype=torch.float16,
             device=self.device,
@@ -75,55 +77,62 @@ class ZephyrStreamMiner(StreamMiner):
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
 
-    def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        """
-        Processes the incoming synapse by performing a predefined operation on the input data.
-        This method should be replaced with actual logic relevant to the miner's purpose.
+    async def forward (self, synapse: StreamPromptingSynapse):
+        pass
 
-        Args:
-            synapse (PromptingSynapse): The synapse object containing the 'dummy_input' data.
-
-        Returns:
-            PromptingSynapse: The synapse object with the 'dummy_output' field set to twice the 'dummy_input' value.
-
-        The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
-        the miner's intended operation. This method demonstrates a basic transformation of input data.
-        """
-
-        async def _forward(prompt: str, send: Send):
+    def prompt(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        async def _prompt(streamer: TextIteratorStreamer, send: Send):
             try:
                 t0 = time.time()
                 bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
-                bt.logging.debug(f"💬 Querying zephyr: {prompt}")
 
-                response = HuggingFaceLLM(
-                    llm_pipeline=self.llm_pipeline,
-                    system_prompt=self.system_prompt,
-                    max_new_tokens=self.config.neuron.max_tokens,
-                    do_sample=self.config.neuron.do_sample,
-                    temperature=self.config.neuron.temperature,
-                    top_k=self.config.neuron.top_k,
-                    top_p=self.config.neuron.top_p,
-                ).query(
-                    message=prompt,  # For now we just take the last message
-                    role="user",
-                    disregard_system_prompt=False,
-                )
+                buffer = [] 
+                BATCH_SIZE = 12
 
-                synapse.completion = response
-                synapse_latency = time.time() - t0
+                for token in streamer: 
+                    buffer.append(token) 
 
-                if self.config.wandb.on:
-                    # TODO: Add system prompt to wandb config and not on every step
-                    self.log_event(
-                        timing=synapse_latency,
-                        prompt=prompt,
-                        completion=response,
-                        system_prompt=self.system_prompt,
+                    if len(buffer) == BATCH_SIZE: 
+                        joined_buffer = "".join(buffer)
+                        await send(
+                            {
+                                "type": "http.response.body",
+                                "body": joined_buffer.encode("utf-8"),
+                                "more_body": True,
+                            }
+                        )
+
+                    bt.logging.info(f"Streamed tokens: {joined_buffer}")
+                    buffer = [] #Clearing the buffer. 
+
+                if buffer:
+                    joined_buffer = "".join(buffer)
+                    await send(
+                        {
+                            "type": "http.response.body",
+                            "body": joined_buffer.encode("utf-8"),
+                            "more_body": False,
+                        }
                     )
+                    bt.logging.info(f"Streamed tokens: {joined_buffer}")
 
-                bt.logging.debug(f"✅ Served Response: {response}")
-                torch.cuda.empty_cache()
+                    streamer.on_finalized_text(text = "Complete", stream_end = True)
+            
+
+                # synapse.completion = response
+                # synapse_latency = time.time() - t0
+
+                # if self.config.wandb.on:
+                #     # TODO: Add system prompt to wandb config and not on every step
+                #     self.log_event(
+                #         timing=synapse_latency,
+                #         prompt=prompt,
+                #         completion=response,
+                #         system_prompt=self.system_prompt,
+                #     )
+
+                # bt.logging.debug(f"✅ Served Response: {response}")
+                # torch.cuda.empty_cache()
 
             except Exception as e:
                 bt.logging.error(f"Error: {e}")
@@ -133,7 +142,25 @@ class ZephyrStreamMiner(StreamMiner):
                     self.should_exit = True
                 return synapse
 
-        token_streamer = partial(_forward, synapse.messages[-1])
+        prompt = synapse.messages[-1]
+
+        #Create an async thread to generate the data in parallel to the streamer. 
+        thread = Thread(HuggingFaceLLM(
+            llm_pipeline=self.llm_pipeline,
+            system_prompt=self.system_prompt,
+            max_new_tokens=self.config.neuron.max_tokens,
+            do_sample=self.config.neuron.do_sample,
+            temperature=self.config.neuron.temperature,
+            top_k=self.config.neuron.top_k,
+            top_p=self.config.neuron.top_p,
+        ).query, kwargs=dict(message = prompt, role = "user",  disregard_system_prompt=False))
+
+        thread.start() 
+
+        bt.logging.debug(f"💬 Querying zephyr: {prompt}")
+        token_streamer = partial(_prompt, self.streamer)
+
+        return synapse.create_streaming_response(token_streamer)
 
 
 # This is the main function, which runs the miner.
