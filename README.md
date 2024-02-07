@@ -15,10 +15,7 @@
 
 ---
 
-This repository is the **official codebase for Bittensor Subnet 1 (SN1) v3.0.0+**. To learn more about the Bittensor project and the underlying mechanics, [read here.](https://docs.bittensor.com/).
-
-
-This code is not yet running on mainnet but you are welcome run the incentive mechanism or test out miners on testnet (`--subtensor.network test --netuid 61`). Our estimated release date is Monday 22nd, January 2024 📆.
+This repository is the **official codebase for Bittensor Subnet 1 (SN1) v1.0.0+, which was released on 22nd January 2024**. To learn more about the Bittensor project and the underlying mechanics, [read here.](https://docs.bittensor.com/).
 
 # Introduction
 
@@ -88,11 +85,36 @@ The [diagram below](#validation-diagram) illustrates the validation flow.
 # Validation Diagram
 ![sn1 overview](assets/sn1-overview.png)
 
-# Mining
+# Running Validators
+These validators are designed to run and update themselves automatically. To run a validator, follow these steps:
 
-Miners are scored based on the similarity between their completions and the reference answer. Furthermore, they should utilize the same API tools as the validators in order to be able to closely reproduce the reference answer.
+1. Install this repository, you can do so by following the steps outlined in [the installation section](#installation).
+2. Install [Weights and Biases](https://docs.wandb.ai/quickstart) and run `wandb login` within this repository. This will initialize Weights and Biases, enabling you to view KPIs and Metrics on your validator. (Strongly recommended to help the network improve from data sharing)
+3. Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` package](https://jqlang.github.io/jq/) on your system.
+   **On Linux**:
+   ```bash
+   sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm install pm2 -g && pm2 update
+   ``` 
+   **On Mac OS**
+   ```bash
+   brew update && brew install jq && brew install npm && sudo npm install pm2 -g && pm2 update
+   ```
+4. Run the `run.sh` script which will handle running your validator and pulling the latest updates as they are issued. 
+   ```bash
+   pm2 start run.sh --name s1_validator_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key>
+   ```
 
-Miner experiments are ongoing - we will share our results on the expected performance of various miners in the coming days! 
+This will run **two** PM2 process: one for the validator which is called `s1_validator_main_process` by default (you can change this in `run.sh`), and one for the run.sh script (in step 4, we named it `s1_validator_autoupdate`). The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `s1_validator_main_process` and then restart itself.
+
+
+
+# Available Miners
+
+Miners are scored based on the similarity between their completions and the reference answer. Furthermore, they should utilize the same API tools as the validators in order to be able to closely reproduce the reference answer. We currently provide the following miners out-of-the-box:
+1. [Zephyr 7B](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
+2. [OpenAI](https://platform.openai.com/docs/introduction) (GPT variants)
+3. wiki-agent ([GPT ReAct agent with langchain](https://python.langchain.com/docs/modules/agents/agent_types/react))
+    
 
 </div>
 
@@ -112,18 +134,16 @@ python -m pip install -e .
 ---
 # Running
 
-Currently, the incentive mechanism and miners are a work in progress, and should only be run on the test chain. If you require test tao, please reach out to ____.
+We encourage miners to use testnet as this gives you a risk-free playground before running on mainnet. If you require test tao, please reach out to steffen@opentensor.dev
 
 Prior to running a miner or validator, you must [create a wallet](https://github.com/opentensor/docs/blob/main/reference/btcli.md) and [register the wallet to a netuid](https://github.com/opentensor/docs/blob/main/subnetworks/registration.md). Once you have done so, you can run the miner and validator with the following commands.
 
-The validator and base miner are based on [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B.
 
-**To run a validator you will need 24GB of VRAM or 18GB of VRAM for a zephyr miner**
 ```bash
 # To run the validator
 python neurons/validator.py
-    --netuid 61
-    --subtensor.network test
+    --netuid 1
+    --subtensor.network <finney/local/test>
     --neuron.device cuda
     --wallet.name <your validator wallet>  # Must be created using the bittensor-cli
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
@@ -133,16 +153,16 @@ python neurons/validator.py
 
 ```bash
 # To run the miner
-python neurons/miners/zephyr/miner.py 
-    --netuid 61
-    --subtensor.network test 
+python neurons/miners/BASE_MINER/miner.py 
+    --netuid 1
+    --subtensor.network <finney/local/test>
     --wallet.name <your miner wallet> # Must be created using the bittensor-cli
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 ```
+where `BASE_MINER` is [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B, however you can choose any of the supplied models found in `neurons/miners`. 
 
-
-**Running instructions for main chain are coming soon!**
+For users who are new to the Bittensor ecosystem, 'finney' is the recommended subtensor, but more advanced users are encouraged to run a subtensor locally for greater performance and stability. 
 
 </div>
 
@@ -152,13 +172,13 @@ python neurons/miners/zephyr/miner.py
 
 # Real-time monitoring with wandb integration
 
-A fresh wandb project is on its way!
+Check out real-time public logging by looking at the project [here](https://wandb.ai/opentensor-dev/alpha-validators)
 
 ## License
 This repository is licensed under the MIT License.
 ```text
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation

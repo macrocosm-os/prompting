@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -23,6 +23,7 @@ import prompting
 from prompting.protocol import PromptingSynapse
 # import base miner class which takes care of most of the boilerplate
 from prompting.base.miner import BaseMinerNeuron
+from datetime import datetime
 
 class Miner(BaseMinerNeuron):
     """
@@ -34,21 +35,9 @@ class Miner(BaseMinerNeuron):
     """
 
     def __init__(self, config=None):
-        super(Miner, self).__init__(config=config)
-        uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
-
-        if self.config.wandb.on:
-            tags = [self.wallet.hotkey.ss58_address, f"netuid_{self.config.netuid}", f"uid_{uid}"]
-                        
-            self.wandb_run = wandb.init(
-                project=self.config.wandb.project_name,
-                entity=self.config.wandb.entity,
-                config=self.config,
-                mode="online" if self.config.wandb.on else "offline",
-                magic=True,
-                tags=tags,                
-            )
-
+        super(Miner, self).__init__(config=config)                
+        self.identity_tags = None
+         
 
     async def blacklist(
         self, synapse: PromptingSynapse
@@ -82,7 +71,6 @@ class Miner(BaseMinerNeuron):
 
         Otherwise, allow the request to be processed further.
         """
-        # TODO(developer): Define how miners should blacklist requests.
         if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
             # Ignore requests from unrecognized entities.
             bt.logging.trace(
@@ -115,7 +103,6 @@ class Miner(BaseMinerNeuron):
         Example priority logic:
         - A higher stake results in a higher priority value.
         """
-        # TODO(developer): Define how miners should prioritize requests.
         caller_uid = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
         )  # Get the caller index.
@@ -127,7 +114,47 @@ class Miner(BaseMinerNeuron):
         )
         return prirority
     
-    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str):
+    def init_wandb(self):
+        bt.logging.info("Initializing wandb...")
+        
+        uid = f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
+        net_uid = f"netuid_{self.config.netuid}"
+        tags = [
+            self.wallet.hotkey.ss58_address, 
+            net_uid, 
+            f"uid_{uid}",
+            prompting.__version__,
+            str(prompting.__spec_version__),
+        ]
+        
+        run_name = None
+        if self.identity_tags:
+            # Add identity tags to run tags
+            tags += self.identity_tags     
+
+            # Create run name from identity tags       
+            run_name_tags = [str(tag) for tag in self.identity_tags]            
+            
+            # Add uid, netuid and timestamp to run name
+            run_name_tags += [uid, net_uid, datetime.now().strftime('%Y_%m_%d_%H_%M_%S')]
+
+            # Compose run name
+            run_name = '_'.join(run_name_tags)                
+                    
+        # inits wandb in case it hasn't been inited yet
+        self.wandb_run = wandb.init(
+            name=run_name,
+            project=self.config.wandb.project_name,
+            entity=self.config.wandb.entity,
+            config=self.config,
+            mode="online" if self.config.wandb.on else "offline",
+            tags=tags,                
+        )
+    
+    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict = {}):        
+        if not getattr(self, "wandb_run", None):
+            self.init_wandb()
+        
         step_log = {
             "epoch_time": timing,
             # "block": self.last_epoch_block,
@@ -140,8 +167,10 @@ class Miner(BaseMinerNeuron):
             "incentive": self.metagraph.I[self.uid].item(),
             "consensus": self.metagraph.C[self.uid].item(),
             "dividends": self.metagraph.D[self.uid].item(),
+            **extra_info
         }
 
+        bt.logging.info('Logging event to wandb...', step_log)
         wandb.log(step_log)
 
 
@@ -151,3 +180,7 @@ if __name__ == "__main__":
         while True:
             bt.logging.info("Miner running...", time.time())
             time.sleep(5)
+
+            if miner.should_exit:
+                bt.logging.warning("Ending miner...")
+                break

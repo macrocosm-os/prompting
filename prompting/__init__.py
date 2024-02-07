@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -16,11 +16,11 @@
 # DEALINGS IN THE SOFTWARE.
 
 # Define the version of the template module.
-__version__ = "3.0.0"
+__version__ = "1.0.2"
 version_split = __version__.split(".")
 __spec_version__ = (
-    (1000 * int(version_split[0]))
-    + (10 * int(version_split[1]))
+    (10000 * int(version_split[0]))
+    + (100 * int(version_split[1]))
     + (1 * int(version_split[2]))
 )
 

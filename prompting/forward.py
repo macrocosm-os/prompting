@@ -1,6 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -56,19 +55,20 @@ async def run_step(
     start_time = time.time()
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
+    axons = [self.metagraph.axons[uid] for uid in uids]
 
     # Make calls to the network with the prompt.
     dendrite_call = asyncio.create_task(
         self.dendrite(
-        axons=[self.metagraph.axons[uid] for uid in uids],
-        synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]),
-        timeout=timeout,
+            axons=axons,
+            synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]),
+            timeout=timeout,
         )
     )
-    
-    if not getattr(agent.task, 'reference', None):
+
+    if not agent.task.static_reference:
         agent.task.generate_reference(llm=agent.llm_pipeline)
-    
+
     responses: List[PromptingSynapse] = await dendrite_call
 
     # Encapsulate the responses in a response event (dataclass)
@@ -78,7 +78,10 @@ async def run_step(
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
     reward_result = RewardResult(
-        self.reward_pipeline, agent=agent, response_event=response_event, device=self.device
+        self.reward_pipeline,
+        agent=agent,
+        response_event=response_event,
+        device=self.device,
     )
     bt.logging.info(f"Created RewardResult:\n {reward_result}")
 
@@ -121,7 +124,9 @@ async def forward(self):
             task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name, create_reference=False)
             break
         except Exception as e:
-            bt.logging.error(f"📋 Failed to create {task_name} task. {sys.exc_info()}")
+            bt.logging.error(
+                f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
+            )
             continue
 
     # Create random agent with task, topic, profile...
@@ -134,26 +139,14 @@ async def forward(self):
     exclude_uids = []
     while not agent.finished:
         # when run_step is called, the agent updates its progress
-        
-        try:
-            event = await run_step(
-                self,
-                agent,
-                k=self.config.neuron.sample_size,
-                timeout=self.config.neuron.timeout,
-                exclude=exclude_uids,
-            )
-            exclude_uids += event["uids"]
-        except Exception as e:
-            bt.logging.error(f"📋 Failed to run step. {sys.exc_info()}")
-            break
-
-        ## TODO: Add max_turns and termination_probability parameters
-        # if (
-        #     rounds > self.config.max_turns
-        #     or random.random() < self.config.termination_probability
-        # ):
-        #
+        event = await run_step(
+            self,
+            agent,
+            k=self.config.neuron.sample_size,
+            timeout=self.config.neuron.timeout,
+            exclude=exclude_uids,
+        )
+        exclude_uids += event["uids"]
         task.complete = True
 
         rounds += 1

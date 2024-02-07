@@ -142,14 +142,13 @@ class DebuggingTask(Task):
 
         # No LLM involved in generating the query, we just apply some language-independent corruption to the code
         self.query = self.generate_query()
-
-        if create_reference:
-            self.reference = self.generate_reference()
-
+        self.reference = self.generate_reference()
         self.delimiter="```"
         self.topic=self.context["repo_name"]
         self.subtopic=self.context["path"]
         self.tags=[self.context["language"]]
+        self.static_reference = True
+        self.static_query = True
 
     def generate_query(
         self,

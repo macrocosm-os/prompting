@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
+# Copyright © 2024 Yuma Rao
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the “Software”), to deal in the Software without restriction, including without limitation
@@ -20,10 +20,10 @@ import torch
 import argparse
 import asyncio
 import threading
-import traceback
 import bittensor as bt
 from prompting.base.neuron import BaseNeuron
 from prompting.utils.config import add_miner_args
+from traceback import print_exception
 
 
 class BaseMinerNeuron(BaseNeuron):
@@ -130,8 +130,10 @@ class BaseMinerNeuron(BaseNeuron):
             exit()
 
         # In case of unforeseen errors, the miner will log the error and continue operations.
-        except Exception as e:
-            bt.logging.error(traceback.format_exc())
+        except Exception as err:
+            bt.logging.error("Error during mining", str(err))
+            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
+            self.should_exit = True
 
     def run_in_background_thread(self):
         """
@@ -163,6 +165,7 @@ class BaseMinerNeuron(BaseNeuron):
         This method facilitates the use of the miner in a 'with' statement.
         """
         self.run_in_background_thread()
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):

@@ -1,5 +1,5 @@
 # The MIT License (MIT)
-# Copyright © 2023 Yuma Rao
+# Copyright © 2024 Yuma Rao
 # Copyright © 2023 Opentensor Foundation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
@@ -110,7 +110,7 @@ def add_args(cls, parser):
         "--no_background_thread",
         action="store_true",
         help="If set, we dont run the neuron in a background thread.",
-        default=False,
+        default=True,
     )
 
     parser.add_argument(
@@ -140,6 +140,20 @@ def add_miner_args(cls, parser):
         type=str,
         help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
         default='miner',
+    )
+
+    parser.add_argument(
+        "--neuron.model_id",
+        type=str,
+        help="The model to use for the validator.",
+        default="gpt-3.5-turbo-1106",
+    )
+
+    parser.add_argument(
+        "--neuron.load_quantized",
+        type=str,
+        default=False,
+        help="Load quantized model.",
     )
 
     parser.add_argument(
@@ -191,6 +205,34 @@ def add_miner_args(cls, parser):
         help="Nucleus sampling parameter, top_p probability mass.",
     )
 
+    parser.add_argument(
+        "--neuron.stop_on_forward_exception",
+        type=bool,
+        default=False,
+        help="Set miner to stop on forward exception.",
+    )
+
+    parser.add_argument(
+        "--wandb.on",
+        type=bool,
+        default=False,
+        help="Enable wandb logging.",
+    )
+
+    parser.add_argument(
+        "--wandb.entity",
+        type=str,
+        default="opentensor-dev",
+        help="Wandb entity to log to.",
+    )
+
+    parser.add_argument(
+        "--wandb.project_name",
+        type=str,
+        default="alpha-miners",
+        help="Wandb project to log to.",
+    )
+
 def add_validator_args(cls, parser):
     """Add validator specific arguments to the parser."""
 
@@ -221,7 +263,7 @@ def add_validator_args(cls, parser):
         type=float,
         nargs="+",
         help="The probability of sampling each task.",
-        default=[0.3, 0.3, 0.1, 0.1, 0.2],
+        default=[0.5, 0.5, 0.0, 0.0, 0.0],
     )
 
     parser.add_argument(
@@ -249,7 +291,7 @@ def add_validator_args(cls, parser):
         "--neuron.sample_size",
         type=int,
         help="The number of miners to query in a single step.",
-        default=10,
+        default=50,
     )
 
     parser.add_argument(

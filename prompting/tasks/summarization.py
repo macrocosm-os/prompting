@@ -72,4 +72,5 @@ class SummarizationTask(Task):
         self.topic = self.context["title"]
         self.subtopic = self.context["categories"][0]
         self.tags = self.context["categories"]
+        self.static_query = True
 

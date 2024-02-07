@@ -1,5 +1,5 @@
 # TODO: Are we expecting that the miners should install the validator dependency first?
 # If so, we need to make it clear on the README. Otherwise, we should have a completely separated requirements for the miner
-openai
-langchain
+openai==1.9.0
+langchain==0.1.0
 python-dotenv
