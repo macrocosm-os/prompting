@@ -104,22 +104,17 @@ class TransitionMatrix:
     def random(self):
         return self.rng.choices(self.labels, k=1)[0]
 
-labels = ['QA', 'Summarization', 'DateQA', 'Debugging', 'Mathematics']
 
-probs =  [
-    [0.6, 0.35, 0.15, 0.0, 0.0],  # QA
-    [0.65, 0.3, 0.05, 0.0, 0.0],  # Summarization
-    [0.4, 0.2, 0.4, 0.0, 0.0],  # DateQA
-    [0.3, 0.2, 0.0, 0.5, 0.0],  # Debugging
-    [0.3, 0.2, 0.0, 0.0, 0.5],  # Mathematics
-]
 
 class ContextChain:
 
+    # Chain rule for transitioning between tasks, this specifies the method to use to get a new context when transitioning to a new task
+    # internal specifies the dataset method to use when choosing the same task again
+    # external specifies the dataset method to use when 'arriving' at a new task
     CHAIN_RULE = {
         'QA': {
-            'internal': 'get', # use same page and (hopefully) a different section
-            'external': 'search', # search for a new page
+            'internal': 'get', # use same page and a different section
+            'external': 'search', # search for a new page when transitioning to QA
             'dataset': WikiDataset(),
             },
         'Summarization': {
@@ -129,13 +124,13 @@ class ContextChain:
             },
         'DateQA': {
             'internal': 'random', # when creating a new context, use a random date as the seed
-            'external': 'get',
+            'external': 'random', # there's no external link to use when transitioning to DateQA - we need a valid date
             'dataset': WikiDateDataset()
             },
         'Debugging': {
-            'internal': 'get',
-            'external': 'search',
-            'dataset': MockDataset()
+            'internal': 'random',
+            'external': 'random',
+            'dataset': HFCodingDataset()
         },
         'Mathematics': {
             'internal': 'get',
@@ -168,6 +163,10 @@ class ContextChain:
         self.mock = mock
         self.max_tries = max_tries
 
+
+    def walk(self):
+        return self.__next__()
+
     def __iter__(self):
         return self
 
@@ -198,7 +197,7 @@ class ContextChain:
             params.update({'name':link, 'method':spec['external']})
 
         else:
-            params['method'] = spec['internal']
+            params['method'] = method = spec['internal']
 
             # stay on same page and choose a new section
             # TODO: make this based on selectors and configurable
@@ -262,6 +261,16 @@ class ContextChain:
         return self.num_steps
 
 if __name__ == '__main__':
+
+    labels = ['QA', 'Summarization', 'DateQA', 'Debugging', 'Mathematics']
+
+    probs =  [
+        [0.6, 0.35, 0.15, 0.0, 0.0],  # QA
+        [0.65, 0.3, 0.05, 0.0, 0.0],  # Summarization
+        [0.4, 0.2, 0.4, 0.0, 0.0],  # DateQA
+        [0.3, 0.2, 0.0, 0.5, 0.0],  # Debugging
+        [0.3, 0.2, 0.0, 0.0, 0.5],  # Mathematics
+    ]
     mat = TransitionMatrix(labels=labels, probs=probs, seed=42)
     num_steps = 5
     for j in range(num_steps-1):
