@@ -25,7 +25,7 @@ class FloatDiffModel(BaseRewardModel):
             except Exception:
                 # fall back to simpler parsing if required
                 try:
-                    return float(word.strip('.').replace(',', ''))
+                    return float(cleaned)
                 except Exception:
                     continue
 
