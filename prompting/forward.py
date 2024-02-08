@@ -31,19 +31,20 @@ from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 
 async def handle_response(responses: Dict[int, Awaitable]) -> List[bt.Synapse]:
-    """handles calling the async generators held within List[Awaitable]
+    """handles calling the async Awaitable generators.
 
     Args:
-        responses (Dict[int, List[Awaitable]]): _description_
+        responses (Dict[int, List[Awaitable]]): uid : Awaitable pairings. 
 
     Returns:
-        List[bt.Synapse]: _description_
+        List[bt.Synapse]: The last chunk yielded from the bt.dendrite.call() is the original synapse 
+        with the compeltion attached. Return a list of completed StreamPromptingSynapses.
     """
     synapses = []
 
     for uid, resp in responses.items():
         async for chunk in resp:
-            print(f"\nchunk for resp: {chunk}", end="", flush=True) #TODO Might want to do something else here. 
+            bt.logging.debug(f"\nchunk for uid {uid}: {chunk}", end="", flush=True). 
             
         synapse = (
             chunk  # last object yielded is the synapse itself with completion filled
