@@ -30,7 +30,15 @@ from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 
-async def handle_response(responses: Dict[int, List[Awaitable]]) -> List[bt.Synapse]:
+async def handle_response(responses: Dict[int, Awaitable]) -> List[bt.Synapse]:
+    """handles calling the async generators held within List[Awaitable]
+
+    Args:
+        responses (Dict[int, List[Awaitable]]): _description_
+
+    Returns:
+        List[bt.Synapse]: _description_
+    """
     synapses = []
 
     for uid, resp in responses.items():
@@ -90,6 +98,7 @@ async def run_step(
         streaming = True
     )
 
+    # Handles the calls to the async generators. 
     responses = await handle_response(responses = dict(zip(uids_cpu, responses)))
 
     # Encapsulate the responses in a response event (dataclass)
