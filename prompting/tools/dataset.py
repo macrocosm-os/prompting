@@ -335,7 +335,7 @@ class StackOverflowDataset:
 
 
 class DateQADataset:
-    def __init__(self, max_tries: int = 10, seed=None):
+    def __init__(self, max_tries: int = 50, seed=None):
         self.max_tries = max_tries
         self.seed = seed
         self.rng = random.Random(seed)

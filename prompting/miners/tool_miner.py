@@ -56,7 +56,8 @@ class ToolMiner(BasePromptingMiner):
                 role = synapse.roles[-1]
                 message = synapse.messages[-1]
 
-                matches = wikipedia.search(message)
+                # Message needs to be limited to 300 characters for wikipedia search, otherwise it will a return an error
+                matches = wikipedia.search(message[:300])
 
                 # If we find a match, we add the context to the system prompt
                 if len(matches) > 0:
