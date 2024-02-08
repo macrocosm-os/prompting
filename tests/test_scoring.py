@@ -15,7 +15,7 @@ scores2 = [0.9960079893439915]*len(dates2)
 dates3 = [date3.strftime(format) for format in date_formats]
 score3 = 0.0
 dates4 = [date4.strftime(format) for format in date_formats]
-score4 = 0.38251018447178037
+scores4 = [0.38251018447178037]*len(dates4)
 tuples = list( zip(dates1+dates2+dates3+dates4, scores1+scores2+scores3+scores4) )
 
 @pytest.mark.parametrize('reference', dates1)
