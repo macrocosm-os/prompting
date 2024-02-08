@@ -17,7 +17,6 @@ class FloatDiffModel(BaseRewardModel):
     def extract_number(text):
         # loop over all words reversed and try to cast as a float, break when you find the first one
         words = text.split()
-        words = list(reversed(words))
         for word in reversed(words):
             cleaned = word.strip('.').replace(',', '')
             try:
