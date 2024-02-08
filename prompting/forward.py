@@ -18,6 +18,7 @@
 
 import time
 import sys
+import asyncio
 import numpy as np
 import bittensor as bt
 
@@ -30,6 +31,8 @@ from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 
+async def async_generate_reference(loop, agent):
+    return await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
 
 async def run_step(
     self, agent: HumanAgent, k: int, timeout: float, exclude: list = None
@@ -54,14 +57,22 @@ async def run_step(
     start_time = time.time()
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
-
     axons = [self.metagraph.axons[uid] for uid in uids]
+
     # Make calls to the network with the prompt.
-    responses: List[PromptingSynapse] = await self.dendrite(
-        axons=axons,
-        synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]),
-        timeout=timeout,
+    dendrite_call = asyncio.create_task(
+        self.dendrite(
+            axons=axons,
+            synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]),
+            timeout=timeout,
+        )
     )
+
+    # If the task doesn't have a static reference, generate one asynchronously
+    if not agent.task.static_reference:
+        await async_generate_reference(self.loop, agent)
+
+    responses: List[PromptingSynapse] = await dendrite_call
 
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses, uids)
@@ -112,7 +123,7 @@ async def forward(self):
         )
         bt.logging.info(f"📋 Creating {task_name} task... ")
         try:
-            task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name)
+            task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name, create_reference=False)
             break
         except Exception as e:
             bt.logging.error(
