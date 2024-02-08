@@ -44,7 +44,7 @@ async def handle_response(responses: Dict[int, Awaitable]) -> List[bt.Synapse]:
 
     for uid, resp in responses.items():
         async for chunk in resp:
-            bt.logging.debug(f"\nchunk for uid {uid}: {chunk}", end="", flush=True)
+            bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
             
         synapse = (
             chunk  # last object yielded is the synapse itself with completion filled
