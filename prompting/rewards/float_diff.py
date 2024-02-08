@@ -21,7 +21,7 @@ class FloatDiffModel(BaseRewardModel):
         for word in reversed(words):
             cleaned = word.strip('.').replace(',', '')
             try:
-                return float(parse_expr(word.strip('.').replace(',', '')).evalf())
+                return float(parse_expr(cleaned).evalf())
             except Exception:
                 # fall back to simpler parsing if required
                 try:
