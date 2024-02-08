@@ -14,7 +14,8 @@ class FloatDiffModel(BaseRewardModel):
         super().__init__()
 
     @staticmethod
-    def extract_number(text):
+    def extract_number(text: str) -> float:
+        """Extract a number from a string."""
         # loop over all words reversed and try to cast as a float, break when you find the first one
         words = text.split()
         for word in reversed(words):
@@ -29,10 +30,9 @@ class FloatDiffModel(BaseRewardModel):
                     continue
 
     @staticmethod
-    def math_score(reference, completion):
-        # Extract all the digits and numerical expressions from the completion and take only the last one (assuming it's the answer)
-
-        # Convert the string to a float
+    def math_score(reference: str, completion: str) -> float:
+        """Compute a score based on the difference between a reference and a completion."""
+        # Convert the strings to a float
         reference = float(reference)
         pred = FloatDiffModel.extract_number(completion)
         if pred is None:
