@@ -20,6 +20,7 @@ import re
 import time
 import random
 import requests
+import itertools
 
 import bittensor as bt
 from bs4 import BeautifulSoup
@@ -101,15 +102,22 @@ class HFCodingDataset(Dataset):
         if not (min_lines <= len(info["code"].splitlines()) <= max_lines):
             return None
 
-        present_keywords, present_libraries, forward_term = self.get_special_contents(info["code"], info["language"])
+        present_keywords, present_libraries = self.get_special_contents(info["code"], info["language"])
+        keywords = list(present_keywords) + list(present_libraries)
+        code_words = ['code','programming','coding','code reference','programming technique']
+        external_links = []
+        for bigram in itertools.combinations(keywords, 2):
+            words = list(bigram) + [random.choice(code_words)] + [info['language']]
+            # shuffle the words e.g. ['react', 'promise', 'code reference'] -> 'code reference promise react'
+            external_links.append(' '.join(random.sample(words, len(words))))
 
         return {
             "title": info['repo_name'], # title of wiki article
             "topic": info["language"], # title of wiki section
             'subtopic': info['path'],
             'content': info["code"],
-            'internal_links': [info['repo_name'], info['path']],
-            'external_links': list(present_keywords) + list(present_libraries),
+            'internal_links': [info['repo_name'], info['path'], info['language']],
+            'external_links': external_links,
             'source': 'Wikipedia',
             'extra': {'size': info['size'], 'license': info['license']}
         }
@@ -156,15 +164,7 @@ class HFCodingDataset(Dataset):
         present_libraries = self.extract_keywords(code, language, 'libraries')
         present_keywords = self.extract_keywords(code, language, 'keywords')
 
-        # here we select a library or a keyword as the forward term
-        if present_libraries and random.random() < 0.7:
-            forward_term = random.choice(list(present_libraries))
-        elif present_keywords:
-            forward_term = random.choice(list(present_keywords))
-        else:
-            forward_term = None
-
-        return present_keywords, present_libraries, forward_term
+        return present_keywords, present_libraries
 
 
 
