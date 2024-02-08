@@ -29,7 +29,7 @@ from .base import Dataset
 from ..selector import Selector
 from datasets import load_dataset
 
-all_languages = {
+LANGUAGES = {
     "C++": {
         'keywords': ['auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extern', 'float', 'for', 'goto', 'if', 'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static', 'struct', 'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile', 'while'],
         'libraries': ['iostream', 'fstream', 'string', 'vector', 'map', 'set', 'algorithm', 'cmath', 'cstdio', 'cstdlib', 'ctime', 'cstring', 'cassert', 'cctype', 'cerrno', 'cfloat', 'ciso646', 'climits', 'clocale', 'cmath', 'csetjmp', 'csignal', 'cstdarg', 'cstddef', 'cstdio', 'cstdlib', 'cstring', 'ctime', 'cwchar', 'cwctype', 'complex', 'deque', 'exception', 'fstream', 'functional', 'iomanip', 'ios', 'iosfwd', 'iostream', 'istream', 'iterator', 'limits', 'list', 'locale', 'map', 'memory', 'new', 'numeric', 'ostream', 'queue', 'set', 'sstream', 'stack', 'stdexcept', 'streambuf', 'string', 'typeinfo', 'utility', 'valarray', 'vector'],
@@ -67,6 +67,44 @@ all_languages = {
     },
 }
 
+def filter_comments(code, language):
+    # TODO: multiline comments
+    # filter out comments
+
+    # for start_tag, end_tag in languages[language]['multiline-comments']:
+    #     code = re.sub(rf'{start_tag}.*?{end_tag}', '', code, flags=re.DOTALL)
+
+    lines = []
+    for line in code.splitlines():
+        # TODO: use regex
+        if any(line.strip().startswith(symbol) for symbol in LANGUAGES[language]['comments']):
+            continue
+
+        lines.append(line.lower())
+
+    return '\n'.join(lines)
+
+def parse_code(content, language):
+    patterns = {
+        # Define patterns for each language
+        '.cpp': [r'//.*|/\*.*?\*/', 'single_multiline'],
+        '.java': [r'//.*|/\*.*?\*/', 'single_multiline'],
+        '.js': [r'//.*|/\*.*?\*/', 'single_multiline'],
+        '.html': [r'<!--.*?-->', 'single'],
+        '.py': [r'#.*|\'\'\'.*?\'\'\'|\"\"\".*?\"\"\"', 'single_multiline'],
+        '.sql': [r'--.*|/\*.*?\*/', 'single_multiline'],
+        '.sh': [r'#.*', 'single'],
+        '.dockerfile': [r'#.*', 'single']
+    }
+
+    _, ext = os.path.splitext(path)
+    if ext not in patterns:
+        bt.logging.warning(f'No comment pattern defined for {ext}')
+        return content
+
+    comment_pattern = patterns[ext][0]
+    return re.sub(comment_pattern, '', content, flags=re.DOTALL)
+
 #TODO: why not define the chain_in, chain_out logic in the class itself?
 class HFCodingDataset(Dataset):
 
@@ -82,7 +120,7 @@ class HFCodingDataset(Dataset):
         self.seed = seed
 
         if languages is None:
-            languages = list(all_languages.keys())
+            languages = list(LANGUAGES.keys())
         self.languages = languages
 
         self.dataset_id = dataset_id
@@ -107,7 +145,7 @@ class HFCodingDataset(Dataset):
         code_words = ['code','programming','coding','code reference','programming technique']
         external_links = []
         for bigram in itertools.combinations(keywords, 2):
-            words = list(bigram) + [random.choice(code_words)] + [info['language']]
+            words = list(bigram) + [selector(code_words) + info['language']]
             # shuffle the words e.g. ['react', 'promise', 'code reference'] -> 'code reference promise react'
             external_links.append(' '.join(random.sample(words, len(words))))
 
@@ -129,28 +167,12 @@ class HFCodingDataset(Dataset):
     def random(self, min_lines=5, max_lines=100, selector: Selector = None, **kwargs):
         return self.get(min_lines, max_lines, selector)
 
-    def filter_comments(self, code, language):
-        # TODO: multiline comments
-        # filter out comments
-
-        # for start_tag, end_tag in languages[language]['multiline-comments']:
-        #     code = re.sub(rf'{start_tag}.*?{end_tag}', '', code, flags=re.DOTALL)
-
-        lines = []
-        for line in code.splitlines():
-            # TODO: use regex
-            if any(line.strip().startswith(symbol) for symbol in all_languages[language]['comments']):
-                continue
-
-            lines.append(line.lower())
-
-        return '\n'.join(lines)
 
     def extract_keywords(self, code, language, field):
         matches = set()
 
         # check which keywords and libraries are present in the code
-        for keyword in all_languages[language].get(field,[]):
+        for keyword in LANGUAGES[language].get(field,[]):
             if re.search(r'\b' + keyword + r'\b', code):
                 matches.add(keyword)
 
@@ -159,7 +181,7 @@ class HFCodingDataset(Dataset):
     def get_special_contents(self, code, language, remove_comments=True):
 
         if remove_comments:
-            code = self.filter_comments(code, language)
+            code = filter_comments(code, language)
 
         present_libraries = self.extract_keywords(code, language, 'libraries')
         present_keywords = self.extract_keywords(code, language, 'keywords')
