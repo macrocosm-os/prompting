@@ -40,11 +40,15 @@ async def handle_response(uid: str, responses: List[Awaitable]) -> tuple[str, st
 
 
 async def query_stream_miner(
-    synapse_protocol, wallet_name, hotkey, network, netuid, uid
+    synapse_protocol, wallet_name, hotkey, network, netuid, uid, message=None
 ):
+    
+    if message is None:
+        message = "Give me some information about the night sky."
+    
     syn = synapse_protocol(
         roles=["user"],
-        messages=["Give me some information about the night sky."],
+        messages=[message],
     )
 
     # create a wallet instance with provided wallet name and hotkey
@@ -151,6 +155,13 @@ if __name__ == "__main__":
         help='Network type, e.g., "test" or "mainnet"',
     )
 
+    parser.add_argument(
+        "--message",
+        type=str,
+        default="What is the meaning of life?",
+        help='A question that you want to ask to the ai',
+    )
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -163,5 +174,6 @@ if __name__ == "__main__":
             network=args.network,
             netuid=args.netuid,
             uid=args.uid,
+            message = args.message
         )
     )
