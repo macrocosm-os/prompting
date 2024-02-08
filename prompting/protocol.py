@@ -216,7 +216,7 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
             # tokens = chunk.decode("utf-8").split("\n")
             tokens = chunk.decode("utf-8").split("<|assistant|>")[-1].split("\n") #temp            
             self.completion = self.completion + ''.join([t for t in tokens if t])
-            bt.logging.debug(f"Completion is: {self.completion}")
+            bt.logging.debug(f"\nCompletion chunk during streaming is: \n{self.completion}")
             yield tokens
 
     def deserialize(self) -> str:

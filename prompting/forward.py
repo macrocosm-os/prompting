@@ -21,15 +21,37 @@ import sys
 import numpy as np
 import bittensor as bt
 
-from typing import List
+from typing import Dict, List, Awaitable
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
 from prompting.conversation import create_task
-from prompting.protocol import PromptingSynapse
+from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 
+async def handle_response(responses: Dict[int, List[Awaitable]]) -> List[bt.Synapse]:
+    synapses = []
+
+    for uid, resp in responses.items():
+        async for chunk in resp:
+            print(f"\nchunk for resp: {chunk}", end="", flush=True) #TODO Might want to do something else here. 
+            
+        synapse = (
+            chunk  # last object yielded is the synapse itself with completion filled
+        )
+
+        #Double check to make sure chunk is a synapse
+        if isinstance(synapse, StreamPromptingSynapse): 
+            synapses.append(synapse)
+        else: 
+            synapses.append(
+                StreamPromptingSynapse(roles = ['user'], messages = ['failure'], completion = '')
+            )
+            bt.logging.debug(f"Synapse is not StreamingPromptingSynapse. Miner uid {uid} completion set to '' ")
+
+
+    return synapses
 
 async def run_step(
     self, agent: HumanAgent, k: int, timeout: float, exclude: list = None
@@ -54,17 +76,24 @@ async def run_step(
     start_time = time.time()
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
+    uids_cpu = uids.cpu().tolist()
 
     axons = [self.metagraph.axons[uid] for uid in uids]
+
     # Make calls to the network with the prompt.
-    responses: List[PromptingSynapse] = await self.dendrite(
+    # Important: the responses are always in the same order as the uids. 
+    responses: List[StreamPromptingSynapse] = await self.dendrite(
         axons=axons,
-        synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]),
+        synapse=StreamPromptingSynapse(roles=["user"], messages=[agent.challenge]),
         timeout=timeout,
+        deserialize = False, #Important to be False! 
+        streaming = True
     )
 
+    responses = await handle_response(responses = dict(zip(uids_cpu, responses)))
+
     # Encapsulate the responses in a response event (dataclass)
-    response_event = DendriteResponseEvent(responses, uids)
+    response_event = DendriteResponseEvent(responses = responses, uids = uids)
 
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
     # Reward the responses and get the reward result (dataclass)
