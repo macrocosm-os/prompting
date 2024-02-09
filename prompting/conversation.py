@@ -112,27 +112,27 @@ class ContextChain:
     # internal specifies the dataset method to use when choosing the same task again
     # external specifies the dataset method to use when 'arriving' at a new task
     CHAIN_RULE = {
-        'QA': {
+        'qa': {
             'internal': 'get', # use same page and a different section
             'external': 'search', # search for a new page when transitioning to QA
             'dataset': WikiDataset(),
             },
-        'Summarization': {
+        'summarization': {
             'internal': 'get',
             'external': 'search',
             'dataset': WikiDataset()
             },
-        'DateQA': {
+        'date_qa': {
             'internal': 'random', # when creating a new context, use a random date as the seed
             'external': 'random', # there's no external link to use when transitioning to DateQA - we need a valid date
             'dataset': WikiDateDataset()
             },
-        'Debugging': {
+        'debugging': {
             'internal': 'random',
             'external': 'random',
             'dataset': HFCodingDataset()
         },
-        'Mathematics': {
+        'math': {
             'internal': 'get',
             'external': 'search',
             'dataset': MathDataset()
