@@ -34,7 +34,11 @@ from ..selector import Selector
 @lru_cache(maxsize=1000)
 def _get_page(title, pageid=None, auto_suggest=False, redirect=True, seed=None) -> wiki.WikipediaPage:
     try:
-        return wiki.page(title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
+        page = wiki.page(title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
+        # create sections manually if not found
+        if not page.sections:
+            page._sections = [line.strip('= ') for line in page.content.splitlines() if re.search(r'=+\s+.*\s+=+',line)]
+        return page
 
     except wiki.DisambiguationError as e:
         bt.logging.debug(f"{e.__class__.__name__} loading page {title!r}: {e}")
@@ -67,6 +71,7 @@ def process_page(page, valid_header: callable = None, valid_content: callable = 
     """
     header = ''
     sections = {}
+    
     for section_title in page.sections:
         content = page.section(section_title)
         if not content:
