@@ -1,12 +1,6 @@
 from typing import List
 
-from prompting.tasks import (
-    DebuggingTask,
-    SummarizationTask,
-    QuestionAnsweringTask,
-    MathTask,
-    DateQuestionAnsweringTask,
-)
+from prompting.tasks import TASKS
 from prompting.rewards import (
     BaseRewardModel,
     RougeRewardModel,
@@ -16,14 +10,6 @@ from prompting.rewards import (
     DateRewardModel,
 )
 
-
-SUPPORTED_TASKS = {
-    "debugging": DebuggingTask,
-    "summarization": SummarizationTask,
-    "qa": QuestionAnsweringTask,
-    "math": MathTask,
-    "date_qa": DateQuestionAnsweringTask,
-}
 
 
 REWARD_MODELS = {
@@ -55,9 +41,9 @@ class RewardPipeline:
     def validate_tasks(self):
         
         for task in self.selected_tasks:
-            if task not in SUPPORTED_TASKS:
+            if task not in TASKS:
                 raise ValueError(
-                    f"Task {task} not supported. Please choose from {SUPPORTED_TASKS.keys()}"
+                    f"Task {task} not supported. Please choose from {TASKS.keys()}"
                 )
             # Check that the reward_definition and penalty_definition are lists of dictionaries whose weights sum to one
             self._check_weights(task, "reward_definition")
@@ -67,7 +53,7 @@ class RewardPipeline:
 
         total_weight = 0
 
-        model_infos = getattr(SUPPORTED_TASKS[task], definition)
+        model_infos = getattr(TASKS[task], definition)
         
         for model_info in model_infos:
             
@@ -93,8 +79,8 @@ class RewardPipeline:
 
         for task in self.selected_tasks:
 
-            active_reward_models += SUPPORTED_TASKS[task].reward_definition
-            active_reward_models += SUPPORTED_TASKS[task].penalty_definition
+            active_reward_models += TASKS[task].reward_definition
+            active_reward_models += TASKS[task].penalty_definition
 
         # Instantiate only the required reward models
         reward_models = {}
