@@ -46,7 +46,7 @@ def test_task_complete_is_false_on_init(task: Task):
 
 @pytest.mark.parametrize('task', TASKS)
 def test_task_contains_no_reference_if_not_static(task: Task):
-    task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task], generate_reference=False)
+    task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task], create_reference=False)
     assert task.static_reference or not task.reference
 
 
