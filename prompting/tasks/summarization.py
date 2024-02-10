@@ -26,7 +26,11 @@ Summarize the following context in a concise and accurate manner:
 
 @dataclass
 class SummarizationTask(Task):
-    
+
+    name = "summarization"
+    desc = "get help with summarization"
+    goal = "summarize the following topic"
+
     reward_definition = [
         dict(name="rouge", ngram="rouge-l", metric="f", weight=0.5),
         dict(name="relevance", threshold=None, weight=0.5),
@@ -35,40 +39,31 @@ class SummarizationTask(Task):
         dict(name="rouge", ngram="rouge-1", metric="f", weight=1.0)
     ]
 
+    # This is where you define cleaning procedures for the generation.
+    # Can be used when wanting to clean the challenge.
+    cleaning_pipeline = [
+        dict(name="remove_quotes"),
+        dict(name="prune_ending"),
+        dict(name="remove_roles"),
+    ]
+
+    static_query = True
+
     def __init__(self, llm_pipeline: Pipeline, context: str, create_reference=True):
 
-        self.name = "summarization"
-        self.desc = "get help with summarization"
-        self.goal = "summarize the following topic"
-
         self.context = context
 
-
-        # This is where you define cleaning procedures for the generation.
-        # Can be used when wanting to clean the challenge.
-        self.cleaning_pipeline = [
-            dict(name="remove_quotes"),
-            dict(name="prune_ending"),
-            dict(name="remove_roles"),
-        ]
-
-        self.context = context
-
-        self.query_prompt = None
-        # NOTE: We do not perform an inference here and just use the article title as the query.
-        # This is because the article title is usually a good summary of the article itself.
-        # Query is just the article title.
-        self.query = self.context["title"] + ', ' + self.context.topic
+        # Query is just the article title and section name
+        self.query = context.title + ', ' + context.topic
 
         self.reference_system_prompt = SUMMARIZATION_SYSTEM_PROMPT
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
-            context = self.context["text"]
+            context = context.content
         )
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
 
-        self.topic = self.context["title"]
-        self.subtopic = self.context["categories"][0]
-        self.tags = self.context["categories"]
-        self.static_query = True
+        self.topic = context.title
+        self.subtopic = context.topic
+        self.tags = context.tags
 
