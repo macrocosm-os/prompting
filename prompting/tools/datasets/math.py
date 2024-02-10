@@ -69,6 +69,7 @@ class MathDataset(Dataset):
             'content': info['problem'], # problem statement
             'internal_links': [info['topic'], info['subtopic']], # internal links
             'external_links': external_links,
+            "tags": info['forward_words'],
             'source': 'Mathgenerator',
             'extra': {'reward_type': info['reward_type'], 'solution': info['solution']}
         }
