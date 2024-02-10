@@ -33,6 +33,8 @@ from ..selector import Selector
 # speed up page loading
 @lru_cache(maxsize=1000)
 def _get_page(title, pageid=None, auto_suggest=False, redirect=True, seed=None) -> wiki.WikipediaPage:
+    """Cached Wikipedia page loading.
+    """
     try:
         page = wiki.page(title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
         # create sections manually if not found
@@ -54,10 +56,16 @@ def _get_page(title, pageid=None, auto_suggest=False, redirect=True, seed=None) 
 
 @lru_cache(maxsize=1000)
 def _get_random_titles(pages=10, seed=42) -> List:
-    """Approximately deterministic random titles. This is useful for testing.
+    """Cached wikipedia random page. Approximately deterministic random titles. This is useful for testing.
     NOTE: the actually cached result will change each session, but the result will be the same within a session.
     """
     return wiki.random(pages=pages)
+
+@lru_cache(maxsize=1000)
+def _wiki_search(name, results) -> List:
+    """Cached Wikipedia search.
+    """
+    return wiki.search(name, results=results)
 
 def process_page(page, valid_header: callable = None, valid_content: callable = None) -> Dict:
     """Process a Wikipedia page and return a dictionary of sections with their content.
@@ -71,7 +79,7 @@ def process_page(page, valid_header: callable = None, valid_content: callable = 
     """
     header = ''
     sections = {}
-    
+
     for section_title in page.sections:
         content = page.section(section_title)
         if not content:
@@ -107,11 +115,19 @@ def most_relevant_links(page, num_links=10, num_summary_words=50, return_scores=
 
     return [link for link, _ in sorted_links[:num_links]]
 
+def filter_categories(categories, exclude=None, include=None):
+    """Filter categories based on a list of categories to exclude and/or include."""
+    if exclude:
+        categories = [cat for cat in categories if not re.search('|'.join(exclude), cat,re.IGNORECASE)]
+    if include:
+        categories = [cat for cat in categories if re.search('|'.join(include), cat,re.IGNORECASE)]
+    return categories
 
 class WikiDataset(Dataset):
     """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
 
     EXCLUDE_HEADERS = ('See also', 'References', 'Further reading', 'External links')
+    EXCLUDE_CATEGORIES = ('articles', 'wiki', 'pages', 'cs1')
 
     def __init__(
         self,
@@ -163,14 +179,14 @@ class WikiDataset(Dataset):
             'subtopic': section_title,
             'content': content,
             'internal_links': list(filter(lambda x: x not in exclude, page.sections)),
-            'external_links': most_relevant_links(page, num_links=self.max_links), #TODO: only take links from selected section(?)
+            'external_links': most_relevant_links(page, num_links=self.max_links), 
+            'tags': filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
             'source': 'Wikipedia',
             'extra': {'url': page.url, 'page_length': len(page.content.split()), 'section_length': section_length},
         }
 
     def search(self, name, results=3, selector: Selector = None) -> Dict:
-        # TODO: Cache for deterministic results
-        titles = wiki.search(name, results=results)
+        titles = _wiki_search(name, results=results)
         title = selector(titles)
         return self.get(title, selector=selector)
 
@@ -186,6 +202,7 @@ class WikiDateDataset(Dataset):
 
     INCLUDE_HEADERS = ("Events", "Births", "Deaths")
     MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
+    EXCLUDE_CATEGORIES = ('articles', 'wiki', 'pages', 'cs1')
 
     def __init__(self, max_tries: int = 10, seed=None):
         self.max_tries = max_tries
@@ -236,9 +253,10 @@ class WikiDateDataset(Dataset):
             "title": name, # title of wiki article
             "topic": header or section_title, # title of wiki section
             'subtopic': year.strip(),
-            'content': '-'.join(event).strip(),
-            'internal_links': list(sections.keys()), # unsure what to do for DQA->DQA. Same date events? Another random date? TBD
+            'content': '-'.join(event).strip('. '),
+            'internal_links': list(sections.keys()),
             'external_links': links,
+            'tags': filter_categories(page.categories, exclude=WikiDataset.EXCLUDE_CATEGORIES),
             'source': 'Wikipedia',
             'extra': {'url': page.url, 'year': year, 'event': event, 'line': line, 'date': date+[year], 'section_title': section_title},
         }
