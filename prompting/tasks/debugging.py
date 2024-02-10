@@ -135,7 +135,7 @@ class DebuggingTask(Task):
                     context.content,
                     n_remove=random.randint(1, 3),
                     n_swap=random.randint(0, 2),
-                    sep=random.choices([""," ","\n"],weights=[0.3,0.6,0.1],k=1)
+                    sep=random.choices([""," ","\n"],weights=[0.3,0.6,0.1],k=1)[0]
                 )
         self.reference = context.content
         self.delimiter = "```"
