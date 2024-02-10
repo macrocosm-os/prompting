@@ -84,26 +84,6 @@ def filter_comments(code, language):
 
     return '\n'.join(lines)
 
-def parse_code(content, language):
-    patterns = {
-        # Define patterns for each language
-        '.cpp': [r'//.*|/\*.*?\*/', 'single_multiline'],
-        '.java': [r'//.*|/\*.*?\*/', 'single_multiline'],
-        '.js': [r'//.*|/\*.*?\*/', 'single_multiline'],
-        '.html': [r'<!--.*?-->', 'single'],
-        '.py': [r'#.*|\'\'\'.*?\'\'\'|\"\"\".*?\"\"\"', 'single_multiline'],
-        '.sql': [r'--.*|/\*.*?\*/', 'single_multiline'],
-        '.sh': [r'#.*', 'single'],
-        '.dockerfile': [r'#.*', 'single']
-    }
-
-    _, ext = os.path.splitext(path)
-    if ext not in patterns:
-        bt.logging.warning(f'No comment pattern defined for {ext}')
-        return content
-
-    comment_pattern = patterns[ext][0]
-    return re.sub(comment_pattern, '', content, flags=re.DOTALL)
 
 #TODO: why not define the chain_in, chain_out logic in the class itself?
 class HFCodingDataset(Dataset):
@@ -150,13 +130,14 @@ class HFCodingDataset(Dataset):
             external_links.append(' '.join(random.sample(words, len(words))))
 
         return {
-            "title": info['repo_name'], # title of wiki article
-            "topic": info["language"], # title of wiki section
+            "title": info['repo_name'], # name of the repo
+            "topic": info["language"], # language of the code
             'subtopic': info['path'],
             'content': info["code"],
             'internal_links': [info['repo_name'], info['path'], info['language']],
             'external_links': external_links,
-            'source': 'Wikipedia',
+            'source': 'GitHub',
+            'tags': [info['language'], info['repo_name'], info['path']],
             'extra': {'size': info['size'], 'license': info['license']}
         }
 
