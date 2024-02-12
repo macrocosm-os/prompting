@@ -37,7 +37,7 @@ def make_mock_neuron(sample_size, unique_coldkey_prob=False, unique_ip_prob=Fals
     )
 
 @pytest.mark.parametrize(
-    "unique_coldkeys, unique_ips, k, expected_result", [
+    "unique_coldkeys, unique_ips, sample_size, expected_result", [
         (False, False, 4, [0, 1, 2, 3]),
         (True, False, 2, [0, 2]),
         (False, True, 2, [0, 1]),
