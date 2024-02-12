@@ -43,7 +43,7 @@ def make_mock_neuron(sample_size, unique_coldkey_prob=False, unique_ip_prob=Fals
         (False, True, 2, [0, 1]),
         (True, True, 2, [0, 3])
         ])
-def test_get_random_uids(unique_coldkeys, unique_ips, sample_size, expected_result):
+def test_get_random_uids(unique_coldkeys: bool, unique_ips: bool, sample_size: int, expected_result: List[int]):
 
     mock_neuron = make_mock_neuron(sample_size, unique_coldkeys, unique_ips)
 
