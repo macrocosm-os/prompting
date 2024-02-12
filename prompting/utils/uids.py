@@ -67,5 +67,5 @@ def get_random_uids(
     self._selected_coldkeys = coldkeys
     self._selected_ips = ips
     if len(uids) < self.config.neuron.sample_size:
-        bt.logging.warning(f"Only {len(uids)} uids available for querying, requested {k}.")
+        bt.logging.warning(f"Only {len(uids)} uids available for querying, requested {self.config.neuron.sample_size}.")
     return torch.tensor(uids)
