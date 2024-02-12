@@ -140,7 +140,11 @@ class BaseValidatorNeuron(BaseNeuron):
                 bt.logging.info(f"step({self.step}) block({self.block})")
 
                 # Run multiple forwards concurrently.
-                self.loop.run_until_complete(self.concurrent_forward())
+                try:
+                    self.loop.run_until_complete(self.concurrent_forward())
+                except torch.cuda.OutOfMemoryError as e:
+                    bt.logging.error(f"Out of memory error: {e}")
+                    continue
 
                 # Check if we should exit.
                 if self.should_exit:

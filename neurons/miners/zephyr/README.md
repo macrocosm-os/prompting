@@ -13,7 +13,7 @@ git clone https://github.com/opentensor/prompting.git
 ```
 2. Install the required packages for the [repository requirements](../../../requirements.txt) with `pip install -r requirements.txt`
 3. Install the required packages for the [wikipedia agent miner](requirements.txt) with `pip install -r requirements.txt`
-```
+
 
 For more configuration options related to the wallet, axon, subtensor, logging, and metagraph, please refer to the Bittensor documentation.
 
