@@ -3,6 +3,7 @@ import torch
 import random
 import pytest
 from types import SimpleNamespace
+from typing import List
 from prompting.utils.uids import get_random_uids
 
 def make_mock_neuron(sample_size, unique_coldkey_prob=False, unique_ip_prob=False, vpermit_tao_limit=1000):
