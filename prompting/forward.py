@@ -24,9 +24,11 @@ import bittensor as bt
 from typing import List
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
-from prompting.conversation import create_task
+from prompting.conversation import TransitionMatrix, ContextChain
+from prompting.persona import Persona
 from prompting.protocol import PromptingSynapse
 from prompting.rewards import RewardResult
+from prompting.tasks import TASKS
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 
@@ -102,38 +104,27 @@ async def run_step(
 async def forward(self):
     bt.logging.info("🚀 Starting forward loop...")
 
-    while True:
-        bt.logging.info(
-            f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
-        )
-        # Create a specific task
-        task_name = np.random.choice(
-            self.config.neuron.tasks, p=self.config.neuron.task_p
-        )
-        bt.logging.info(f"📋 Creating {task_name} task... ")
-        try:
-            task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name)
-            break
-        except Exception as e:
-            bt.logging.error(
-                f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
-            )
-            continue
+    # TODO: begin_probs only defines the start tasks. If we want to completely disable certain tasks we need to that in probs
+    mat = TransitionMatrix(labels=self.config.neuron.tasks, probs=self.transition_probs, begin_probs=self.config.neuron.task_p)
 
-    # Create random agent with task, topic, profile...
-    bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
-    agent = HumanAgent(
-        task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True
-    )
-
-    rounds = 0
     exclude_uids = []
-    # TODO: Design loop with ContextCrawler. Does progress still make sense as a design?
-    # TODO: Make new agent for each task, or try to make a single agent with all tasks.
-    # TODO: Design system prompt such that it indicates the completion level of each task.
-    # TODO: Experiment with what happens if we spend multiple steps on the same task (based on completion threshold)
-    while not agent.finished:
-        # when run_step is called, the agent updates its progress
+    num_steps = np.random.randint(1, 10)
+    chain = ContextChain(matrix=mat, num_steps=num_steps, seed=None, mock=False)
+
+    # create a persona that will persist through the conversation
+    persona = Persona()
+    for context in chain:
+        task_name = chain.task_name
+        task = TASKS[task_name](llm_pipeline=self.llm_pipeline, context=context)
+        bt.logging.info(f"📋 Selected task: {task}")
+
+        # Create an agent with the selected task and persona, and begin the conversation.
+        bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
+        agent = HumanAgent(
+            task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True, persona=persona
+        )
+
+        # Perform a single step of the agent, consisting of querying, rewarding, updating scores and logging the event.
         event = await run_step(
             self,
             agent,
@@ -142,9 +133,6 @@ async def forward(self):
             exclude=exclude_uids,
         )
         exclude_uids += event["uids"]
-        task.complete = True
 
-        rounds += 1
-
-    del agent
-    del task
+        del agent
+        del task
