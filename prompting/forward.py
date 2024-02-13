@@ -25,7 +25,7 @@ from typing import List
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
 from prompting.conversation import TransitionMatrix, ContextChain
-from prompting.persona import Persona
+from prompting.persona import create_persona
 from prompting.protocol import PromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.tasks import TASKS
@@ -112,7 +112,7 @@ async def forward(self):
     chain = ContextChain(matrix=mat, num_steps=num_steps, seed=None, mock=False)
 
     # create a persona that will persist through the conversation
-    persona = Persona()
+    persona = create_persona()
     for context in chain:
         task_name = chain.task_name
         task = TASKS[task_name](llm_pipeline=self.llm_pipeline, context=context)
