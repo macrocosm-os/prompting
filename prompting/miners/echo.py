@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import typing
-import bittensor as bt
 from functools import partial
 from starlette.types import Send
 
@@ -41,7 +40,6 @@ class EchoMiner(BaseStreamPromptingMiner):
                     "body": message,
                     "more_body": False,
                 })
-
 
         token_streamer = partial(_forward, synapse.messages[-1])
         return synapse.create_streaming_response(token_streamer)
