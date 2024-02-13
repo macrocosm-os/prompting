@@ -101,18 +101,24 @@ async def run_step(
     return event
 
 
+
 async def forward(self):
     bt.logging.info("🚀 Starting forward loop...")
 
-    # TODO: begin_probs only defines the start tasks. If we want to completely disable certain tasks we need to that in probs
-    mat = TransitionMatrix(labels=self.config.neuron.tasks, probs=self.transition_probs, begin_probs=self.config.neuron.task_p)
+    # NOTE: begin_probs only defines the start tasks. If we want to completely disable certain tasks we need to that in probs
+    mat = TransitionMatrix(
+        labels=list(self.transition_probs.keys()),
+        probs=list(self.transition_probs.values()),
+        begin_probs=self.config.neuron.task_p
+    )
 
     exclude_uids = []
+    # create a persona that will persist through the conversation
+    persona = create_persona()
     num_steps = np.random.randint(1, 10)
     chain = ContextChain(matrix=mat, num_steps=num_steps, seed=None, mock=False)
 
-    # create a persona that will persist through the conversation
-    persona = create_persona()
+    bt.logging.info(f'Starting conversation with {num_steps} steps')
     for context in chain:
         task_name = chain.task_name
         task = TASKS[task_name](llm_pipeline=self.llm_pipeline, context=context)
