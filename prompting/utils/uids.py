@@ -25,7 +25,7 @@ def get_random_uids(
     all_ips = [axon.ip for axon in self.metagraph.axons]
     for uid in all_uids:
 
-        if exclude is not None and uid in exclude:
+        if uid == self.uid or (exclude is not None and uid in exclude):
             continue
 
         # Filter non serving axons.
