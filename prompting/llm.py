@@ -19,7 +19,7 @@ import time
 
 from typing import List, Dict
 import bittensor as bt
- 
+
 from transformers import Pipeline, pipeline, AutoTokenizer, TextIteratorStreamer
 from prompting.mock import MockPipeline
 
@@ -44,7 +44,11 @@ def load_pipeline(
     if not device.startswith("cuda"):
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
-    tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_MAPPINGS[model_id]) if model_id in TOKENIZER_MAPPINGS else None
+    tokenizer = (
+        AutoTokenizer.from_pretrained(TOKENIZER_MAPPINGS[model_id])
+        if model_id in TOKENIZER_MAPPINGS
+        else None
+    )
     streamer = TextIteratorStreamer(tokenizer=tokenizer)
 
     # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
@@ -68,7 +72,6 @@ def load_pipeline(
         )
 
     return llm_pipeline, streamer
-
 
 
 class HuggingFaceLLM:
@@ -110,10 +113,12 @@ class HuggingFaceLLM:
         tbeg = time.time()
         response = self.forward(messages=messages)
 
-        if cleaner is not None:            
+        if cleaner is not None:
             clean_response = cleaner.apply(generation=response)
             if clean_response != response:
-                bt.logging.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
+                bt.logging.debug(
+                    f"Response cleaned, chars removed: {len(response) - len(clean_response)}..."
+                )
             response = clean_response
 
         self.messages = messages + [{"content": response, "role": "assistant"}]

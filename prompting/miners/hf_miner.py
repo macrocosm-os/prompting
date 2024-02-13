@@ -73,7 +73,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             elif self.config.neuron.load_in_4bit:
                 self.identity_tags += ("4bit_quantization",)
 
-        self.BATCH_SIZE = 12 #Number of tokens to stream at a time.
+        self.BATCH_SIZE = 12  # Number of tokens to stream at a time.
 
         # Forces model loading behaviour over mock flag
         mock = (
@@ -93,17 +93,17 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         async def _forward(batch_size: int, streamer: TextIteratorStreamer, send: Send):
             """
-            TextIteratorStreamer: stores print-ready text in a queue, to be used by a downstream application as an iterator. 
+            TextIteratorStreamer: stores print-ready text in a queue, to be used by a downstream application as an iterator.
             """
             try:
                 bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
-                buffer = [] 
+                buffer = []
 
-                for token in streamer: 
-                    buffer.append(token) 
+                for token in streamer:
+                    buffer.append(token)
 
-                    if len(buffer) == batch_size: 
+                    if len(buffer) == batch_size:
                         joined_buffer = "".join(buffer)
 
                         bt.logging.debug(f"Streamed tokens: {joined_buffer}")
@@ -115,8 +115,8 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                                 "more_body": True,
                             }
                         )
-                    
-                        buffer = [] #Clearing the buffer. 
+
+                        buffer = []  # Clearing the buffer.
 
                 if buffer:
                     joined_buffer = "".join(buffer)
@@ -128,12 +128,10 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                         }
                     )
                     bt.logging.debug(f"Streamed tokens: {joined_buffer}")
-                
+
                 torch.cuda.empty_cache()
-            
 
-
-                #TODO: Wandb logging here won't work. 
+                # TODO: Wandb logging here won't work.
                 # if self.config.wandb.on:
                 #     # TODO: Add system prompt to wandb config and not on every step
                 #     self.log_event(
@@ -153,22 +151,24 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
         prompt = synapse.messages[-1]
 
-        #TODO: is there a way to close this thread? Not sure if this is hanging or not. 
-        #Create an async thread to generate the data in parallel to the streamer. 
-        thread = Thread(target = HuggingFaceLLM(
-            llm_pipeline=self.llm_pipeline,
-            system_prompt=self.system_prompt,
-            max_new_tokens=self.config.neuron.max_tokens,
-            do_sample=self.config.neuron.do_sample,
-            temperature=self.config.neuron.temperature,
-            top_k=self.config.neuron.top_k,
-            top_p=self.config.neuron.top_p,
-        ).query, kwargs=dict(message = prompt, role = "user",  disregard_system_prompt=False))
+        # TODO: is there a way to close this thread? Not sure if this is hanging or not.
+        # Create an async thread to generate the data in parallel to the streamer.
+        thread = Thread(
+            target=HuggingFaceLLM(
+                llm_pipeline=self.llm_pipeline,
+                system_prompt=self.system_prompt,
+                max_new_tokens=self.config.neuron.max_tokens,
+                do_sample=self.config.neuron.do_sample,
+                temperature=self.config.neuron.temperature,
+                top_k=self.config.neuron.top_k,
+                top_p=self.config.neuron.top_p,
+            ).query,
+            kwargs=dict(message=prompt, role="user", disregard_system_prompt=False),
+        )
 
-        thread.start() 
+        thread.start()
 
         bt.logging.debug(f"💬 Querying zephyr: {prompt}")
         token_streamer = partial(_forward, self.BATCH_SIZE, self.streamer)
 
         return synapse.create_streaming_response(token_streamer)
-

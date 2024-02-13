@@ -4,6 +4,7 @@ import argparse
 import bittensor as bt
 import wikipedia
 import time
+
 # Bittensor Miner Template:
 from prompting.protocol import PromptingSynapse
 
@@ -17,11 +18,10 @@ from langchain_core.output_parsers import StrOutputParser
 from traceback import print_exception
 
 
-class ToolMiner(BaseStreamPromptingMiner):    
+class ToolMiner(BaseStreamPromptingMiner):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
-        super().add_args(parser)            
-
+        super().add_args(parser)
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -76,7 +76,6 @@ class ToolMiner(BaseStreamPromptingMiner):
                     [("system", formatted_system_prompt), ("user", "{input}")]
                 )
                 chain = prompt | self.model | StrOutputParser()
-                
 
                 bt.logging.debug(f"💬 Querying openai: {prompt}")
                 response = chain.invoke({"role": role, "input": message})
@@ -103,7 +102,7 @@ class ToolMiner(BaseStreamPromptingMiner):
             if self.config.neuron.stop_on_forward_exception:
                 self.should_exit = True
             return synapse
-      
+
     async def blacklist(self, synapse: PromptingSynapse) -> typing.Tuple[bool, str]:
         return False, "All good here"
 

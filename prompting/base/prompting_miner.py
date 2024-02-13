@@ -18,29 +18,30 @@ import wandb
 import time
 import typing
 import bittensor as bt
+
 # Bittensor Miner Template:
 import prompting
 from prompting.protocol import StreamPromptingSynapse
 from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
 
+
 class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     """
-    Your miner neuron class. You should use this class to define your miner's behavior. 
+    Your miner neuron class. You should use this class to define your miner's behavior.
     In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
 
-    This class inherits from the BaseMinerNeuron class, which in turn inherits from BaseNeuron. 
-    The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc. 
+    This class inherits from the BaseMinerNeuron class, which in turn inherits from BaseNeuron.
+    The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc.
     You can override any of the methods in BaseNeuron if you need to customize the behavior.
 
-    This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. 
+    This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function.
     If you need to define custom
     """
 
     def __init__(self, config=None):
-        super().__init__(config=config)                
+        super().__init__(config=config)
         self.identity_tags = None
-         
 
     async def blacklist(
         self, synapse: StreamPromptingSynapse
@@ -116,34 +117,38 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
             f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority
         )
         return priority
-    
+
     def init_wandb(self):
         bt.logging.info("Initializing wandb...")
-        
+
         uid = f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
         net_uid = f"netuid_{self.config.netuid}"
         tags = [
-            self.wallet.hotkey.ss58_address, 
-            net_uid, 
+            self.wallet.hotkey.ss58_address,
+            net_uid,
             f"uid_{uid}",
             prompting.__version__,
             str(prompting.__spec_version__),
         ]
-        
+
         run_name = None
         if self.identity_tags:
             # Add identity tags to run tags
-            tags += self.identity_tags     
+            tags += self.identity_tags
 
-            # Create run name from identity tags       
-            run_name_tags = [str(tag) for tag in self.identity_tags]            
-            
+            # Create run name from identity tags
+            run_name_tags = [str(tag) for tag in self.identity_tags]
+
             # Add uid, netuid and timestamp to run name
-            run_name_tags += [uid, net_uid, datetime.now().strftime('%Y_%m_%d_%H_%M_%S')]
+            run_name_tags += [
+                uid,
+                net_uid,
+                datetime.now().strftime("%Y_%m_%d_%H_%M_%S"),
+            ]
 
             # Compose run name
-            run_name = '_'.join(run_name_tags)                
-                    
+            run_name = "_".join(run_name_tags)
+
         # inits wandb in case it hasn't been inited yet
         self.wandb_run = wandb.init(
             name=run_name,
@@ -151,13 +156,20 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
             entity=self.config.wandb.entity,
             config=self.config,
             mode="online" if self.config.wandb.on else "offline",
-            tags=tags,                
+            tags=tags,
         )
-    
-    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict = {}):        
+
+    def log_event(
+        self,
+        timing: float,
+        prompt: str,
+        completion: str,
+        system_prompt: str,
+        extra_info: dict = {},
+    ):
         if not getattr(self, "wandb_run", None):
             self.init_wandb()
-        
+
         step_log = {
             "epoch_time": timing,
             # "block": self.last_epoch_block,
@@ -170,8 +182,8 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
             "incentive": self.metagraph.I[self.uid].item(),
             "consensus": self.metagraph.C[self.uid].item(),
             "dividends": self.metagraph.D[self.uid].item(),
-            **extra_info
+            **extra_info,
         }
 
-        bt.logging.info('Logging event to wandb...', step_log)
+        bt.logging.info("Logging event to wandb...", step_log)
         wandb.log(step_log)

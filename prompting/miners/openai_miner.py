@@ -76,32 +76,36 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
         self.accumulated_completion_tokens = 0
         self.accumulated_total_cost = 0
 
-        self.BATCH_SIZE = 12 #Number of tokens to stream at a time.
+        self.BATCH_SIZE = 12  # Number of tokens to stream at a time.
 
-    def forward(self, synapse : StreamPromptingSynapse):
-        def format_send(buffer: List[str], more_body: bool): 
+    def forward(self, synapse: StreamPromptingSynapse):
+        def format_send(buffer: List[str], more_body: bool):
             joined_buffer = "".join(buffer)
             bt.logging.debug(f"Streamed tokens: {joined_buffer}")
             return {
-                    "type": "http.response.body",
-                    "body": joined_buffer.encode("utf-8"),
-                    "more_body": more_body,
-                }
-        
-        async def _forward(batch_size: int, chain: RunnableSequence, chain_formatter: Dict[str,str], send:Send):
-            buffer = [] 
+                "type": "http.response.body",
+                "body": joined_buffer.encode("utf-8"),
+                "more_body": more_body,
+            }
 
-            #Langchain built in streaming. 'astream' also available for async
+        async def _forward(
+            batch_size: int,
+            chain: RunnableSequence,
+            chain_formatter: Dict[str, str],
+            send: Send,
+        ):
+            buffer = []
+
+            # Langchain built in streaming. 'astream' also available for async
             for token in chain.stream(chain_formatter):
-                buffer.append(token) 
+                buffer.append(token)
 
-                if len(buffer) == batch_size: 
-                    await send(format_send(buffer, more_body = True))
+                if len(buffer) == batch_size:
+                    await send(format_send(buffer, more_body=True))
                     buffer = []
 
             if buffer:
                 await send(format_send(buffer, more_body=False))
-
 
         prompt = ChatPromptTemplate.from_messages(
             [("system", self.system_prompt), ("user", "{input}")]

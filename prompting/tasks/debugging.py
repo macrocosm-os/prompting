@@ -68,9 +68,7 @@ def corrupt(
             f"Removing the following {len(indices)} chunks: {[chunks[i] for i in indices]} at indices {indices}"
         )
 
-        return sep.join(
-            [chunk for i, chunk in enumerate(chunks) if i not in indices]
-        )
+        return sep.join([chunk for i, chunk in enumerate(chunks) if i not in indices])
 
     def swap(code, sep=" ", min_length=1, max_length=10):
         """Swap two random chunks in the code. Chunks can be characters, words, or lines."""
@@ -109,9 +107,7 @@ def corrupt(
 
     # spread n corruptions across the code
     for i in range(n_remove):
-        code = remove(
-            code, n=1, sep=sep, min_length=min_length, max_length=max_length
-        )
+        code = remove(code, n=1, sep=sep, min_length=min_length, max_length=max_length)
     for i in range(n_swap):
         code = swap(code, sep=sep, min_length=min_length, max_length=max_length)
 
@@ -120,20 +116,15 @@ def corrupt(
 
 def diff(query, reference):
     """Get the diff between two strings."""
-    return "\n".join(
-        difflib.unified_diff(query.splitlines(), reference.splitlines())
-    )
+    return "\n".join(difflib.unified_diff(query.splitlines(), reference.splitlines()))
 
 
 @dataclass
 class DebuggingTask(Task):
-    reward_definition = [
-        dict(name="diff", lines=False, threshold=0.5, weight=1.0)
-    ]
+    reward_definition = [dict(name="diff", lines=False, threshold=0.5, weight=1.0)]
     penalty_definition = []
 
     def __init__(self, llm_pipeline, context, create_reference=True):
-
         self.name = "debugging"
         self.desc = "get help with debugging"
         self.goal = "ask for help fixing the broken piece of code. When asking for help do not adjust the code in any way."
@@ -146,10 +137,10 @@ class DebuggingTask(Task):
         if create_reference:
             self.reference = self.generate_reference()
 
-        self.delimiter="```"
-        self.topic=self.context["repo_name"]
-        self.subtopic=self.context["path"]
-        self.tags=[self.context["language"]]
+        self.delimiter = "```"
+        self.topic = self.context["repo_name"]
+        self.subtopic = self.context["path"]
+        self.tags = [self.context["language"]]
         self.static_reference = True
         self.static_query = True
 
@@ -179,4 +170,4 @@ class DebuggingTask(Task):
         return self.context["code"]
 
     def format_challenge(self, challenge):
-        return f'{challenge}\n{self.delimiter}\n{self.query}\n{self.delimiter}'
+        return f"{challenge}\n{self.delimiter}\n{self.query}\n{self.delimiter}"

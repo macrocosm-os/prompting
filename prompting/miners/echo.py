@@ -34,17 +34,21 @@ class EchoMiner(BaseStreamPromptingMiner):
         super().__init__(config=config)
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        async def _forward(message:str, send:Send):
-            await send({
+        async def _forward(message: str, send: Send):
+            await send(
+                {
                     "type": "http.response.body",
                     "body": message,
                     "more_body": False,
-                })
+                }
+            )
 
         token_streamer = partial(_forward, synapse.messages[-1])
         return synapse.create_streaming_response(token_streamer)
 
-    async def blacklist(self, synapse: StreamPromptingSynapse) -> typing.Tuple[bool, str]:
+    async def blacklist(
+        self, synapse: StreamPromptingSynapse
+    ) -> typing.Tuple[bool, str]:
         return False, "All good here"
 
     async def priority(self, synapse: StreamPromptingSynapse) -> float:

@@ -31,11 +31,11 @@ class BaseStreamMinerNeuron(BaseNeuron):
     """
     Base class for Bittensor miners.
     """
+
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
-        super().add_args(parser)  
-        add_miner_args(cls, parser)    
-
+        super().add_args(parser)
+        add_miner_args(cls, parser)
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -60,7 +60,7 @@ class BaseStreamMinerNeuron(BaseNeuron):
             blacklist_fn=self.blacklist,
             priority_fn=self.priority,
         )
-        bt.logging.info(f"Axon created: {self.axon}")      
+        bt.logging.info(f"Axon created: {self.axon}")
 
         # Instantiate runners
         self.should_exit: bool = False
@@ -210,9 +210,7 @@ class BaseStreamMinerNeuron(BaseNeuron):
             )
 
         except Exception as e:
-            bt.logging.error(
-                f"Failed to set weights on chain with exception: { e }"
-            )
+            bt.logging.error(f"Failed to set weights on chain with exception: { e }")
 
         bt.logging.info(f"Set weights: {chain_weights}")
 

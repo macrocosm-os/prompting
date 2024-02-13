@@ -8,7 +8,7 @@ from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTyp
 class FloatDiffModel(BaseRewardModel):
     @property
     def name(self) -> str:
-        return 'float_diff'
+        return "float_diff"
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -19,7 +19,7 @@ class FloatDiffModel(BaseRewardModel):
         for word in text.split()[::-1]:
             try:
                 # Convert the string to a float
-                return parse_expr(word.replace('$', ''))
+                return parse_expr(word.replace("$", ""))
             except Exception:
                 continue
 
@@ -33,21 +33,19 @@ class FloatDiffModel(BaseRewardModel):
             return 0.0
 
         try:
-
             # Convert reference to float (this is okay because we already checked that the reference is a float)
             # TODO: More flexible parsing of the reference (just as with the completion)
             ref = float(reference)
             if pred == ref:
-                return 1.0            
+                return 1.0
             # Compute the difference
-            diff = abs(ref - pred)/(ref + 1e-6)
+            diff = abs(ref - pred) / (ref + 1e-6)
             # Make sure the difference is between 0 and 1
             diff = min(abs(diff), 1)
 
             return 1.0 - diff
         except Exception:
             return 0.0
-
 
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
@@ -61,8 +59,10 @@ class FloatDiffModel(BaseRewardModel):
             rewards.append(reward)
 
         output = BatchRewardOutput(
-            rewards = torch.FloatTensor(rewards),
-            timings = torch.FloatTensor(timings),
-            extra_info = {'type': 'math', },
+            rewards=torch.FloatTensor(rewards),
+            timings=torch.FloatTensor(timings),
+            extra_info={
+                "type": "math",
+            },
         )
         return output

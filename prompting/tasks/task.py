@@ -28,7 +28,7 @@ class Task(ABC):
     subtopic: str
     tags: List[str]
     context: dict
-    reward_definition: List[dict] 
+    reward_definition: List[dict]
     penalty_definition: List[dict] = None
     reward_threshold: float = 0.0
     reference: Union[str, List[str]] = ""
@@ -112,4 +112,3 @@ class Task(ABC):
     def format_challenge(self, challenge) -> str:
         """Formats the challenge to be used for the conversation"""
         return challenge
-

@@ -1,6 +1,7 @@
-import bittensor as bt 
+import bittensor as bt
 
-class OpenAIUtils():
+
+class OpenAIUtils:
     def __init__(self) -> None:
         pass
 

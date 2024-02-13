@@ -66,21 +66,20 @@ class AgentMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
         if self.config.use_react_agent:
             self.agent = ReactAgent(
-                self.config.neuron.model_id, 
+                self.config.neuron.model_id,
                 self.config.neuron.temperature,
                 self.config.neuron.max_tokens,
                 self.config.neuron.load_in_8bits,
-                self.config.neuron.load_in_4bits
+                self.config.neuron.load_in_4bits,
             )
         else:
             self.agent = SingleActionAgent(
-                self.config.neuron.model_id, 
+                self.config.neuron.model_id,
                 self.config.neuron.temperature,
                 self.config.neuron.max_tokens,
                 self.config.neuron.load_in_8bits,
-                self.config.neuron.load_in_4bits
+                self.config.neuron.load_in_4bits,
             )
-
 
         self.accumulated_total_tokens = 0
         self.accumulated_prompt_tokens = 0
