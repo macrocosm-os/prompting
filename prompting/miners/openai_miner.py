@@ -37,6 +37,8 @@ from dotenv import load_dotenv, find_dotenv
 from langchain_core.runnables.base import RunnableSequence
 from langchain.callbacks import get_openai_callback
 
+from traceback import print_exception
+
 
 class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.
@@ -107,15 +109,27 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             if buffer:
                 await send(format_send(buffer, more_body=False))
 
-        prompt = ChatPromptTemplate.from_messages(
-            [("system", self.system_prompt), ("user", "{input}")]
-        )
-        chain = prompt | self.model | StrOutputParser()
+        try: 
+            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
-        role = synapse.roles[-1]
-        message = synapse.messages[-1]
+            prompt = ChatPromptTemplate.from_messages(
+                [("system", self.system_prompt), ("user", "{input}")]
+            )
+            chain = prompt | self.model | StrOutputParser()
 
-        chain_formatter = {"role": role, "input": message}
+            role = synapse.roles[-1]
+            message = synapse.messages[-1]
 
-        token_streamer = partial(_forward, self.batch_size, chain, chain_formatter)
-        return synapse.create_streaming_response(token_streamer)
+            chain_formatter = {"role": role, "input": message}
+
+            token_streamer = partial(_forward, self.BATCH_SIZE, chain, chain_formatter)
+            return synapse.create_streaming_response(token_streamer)
+        
+        except Exception as e:
+            bt.logging.error(f"Error in forward: {e}")
+            bt.logging.error(print_exception(value=e))
+            synapse.completion = "Error: " + str(e)
+        finally:
+            if self.config.neuron.stop_on_forward_exception:
+                self.should_exit = True
+            return synapse

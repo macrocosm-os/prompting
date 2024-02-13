@@ -131,16 +131,6 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
                 torch.cuda.empty_cache()
 
-                # TODO: Wandb logging here won't work.
-                # if self.config.wandb.on:
-                #     # TODO: Add system prompt to wandb config and not on every step
-                #     self.log_event(
-                #         timing=synapse_latency,
-                #         prompt=prompt,
-                #         completion=response,
-                #         system_prompt=self.system_prompt,
-                #     )
-
             except Exception as e:
                 bt.logging.error(f"Error: {e}")
                 synapse.completion = "Error: " + str(e)
