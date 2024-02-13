@@ -255,7 +255,7 @@ def add_validator_args(cls, parser):
         type=str,
         nargs="+",
         help="The tasks to use for the validator.",
-        default=["summarization", "qa", "debugging", "math", "date_qa"],
+        default=["summarization", "qa", "date_qa", "debugging", "math"],
     )
 
     parser.add_argument(
