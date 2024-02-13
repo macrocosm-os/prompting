@@ -31,9 +31,9 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 from langchain.callbacks import get_openai_callback
+from prompting.miners.utils import OpenAIUtils
 
-
-class OpenAIMiner(BasePromptingMiner):
+class OpenAIMiner(BasePromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.
 
     You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
@@ -70,28 +70,6 @@ class OpenAIMiner(BasePromptingMiner):
         self.accumulated_prompt_tokens = 0
         self.accumulated_completion_tokens = 0
         self.accumulated_total_cost = 0
-
-    def get_cost_logging(self, cb):
-        bt.logging.info(f"Total Tokens: {cb.total_tokens}")
-        bt.logging.info(f"Prompt Tokens: {cb.prompt_tokens}")
-        bt.logging.info(f"Completion Tokens: {cb.completion_tokens}")
-        bt.logging.info(f"Total Cost (USD): ${round(cb.total_cost,4)}")
-
-        self.accumulated_total_tokens += cb.total_tokens
-        self.accumulated_prompt_tokens += cb.prompt_tokens
-        self.accumulated_completion_tokens += cb.completion_tokens
-        self.accumulated_total_cost += cb.total_cost
-
-        return {
-            "total_tokens": cb.total_tokens,
-            "prompt_tokens": cb.prompt_tokens,
-            "completion_tokens": cb.completion_tokens,
-            "total_cost": cb.total_cost,
-            "accumulated_total_tokens": self.accumulated_total_tokens,
-            "accumulated_prompt_tokens": self.accumulated_prompt_tokens,
-            "accumulated_completion_tokens": self.accumulated_completion_tokens,
-            "accumulated_total_cost": self.accumulated_total_cost,
-        }
 
     async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
         """

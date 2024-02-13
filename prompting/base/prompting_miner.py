@@ -22,10 +22,10 @@ import bittensor as bt
 import prompting
 from prompting.protocol import PromptingSynapse
 # import base miner class which takes care of most of the boilerplate
-from prompting.base.miner import BaseMinerNeuron
+from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
 
-class BaseStreamPromptingMiner(BaseMinerNeuron):
+class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     """
     Your miner neuron class. You should use this class to define your miner's behavior. 
     In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
