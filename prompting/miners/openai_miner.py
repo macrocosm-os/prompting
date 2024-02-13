@@ -16,22 +16,27 @@
 # DEALINGS IN THE SOFTWARE.
 
 import os
-import time
 import bittensor as bt
 import argparse
+from starlette.types import Send
+from functools import partial
+from typing import Dict, List
 
 # Bittensor Miner Template:
+from prompting.base.prompting_miner import BaseStreamPromptingMiner
 from prompting.protocol import StreamPromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
-from prompting.base.prompting_miner import BaseStreamPromptingMiner
+
+from utils import OpenAIUtils
 
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
+from langchain_core.runnables.base import RunnableSequence
 from langchain.callbacks import get_openai_callback
-from prompting.miners.utils import OpenAIUtils
+
 
 class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.
@@ -71,54 +76,42 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
         self.accumulated_completion_tokens = 0
         self.accumulated_total_cost = 0
 
-    async def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        """
-        Processes the incoming synapse by performing a predefined operation on the input data.
-        This method should be replaced with actual logic relevant to the miner's purpose.
+        self.BATCH_SIZE = 12
 
-        Args:
-            synapse (PromptingSynapse): The synapse object containing the 'dummy_input' data.
+    def forward(self, synapse : StreamPromptingSynapse):
+        def format_send(buffer: List[str], more_body: bool): 
+            joined_buffer = "".join(buffer)
+            bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+            return {
+                    "type": "http.response.body",
+                    "body": joined_buffer.encode("utf-8"),
+                    "more_body": more_body,
+                }
+        
+        async def _forward(batch_size: int, chain: RunnableSequence, chain_formatter: Dict[str,str], send:Send):
+            buffer = [] 
 
-        Returns:
-            PromptingSynapse: The synapse object with the 'dummy_output' field set to twice the 'dummy_input' value.
+            #Langchain built in streaming. 'astream' also available for async
+            for token in chain.stream(chain_formatter):
+                buffer.append(token) 
 
-        The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
-        the miner's intended operation. This method demonstrates a basic transformation of input data.
-        """
-        try:
-            with get_openai_callback() as cb:
-                t0 = time.time()
-                bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+                if len(buffer) == batch_size: 
+                    await send(format_send(buffer, more_body = True))
+                    buffer = []
 
-                prompt = ChatPromptTemplate.from_messages(
-                    [("system", self.system_prompt), ("user", "{input}")]
-                )
-                chain = prompt | self.model | StrOutputParser()
+            if buffer:
+                await send(format_send(buffer, more_body=False))
 
-                role = synapse.roles[-1]
-                message = synapse.messages[-1]
 
-                bt.logging.debug(f"💬 Querying openai: {prompt}")
-                response = chain.invoke({"role": role, "input": message})
+        prompt = ChatPromptTemplate.from_messages(
+            [("system", self.system_prompt), ("user", "{input}")]
+        )
+        chain = prompt | self.model | StrOutputParser()
 
-                synapse.completion = response
-                synapse_latency = time.time() - t0
+        role = synapse.roles[-1]
+        message = synapse.messages[-1]
 
-                if self.config.wandb.on:
-                    self.log_event(
-                        timing=synapse_latency,
-                        prompt=message,
-                        completion=response,
-                        system_prompt=self.system_prompt,
-                        extra_info=self.get_cost_logging(cb),
-                    )
+        chain_formatter = {"role": role, "input": message}
 
-            bt.logging.debug(f"✅ Served Response: {response}")
-            return synapse
-        except Exception as e:
-            bt.logging.error(f"Error in forward: {e}")
-            synapse.completion = "Error: " + str(e)
-        finally:
-            if self.config.neuron.stop_on_forward_exception:
-                self.should_exit = True
-            return synapse
+        token_streamer = partial(_forward, self.batch_size, chain, chain_formatter)
+        return synapse.create_streaming_response(token_streamer)
