@@ -348,17 +348,17 @@ def add_validator_args(cls, parser):
 
 
     parser.add_argument(
-        "--neuron.query_unique_coldkeys",
-        action="store_true",
-        help="Only query a single hotkey per coldkey.",
-        default=False,
+        "--neuron.unique_coldkey_prob",
+        type=float,
+        help="Probability of querying a given coldkey only once per step.",
+        default=0.9,
         )
 
     parser.add_argument(
-        "--neuron.query_unique_ips",
-        action="store_true",
-        help="Only query a single hotkey per ip.",
-        default=False,
+        "--neuron.unique_ip_prob",
+        type=float,
+        help="Probability of querying a given ip only once per step.",
+        default=0.9,
         )
 
 def config(cls):

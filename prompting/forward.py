@@ -56,7 +56,7 @@ async def run_step(
     # Record event start time.
     start_time = time.time()
     # Get the list of uids to query for this step.
-    uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
+    uids = get_random_uids(self, exclude=exclude or []).to(self.device)
     axons = [self.metagraph.axons[uid] for uid in uids]
 
     # Make calls to the network with the prompt.
