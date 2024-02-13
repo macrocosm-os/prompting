@@ -24,7 +24,6 @@ from prompting.forward import forward
 from prompting.llm import load_pipeline
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.rewards import RewardPipeline
-from prompting.utils.uids import check_uid_availability
 
 class Validator(BaseValidatorNeuron):
     """
@@ -43,31 +42,32 @@ class Validator(BaseValidatorNeuron):
             device=self.device,
             mock=self.config.mock,
         )
+        # Validate the tasks
+        self._parse_tasks()
+        # Load the reward pipeline
+        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
+
+    def _parse_tasks(self):
+        """Parses the tasks and their probabilities from the configuration."""
 
         if sum(self.config.neuron.task_p) != 1:
             raise ValueError("Task probabilities do not sum to 1.")
 
+        self.transition_probs = {
+            "qa":   [0.6, 0.35, 0.15, 0.0, 0.0],
+            "summarization": [0.65, 0.3, 0.05, 0.0, 0.0],
+            "date_qa": [0.4, 0.2, 0.4, 0.0, 0.0],
+            "debugging": [0.3, 0.2, 0.0, 0.5, 0.0],
+            "math": [0.3, 0.2, 0.0, 0.0, 0.5],
+        }
+        # ensure that the cli tasks are in the same order as expected
+        order_indices = [list(self.transition_probs.keys()).index(task) for task in self.config.neuron.tasks]
+        self.config.neuron.tasks = tasks = [self.config.neuron.tasks[i] for i in order_indices]
+        self.config.neuron.task_p = probs = [self.config.neuron.task_p[i] for i in order_indices]
+
         # Filter out tasks with 0 probability
-        self.active_tasks = [
-            task
-            for task, p in zip(
-                self.config.neuron.tasks, self.config.neuron.task_p
-            )
-            if p > 0
-        ]
-        # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
+        self.active_tasks = [task for task, prob in zip(tasks, probs) if prob > 0]
 
-        self.transition_probs =  [
-            [0.6, 0.35, 0.15, 0.0, 0.0],  # QA
-            [0.65, 0.3, 0.05, 0.0, 0.0],  # Summarization
-            [0.4, 0.2, 0.4, 0.0, 0.0],  # DateQA
-            [0.3, 0.2, 0.0, 0.5, 0.0],  # Debugging
-            [0.3, 0.2, 0.0, 0.0, 0.5],  # Mathematics
-        ]
-
-        for i, axon in enumerate(self.metagraph.axons):
-            check_uid_availability(self.metagraph, i, self.config.neuron.vpermit_tao_limit)
 
     async def forward(self):
         """
