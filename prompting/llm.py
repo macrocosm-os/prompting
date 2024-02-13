@@ -16,17 +16,26 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import torch
+
 from typing import List, Dict
 import bittensor as bt
-
-from transformers import Pipeline, pipeline
+ 
+from transformers import Pipeline, pipeline, AutoTokenizer, TextIteratorStreamer
 from prompting.mock import MockPipeline
 
 from prompting.cleaners.cleaner import CleanerPipeline
 
+# Some models don't use the same name for the tokenizer.
+TOKENIZER_MAPPINGS = {"HuggingFaceH4/zephyr-7b-beta": "HuggingFaceH4/zephyr-7b-beta"}
 
-def load_pipeline(model_id, device=None, mock=False, model_kwargs:dict = None):
+
+def load_pipeline(
+    model_id: str,
+    device=None,
+    torch_dtype=None,
+    mock=False,
+    model_kwargs: dict = None,
+):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
 
     if mock or model_id == "mock":
@@ -34,19 +43,32 @@ def load_pipeline(model_id, device=None, mock=False, model_kwargs:dict = None):
 
     if not device.startswith("cuda"):
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
-    
-    # Sets default model torch type in case is not defined
-    if model_kwargs is None:
-        model_kwargs = dict(torch_dtype=torch.bfloat16)
-    
-    llm_pipeline = pipeline(
-        "text-generation",
-        model=model_id,
-        device_map=device,
-        model_kwargs=model_kwargs
-    )
 
-    return llm_pipeline
+    tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_MAPPINGS[model_id]) if model_id in TOKENIZER_MAPPINGS else None
+    streamer = TextIteratorStreamer(tokenizer=tokenizer)
+
+    # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
+    if model_kwargs is None:
+        llm_pipeline = pipeline(
+            "text-generation",
+            model=model_id,
+            tokenizer=tokenizer,
+            device=device,
+            torch_dtype=torch_dtype,
+            streamer=streamer,
+        )
+    else:
+        llm_pipeline = pipeline(
+            "text-generation",
+            model=model_id,
+            tokenizer=tokenizer,
+            device_map=device,
+            model_kwargs=model_kwargs,
+            streamer=streamer,
+        )
+
+    return llm_pipeline, streamer
+
 
 
 class HuggingFaceLLM:

@@ -21,10 +21,10 @@ import bittensor as bt
 import argparse
 
 # Bittensor Miner Template:
-from prompting.protocol import PromptingSynapse
+from prompting.protocol import StreamPromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
-from prompting.base.prompting_miner import BasePromptingMiner
+from prompting.base.prompting_miner import BaseStreamPromptingMiner
 
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -33,7 +33,7 @@ from dotenv import load_dotenv, find_dotenv
 from langchain.callbacks import get_openai_callback
 from prompting.miners.utils import OpenAIUtils
 
-class OpenAIMiner(BasePromptingMiner, OpenAIUtils):
+class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.
 
     You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
@@ -71,7 +71,7 @@ class OpenAIMiner(BasePromptingMiner, OpenAIUtils):
         self.accumulated_completion_tokens = 0
         self.accumulated_total_cost = 0
 
-    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
+    async def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         """
         Processes the incoming synapse by performing a predefined operation on the input data.
         This method should be replaced with actual logic relevant to the miner's purpose.

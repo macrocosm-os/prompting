@@ -20,8 +20,7 @@ import typing
 import bittensor as bt
 # Bittensor Miner Template:
 import prompting
-from prompting.protocol import PromptingSynapse
-# import base miner class which takes care of most of the boilerplate
+from prompting.protocol import StreamPromptingSynapse
 from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
 
@@ -44,7 +43,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
          
 
     async def blacklist(
-        self, synapse: PromptingSynapse
+        self, synapse: StreamPromptingSynapse
     ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
@@ -55,7 +54,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         requests before they are deserialized to avoid wasting resources on requests that will be ignored.
 
         Args:
-            synapse (PromptingSynapse): A synapse object constructed from the headers of the incoming request.
+            synapse (StreamPromptingSynapse): A synapse object constructed from the headers of the incoming request.
 
         Returns:
             Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
@@ -87,7 +86,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def priority(self, synapse: PromptingSynapse) -> float:
+    async def priority(self, synapse: StreamPromptingSynapse) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -95,7 +94,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
 
         Args:
-            synapse (PromptingSynapse): The synapse object that contains metadata about the incoming request.
+            synapse (StreamPromptingSynapse): The synapse object that contains metadata about the incoming request.
 
         Returns:
             float: A priority score derived from the stake of the calling entity.
@@ -110,13 +109,13 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         caller_uid = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
         )  # Get the caller index.
-        prirority = float(
+        priority = float(
             self.metagraph.S[caller_uid]
         )  # Return the stake as the priority.
         bt.logging.trace(
-            f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
+            f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority
         )
-        return prirority
+        return priority
     
     def init_wandb(self):
         bt.logging.info("Initializing wandb...")

@@ -23,14 +23,14 @@ import argparse
 from prompting.protocol import StreamPromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
-from prompting.base.prompting_miner import BasePromptingMiner
+from prompting.base.prompting_miner import BaseStreamPromptingMiner
 from dotenv import load_dotenv, find_dotenv
 from prompting.miners.agents import SingleActionAgent, ReactAgent
 from langchain.callbacks import get_openai_callback
 from prompting.miners.utils import OpenAIUtils
 
 
-class AgentMiner(BasePromptingMiner, OpenAIUtils):
+class AgentMiner(BaseStreamPromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM. This uses the ReAct framework.
 
     You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
