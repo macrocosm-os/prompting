@@ -109,7 +109,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             if buffer:
                 await send(format_send(buffer, more_body=False))
 
-        try: 
+        try:
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
             prompt = ChatPromptTemplate.from_messages(
@@ -124,7 +124,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
             token_streamer = partial(_forward, self.BATCH_SIZE, chain, chain_formatter)
             return synapse.create_streaming_response(token_streamer)
-        
+
         except Exception as e:
             bt.logging.error(f"Error in forward: {e}")
             bt.logging.error(print_exception(value=e))

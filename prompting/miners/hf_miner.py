@@ -21,6 +21,7 @@ import bittensor as bt
 from functools import partial
 from threading import Thread
 from starlette.types import Send
+from typing import Dict, List
 
 # Bittensor Miner Template:
 from prompting.protocol import StreamPromptingSynapse
@@ -91,6 +92,15 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         self.system_prompt = self.config.neuron.system_prompt
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        def format_send(buffer: List[str], more_body: bool):
+            joined_buffer = "".join(buffer)
+            bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+            return {
+                "type": "http.response.body",
+                "body": joined_buffer.encode("utf-8"),
+                "more_body": more_body,
+            }
+
         async def _forward(batch_size: int, streamer: TextIteratorStreamer, send: Send):
             """
             TextIteratorStreamer: stores print-ready text in a queue, to be used by a downstream application as an iterator.
@@ -104,30 +114,11 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                     buffer.append(token)
 
                     if len(buffer) == batch_size:
-                        joined_buffer = "".join(buffer)
-
-                        bt.logging.debug(f"Streamed tokens: {joined_buffer}")
-
-                        await send(
-                            {
-                                "type": "http.response.body",
-                                "body": joined_buffer.encode("utf-8"),
-                                "more_body": True,
-                            }
-                        )
-
-                        buffer = []  # Clearing the buffer.
+                        await send(format_send(buffer, more_body=True))
+                        buffer = []
 
                 if buffer:
-                    joined_buffer = "".join(buffer)
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": joined_buffer.encode("utf-8"),
-                            "more_body": False,
-                        }
-                    )
-                    bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                    await send(format_send(buffer, more_body=False))
 
                 torch.cuda.empty_cache()
 

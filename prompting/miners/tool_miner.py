@@ -24,7 +24,6 @@ from traceback import print_exception
 from langchain_core.runnables.base import RunnableSequence
 
 
-
 class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
@@ -105,13 +104,13 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
             role = synapse.roles[-1]
             message = synapse.messages[-1]
 
-            formatted_system_prompt = self.format_system_prompt(message = message)
+            formatted_system_prompt = self.format_system_prompt(message=message)
 
             prompt = ChatPromptTemplate.from_messages(
                 [("system", formatted_system_prompt), ("user", "{input}")]
             )
             chain = prompt | self.model | StrOutputParser()
-            chain_formatter = {"role": role, "input": message}                
+            chain_formatter = {"role": role, "input": message}
 
             token_streamer = partial(_forward, self.BATCH_SIZE, chain, chain_formatter)
             return synapse.create_streaming_response(token_streamer)
@@ -125,9 +124,10 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
                 self.should_exit = True
             return synapse
 
-    async def blacklist(self, synapse: StreamPromptingSynapse) -> typing.Tuple[bool, str]:
+    async def blacklist(
+        self, synapse: StreamPromptingSynapse
+    ) -> typing.Tuple[bool, str]:
         return False, "All good here"
 
     async def priority(self, synapse: StreamPromptingSynapse) -> float:
         return 1e6
-    
