@@ -30,6 +30,7 @@ from langchain.callbacks import get_openai_callback
 from prompting.miners.utils import OpenAIUtils
 
 
+# TODO: Fix AgentMiner
 class AgentMiner(BaseStreamPromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM. This uses the ReAct framework.
 
