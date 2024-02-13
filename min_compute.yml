@@ -22,12 +22,12 @@ compute_spec:
 
     gpu:
       required: True                       # Does the application require a GPU?
-      min_vram: 18                         # Minimum GPU VRAM (GB)
+      min_vram: 20                         # Minimum GPU VRAM (GB)
       recommended_vram: 24                 # Recommended GPU VRAM (GB)
       cuda_cores: 1024                     # Minimum number of CUDA cores (if applicable)
       min_compute_capability: 6.0          # Minimum CUDA compute capability
       recommended_compute_capability: 7.0  # Recommended CUDA compute capability
-      recommended_gpu: "NVIDIA A100"       # Recommended GPU to purchase/rent
+      recommended_gpu: "NVIDIA A10"       # Recommended GPU to purchase/rent
 
     memory:
       min_ram: 16          # Minimum RAM (GB)
@@ -62,7 +62,7 @@ compute_spec:
       cuda_cores: 1024                     # Minimum number of CUDA cores (if applicable)
       min_compute_capability: 6.0          # Minimum CUDA compute capability
       recommended_compute_capability: 7.0  # Recommended CUDA compute capability
-      recommended_gpu: "NVIDIA A100"       # Recommended GPU to purchase/rent
+      recommended_gpu: "NVIDIA A10"       # Recommended GPU to purchase/rent
 
     memory:
       min_ram: 16          # Minimum RAM (GB)
