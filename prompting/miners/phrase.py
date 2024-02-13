@@ -24,10 +24,10 @@ from starlette.types import Send
 from prompting.protocol import StreamPromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
-from prompting.base.prompting_miner import BasePromptingMiner
+from prompting.base.prompting_miner import BaseStreamPromptingMiner
 
 
-class PhraseMiner(BasePromptingMiner):
+class PhraseMiner(BaseStreamPromptingMiner):
     """
     This little fella responds with whatever phrase you give it.
     """

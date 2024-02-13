@@ -8,7 +8,7 @@ import time
 from prompting.protocol import PromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
-from prompting.base.prompting_miner import BasePromptingMiner
+from prompting.base.prompting_miner import BaseStreamPromptingMiner
 from langchain.chat_models import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 from langchain.callbacks import get_openai_callback
@@ -17,7 +17,7 @@ from langchain_core.output_parsers import StrOutputParser
 from traceback import print_exception
 
 
-class ToolMiner(BasePromptingMiner):    
+class ToolMiner(BaseStreamPromptingMiner):    
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         super().add_args(parser)            

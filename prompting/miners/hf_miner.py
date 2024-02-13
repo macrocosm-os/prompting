@@ -73,6 +73,8 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             elif self.config.neuron.load_in_4bit:
                 self.identity_tags += ("4bit_quantization",)
 
+        self.BATCH_SIZE = 12 #Number of tokens to stream at a time.
+
         # Forces model loading behaviour over mock flag
         mock = (
             False if self.config.neuron.should_force_model_loading else self.config.mock
@@ -88,8 +90,8 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         self.model_id = self.config.neuron.model_id
         self.system_prompt = self.config.neuron.system_prompt
 
-    def prompt(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        async def _prompt(streamer: TextIteratorStreamer, send: Send):
+    def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        async def _forward(batch_size: int, streamer: TextIteratorStreamer, send: Send):
             """
             TextIteratorStreamer: stores print-ready text in a queue, to be used by a downstream application as an iterator. 
             """
@@ -97,12 +99,11 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                 bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
                 buffer = [] 
-                BATCH_SIZE = 12 #TODO: Is there somewhere global we can put this? 
 
                 for token in streamer: 
                     buffer.append(token) 
 
-                    if len(buffer) == BATCH_SIZE: 
+                    if len(buffer) == batch_size: 
                         joined_buffer = "".join(buffer)
 
                         bt.logging.debug(f"Streamed tokens: {joined_buffer}")
@@ -167,7 +168,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         thread.start() 
 
         bt.logging.debug(f"💬 Querying zephyr: {prompt}")
-        token_streamer = partial(_prompt, self.streamer)
+        token_streamer = partial(_forward, self.BATCH_SIZE, self.streamer)
 
         return synapse.create_streaming_response(token_streamer)
 

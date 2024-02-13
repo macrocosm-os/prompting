@@ -76,7 +76,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
         self.accumulated_completion_tokens = 0
         self.accumulated_total_cost = 0
 
-        self.BATCH_SIZE = 12
+        self.BATCH_SIZE = 12 #Number of tokens to stream at a time.
 
     def forward(self, synapse : StreamPromptingSynapse):
         def format_send(buffer: List[str], more_body: bool): 
