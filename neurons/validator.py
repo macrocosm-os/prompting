@@ -58,6 +58,14 @@ class Validator(BaseValidatorNeuron):
         # Load the reward pipeline
         self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
 
+        self.transition_probs =  [
+            [0.6, 0.35, 0.15, 0.0, 0.0],  # QA
+            [0.65, 0.3, 0.05, 0.0, 0.0],  # Summarization
+            [0.4, 0.2, 0.4, 0.0, 0.0],  # DateQA
+            [0.3, 0.2, 0.0, 0.5, 0.0],  # Debugging
+            [0.3, 0.2, 0.0, 0.0, 0.5],  # Mathematics
+        ]
+
         for i, axon in enumerate(self.metagraph.axons):
             check_uid_availability(self.metagraph, i, self.config.neuron.vpermit_tao_limit)
 
@@ -112,4 +120,4 @@ if __name__ == "__main__":
             if validator.should_exit:
                 bt.logging.warning("Ending validator...")
                 break
-            
+
