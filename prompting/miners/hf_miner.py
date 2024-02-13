@@ -15,21 +15,24 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import time
 import torch
 import argparse
 import bittensor as bt
+from functools import partial
+from threading import Thread
+from starlette.types import Send
 
 # Bittensor Miner Template:
-from prompting.protocol import PromptingSynapse
+from prompting.protocol import StreamPromptingSynapse
 from prompting.llm import load_pipeline
 from prompting.llm import HuggingFaceLLM
 
 # import base miner class which takes care of most of the boilerplate
-from prompting.base.prompting_miner import BasePromptingMiner
+from prompting.base.prompting_miner import BaseStreamPromptingMiner
+from transformers import TextIteratorStreamer
 
 
-class HuggingFaceMiner(BasePromptingMiner):
+class HuggingFaceMiner(BaseStreamPromptingMiner):
     """
     Base 🤗 Hugging Face miner, integrated with hf pipeline.
     To run this miner from the project root directory:
@@ -75,7 +78,7 @@ class HuggingFaceMiner(BasePromptingMiner):
             False if self.config.neuron.should_force_model_loading else self.config.mock
         )
 
-        self.llm_pipeline = load_pipeline(
+        self.llm_pipeline, self.streamer = load_pipeline(
             model_id=self.config.neuron.model_id,
             device=self.device,
             mock=mock,
@@ -85,62 +88,86 @@ class HuggingFaceMiner(BasePromptingMiner):
         self.model_id = self.config.neuron.model_id
         self.system_prompt = self.config.neuron.system_prompt
 
-    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
-        """
-        Processes the incoming synapse by performing a predefined operation on the input data.
-        This method should be replaced with actual logic relevant to the miner's purpose.
+    def prompt(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        async def _prompt(streamer: TextIteratorStreamer, send: Send):
+            """
+            TextIteratorStreamer: stores print-ready text in a queue, to be used by a downstream application as an iterator. 
+            """
+            try:
+                bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
-        Args:
-            synapse (PromptingSynapse): The synapse object containing the 'dummy_input' data.
+                buffer = [] 
+                BATCH_SIZE = 12 #TODO: Is there somewhere global we can put this? 
 
-        Returns:
-            PromptingSynapse: The synapse object with the 'dummy_output' field set to twice the 'dummy_input' value.
+                for token in streamer: 
+                    buffer.append(token) 
 
-        The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
-        the miner's intended operation. This method demonstrates a basic transformation of input data.
-        """
+                    if len(buffer) == BATCH_SIZE: 
+                        joined_buffer = "".join(buffer)
 
-        try:
-            t0 = time.time()
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+                        bt.logging.debug(f"Streamed tokens: {joined_buffer}")
 
-            prompt = synapse.messages[-1]
-            bt.logging.debug(f"💬 Querying {self.model_id}: {prompt}")
+                        await send(
+                            {
+                                "type": "http.response.body",
+                                "body": joined_buffer.encode("utf-8"),
+                                "more_body": True,
+                            }
+                        )
+                    
+                        buffer = [] #Clearing the buffer. 
 
-            response = HuggingFaceLLM(
-                llm_pipeline=self.llm_pipeline,
-                system_prompt=self.system_prompt,
-                max_new_tokens=self.config.neuron.max_tokens,
-                do_sample=self.config.neuron.do_sample,
-                temperature=self.config.neuron.temperature,
-                top_k=self.config.neuron.top_k,
-                top_p=self.config.neuron.top_p,
-            ).query(
-                message=prompt,  # For now we just take the last message
-                role="user",
-                disregard_system_prompt=False,
-            )
+                if buffer:
+                    joined_buffer = "".join(buffer)
+                    await send(
+                        {
+                            "type": "http.response.body",
+                            "body": joined_buffer.encode("utf-8"),
+                            "more_body": False,
+                        }
+                    )
+                    bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                
+                torch.cuda.empty_cache()
+            
 
-            synapse.completion = response
-            synapse_latency = time.time() - t0
 
-            if self.config.wandb.on:
-                # TODO: Add system prompt to wandb config and not on every step
-                self.log_event(
-                    timing=synapse_latency,
-                    prompt=prompt,
-                    completion=response,
-                    system_prompt=self.system_prompt,
-                )
+                #TODO: Wandb logging here won't work. 
+                # if self.config.wandb.on:
+                #     # TODO: Add system prompt to wandb config and not on every step
+                #     self.log_event(
+                #         timing=synapse_latency,
+                #         prompt=prompt,
+                #         completion=response,
+                #         system_prompt=self.system_prompt,
+                #     )
 
-            bt.logging.debug(f"✅ Served Response: {response}")
-            torch.cuda.empty_cache()
+            except Exception as e:
+                bt.logging.error(f"Error: {e}")
+                synapse.completion = "Error: " + str(e)
+            finally:
+                if self.config.neuron.stop_on_forward_exception:
+                    self.should_exit = True
+                return synapse
 
-        except Exception as e:
-            bt.logging.error(f"Error: {e}")
-            synapse.completion = "Error: " + str(e)
-        finally:
-            if self.config.neuron.stop_on_forward_exception:
-                self.should_exit = True
-            return synapse
+        prompt = synapse.messages[-1]
+
+        #TODO: is there a way to close this thread? Not sure if this is hanging or not. 
+        #Create an async thread to generate the data in parallel to the streamer. 
+        thread = Thread(target = HuggingFaceLLM(
+            llm_pipeline=self.llm_pipeline,
+            system_prompt=self.system_prompt,
+            max_new_tokens=self.config.neuron.max_tokens,
+            do_sample=self.config.neuron.do_sample,
+            temperature=self.config.neuron.temperature,
+            top_k=self.config.neuron.top_k,
+            top_p=self.config.neuron.top_p,
+        ).query, kwargs=dict(message = prompt, role = "user",  disregard_system_prompt=False))
+
+        thread.start() 
+
+        bt.logging.debug(f"💬 Querying zephyr: {prompt}")
+        token_streamer = partial(_prompt, self.streamer)
+
+        return synapse.create_streaming_response(token_streamer)
 
