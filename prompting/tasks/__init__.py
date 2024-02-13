@@ -8,9 +8,9 @@ from .math import MathTask
 
 
 TASKS = {
-    "debugging": DebuggingTask,
-    "summarization": SummarizationTask,
     "qa": QuestionAnsweringTask,
-    "math": MathTask,
+    "summarization": SummarizationTask,
     "date_qa": DateQuestionAnsweringTask,
+    "debugging": DebuggingTask,
+    "math": MathTask,
 }
