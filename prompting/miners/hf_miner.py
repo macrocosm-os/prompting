@@ -143,4 +143,3 @@ class HuggingFaceMiner(BasePromptingMiner):
             if self.config.neuron.stop_on_forward_exception:
                 self.should_exit = True
             return synapse
-

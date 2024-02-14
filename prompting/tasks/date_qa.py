@@ -11,8 +11,6 @@ class DateQuestionAnsweringTask(Task):
     penalty_definition = []
 
     def __init__(self, llm_pipeline, context, create_reference=True):
-
-
         self.name = "date-based question answering"
         self.desc = "get help answering a specific date-based question"
         self.goal = "to get the answer to the following date-based question"
@@ -28,9 +26,9 @@ class DateQuestionAnsweringTask(Task):
         year, _, *event = self.context["event"].split()
         event = " ".join(event)
 
-        options = {'Births':' was born ', 'Deaths':' died ', 'Events':' '}
+        options = {"Births": " was born ", "Deaths": " died ", "Events": " "}
 
-        self.query = event.strip(".") + options[section] + 'on what exact date?'
+        self.query = event.strip(".") + options[section] + "on what exact date?"
         self.reference = self.context["date"] + ", " + year.strip()
 
         self.topic = section
@@ -38,4 +36,3 @@ class DateQuestionAnsweringTask(Task):
         self.tags = []
         self.static_reference = True
         self.static_query = True
-

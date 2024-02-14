@@ -26,17 +26,13 @@ Summarize the following context in a concise and accurate manner:
 
 @dataclass
 class SummarizationTask(Task):
-    
     reward_definition = [
         dict(name="rouge", ngram="rouge-l", metric="f", weight=0.5),
         dict(name="relevance", threshold=None, weight=0.5),
     ]
-    penalty_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=1.0)
-    ]
+    penalty_definition = [dict(name="rouge", ngram="rouge-1", metric="f", weight=1.0)]
 
     def __init__(self, llm_pipeline: Pipeline, context: str, create_reference=True):
-
         self.name = "summarization"
         self.desc = "get help with summarization"
         self.goal = "summarize the following topic"
@@ -64,7 +60,7 @@ class SummarizationTask(Task):
 
         self.reference_system_prompt = SUMMARIZATION_SYSTEM_PROMPT
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
-            context = self.context["text"]
+            context=self.context["text"]
         )
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
@@ -73,4 +69,3 @@ class SummarizationTask(Task):
         self.subtopic = self.context["categories"][0]
         self.tags = self.context["categories"]
         self.static_query = True
-
