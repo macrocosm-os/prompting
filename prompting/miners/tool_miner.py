@@ -9,6 +9,7 @@ from typing import Dict, List
 
 from starlette.types import Send
 
+
 # Bittensor Miner Template:
 from prompting.protocol import StreamPromptingSynapse
 
