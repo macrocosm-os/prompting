@@ -22,11 +22,10 @@ Steps:
 async def handle_response(uid: str, responses: List[Awaitable]) -> tuple[str, str]:
     full_response = ""
     ii = 0
-    pdb.set_trace(header="\nCheck chunk")
     for resp in responses:
         # pdb.set_trace(header="inside handle_response")
         async for chunk in resp:
-            # print(f"\nchunk for resp {ii}: {chunk}", end="", flush=True)
+            print(f"\nchunk for resp {ii}: {chunk}", end="", flush=True)
             # pdb.set_trace(header="\nCheck chunk")
 
             ii += 1 

@@ -83,15 +83,6 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
         self.BATCH_SIZE = 12  # Number of tokens to stream at a time.
 
     def forward(self, synapse: StreamPromptingSynapse):
-        def format_send(buffer: List[str], more_body: bool):
-            joined_buffer = "".join(buffer)
-            bt.logging.debug(f"Streamed tokens: {joined_buffer}")
-            return {
-                "type": "http.response.body",
-                "body": joined_buffer.encode("utf-8"),
-                "more_body": more_body,
-            }
-
         async def _forward(
             batch_size: int,
             chain: RunnableSequence,
@@ -101,16 +92,30 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             buffer = []
 
             # Langchain built in streaming. 'astream' also available for async
-            pdb.set_trace(header="\nInside of buffer condition\n")
             for token in chain.stream(chain_formatter):
                 buffer.append(token)
 
                 if len(buffer) == batch_size:
-                    await send(format_send(buffer, more_body=True))
+                    joined_buffer = "".join(buffer)
+                    bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                    await send(
+                        {
+                            "type": "http.response.body",
+                            "body": joined_buffer.encode("utf-8"),
+                            "more_body": True,
+                        }
+                    )
                     buffer = []
 
             if buffer:
-                await send(format_send(buffer, more_body=False))
+                joined_buffer = "".join(buffer)
+                await send(
+                    {
+                        "type": "http.response.body",
+                        "body": joined_buffer.encode("utf-8"),
+                        "more_body": False,
+                    }
+                )
 
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
@@ -124,6 +129,5 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
         chain_formatter = {"role": role, "input": message}
 
-        pdb.set_trace(header="\nBefore token_streamer\n")
         token_streamer = partial(_forward, self.BATCH_SIZE, chain, chain_formatter)
         return synapse.create_streaming_response(token_streamer)
