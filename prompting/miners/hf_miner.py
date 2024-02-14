@@ -146,7 +146,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
         thread.start()
 
-        bt.logging.debug(f"💬 Querying zephyr: {prompt}")
+        bt.logging.debug(f"💬 Querying hf-miner: {prompt}")
         token_streamer = partial(_forward, self.BATCH_SIZE, self.streamer)
 
         return synapse.create_streaming_response(token_streamer)

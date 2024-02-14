@@ -54,7 +54,10 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
         {context}
         """
 
+        self.BATCH_SIZE = 12
+
     def format_system_prompt(self, message: str) -> str:
+        bt.logging.debug(f"💬 Searching for wikipedia context...")
         # Message needs to be limited to 300 characters for wikipedia search, otherwise it will a return an error
         matches = wikipedia.search(message[:300])
 
@@ -67,7 +70,11 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
             if len(context) > 12_000:
                 context = context[:12_000]
 
+            bt.logging.debug(f"💬 Wiki context found: {context}")
+
             return self.system_prompt.format(context=context)
+        
+        bt.logging.debug(f"❌ No Wiki context found")
         return self.config.neuron.system_prompt
 
     def forward(self, synapse: StreamPromptingSynapse):
