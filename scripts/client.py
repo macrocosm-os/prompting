@@ -23,11 +23,8 @@ async def handle_response(uid: str, responses: List[Awaitable]) -> tuple[str, st
     full_response = ""
     ii = 0
     for resp in responses:
-        # pdb.set_trace(header="inside handle_response")
         async for chunk in resp:
-            print(f"\nchunk for resp {ii}: {chunk}", end="", flush=True)
-            # pdb.set_trace(header="\nCheck chunk")
-
+            print(f"\nchunk {ii} for resp: {chunk}", end="", flush=True)
             ii += 1 
 
         synapse = (
@@ -68,7 +65,7 @@ async def query_stream_miner(
                 [metagraph.axons[uid]],
                 syn,
                 deserialize=False,
-                timeout=20,
+                timeout=2,
                 streaming=True,
             )
             # return responses
