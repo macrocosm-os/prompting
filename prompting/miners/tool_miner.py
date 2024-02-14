@@ -70,15 +70,6 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
         return self.config.neuron.system_prompt
 
     def forward(self, synapse: StreamPromptingSynapse):
-        def format_send(buffer: List[str], more_body: bool):
-            joined_buffer = "".join(buffer)
-            bt.logging.debug(f"Streamed tokens: {joined_buffer}")
-            return {
-                "type": "http.response.body",
-                "body": joined_buffer.encode("utf-8"),
-                "more_body": more_body,
-            }
-
         async def _forward(
             batch_size: int,
             chain: RunnableSequence,
@@ -92,37 +83,42 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
                 buffer.append(token)
 
                 if len(buffer) == batch_size:
-                    await send(format_send(buffer, more_body=True))
+                    joined_buffer = "".join(buffer)
+                    bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                    await send(
+                        {
+                            "type": "http.response.body",
+                            "body": joined_buffer.encode("utf-8"),
+                            "more_body": True,
+                        }
+                    )
                     buffer = []
 
             if buffer:
-                await send(format_send(buffer, more_body=False))
+                joined_buffer = "".join(buffer)
+                await send(
+                    {
+                        "type": "http.response.body",
+                        "body": joined_buffer.encode("utf-8"),
+                        "more_body": False,
+                    }
+                )
 
-        try:
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+        bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
-            role = synapse.roles[-1]
-            message = synapse.messages[-1]
+        role = synapse.roles[-1]
+        message = synapse.messages[-1]
 
-            formatted_system_prompt = self.format_system_prompt(message=message)
+        formatted_system_prompt = self.format_system_prompt(message=message)
 
-            prompt = ChatPromptTemplate.from_messages(
-                [("system", formatted_system_prompt), ("user", "{input}")]
-            )
-            chain = prompt | self.model | StrOutputParser()
-            chain_formatter = {"role": role, "input": message}
+        prompt = ChatPromptTemplate.from_messages(
+            [("system", formatted_system_prompt), ("user", "{input}")]
+        )
+        chain = prompt | self.model | StrOutputParser()
+        chain_formatter = {"role": role, "input": message}
 
-            token_streamer = partial(_forward, self.BATCH_SIZE, chain, chain_formatter)
-            return synapse.create_streaming_response(token_streamer)
-
-        except Exception as e:
-            bt.logging.error(f"Error in forward: {e}")
-            bt.logging.error(print_exception(value=e))
-            synapse.completion = "Error: " + str(e)
-        finally:
-            if self.config.neuron.stop_on_forward_exception:
-                self.should_exit = True
-            return synapse
+        token_streamer = partial(_forward, self.BATCH_SIZE, chain, chain_formatter)
+        return synapse.create_streaming_response(token_streamer)
 
     async def blacklist(
         self, synapse: StreamPromptingSynapse
