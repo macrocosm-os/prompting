@@ -21,6 +21,8 @@ import bittensor as bt
 from typing import List, AsyncIterator
 from starlette.responses import StreamingResponse
 
+import pdb
+
 
 class PromptingSynapse(bt.Synapse):
     """
@@ -208,10 +210,13 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
 
         bt.logging.debug("Inside of process_streaming_response")
 
+        pdb.set_trace(header="\nInside of process_streaming_response\n")
+
         if self.completion is None:
             self.completion = ""
 
         async for chunk in response.content.iter_any():
+            pdb.set_trace(header="\nInside of process_streaming_response for loop\n")
             tokens = (
                 chunk.decode("utf-8").split("<|assistant|>")[-1].split("\n")
             )  # temp
@@ -252,6 +257,8 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
                 - Roles and Messages pertaining to the current StreamPromptingSynapse instance.
                 - The accumulated completion.
         """
+        pdb.set_trace(header=f"\nInside of extract_response_json\n")
+
         headers = {
             k.decode("utf-8"): v.decode("utf-8")
             for k, v in response.__dict__["_raw_headers"]

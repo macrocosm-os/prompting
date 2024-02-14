@@ -28,7 +28,7 @@ from prompting.protocol import StreamPromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
 
-from utils import OpenAIUtils
+from prompting.miners.utils import OpenAIUtils
 
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -38,6 +38,8 @@ from langchain_core.runnables.base import RunnableSequence
 from langchain.callbacks import get_openai_callback
 
 from traceback import print_exception
+
+import pdb
 
 
 class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
@@ -99,6 +101,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             buffer = []
 
             # Langchain built in streaming. 'astream' also available for async
+            pdb.set_trace(header="\nInside of buffer condition\n")
             for token in chain.stream(chain_formatter):
                 buffer.append(token)
 
@@ -109,27 +112,18 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             if buffer:
                 await send(format_send(buffer, more_body=False))
 
-        try:
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+        bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
-            prompt = ChatPromptTemplate.from_messages(
-                [("system", self.system_prompt), ("user", "{input}")]
-            )
-            chain = prompt | self.model | StrOutputParser()
+        prompt = ChatPromptTemplate.from_messages(
+            [("system", self.system_prompt), ("user", "{input}")]
+        )
+        chain = prompt | self.model | StrOutputParser()
 
-            role = synapse.roles[-1]
-            message = synapse.messages[-1]
+        role = synapse.roles[-1]
+        message = synapse.messages[-1]
 
-            chain_formatter = {"role": role, "input": message}
+        chain_formatter = {"role": role, "input": message}
 
-            token_streamer = partial(_forward, self.BATCH_SIZE, chain, chain_formatter)
-            return synapse.create_streaming_response(token_streamer)
-
-        except Exception as e:
-            bt.logging.error(f"Error in forward: {e}")
-            bt.logging.error(print_exception(value=e))
-            synapse.completion = "Error: " + str(e)
-        finally:
-            if self.config.neuron.stop_on_forward_exception:
-                self.should_exit = True
-            return synapse
+        pdb.set_trace(header="\nBefore token_streamer\n")
+        token_streamer = partial(_forward, self.BATCH_SIZE, chain, chain_formatter)
+        return synapse.create_streaming_response(token_streamer)
