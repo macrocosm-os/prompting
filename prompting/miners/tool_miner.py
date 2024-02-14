@@ -81,7 +81,7 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
     def forward(self, synapse: StreamPromptingSynapse):
         async def _forward(
             init_time: float,
-            timeout_threshold:float, 
+            timeout_threshold: float,
             batch_size: int,
             chain: RunnableSequence,
             chain_formatter: Dict[str, str],
@@ -122,7 +122,6 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
         timeout_threshold = synapse.timeout
-        self.init_time = time.time()
 
         role = synapse.roles[-1]
         message = synapse.messages[-1]
@@ -135,9 +134,11 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
         chain = prompt | self.model | StrOutputParser()
         chain_formatter = {"role": role, "input": message}
 
+        init_time = time.time()
+
         token_streamer = partial(
             _forward,
-            self.init_time,
+            init_time,
             timeout_threshold,
             self.BATCH_SIZE,
             chain,

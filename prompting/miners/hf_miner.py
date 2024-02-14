@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import time
 import torch
 import argparse
 import bittensor as bt
@@ -92,7 +93,13 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         self.system_prompt = self.config.neuron.system_prompt
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        async def _forward(batch_size: int, streamer: TextIteratorStreamer, send: Send):
+        async def _forward(
+            init_time: float,
+            timeout_threshold: float,
+            batch_size: int,
+            streamer: TextIteratorStreamer,
+            send: Send,
+        ):
             """
             TextIteratorStreamer: stores print-ready text in a queue, to be used by a downstream application as an iterator.
             """
@@ -102,6 +109,10 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
             for token in streamer:
                 buffer.append(token)
+
+                if time.time() - init_time > timeout_threshold:
+                    bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
+                    break
 
                 if len(buffer) == batch_size:
                     joined_buffer = "".join(buffer)
@@ -147,6 +158,12 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         thread.start()
 
         bt.logging.debug(f"💬 Querying hf-miner: {prompt}")
-        token_streamer = partial(_forward, self.BATCH_SIZE, self.streamer)
+
+        init_time = time.time()
+        timeout_threshold = synapse.timeout
+
+        token_streamer = partial(
+            _forward, init_time, timeout_threshold, self.BATCH_SIZE, self.streamer
+        )
 
         return synapse.create_streaming_response(token_streamer)

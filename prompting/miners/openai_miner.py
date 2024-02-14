@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import time
 import os
 import bittensor as bt
 import argparse
@@ -84,6 +85,8 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
     def forward(self, synapse: StreamPromptingSynapse):
         async def _forward(
+            init_time: float,
+            timeout_threshold: float,
             batch_size: int,
             chain: RunnableSequence,
             chain_formatter: Dict[str, str],
@@ -94,6 +97,10 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             # Langchain built in streaming. 'astream' also available for async
             for token in chain.stream(chain_formatter):
                 buffer.append(token)
+
+                if time.time() - init_time > timeout_threshold:
+                    bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
+                    break
 
                 if len(buffer) == batch_size:
                     joined_buffer = "".join(buffer)
@@ -129,5 +136,15 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
         chain_formatter = {"role": role, "input": message}
 
-        token_streamer = partial(_forward, self.BATCH_SIZE, chain, chain_formatter)
+        init_time = time.time()
+        timeout_threshold = synapse.timeout
+
+        token_streamer = partial(
+            _forward,
+            init_time,
+            timeout_threshold,
+            self.BATCH_SIZE,
+            chain,
+            chain_formatter,
+        )
         return synapse.create_streaming_response(token_streamer)
