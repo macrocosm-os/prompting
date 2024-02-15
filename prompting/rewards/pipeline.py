@@ -77,7 +77,7 @@ class RewardPipeline:
                 raise ValueError(f"{definition} model {model_info} does not have a weight.")
 
             weight = model_info["weight"]
-            if not isinstance(weight, float):
+            if not isinstance(weight, (float, int)):
                 raise ValueError(f"{definition} model {model_info} weight is not a float.")
             if not 0 <= weight <= 1:
                 raise ValueError(f"{definition} model {model_info} weight is not between 0 and 1.")
