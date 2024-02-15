@@ -34,6 +34,7 @@ def load_pipeline(
     device=None,
     torch_dtype=None,
     mock=False,
+    return_streamer = False,
     model_kwargs: dict = None,
 ):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
@@ -71,6 +72,8 @@ def load_pipeline(
             streamer=streamer,
         )
 
+    if not return_streamer:
+        return llm_pipeline
     return llm_pipeline, streamer
 
 

@@ -86,6 +86,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             model_id=self.config.neuron.model_id,
             device=self.device,
             mock=mock,
+            return_streamer=True,
             model_kwargs=model_kwargs,
         )
 

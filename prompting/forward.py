@@ -88,6 +88,9 @@ async def run_step(
     start_time = time.time()
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
+    uids_cpu = uids.cpu().tolist()
+
+    bt.logging.debug("uids", uids_cpu)
 
     axons = [self.metagraph.axons[uid] for uid in uids]
     # Make calls to the network with the prompt.
@@ -98,6 +101,10 @@ async def run_step(
         deserialize=False,
         streaming=True,
     )
+
+    bt.logging.debug("uids", uids_cpu)
+
+    responses = await handle_response(responses = dict(zip(uids_cpu, responses)))
 
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses=responses, uids=uids)
