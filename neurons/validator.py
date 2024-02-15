@@ -24,7 +24,6 @@ from prompting.forward import forward
 from prompting.llm import load_pipeline
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.rewards import RewardPipeline
-from prompting.utils.uids import check_uid_availability
 
 class Validator(BaseValidatorNeuron):
     """
@@ -56,10 +55,7 @@ class Validator(BaseValidatorNeuron):
             if p > 0
         ]
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
-
-        for i, axon in enumerate(self.metagraph.axons):
-            check_uid_availability(self.metagraph, i, self.config.neuron.vpermit_tao_limit)
+        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)        
 
     async def forward(self):
         """
