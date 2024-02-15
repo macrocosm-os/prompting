@@ -55,8 +55,7 @@ class Validator(BaseValidatorNeuron):
             if p > 0
         ]
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
-
+        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)        
 
     async def forward(self):
         """

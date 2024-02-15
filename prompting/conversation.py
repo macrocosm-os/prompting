@@ -16,7 +16,7 @@ from prompting.tools import (
 from transformers import Pipeline
 
 
-def create_task(llm_pipeline: Pipeline, task_name: str, create_reference=True) -> Task:
+def create_task(llm_pipeline: Pipeline, task_name: str) -> Task:
     wiki_based_tasks = ["summarization", "qa"]
     coding_based_tasks = ["debugging"]
     # TODO Add math and date_qa to this structure
@@ -35,38 +35,20 @@ def create_task(llm_pipeline: Pipeline, task_name: str, create_reference=True) -
         dataset = DateQADataset()
 
     if task_name == "summarization":
-        task = SummarizationTask(
-            llm_pipeline=llm_pipeline, 
-            context=dataset.next(),
-            create_reference=create_reference
-        )
+        task = SummarizationTask(llm_pipeline=llm_pipeline, context=dataset.next())
 
     elif task_name == "qa":
-        task = QuestionAnsweringTask(
-            llm_pipeline=llm_pipeline, 
-            context=dataset.next(),
-            create_reference=create_reference
-        )
+        task = QuestionAnsweringTask(llm_pipeline=llm_pipeline, context=dataset.next())
 
     elif task_name == "debugging":
-        task = DebuggingTask(
-            llm_pipeline=llm_pipeline, 
-            context=dataset.next(), 
-            create_reference=create_reference
-        )
+        task = DebuggingTask(llm_pipeline=llm_pipeline, context=dataset.next())
 
     elif task_name == "math":
-        task = MathTask(
-            llm_pipeline=llm_pipeline, 
-            context=dataset.next(), 
-            create_reference=create_reference
-        )
+        task = MathTask(llm_pipeline=llm_pipeline, context=dataset.next())
 
     elif task_name == "date_qa":
         task = DateQuestionAnsweringTask(
-            llm_pipeline=llm_pipeline, 
-            context=dataset.next(),
-            create_reference=create_reference
+            llm_pipeline=llm_pipeline, context=dataset.next()
         )
 
     else:
