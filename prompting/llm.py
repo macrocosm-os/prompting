@@ -28,6 +28,15 @@ from prompting.cleaners.cleaner import CleanerPipeline
 # Some models don't use the same name for the tokenizer.
 TOKENIZER_MAPPINGS = {"HuggingFaceH4/zephyr-7b-beta": "HuggingFaceH4/zephyr-7b-beta"}
 
+class CustomTextIteratorStreamer(TextIteratorStreamer): 
+    def has_data(self):
+        """Check if the queue has data."""
+        return not self.text_queue.empty()
+
+    def clear_queue(self):
+        """Clear the queue."""
+        with self.text_queue.mutex:
+            self.text_queue.queue.clear()
 
 def load_pipeline(
     model_id: str,
@@ -50,7 +59,7 @@ def load_pipeline(
         if model_id in TOKENIZER_MAPPINGS
         else None
     )
-    streamer = TextIteratorStreamer(tokenizer=tokenizer)
+    streamer = CustomTextIteratorStreamer(tokenizer=tokenizer)
 
     # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
     if model_kwargs is None:

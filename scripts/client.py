@@ -37,7 +37,7 @@ async def handle_response(uid: str, responses: List[Awaitable]) -> tuple[str, st
 
 
 async def query_stream_miner(
-    synapse_protocol, wallet_name, hotkey, network, netuid, uid, port, message=None
+    synapse_protocol, wallet_name, hotkey, network, netuid, uid, message=None
 ):
     
     if message is None:
@@ -56,7 +56,6 @@ async def query_stream_miner(
 
     # Create a Dendrite instance to handle client-side communication.
     dendrite = bt.dendrite(wallet=wallet)
-    axon = bt.axon(wallet = wallet_name, port=port)
 
     print(f"Synapse: {syn}")
 
@@ -66,7 +65,7 @@ async def query_stream_miner(
                 [metagraph.axons[uid]],
                 syn,
                 deserialize=False,
-                timeout=20,
+                timeout=10,
                 streaming=True,
             )
             # return responses
@@ -92,7 +91,6 @@ if __name__ == "__main__":
         help="Your unique miner ID on the chain",
     )
     parser.add_argument("--netuid", type=int, required=True, help="Network Unique ID")
-    parser.add_argument("--port", type=int, required=True, help="Network Unique ID")
     parser.add_argument(
         "--wallet_name", type=str, default="default", help="Name of the wallet"
     )
@@ -125,7 +123,6 @@ if __name__ == "__main__":
             network=args.network,
             netuid=args.netuid,
             uid=args.uid,
-            port = args.port, 
             message = args.message
         )
     )

@@ -20,7 +20,8 @@ import torch
 import argparse
 import bittensor as bt
 from functools import partial
-from threading import Thread
+from threading import Thread, Event
+import threading
 from starlette.types import Send
 from typing import Dict, List
 
@@ -95,6 +96,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         async def _forward(
+            thread: Thread, 
             init_time: float,
             timeout_threshold: float,
             batch_size: int,
@@ -107,17 +109,20 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
             buffer = []
+            timeout_reached = False
 
             for token in streamer:
                 buffer.append(token)
 
                 if time.time() - init_time > timeout_threshold:
                     bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
+                    timeout_reached = True
                     break
 
                 if len(buffer) == batch_size:
                     joined_buffer = "".join(buffer)
                     bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                    bt.logging.debug(f"BATCH TIME: {time.time() - init_time}\n")
                     await send(
                         {
                             "type": "http.response.body",
@@ -127,7 +132,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                     )
                     buffer = []
 
-            if buffer:
+            if buffer and not timeout_reached: #Don't send the last buffer of data if timeout. 
                 joined_buffer = "".join(buffer)
                 await send(
                     {
@@ -137,7 +142,9 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                     }
                 )
 
-            torch.cuda.empty_cache()
+            thread.join() #This will close the thread but not stop execution of the model
+            streamer.clear_queue() #model condintues to compute, so remove tokens in queue
+            torch.cuda.empty_cache() #cuda cleanup 
 
         prompt = synapse.messages[-1]
 
@@ -164,7 +171,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         timeout_threshold = synapse.timeout
 
         token_streamer = partial(
-            _forward, init_time, timeout_threshold, self.BATCH_SIZE, self.streamer
+            _forward, thread, init_time, timeout_threshold, self.BATCH_SIZE, self.streamer
         )
 
         return synapse.create_streaming_response(token_streamer)
