@@ -93,6 +93,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             send: Send,
         ):
             buffer = []
+            timeout_reached = False
 
             # Langchain built in streaming. 'astream' also available for async
             for token in chain.stream(chain_formatter):
@@ -100,6 +101,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
                 if time.time() - init_time > timeout_threshold:
                     bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
+                    timeout_reached = True
                     break
 
                 if len(buffer) == batch_size:
@@ -114,7 +116,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                     )
                     buffer = []
 
-            if buffer:
+            if buffer and not timeout_reached: #Don't send the last buffer of data if timeout. 
                 joined_buffer = "".join(buffer)
                 await send(
                     {
