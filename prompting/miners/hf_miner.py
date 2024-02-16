@@ -32,7 +32,7 @@ from prompting.llm import HuggingFaceLLM
 
 # import base miner class which takes care of most of the boilerplate
 from prompting.base.prompting_miner import BaseStreamPromptingMiner
-from transformers import TextIteratorStreamer
+from prompting.llm import CustomTextIteratorStreamer
 
 
 class HuggingFaceMiner(BaseStreamPromptingMiner):
@@ -100,11 +100,11 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             init_time: float,
             timeout_threshold: float,
             batch_size: int,
-            streamer: TextIteratorStreamer,
+            streamer: CustomTextIteratorStreamer,
             send: Send,
         ):
             """
-            TextIteratorStreamer: stores print-ready text in a queue, to be used by a downstream application as an iterator.
+            CustomTextIteratorStreamer: stores print-ready text in a queue, to be used by a downstream application as an iterator.
             """
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
@@ -143,7 +143,10 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                 )
 
             thread.join() #This will close the thread but not stop execution of the model
-            streamer.clear_queue() #model condintues to compute, so remove tokens in queue
+
+            if streamer.has_data():
+                streamer.clear_queue() #model condintues to compute, so remove tokens in queue
+                
             torch.cuda.empty_cache() #cuda cleanup 
 
         prompt = synapse.messages[-1]

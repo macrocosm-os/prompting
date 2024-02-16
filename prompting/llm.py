@@ -29,13 +29,17 @@ from prompting.cleaners.cleaner import CleanerPipeline
 TOKENIZER_MAPPINGS = {"HuggingFaceH4/zephyr-7b-beta": "HuggingFaceH4/zephyr-7b-beta"}
 
 class CustomTextIteratorStreamer(TextIteratorStreamer): 
+    """
+    Custom implementation of TextIteratorStreamer to have clean methods for 
+    checking and clearing the data queue during streaming events. 
+    """
     def has_data(self):
         """Check if the queue has data."""
         return not self.text_queue.empty()
 
     def clear_queue(self):
         """Clear the queue."""
-        with self.text_queue.mutex:
+        with self.text_queue.mutex: #ensures that the queue is cleared safely in a multi-threaded environment
             self.text_queue.queue.clear()
 
 def load_pipeline(
