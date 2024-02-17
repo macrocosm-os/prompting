@@ -123,6 +123,8 @@ class MockDendrite(bt.dendrite):
     """
     Replaces a real bittensor network request with a mock request that just returns some static completion for all axons that are passed and adds some random delay.
     """
+    max_time: float = 1
+
     def __init__(self, wallet):
         super().__init__(wallet)
 
@@ -150,7 +152,7 @@ class MockDendrite(bt.dendrite):
                 # Attach some more required data so it looks real
                 s = self.preprocess_synapse_for_request(axon, s, timeout)
                 # We just want to mock the response, so we'll just fill in some data
-                process_time = random.random()
+                process_time = random.random()*self.max_time
                 if process_time < timeout:
                     s.dendrite.process_time = str(time.time() - start_time)
                     # Update the status code and status message of the dendrite to match the axon
