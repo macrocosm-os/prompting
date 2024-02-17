@@ -70,9 +70,10 @@ async def run_step(
 
     # If the task doesn't have a static reference, generate one asynchronously
     if not agent.task.static_reference:
-        await async_generate_reference(self.loop, agent)
-
-    responses: List[PromptingSynapse] = await dendrite_call
+        reference_call = asyncio.create_task(async_generate_reference(self.loop, agent))
+        responses, _ = await asyncio.gather(dendrite_call, reference_call)
+    else:
+        responses: List[PromptingSynapse] = await dendrite_call
 
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses, uids)
