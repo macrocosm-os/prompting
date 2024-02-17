@@ -51,7 +51,7 @@ def test_mock_neuron():
 @pytest.mark.parametrize('n', [4, 16, 64])
 def test_mock_dendrite_timings(timeout, min_time, max_time, n):
 
-    mock_wallet = None#bt.MockWallet()
+    mock_wallet = None
     mock_dendrite = MockDendrite(mock_wallet)
     mock_dendrite.min_time = min_time
     mock_dendrite.max_time = max_time
