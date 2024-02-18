@@ -112,4 +112,3 @@ if __name__ == "__main__":
             if validator.should_exit:
                 bt.logging.warning("Ending validator...")
                 break
-            
