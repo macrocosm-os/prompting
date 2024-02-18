@@ -54,7 +54,7 @@ class PhraseMiner(Miner):
     ) -> PromptingSynapse:
 
         synapse.completion = self.config.neuron.phrase
-
+        self.step += 1
         return synapse
 
     async def blacklist(

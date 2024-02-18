@@ -41,7 +41,7 @@ class EchoMiner(Miner):
     ) -> PromptingSynapse:
 
         synapse.completion = synapse.messages[-1]
-
+        self.step += 1
         return synapse
 
     async def blacklist(
