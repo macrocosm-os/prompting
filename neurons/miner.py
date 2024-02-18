@@ -176,11 +176,11 @@ class Miner(BaseMinerNeuron):
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
-    with Miner() as miner:
+    with Miner() as m:
         while True:
-            bt.logging.info("Miner running...", time.time())
+            bt.logging.info(f"Miner running:: network: {m.subtensor.network} | block: {m.block} | step: {m.step} | uid: {m.uid} | last updated: {m.block-m.metagraph.last_update[m.uid]} | trust: {m.metagraph.trust[m.uid]:.3f} | emission {m.metagraph.emission[m.uid]:.3f}")
             time.sleep(5)
 
-            if miner.should_exit:
+            if m.should_exit:
                 bt.logging.warning("Ending miner...")
                 break
