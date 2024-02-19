@@ -4,21 +4,6 @@ from dataclasses import dataclass
 from prompting.tasks import Task
 import difflib
 
-# The two options are:
-# 1. Create a reference code and then introduce a bug to create the challenge code
-# 2. Create a challenge code and then fix the bug to create the reference code
-
-QUERY_SYSTEM_PROMPT = """\
-You act as a coding teacher specializing in creating coding exercises by intentionally corrupting code snippets provided by the user. The purpose is to challenge the user to identify and fix the errors. When given a piece of code, analyze it, introduce errors or bugs, and then present the modified code as an exercise. The exercise will include the corrupted code and a question related to identifying or fixing the error. You should ensure that the errors introduced are logical or syntactical, suitable for educational purposes. It should not alter the core logic or purpose of the original code beyond recognition. Do not include comments or otherwise indicate in the code that it has been modified. The code should be within triple backticks (```).
-"""
-
-# Used to obtain the query (which is a question about the context)
-QUERY_PROMPT_TEMPLATE = """\
-Introduce a bug to the following {language} code snippet in triple backticks (```):
-
-# Code:
-{context}
-"""
 
 
 def corrupt(
@@ -127,56 +112,37 @@ def diff(query, reference):
 
 @dataclass
 class DebuggingTask(Task):
+
+    name = "debugging"
+    desc = "get help with debugging"
+    goal = "ask for help fixing broken code."
+
     reward_definition = [
         dict(name="diff", lines=False, threshold=0.5, weight=1.0)
     ]
+
     penalty_definition = []
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
+    static_reference = True
+    static_query = True
 
-        self.name = "debugging"
-        self.desc = "get help with debugging"
-        self.goal = "ask for help fixing the broken piece of code. When asking for help do not adjust the code in any way."
+    def __init__(self, llm_pipeline, context, create_reference=True):
 
         self.context = context
 
         # No LLM involved in generating the query, we just apply some language-independent corruption to the code
-        self.query = self.generate_query()
-
-        if create_reference:
-            self.reference = self.generate_reference()
-
-        self.delimiter="```"
-        self.topic=self.context["repo_name"]
-        self.subtopic=self.context["path"]
-        self.tags=[self.context["language"]]
-        self.static_reference = True
-        self.static_query = True
-
-    def generate_query(
-        self,
-        llm=None,
-        n_remove=1,
-        n_swap=1,
-        seed=0,
-        sep="",
-        min_length=1,
-        max_length=10,
-    ):
         self.query = corrupt(
-            self.context["code"],
-            n_remove=n_remove,
-            n_swap=n_swap,
-            seed=seed,
-            sep=sep,
-            min_length=min_length,
-            max_length=max_length,
-        )
-        return self.query
+                    context.content,
+                    n_remove=random.randint(1, 3),
+                    n_swap=random.randint(0, 2),
+                    sep=random.choices([""," ","\n"],weights=[0.3,0.6,0.1],k=1)[0]
+                )
+        self.reference = context.content
+        self.delimiter = "```"
+        self.topic = context.title
+        self.subtopic = context.subtopic
+        self.tags = context.tags
 
-    def generate_reference(self, llm=None):
-        """Overrides the default reference generation to just return the reference code"""
-        return self.context["code"]
 
     def format_challenge(self, challenge):
         return f'{challenge}\n{self.delimiter}\n{self.query}\n{self.delimiter}'
