@@ -4,9 +4,12 @@ import bittensor as bt
 from prompting.mock import MockDendrite, MockMetagraph, MockSubtensor
 from prompting.protocol import PromptingSynapse
 
+wallet = bt.MockWallet()
+wallet.create(coldkey_use_password=False)
+
 @pytest.mark.parametrize('netuid', [1, 2, 3])
 @pytest.mark.parametrize('n', [2, 4, 8, 16, 32, 64])
-@pytest.mark.parametrize('wallet', [bt.MockWallet(), None])
+@pytest.mark.parametrize('wallet', [wallet, None])
 def test_mock_subtensor(netuid, n, wallet):
 
     subtensor = MockSubtensor(netuid=netuid, n=n, wallet=wallet)
