@@ -74,8 +74,12 @@ class MockPipeline:
 
 
 class MockSubtensor(bt.MockSubtensor):
-    def __init__(self, netuid, n=16, wallet=None, network="mock"):
-        super().__init__(network=network)
+    def __init__(self, netuid, n=16, wallet=None):
+
+        super().__init__()
+        # reset the underlying subtensor state
+        self.chain_state = None
+        self.setup()
 
         if not self.subnet_exists(netuid):
             self.create_subnet(netuid)
@@ -102,6 +106,10 @@ class MockSubtensor(bt.MockSubtensor):
 
 
 class MockMetagraph(bt.metagraph):
+
+    default_ip = "127.0.0.0"
+    default_port = 8091
+
     def __init__(self, netuid=1, network="mock", subtensor=None):
         super().__init__(
             netuid=netuid, network=network, sync=False
@@ -112,17 +120,17 @@ class MockMetagraph(bt.metagraph):
         self.sync(subtensor=subtensor)
 
         for axon in self.axons:
-            axon.ip = "127.0.0.0"
-            axon.port = 8091
-
-        bt.logging.info(f"Metagraph: {self}")
-        bt.logging.info(f"Axons: {self.axons}")
+            axon.ip = self.default_ip
+            axon.port = self.default_port
 
 
 class MockDendrite(bt.dendrite):
     """
     Replaces a real bittensor network request with a mock request that just returns some static completion for all axons that are passed and adds some random delay.
     """
+    min_time: float = 0
+    max_time: float = 1
+
     def __init__(self, wallet):
         super().__init__(wallet)
 
@@ -145,24 +153,24 @@ class MockDendrite(bt.dendrite):
             async def single_axon_response(i, axon):
                 """Queries a single axon for a response."""
 
-                start_time = time.time()
+                t0 = time.time()
                 s = synapse.copy()
                 # Attach some more required data so it looks real
                 s = self.preprocess_synapse_for_request(axon, s, timeout)
                 # We just want to mock the response, so we'll just fill in some data
-                process_time = random.random()
+                process_time = random.random()*(self.max_time-self.min_time) + self.min_time
+                await asyncio.sleep(process_time)
                 if process_time < timeout:
-                    s.dendrite.process_time = str(time.time() - start_time)
                     # Update the status code and status message of the dendrite to match the axon
                     s.completion = f'Mock miner completion {i}'
                     s.dendrite.status_code = 200
                     s.dendrite.status_message = "OK"
-                    synapse.dendrite.process_time = str(process_time)
                 else:
                     s.completion = ""
                     s.dendrite.status_code = 408
                     s.dendrite.status_message = "Timeout"
-                    synapse.dendrite.process_time = str(timeout)
+
+                s.dendrite.process_time = str(time.time() - t0)
 
                 # Return the updated synapse object after deserializing if requested
                 if deserialize:
