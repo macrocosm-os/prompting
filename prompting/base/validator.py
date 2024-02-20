@@ -35,12 +35,12 @@ class BaseValidatorNeuron(BaseNeuron):
     """
     Base class for Bittensor validators. Your validator should inherit from this class.
     """
-    
+
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         super().add_args(parser)
-        add_validator_args(cls, parser)    
- 
+        add_validator_args(cls, parser)
+
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -161,8 +161,8 @@ class BaseValidatorNeuron(BaseNeuron):
         except Exception as err:
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
-            self.should_exit = True        
-    
+            self.should_exit = True
+
     def run_in_background_thread(self):
         """
         Starts the validator's operations in a background thread upon entering the context.
@@ -323,6 +323,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # shape: [ metagraph.n ]
         alpha = self.config.neuron.moving_average_alpha
         self.scores = alpha * step_rewards + (1 - alpha) * self.scores
+        self.scores = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)
         bt.logging.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):
