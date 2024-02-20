@@ -21,7 +21,7 @@ class MathTask(Task):
         
         self.context = context
 
-        query = "How can I solve, " + context["problem"] + "?"
+        query = "How can I solve the following problem, " + context["problem"] + "? Make sure to include the whole problem when you ask your question."
         
         self.query=query
         self.reference=str(reference)
