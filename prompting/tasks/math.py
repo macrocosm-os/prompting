@@ -23,7 +23,7 @@ class MathTask(Task):
 
         self.context = context
 
-        self.query = "How can I solve, " + context.content + "?"
+        self.query = "How can I solve the following problem, " + context.content + "? Make sure to include the whole problem when you ask your question."
         self.reference = context.extra['solution']
         self.topic = context.title
         self.subtopic = context.topic
