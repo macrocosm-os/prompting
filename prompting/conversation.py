@@ -8,9 +8,9 @@ from prompting.tasks import (
 )
 from prompting.tools import (
     WikiDataset,
-    CodingDataset,
+    HFCodingDataset,
     MathDataset,
-    DateQADataset,
+    WikiDateDataset,
 )
 
 from transformers import Pipeline
@@ -26,13 +26,13 @@ def create_task(llm_pipeline: Pipeline, task_name: str) -> Task:
         dataset = WikiDataset()
 
     elif task_name in coding_based_tasks:
-        dataset = CodingDataset()
+        dataset = HFCodingDataset()
 
     elif task_name == "math":
         dataset = MathDataset()
 
     elif task_name == "date_qa":
-        dataset = DateQADataset()
+        dataset = WikiDateDataset()
 
     if task_name == "summarization":
         task = SummarizationTask(llm_pipeline=llm_pipeline, context=dataset.next())

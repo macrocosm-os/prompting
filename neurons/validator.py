@@ -55,7 +55,7 @@ class Validator(BaseValidatorNeuron):
             if p > 0
         ]
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)        
+        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
 
     async def forward(self):
         """
@@ -100,12 +100,12 @@ class Validator(BaseValidatorNeuron):
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
-    with Validator() as validator:
+    with Validator() as v:
         while True:
-            bt.logging.info("Validator running...", time.time())
+            bt.logging.info(f"Validator running:: network: {v.subtensor.network} | block: {v.block} | step: {v.step} | uid: {v.uid} | last updated: {v.block-v.metagraph.last_update[v.uid]} | vtrust: {v.metagraph.validator_trust[v.uid]:.3f} | emission {v.metagraph.emission[v.uid]:.3f}")
             time.sleep(5)
 
-            if validator.should_exit:
+            if v.should_exit:
                 bt.logging.warning("Ending validator...")
                 break
-            
+

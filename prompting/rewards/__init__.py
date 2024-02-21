@@ -10,4 +10,4 @@ from .relevance import RelevanceRewardModel
 from .rouge import RougeRewardModel
 from .float_diff import FloatDiffModel
 from .date import DateRewardModel
-from .pipeline import RewardPipeline
+from .pipeline import RewardPipeline, REWARD_MODELS
