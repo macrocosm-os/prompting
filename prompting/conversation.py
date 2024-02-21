@@ -1,17 +1,10 @@
 import random
 import pandas as pd
 import bittensor as bt
+from prompting.utils.exceptions import MaxRetryError
 
 from typing import List
 
-from prompting.tasks import (
-    Task,
-    DebuggingTask,
-    QuestionAnsweringTask,
-    SummarizationTask,
-    MathTask,
-    DateQuestionAnsweringTask,
-)
 from prompting.tools import (
     Context,
     WikiDataset,
@@ -19,7 +12,7 @@ from prompting.tools import (
     MathDataset,
     WikiDateDataset,
     MockDataset
-)
+)       
 
 class TransitionMatrix:
 
@@ -194,7 +187,7 @@ class ContextChain:
 
             tries += 1
             if tries > self.max_tries:
-                raise ValueError(f'Could not find a valid next task after {self.max_tries} tries...')
+                raise MaxRetryError(f'Could not find a valid next task after {self.max_tries} tries...')
             try:
                 # TODO: What if task is fundamentally incompatible with the previous task? We just time out?
                 context = self._get_context(prev_task, next_task)

@@ -14,24 +14,25 @@ class FloatDiffModel(BaseRewardModel):
         super().__init__()
 
     @staticmethod
-    def extract_number(text):
+    def extract_number(text: str) -> float:
+        """Extract a number from a string."""
         # loop over all words reversed and try to cast as a float, break when you find the first one
         words = text.split()
-        words = list(reversed(words))
-        for word in words:
+        for word in reversed(words):
+            cleaned = word.strip('.').replace(',', '')
             try:
-                return float(parse_expr(word.strip('.').replace(',', '')).evalf())
+                return float(parse_expr(cleaned).evalf())
             except Exception:
+                # fall back to simpler parsing if required
                 try:
-                    return float(word.strip('.').replace(',', ''))
+                    return float(cleaned)
                 except Exception:
                     continue
 
     @staticmethod
-    def math_score(reference, completion):
-        # Extract all the digits and numerical expressions from the completion and take only the last one (assuming it's the answer)
-
-        # Convert the string to a float
+    def math_score(reference: str, completion: str) -> float:
+        """Compute a score based on the difference between a reference and a completion."""
+        # Convert the strings to a float
         reference = float(reference)
         pred = FloatDiffModel.extract_number(completion)
         if pred is None:
@@ -41,10 +42,12 @@ class FloatDiffModel(BaseRewardModel):
             if pred == reference:
                 return 1.0            
             # Compute the difference
-            diff = abs(reference - pred)/(reference + 1e-6)
+            diff = (reference - pred)/(reference + 1e-10)
             # Make sure the difference is between 0 and 1
             diff = min(abs(diff), 1)
-
+            # Clip any very small scores
+            if diff > 0.999:
+                diff = 1.0
             return 1.0 - diff
         except Exception:
             return 0.0

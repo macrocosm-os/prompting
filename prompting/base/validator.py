@@ -25,7 +25,7 @@ import bittensor as bt
 
 from typing import List
 from traceback import print_exception
-
+from prompting.utils.exceptions import MaxRetryError
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
 from prompting.utils.config import add_validator_args
@@ -148,7 +148,6 @@ class BaseValidatorNeuron(BaseNeuron):
                 except MaxRetryError as e:
                     bt.logging.error(f"MaxRetryError: {e}")
                     continue
-
                 # Check if we should exit.
                 if self.should_exit:
                     break
