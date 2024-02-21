@@ -102,7 +102,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                         timeout_reached = True
                         break
 
-                    if len(buffer) == self.config.streaming_batch_size:
+                    if len(buffer) == self.config.neuron.streaming_batch_size:
                         joined_buffer = "".join(buffer)
                         temp_completion += joined_buffer
                         bt.logging.debug(f"Streamed tokens: {joined_buffer}")
@@ -129,7 +129,6 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                     )
 
                 synapse_latency = time.time() - init_time
-                pdb.set_trace(header = "before wandb")
                 if self.config.wandb.on:
                     self.log_event(
                         timing=synapse_latency,
