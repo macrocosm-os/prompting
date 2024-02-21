@@ -6,27 +6,25 @@ from prompting.tasks import Task
 
 @dataclass
 class MathTask(Task):
+
+    name="math"
+    desc="get help solving a math problem"
+    goal="to get the answer to the following math question"
+
     reward_definition = [
         dict(name='float_diff', weight = 1.0),
     ]
     penalty_definition = []
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
-        
-        reference = context["solution"]
+    static_reference=True
+    static_query=True
 
-        self.name="math"
-        self.desc="get help solving a math problem"
-        self.goal="to get the answer to the following math question"
-        
+    def __init__(self, llm_pipeline, context, create_reference=True):
+
         self.context = context
 
-        query = "How can I solve the following problem, " + context["problem"] + "? Make sure to include the whole problem when you ask your question."
-        
-        self.query=query
-        self.reference=str(reference)
-        self.topic=context["topic"]
-        self.subtopic=context["subtopic"]
-        self.tags=[]
-        self.static_reference=True
-        self.static_query=True
+        self.query = "How can I solve the following problem, " + context["problem"] + "? Make sure to include the whole problem when you ask your question."
+        self.reference = context.extra['solution']
+        self.topic = context.title
+        self.subtopic = context.topic
+        self.tags = context.tags
