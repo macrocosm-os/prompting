@@ -28,26 +28,29 @@ from prompting.cleaners.cleaner import CleanerPipeline
 # Some models don't use the same name for the tokenizer.
 TOKENIZER_MAPPINGS = {"HuggingFaceH4/zephyr-7b-beta": "HuggingFaceH4/zephyr-7b-beta"}
 
-class CustomTextIteratorStreamer(TextIteratorStreamer): 
+
+class CustomTextIteratorStreamer(TextIteratorStreamer):
     """
-    Custom implementation of TextIteratorStreamer to have clean methods for 
-    checking and clearing the data queue during streaming events. 
+    Custom implementation of TextIteratorStreamer to have clean methods for
+    checking and clearing the data queue during streaming events.
     """
+
     def has_data(self):
         """Check if the queue has data."""
         return not self.text_queue.empty()
 
     def clear_queue(self):
         """Clear the queue."""
-        with self.text_queue.mutex: #ensures that the queue is cleared safely in a multi-threaded environment
+        with self.text_queue.mutex:  # ensures that the queue is cleared safely in a multi-threaded environment
             self.text_queue.queue.clear()
+
 
 def load_pipeline(
     model_id: str,
     device=None,
     torch_dtype=None,
     mock=False,
-    return_streamer = False,
+    return_streamer=False,
     model_kwargs: dict = None,
 ):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""

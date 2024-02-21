@@ -229,7 +229,7 @@ def add_miner_args(cls, parser):
     parser.add_argument(
         "--wandb.on",
         type=bool,
-        default=False,
+        default=True,
         help="Enable wandb logging.",
     )
 
@@ -245,6 +245,13 @@ def add_miner_args(cls, parser):
         type=str,
         default="alpha-miners",
         help="Wandb project to log to.",
+    )
+
+    parser.add_argument(
+        "--neuron.streaming_batch_size",
+        type=int,
+        default=12,
+        help="Batch size for streaming forward calls.",
     )
 
 
@@ -366,13 +373,6 @@ def add_validator_args(cls, parser):
         action="store_true",
         help="Only query a single hotkey per ip.",
         default=False,
-    )
-
-    parser.add_argument(
-        "--neuron.streaming_batch_size",
-        type=int,
-        default=12,
-        help="Batch size for streaming forward calls.",
     )
 
 

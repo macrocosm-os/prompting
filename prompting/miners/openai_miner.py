@@ -36,7 +36,9 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 from langchain_core.runnables.base import RunnableSequence
+from langchain.callbacks import get_openai_callback
 
+import pdb 
 
 class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.
@@ -78,60 +80,70 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
     def forward(self, synapse: StreamPromptingSynapse):
         async def _forward(
-            prompt:str, 
-            wandb_log_event: bool,
+            self,
+            message: str,
             init_time: float,
             timeout_threshold: float,
-            batch_size: int,
             chain: RunnableSequence,
             chain_formatter: Dict[str, str],
             send: Send,
         ):
             buffer = []
-            temp_completion = '' #for wandb logging
+            temp_completion = ""  # for wandb logging
             timeout_reached = False
 
-            # Langchain built in streaming. 'astream' also available for async
-            for token in chain.stream(chain_formatter):
-                buffer.append(token)
+            try:
+                # Langchain built in streaming. 'astream' also available for async
+                for token in chain.stream(chain_formatter):
+                    buffer.append(token)
 
-                if time.time() - init_time > timeout_threshold:
-                    bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
-                    timeout_reached = True
-                    break
+                    if time.time() - init_time > timeout_threshold:
+                        bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
+                        timeout_reached = True
+                        break
 
-                if len(buffer) == batch_size:
+                    if len(buffer) == self.config.streaming_batch_size:
+                        joined_buffer = "".join(buffer)
+                        temp_completion += joined_buffer
+                        bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+
+                        await send(
+                            {
+                                "type": "http.response.body",
+                                "body": joined_buffer.encode("utf-8"),
+                                "more_body": True,
+                            }
+                        )
+                        buffer = []
+
+                if (
+                    buffer and not timeout_reached
+                ):  # Don't send the last buffer of data if timeout.
                     joined_buffer = "".join(buffer)
-                    temp_completion += joined_buffer
-                    bt.logging.debug(f"Streamed tokens: {joined_buffer}")
-
                     await send(
                         {
                             "type": "http.response.body",
                             "body": joined_buffer.encode("utf-8"),
-                            "more_body": True,
+                            "more_body": False,
                         }
                     )
-                    buffer = []
 
-            if buffer and not timeout_reached: #Don't send the last buffer of data if timeout. 
-                joined_buffer = "".join(buffer)
-                await send(
-                    {
-                        "type": "http.response.body",
-                        "body": joined_buffer.encode("utf-8"),
-                        "more_body": False,
-                    }
-                )
+                synapse_latency = time.time() - init_time
+                pdb.set_trace(header = "before wandb")
+                if self.config.wandb.on:
+                    self.log_event(
+                        timing=synapse_latency,
+                        prompt=message,
+                        completion=temp_completion,
+                        system_prompt=self.system_prompt,
+                    )
 
-            synapse_latency = time.time() - init_time
-            if wandb_log_event:
-                self.log_event(
-                    timing=synapse_latency, 
-                    prompt=prompt,
-                    completion=temp_completion,
-                    system_prompt=self.system_prompt,
-                )
+            except Exception as e:
+                bt.logging.error(f"Error in forward: {e}")
+
+            finally:
+                if self.config.neuron.stop_on_forward_exception:
+                    self.should_exit = True
 
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
@@ -150,11 +162,10 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
         token_streamer = partial(
             _forward,
-            prompt, 
-            self.config.wandb.on, 
+            self,
+            message,
             init_time,
             timeout_threshold,
-            self.config.streaming_batch_size,
             chain,
             chain_formatter,
         )

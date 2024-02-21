@@ -104,7 +104,7 @@ async def run_step(
 
     bt.logging.debug("uids", uids_cpu)
 
-    responses = await handle_response(responses = dict(zip(uids_cpu, responses)))
+    responses = await handle_response(responses=dict(zip(uids_cpu, responses)))
 
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses=responses, uids=uids)
