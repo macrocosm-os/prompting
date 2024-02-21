@@ -7,7 +7,7 @@
 
 # NOTE: Specification for miners may be different from validators
 
-version: '1.0.3' # update this version key as needed, ideally should match your release version
+version: '1.0.4' # update this version key as needed, ideally should match your release version
 
 compute_spec:
 

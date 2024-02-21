@@ -33,7 +33,7 @@ class SummarizationTask(Task):
 
     reward_definition = [
         dict(name="rouge", ngram="rouge-l", metric="f", weight=0.5),
-        dict(name="relevance", threshold=None, weight=0.5),
+        dict(name="relevance", weight=0.5),
     ]
     penalty_definition = [
         dict(name="rouge", ngram="rouge-1", metric="f", weight=1.0)

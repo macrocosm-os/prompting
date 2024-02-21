@@ -10,8 +10,6 @@ from prompting.rewards import (
     DateRewardModel,
 )
 
-
-
 REWARD_MODELS = {
     "rouge": RougeRewardModel,
     "relevance": RelevanceRewardModel,
@@ -19,8 +17,6 @@ REWARD_MODELS = {
     'float_diff': FloatDiffModel,
     'date': DateRewardModel,
 }
-
-
 
 class RewardPipeline:
     def __init__(self, selected_tasks: List[str], device):
@@ -39,7 +35,7 @@ class RewardPipeline:
         return f'RewardPipeline({self.reward_models})'
 
     def validate_tasks(self):
-        
+
         for task in self.selected_tasks:
             if task not in TASKS:
                 raise ValueError(
@@ -54,17 +50,17 @@ class RewardPipeline:
         total_weight = 0
 
         model_infos = getattr(TASKS[task], definition)
-        
+
         for model_info in model_infos:
-            
+
             if not isinstance(model_info, dict):
                 raise ValueError(f"{definition} model {model_info} is not a dictionary.")
             if "weight" not in model_info:
                 raise ValueError(f"{definition} model {model_info} does not have a weight.")
 
             weight = model_info["weight"]
-            if not isinstance(weight, (int, float)):
-                raise ValueError(f"{definition} model {model_info} weight is not a float or int. Received {type(weight)}")
+            if not isinstance(weight, (float, int)):
+                raise ValueError(f"{definition} model {model_info} weight is not a float.")
             if not 0 <= weight <= 1:
                 raise ValueError(f"{definition} model {model_info} weight is not between 0 and 1.")
 

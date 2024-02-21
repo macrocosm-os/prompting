@@ -305,14 +305,7 @@ def add_validator_args(cls, parser):
         "--neuron.moving_average_alpha",
         type=float,
         help="Moving average alpha parameter, how much to add of the new observation.",
-        default=0.1,
-    )
-
-    parser.add_argument(
-        "--neuron.decay_alpha",
-        type=float,
-        help="Constant decay rate for the moving average score.",
-        default=0.001,
+        default=0.05,
     )
 
     parser.add_argument(
@@ -331,7 +324,7 @@ def add_validator_args(cls, parser):
         help="The maximum number of TAO allowed to query a validator with a vpermit.",
             default=4096,
         )
-
+    
     parser.add_argument(
         "--wandb.project_name",
         type=str,
@@ -348,17 +341,17 @@ def add_validator_args(cls, parser):
 
 
     parser.add_argument(
-        "--neuron.unique_coldkey_prob",
-        type=float,
-        help="Probability of querying a given coldkey only once per step.",
-        default=0.9,
+        "--neuron.query_unique_coldkeys",
+        action="store_true",
+        help="Only query a single hotkey per coldkey.",
+        default=False,
         )
 
     parser.add_argument(
-        "--neuron.unique_ip_prob",
-        type=float,
-        help="Probability of querying a given ip only once per step.",
-        default=0.9,
+        "--neuron.query_unique_ips",
+        action="store_true",
+        help="Only query a single hotkey per ip.",
+        default=False,
         )
 
 def config(cls):

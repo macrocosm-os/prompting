@@ -118,7 +118,7 @@ class DebuggingTask(Task):
     goal = "ask for help fixing broken code."
 
     reward_definition = [
-        dict(name="diff", lines=False, threshold=0.5, weight=1.0)
+        dict(name="diff", weight=1.0)
     ]
 
     penalty_definition = []
