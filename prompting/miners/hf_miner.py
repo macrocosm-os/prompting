@@ -92,13 +92,12 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         self.system_prompt = self.config.neuron.system_prompt
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        async def _forward(
+        async def _forward(\
+            self, 
             prompt: str,
-            wandb_log_event: bool,
             thread: Thread,
             init_time: float,
             timeout_threshold: float,
-            batch_size: int,
             streamer: CustomTextIteratorStreamer,
             send: Send,
         ):
@@ -111,15 +110,32 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             temp_completion = ""  # for wandb logging
             timeout_reached = False
 
-            for token in streamer:
-                buffer.append(token)
+            try: 
+                for token in streamer:
+                    buffer.append(token)
 
-                if time.time() - init_time > timeout_threshold:
-                    bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
-                    timeout_reached = True
-                    break
+                    if time.time() - init_time > timeout_threshold:
+                        bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
+                        timeout_reached = True
+                        break
 
-                if len(buffer) == batch_size:
+                    if len(buffer) == self.config.neuron.streaming_batch_size:
+                        joined_buffer = "".join(buffer)
+                        temp_completion += joined_buffer
+                        bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+
+                        await send(
+                            {
+                                "type": "http.response.body",
+                                "body": joined_buffer.encode("utf-8"),
+                                "more_body": True,
+                            }
+                        )
+                        buffer = []
+
+                if (
+                    buffer and not timeout_reached
+                ):  # Don't send the last buffer of data if timeout.
                     joined_buffer = "".join(buffer)
                     temp_completion += joined_buffer
                     bt.logging.debug(f"Streamed tokens: {joined_buffer}")
@@ -128,43 +144,35 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                         {
                             "type": "http.response.body",
                             "body": joined_buffer.encode("utf-8"),
-                            "more_body": True,
+                            "more_body": False,
                         }
                     )
-                    buffer = []
 
-            if (
-                buffer and not timeout_reached
-            ):  # Don't send the last buffer of data if timeout.
-                joined_buffer = "".join(buffer)
-                temp_completion += joined_buffer
-                bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+            except Exception as e:
+                bt.logging.error(f"Error in forward: {e}")
 
-                await send(
-                    {
-                        "type": "http.response.body",
-                        "body": joined_buffer.encode("utf-8"),
-                        "more_body": False,
-                    }
-                )
+            finally: 
+                #Thread and streamer cleanup
+                thread.join()  # This will close the thread but not stop execution of the model
+                if streamer.has_data():
+                    streamer.clear_queue()  # model continues to compute, so remove tokens in queue
 
-            thread.join()  # This will close the thread but not stop execution of the model
+                synapse_latency = time.time() - init_time
 
-            if streamer.has_data():
-                streamer.clear_queue()  # model condintues to compute, so remove tokens in queue
+                if self.config.wandb.on:
+                    self.log_event(
+                        timing=synapse_latency,
+                        prompt=prompt,
+                        completion=temp_completion,
+                        system_prompt=self.system_prompt,
+                    )
 
-            synapse_latency = time.time() - init_time
+                torch.cuda.empty_cache()  # cuda cleanup
 
-            if wandb_log_event:
-                self.log_event(
-                    timing=synapse_latency,
-                    prompt=prompt,
-                    completion=temp_completion,
-                    system_prompt=self.system_prompt,
-                )
+                if self.config.neuron.stop_on_forward_exception:
+                    self.should_exit = True
 
-            torch.cuda.empty_cache()  # cuda cleanup
-
+        bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
         prompt = synapse.messages[-1]
 
         # TODO: is there a way to close this thread? Not sure if this is hanging or not.
@@ -191,12 +199,11 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
         token_streamer = partial(
             _forward,
+            self, 
             prompt,
-            self.config.wandb.on,
             thread,
             init_time,
             timeout_threshold,
-            self.config.streaming_batch_size,
             self.streamer,
         )
 

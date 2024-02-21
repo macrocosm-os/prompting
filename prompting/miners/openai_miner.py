@@ -128,6 +128,10 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                         }
                     )
 
+            except Exception as e:
+                bt.logging.error(f"Error in forward: {e}")
+
+            finally:
                 synapse_latency = time.time() - init_time
                 if self.config.wandb.on:
                     self.log_event(
@@ -137,10 +141,6 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                         system_prompt=self.system_prompt,
                     )
 
-            except Exception as e:
-                bt.logging.error(f"Error in forward: {e}")
-
-            finally:
                 if self.config.neuron.stop_on_forward_exception:
                     self.should_exit = True
 
