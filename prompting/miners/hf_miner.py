@@ -92,7 +92,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         self.system_prompt = self.config.neuron.system_prompt
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        async def _forward(\
+        async def _forward(
             self, 
             prompt: str,
             thread: Thread,
