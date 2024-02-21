@@ -21,7 +21,7 @@ import bittensor as bt
 import argparse
 from starlette.types import Send
 from functools import partial
-from typing import Dict, List
+from typing import Dict
 
 # Bittensor Miner Template:
 from prompting.base.prompting_miner import BaseStreamPromptingMiner
@@ -36,11 +36,6 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 from langchain_core.runnables.base import RunnableSequence
-from langchain.callbacks import get_openai_callback
-
-from traceback import print_exception
-
-import pdb
 
 
 class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
@@ -83,6 +78,8 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
     def forward(self, synapse: StreamPromptingSynapse):
         async def _forward(
+            prompt:str, 
+            wandb_log_event: bool,
             init_time: float,
             timeout_threshold: float,
             batch_size: int,
@@ -91,6 +88,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             send: Send,
         ):
             buffer = []
+            temp_completion = '' #for wandb logging
             timeout_reached = False
 
             # Langchain built in streaming. 'astream' also available for async
@@ -104,7 +102,9 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
                 if len(buffer) == batch_size:
                     joined_buffer = "".join(buffer)
+                    temp_completion += joined_buffer
                     bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+
                     await send(
                         {
                             "type": "http.response.body",
@@ -124,6 +124,15 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                     }
                 )
 
+            synapse_latency = time.time() - init_time
+            if wandb_log_event:
+                self.log_event(
+                    timing=synapse_latency, 
+                    prompt=prompt,
+                    completion=temp_completion,
+                    system_prompt=self.system_prompt,
+                )
+
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
         prompt = ChatPromptTemplate.from_messages(
@@ -141,6 +150,8 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
         token_streamer = partial(
             _forward,
+            prompt, 
+            self.config.wandb.on, 
             init_time,
             timeout_threshold,
             self.config.streaming_batch_size,

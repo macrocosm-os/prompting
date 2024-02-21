@@ -20,8 +20,7 @@ import torch
 import argparse
 import bittensor as bt
 from functools import partial
-from threading import Thread, Event
-import threading
+from threading import Thread
 from starlette.types import Send
 from typing import Dict, List
 
@@ -94,6 +93,8 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         async def _forward(
+            prompt:str, 
+            wandb_log_event: bool,
             thread: Thread, 
             init_time: float,
             timeout_threshold: float,
@@ -107,6 +108,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
             buffer = []
+            temp_completion = '' #for wandb logging
             timeout_reached = False
 
             for token in streamer:
@@ -119,8 +121,9 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
                 if len(buffer) == batch_size:
                     joined_buffer = "".join(buffer)
+                    temp_completion += joined_buffer
                     bt.logging.debug(f"Streamed tokens: {joined_buffer}")
-                    bt.logging.debug(f"BATCH TIME: {time.time() - init_time}\n")
+
                     await send(
                         {
                             "type": "http.response.body",
@@ -132,6 +135,9 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
             if buffer and not timeout_reached: #Don't send the last buffer of data if timeout. 
                 joined_buffer = "".join(buffer)
+                temp_completion += joined_buffer
+                bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+
                 await send(
                     {
                         "type": "http.response.body",
@@ -144,7 +150,17 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
             if streamer.has_data():
                 streamer.clear_queue() #model condintues to compute, so remove tokens in queue
-                
+
+            synapse_latency = time.time() - init_time
+
+            if wandb_log_event:
+                self.log_event(
+                    timing=synapse_latency, 
+                    prompt=prompt,
+                    completion=temp_completion,
+                    system_prompt=self.system_prompt,
+                )
+
             torch.cuda.empty_cache() #cuda cleanup 
 
         prompt = synapse.messages[-1]
@@ -172,7 +188,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         timeout_threshold = synapse.timeout
 
         token_streamer = partial(
-            _forward, thread, init_time, timeout_threshold, self.config.streaming_batch_size, self.streamer
+            _forward, prompt, self.config.wandb.on, thread, init_time, timeout_threshold, self.config.streaming_batch_size, self.streamer
         )
 
         return synapse.create_streaming_response(token_streamer)
