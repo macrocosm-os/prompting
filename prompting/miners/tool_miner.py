@@ -22,7 +22,6 @@ from langchain.chat_models import ChatOpenAI
 from langchain.callbacks import get_openai_callback
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from traceback import print_exception
 from langchain_core.runnables.base import RunnableSequence
 
 
