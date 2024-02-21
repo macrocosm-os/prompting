@@ -53,7 +53,6 @@ def read_requirements(path):
                 processed_requirements.append(req)
         return processed_requirements
 
-
 requirements = read_requirements("requirements.txt")
 here = path.abspath(path.dirname(__file__))
 

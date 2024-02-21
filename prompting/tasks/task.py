@@ -1,7 +1,7 @@
 import time
 import bittensor as bt
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import List, Union, Dict
 from prompting.llm import HuggingFaceLLM
@@ -60,11 +60,10 @@ class Task(ABC):
             "reference_time": getattr(self, "reference_time", 0),
             "topic": self.topic,
             "subtopic": self.subtopic,
-            "context_time": self.context.get("fetch_time", 0.0),
-            # "tags": self.tags,
+            "context_time": self.context.stats.get("fetch_time", 0.0),
         }
         if full:
-            state.update(**self.context)
+            state.update(asdict(self.context))
 
         return state
 
