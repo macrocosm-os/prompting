@@ -36,7 +36,7 @@ class SummarizationTask(Task):
         dict(name="relevance", weight=0.5),
     ]
     penalty_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=1.0)
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5)
     ]
 
     # This is where you define cleaning procedures for the generation.
