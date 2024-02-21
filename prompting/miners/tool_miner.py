@@ -55,8 +55,6 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
         {context}
         """
 
-        self.BATCH_SIZE = 12
-
     def format_system_prompt(self, message: str) -> str:
         bt.logging.debug(f"💬 Searching for wikipedia context...")
         # Message needs to be limited to 300 characters for wikipedia search, otherwise it will a return an error
@@ -140,7 +138,7 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
             _forward,
             init_time,
             timeout_threshold,
-            self.BATCH_SIZE,
+            self.config.streaming_batch_size,
             chain,
             chain_formatter,
         )

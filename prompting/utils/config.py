@@ -368,6 +368,13 @@ def add_validator_args(cls, parser):
         default=False,
     )
 
+    parser.add_argument(
+        "--neuron.streaming_batch_size",
+        type=int,
+        default=12,
+        help="Batch size for streaming forward calls.",
+    )
+
 
 def config(cls):
     """

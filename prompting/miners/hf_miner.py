@@ -76,8 +76,6 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             elif self.config.neuron.load_in_4bit:
                 self.identity_tags += ("4bit_quantization",)
 
-        self.BATCH_SIZE = 12  # Number of tokens to stream at a time.
-
         # Forces model loading behaviour over mock flag
         mock = (
             False if self.config.neuron.should_force_model_loading else self.config.mock
@@ -174,7 +172,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         timeout_threshold = synapse.timeout
 
         token_streamer = partial(
-            _forward, thread, init_time, timeout_threshold, self.BATCH_SIZE, self.streamer
+            _forward, thread, init_time, timeout_threshold, self.config.streaming_batch_size, self.streamer
         )
 
         return synapse.create_streaming_response(token_streamer)
