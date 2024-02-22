@@ -2,9 +2,6 @@ import time
 import torch
 import asyncio
 import random
-
-import pydantic
-
 import bittensor as bt
 from prompting.protocol import StreamPromptingSynapse, PromptingSynapse
 
