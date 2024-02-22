@@ -76,7 +76,7 @@ class Dataset(ABC):
             if info:
                 break
 
-            bt.logging.warning(f"Could not find an sample which meets {self.__class__.__name__} requirements after {tries} tries. Retrying... ({self.max_tries - tries} tries remaining.)")
+            bt.logging.debug(f"Could not find an sample which meets {self.__class__.__name__} requirements after {tries} tries. Retrying... ({self.max_tries - tries} tries remaining.)")
 
             tries += 1
             if tries == self.max_tries:
