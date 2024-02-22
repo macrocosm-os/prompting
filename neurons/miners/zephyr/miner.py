@@ -137,7 +137,7 @@ class ZephyrMiner(Miner):
 if __name__ == "__main__":
     with ZephyrMiner() as miner:
         while True:
-            self.log_status()
+            miner.log_status()
             time.sleep(5)
 
             if miner.should_exit:

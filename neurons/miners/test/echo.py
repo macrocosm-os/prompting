@@ -56,5 +56,5 @@ class EchoMiner(Miner):
 if __name__ == "__main__":
     with EchoMiner() as miner:
         while True:
-            self.log_status()
+            miner.log_status()
             time.sleep(5)
