@@ -18,10 +18,12 @@
 
 import re
 import sys
+import asyncio
 import random
 import datetime
 import bittensor as bt
 import wikipedia as wiki
+from functools import partial
 from typing import Dict, Union, List, Tuple
 
 from functools import lru_cache
@@ -148,16 +150,13 @@ class WikiDataset(Dataset):
         """Get a specified Wikipedia page and extract a section based on the selector.
 
         Args:
-            name (_type_): _description_
-            pageid (_type_, optional): _description_. Defaults to None.
-            auto_suggest (bool, optional): _description_. Defaults to True.
-            redirect (bool, optional): _description_. Defaults to True.
-            selector (Selector, optional): _description_. Defaults to None.
-            include (List, optional): _description_. Defaults to None.
-            exclude (List, optional): _description_. Defaults to None.
+            name (str): Title of the Wikipedia page.
+            selector (Selector, optional): Selector to choose a section. Defaults to None.
+            include (List, optional): List of section headers to include. Defaults to None.
+            exclude (List, optional): List of section headers to exclude. Defaults to None.
 
         Returns:
-            Dict: _description_
+            Dict: Context dictionary
         """
 
         page = _get_page(title=name, **kwargs)
@@ -182,21 +181,37 @@ class WikiDataset(Dataset):
             'subtopic': section_title,
             'content': content,
             'internal_links': list(filter(lambda x: x not in exclude, page.sections)),
-            'external_links': most_relevant_links(page, num_links=self.max_links), 
+            'external_links': most_relevant_links(page, num_links=self.max_links),
             'tags': filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
             'source': 'Wikipedia',
             'extra': {'url': page.url, 'page_length': len(page.content.split()), 'section_length': section_length},
         }
 
-    def search(self, name, results=3, selector: Selector = None) -> Dict:
-        titles = _wiki_search(name, results=results)
-        title = selector(titles)
-        return self.get(title, selector=selector)
+    async def get_pages(self, titles, selector):
+        # asynchronouly load all pages
+        return await asyncio.gather(*(
+                            asyncio.to_thread(partial(self.get, selector=selector), title) for title in titles
+                            )
+                        )
 
-    def random(self, pages=10, seed=None, selector: Selector = None, **kwargs) -> Dict:
+    def search(self, name, results=3, selector: Selector = None, threaded=False) -> Dict:
+        titles = _wiki_search(name, results=results)
+        if threaded:
+            pages = asyncio.run(self.get_pages(titles, selector=selector))
+            return selector(pages)
+        else:
+            title = selector(titles)
+            return self.get(title, selector=selector)
+
+
+    def random(self, pages=10, seed=None, selector: Selector = None, threaded=False, **kwargs) -> Dict:
         titles = wiki.random(pages=pages) if seed is None else _get_random_titles(pages=pages, seed=seed)
-        title = selector(titles)
-        return self.get(title, selector=selector)
+        if threaded:
+            pages = asyncio.run(self.get_pages(titles, selector=selector))
+            return selector(pages)
+        else:
+            title = selector(titles)
+            return self.get(title, selector=selector)
 
 
 
@@ -228,7 +243,19 @@ class WikiDateDataset(Dataset):
         # Step 2: Format the date for Wikipedia URL
         return random_date.strftime("%B_%d")  # E.g., "January_01"
 
-    def get(self, name, pageid=None, auto_suggest=True, redirect=True, selector: Selector = None) -> Dict:
+    def get(self, name: str, pageid: int=None, auto_suggest: bool=True, redirect: bool=True, selector: Selector = None) -> Dict:
+        """Get a specified Wikipedia date page and extract an event based on the selector.
+
+        Args:
+            name (str): Title of the Wikipedia page.
+            pageid (int, optional): ID of the Wikipedia page. Defaults to None.
+            auto_suggest (bool, optional): Whether to use auto-suggest. Defaults to True.
+            redirect (bool, optional): Whether to follow redirects. Defaults to True.
+            selector (Selector, optional): Selector to choose a section. Defaults to None.
+
+        Returns:
+            Dict: Context dictionary
+        """
 
         # Check that name is correctly formatted e.g., "January_01"
         date = name.split('_')
