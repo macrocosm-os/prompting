@@ -23,6 +23,7 @@ import bittensor as bt
 
 from ..selector import Selector
 from .context import Context
+from prompting.utils.exceptions import MaxRetryError
 
 
 class Dataset(ABC):
@@ -43,6 +44,19 @@ class Dataset(ABC):
         ...
 
     def next(self, method: str = 'random', selector: Selector = Selector(), **kwargs) -> Dict:
+        """Base method for getting the next sample from the dataset.
+
+        Args:
+            method (str, optional): Method to use for getting the next sample; must be one of 'random', 'search', or 'get'. Defaults to 'random'.
+            selector (Selector, optional): Selector to use for getting the next sample. Defaults to Selector().
+
+        Raises:
+            ValueError: If an unknown dataset get method is used.
+            Exception: If the maximum number of tries is reached.
+
+        Returns:
+            Dict: _description_
+        """
         tries = 1
         t0 = time.time()
 
@@ -66,7 +80,7 @@ class Dataset(ABC):
 
             tries += 1
             if tries == self.max_tries:
-                raise Exception(
+                raise MaxRetryError(
                     f"Could not find an sample which meets {self.__class__.__name__} requirements after {tries} tries."
                 )
 
