@@ -1,11 +1,15 @@
 import time
-import uuid
 import torch
 import asyncio
 import random
-import bittensor as bt
 
-from typing import List
+import pydantic
+
+import bittensor as bt
+from prompting.protocol import StreamPromptingSynapse, PromptingSynapse
+
+from functools import partial
+from typing import Dict, List, Union, AsyncGenerator, Any
 
 
 class MockTokenizer:
@@ -103,12 +107,11 @@ class MockSubtensor(bt.MockSubtensor):
 
 
 class MockMetagraph(bt.metagraph):
-    def __init__(self, netuid=1, network="mock", subtensor=None):
+    def __init__(self, netuid, subtensor, network="mock"):
         super().__init__(netuid=netuid, network=network, sync=False)
 
-        if subtensor is not None:
-            self.subtensor = subtensor
-        self.sync(subtensor=subtensor)
+        self.subtensor = subtensor
+        self.sync(subtensor=self.subtensor)
 
         for axon in self.axons:
             axon.ip = "127.0.0.0"
@@ -118,6 +121,49 @@ class MockMetagraph(bt.metagraph):
         bt.logging.info(f"Axons: {self.axons}")
 
 
+class MockStreamMiner:
+    """MockStreamMiner is an echo miner"""
+
+    def __init__(self, streaming_batch_size: int, timeout: float):
+        self.streaming_batch_size = streaming_batch_size
+        self.timeout = timeout
+
+    def forward(
+        self, synapse: StreamPromptingSynapse, start_time: float
+    ) -> StreamPromptingSynapse:
+        def _forward(self, prompt: str, start_time: float, sample: Any):
+            buffer = []
+            continue_streaming = True
+
+            try:
+                for token in prompt.split():  # split on spaces.
+                    buffer.append(token)
+
+                    if time.time() - start_time > self.timeout:
+                        print(
+                            f"⏰ Timeout reached, stopping streaming. {time.time() - self.start_time}"
+                        )
+                        break
+
+                    if len(buffer) == self.streaming_batch_size:
+                        time.sleep(
+                            self.timeout * random.uniform(0.2, 0.5)
+                        )  # simulate some async processing time
+                        yield buffer, continue_streaming
+                        buffer = []
+
+                if buffer:
+                    continue_streaming = False
+                    yield buffer, continue_streaming
+
+            except Exception as e:
+                bt.logging.error(f"Error in forward: {e}")
+
+        prompt = synapse.messages[-1]
+        token_streamer = partial(_forward, self, prompt, start_time)
+        return token_streamer
+
+
 class MockDendrite(bt.dendrite):
     """
     Replaces a real bittensor network request with a mock request that just returns some static completion for all axons that are passed and adds some random delay.
@@ -125,6 +171,94 @@ class MockDendrite(bt.dendrite):
 
     def __init__(self, wallet):
         super().__init__(wallet)
+
+    async def call(
+        self,
+        i: int,
+        start_time: float,
+        synapse: bt.Synapse = bt.Synapse(),
+        timeout: float = 12.0,
+        deserialize: bool = True,
+    ) -> bt.Synapse:
+        """Simulated call method to fill synapses with mock data."""
+
+        # Add some random delay to the response
+        process_time_upper_bound = (
+            timeout * 2
+        )  # meaning roughly 50% of the time we will timeout
+        process_time = random.uniform(0, process_time_upper_bound)
+
+        if process_time < timeout:
+            synapse.dendrite.process_time = str(time.time() - start_time)
+            # Update the status code and status message of the dendrite to match the axon
+            synapse.completion = f"Mock miner completion {i}"
+            synapse.dendrite.status_code = 200
+            synapse.dendrite.status_message = "OK"
+            synapse.dendrite.process_time = str(process_time)
+        else:
+            synapse.completion = ""
+            synapse.dendrite.status_code = 408
+            synapse.dendrite.status_message = "Timeout"
+            synapse.dendrite.process_time = str(timeout)
+
+        # Return the updated synapse object after deserializing if requested
+        if deserialize:
+            return synapse.deserialize()
+        else:
+            return synapse
+
+    async def call_stream(
+        self,
+        synapse: StreamPromptingSynapse,
+        timeout: float = 12.0,
+        deserialize: bool = True,
+    ) -> AsyncGenerator[Any, Any]:
+        """
+        Yields:
+            object: Each yielded object contains a chunk of the arbitrary response data from the Axon.
+            bittensor.Synapse: After the AsyncGenerator has been exhausted, yields the final filled Synapse.
+        """
+
+        start_time = time.time()
+        continue_streaming = True
+        response_buffer = []
+
+        miner = MockStreamMiner(streaming_batch_size=12, timeout=timeout)
+        token_streamer = miner.forward(synapse, start_time)
+
+        # Simulating the async streaming without using aiohttp post request
+        while continue_streaming:
+            for buffer, continue_streaming in token_streamer(True):
+                response_buffer.extend(buffer)  # buffer is a List[str]
+
+                if not continue_streaming:
+                    synapse.completion = " ".join(response_buffer)
+                    synapse.dendrite.status_code = 200
+                    synapse.dendrite.status_message = "OK"
+                    synapse.dendrite.process_time = str(time.time() - start_time)
+
+                    response_buffer = []
+
+                    print("Total time for response:", synapse.dendrite.process_time)
+                    break
+
+                elif (time.time() - start_time) > timeout:
+                    synapse.completion = " ".join(
+                        response_buffer
+                    )  # partially completed response buffer
+                    synapse.dendrite.status_code = 408
+                    synapse.dendrite.status_message = "Timeout"
+                    synapse.dendrite.process_time = str(timeout)
+
+                    continue_streaming = False  # to stop the while loop
+                    print("Total time for response:", synapse.dendrite.process_time)
+                    break
+
+        # Return the updated synapse object after deserializing if requested
+        if deserialize:
+            yield synapse.deserialize()
+        else:
+            yield synapse
 
     async def forward(
         self,
@@ -136,39 +270,58 @@ class MockDendrite(bt.dendrite):
         streaming: bool = False,
     ):
         if streaming:
-            raise NotImplementedError("Streaming not implemented yet.")
+            assert isinstance(
+                synapse, StreamPromptingSynapse
+            ), "Synapse must be a StreamPromptingSynapse object when is_stream is True."
+        else:
+            assert isinstance(
+                synapse, PromptingSynapse
+            ), "Synapse must be a PromptingSynapse object when is_stream is False."
 
-        async def query_all_axons(streaming: bool):
+        async def query_all_axons(is_stream: bool):
             """Queries all axons for responses."""
 
-            async def single_axon_response(i, axon):
+            async def single_axon_response(
+                i: int, target_axon: Union[bt.AxonInfo, bt.axon]
+            ):
                 """Queries a single axon for a response."""
 
                 start_time = time.time()
                 s = synapse.copy()
+
+                target_axon = (
+                    target_axon.info()
+                    if isinstance(target_axon, bt.axon)
+                    else target_axon
+                )
+
                 # Attach some more required data so it looks real
-                s = self.preprocess_synapse_for_request(axon, s, timeout)
-                # We just want to mock the response, so we'll just fill in some data
-                process_time = random.random()
-                if process_time < timeout:
-                    s.dendrite.process_time = str(time.time() - start_time)
-                    # Update the status code and status message of the dendrite to match the axon
-                    s.completion = f"Mock miner completion {i}"
-                    s.dendrite.status_code = 200
-                    s.dendrite.status_message = "OK"
-                    synapse.dendrite.process_time = str(process_time)
-                else:
-                    s.completion = ""
-                    s.dendrite.status_code = 408
-                    s.dendrite.status_message = "Timeout"
-                    synapse.dendrite.process_time = str(timeout)
+                s = self.preprocess_synapse_for_request(
+                    target_axon_info=target_axon, synapse=s, timeout=timeout
+                )
 
-                # Return the updated synapse object after deserializing if requested
-                if deserialize:
-                    return s.deserialize()
+                if is_stream:
+                    # If in streaming mode, return the async_generator
+                    return self.call_stream(
+                        synapse=s,  # type: ignore
+                        timeout=timeout,
+                        deserialize=False,
+                    )
                 else:
-                    return s
+                    return await self.call(
+                        i=i,
+                        start_time=start_time,
+                        synapse=s,  # type: ignore
+                        timeout=timeout,
+                        deserialize=deserialize,
+                    )
 
+            if not run_async:
+                return [
+                    await single_axon_response(target_axon) for target_axon in axons
+                ]  # type: ignore
+
+            # If run_async flag is True, get responses concurrently using asyncio.gather().
             return await asyncio.gather(
                 *(
                     single_axon_response(i, target_axon)
@@ -176,7 +329,7 @@ class MockDendrite(bt.dendrite):
                 )
             )
 
-        return await query_all_axons(streaming)
+        return await query_all_axons(is_stream=streaming)
 
     def __str__(self) -> str:
         """

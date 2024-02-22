@@ -1,10 +1,7 @@
 import argparse
 import asyncio
 import bittensor as bt
-
 from typing import List, Awaitable
-import pdb
-
 from prompting.protocol import StreamPromptingSynapse
 
 """
