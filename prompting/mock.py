@@ -232,11 +232,8 @@ class MockDendrite(bt.dendrite):
                     synapse.completion = " ".join(response_buffer)
                     synapse.dendrite.status_code = 200
                     synapse.dendrite.status_message = "OK"
-                    synapse.dendrite.process_time = str(time.time() - start_time)
-
+                    synapse.dendrite.process_time = time.time() - start_time
                     response_buffer = []
-
-                    print("Total time for response:", synapse.dendrite.process_time)
                     break
 
                 elif (time.time() - start_time) > timeout:
@@ -245,10 +242,8 @@ class MockDendrite(bt.dendrite):
                     )  # partially completed response buffer
                     synapse.dendrite.status_code = 408
                     synapse.dendrite.status_message = "Timeout"
-                    synapse.dendrite.process_time = str(timeout)
-
+                    synapse.dendrite.process_time = timeout
                     continue_streaming = False  # to stop the while loop
-                    print("Total time for response:", synapse.dendrite.process_time)
                     break
 
         # Return the updated synapse object after deserializing if requested
