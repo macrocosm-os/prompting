@@ -110,8 +110,8 @@ class MockSubtensor(bt.MockSubtensor):
 class MockMetagraph(bt.metagraph):
     def __init__(self, netuid, subtensor, network="mock"):
 
-        default_ip = "127.0.0.0"
-        default_port = 8091
+        self.DEFAULT_IP = "127.0.0.0"
+        self.DEFAULT_PORT = 8091
 
         super().__init__(netuid=netuid, network=network, sync=False)
 
@@ -119,8 +119,8 @@ class MockMetagraph(bt.metagraph):
         self.sync(subtensor=self.subtensor)
 
         for axon in self.axons:
-            axon.ip = self.default_ip
-            axon.port = self.default_port
+            axon.ip = self.DEFAULT_IP
+            axon.port = self.DEFAULT_PORT
 
 
 class MockStreamMiner:
