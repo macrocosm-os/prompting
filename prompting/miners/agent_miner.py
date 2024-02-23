@@ -125,6 +125,8 @@ class AgentMiner(BaseStreamPromptingMiner, OpenAIUtils):
                     )
 
             bt.logging.debug(f"✅ Served Response: {response}")
+            self.step += 1
+
             return synapse
         except Exception as e:
             bt.logging.error(f"Error in forward: {e}")

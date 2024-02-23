@@ -285,7 +285,7 @@ def add_validator_args(cls, parser):
         type=float,
         nargs="+",
         help="The probability of sampling each task.",
-        default=[0.5, 0.5, 0.0, 0.0, 0.0],
+        default=[0.25, 0.25, 0.0, 0.25, 0.25],
     )
 
     parser.add_argument(
@@ -327,7 +327,14 @@ def add_validator_args(cls, parser):
         "--neuron.moving_average_alpha",
         type=float,
         help="Moving average alpha parameter, how much to add of the new observation.",
-        default=0.05,
+        default=0.1,
+    )
+
+    parser.add_argument(
+        "--neuron.decay_alpha",
+        type=float,
+        help="Constant decay rate for the moving average score.",
+        default=0.001,
     )
 
     parser.add_argument(

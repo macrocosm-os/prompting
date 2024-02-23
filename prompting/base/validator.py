@@ -29,7 +29,7 @@ from traceback import print_exception
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
 from prompting.utils.config import add_validator_args
-
+from prompting.utils.exceptions import MaxRetryError
 
 class BaseValidatorNeuron(BaseNeuron):
     """
@@ -124,10 +124,15 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Check that validator is registered on the network.
         self.sync()
-
-        bt.logging.info(
-            f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
-        )
+        
+        if not self.config.neuron.axon_off:
+            bt.logging.info(
+                f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
+            )
+        else:
+            bt.logging.info(
+                f"Running validator on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
+            )
 
         bt.logging.info(f"Validator starting at block: {self.block}")
 
@@ -137,7 +142,14 @@ class BaseValidatorNeuron(BaseNeuron):
                 bt.logging.info(f"step({self.step}) block({self.block})")
 
                 # Run multiple forwards concurrently.
-                self.loop.run_until_complete(self.concurrent_forward())
+                try:
+                    self.loop.run_until_complete(self.concurrent_forward())
+                except torch.cuda.OutOfMemoryError as e:
+                    bt.logging.error(f"Out of memory error: {e}")
+                    continue
+                except MaxRetryError as e:
+                    bt.logging.error(f"MaxRetryError: {e}")
+                    continue
 
                 # Check if we should exit.
                 if self.should_exit:
@@ -318,6 +330,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # shape: [ metagraph.n ]
         alpha = self.config.neuron.moving_average_alpha
         self.scores = alpha * step_rewards + (1 - alpha) * self.scores
+        self.scores = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)
         bt.logging.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):

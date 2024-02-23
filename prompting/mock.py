@@ -76,8 +76,12 @@ class MockPipeline:
 
 
 class MockSubtensor(bt.MockSubtensor):
-    def __init__(self, netuid, n=16, wallet=None, network="mock"):
-        super().__init__(network=network)
+    def __init__(self, netuid, n=16, wallet=None):
+
+        super().__init__()
+        # reset the underlying subtensor state
+        self.chain_state = None
+        self.setup()
 
         if not self.subnet_exists(netuid):
             self.create_subnet(netuid)
@@ -105,17 +109,18 @@ class MockSubtensor(bt.MockSubtensor):
 
 class MockMetagraph(bt.metagraph):
     def __init__(self, netuid, subtensor, network="mock"):
+
+        default_ip = "127.0.0.0"
+        default_port = 8091
+
         super().__init__(netuid=netuid, network=network, sync=False)
 
         self.subtensor = subtensor
         self.sync(subtensor=self.subtensor)
 
         for axon in self.axons:
-            axon.ip = "127.0.0.0"
-            axon.port = 8091
-
-        bt.logging.info(f"Metagraph: {self}")
-        bt.logging.info(f"Axons: {self.axons}")
+            axon.ip = self.default_ip
+            axon.port = self.default_port
 
 
 class MockStreamMiner:
@@ -183,6 +188,8 @@ class MockDendrite(bt.dendrite):
     Replaces a real bittensor network request with a mock request that just returns some static 
     completion for all axons that are passed and adds some random delay.
     """
+    min_time: float = 0
+    max_time: float = 1
 
     def __init__(self, wallet):
         super().__init__(wallet)
@@ -296,7 +303,7 @@ class MockDendrite(bt.dendrite):
             ):
                 """Queries a single axon for a response."""
 
-                start_time = time.time()
+                t0 = time.time()
                 s = synapse.copy()
 
                 target_axon = (
