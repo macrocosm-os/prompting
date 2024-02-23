@@ -34,10 +34,9 @@ def test_mock_streaming(timeout:float):
     mock_metagraph = MockMetagraph(netuid = netuid, subtensor=mock_subtensor)
 
     streaming = True 
-    synapse_protocol = StreamPromptingSynapse
     messages = ["Einstein's famous equation, E=mc^2, showed the equivalence of mass and energy and laid the foundation for the development of nuclear energy. His work also contributed to the understanding of quantum mechanics and the photoelectric effect, for which he was awarded the Nobel Prize in Physics in 1921."]
 
-    synapse = synapse_protocol(
+    synapse = StreamPromptingSynapse(
         roles=["user"],
         messages=messages,
     )

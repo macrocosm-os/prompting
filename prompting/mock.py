@@ -6,7 +6,7 @@ import bittensor as bt
 from prompting.protocol import StreamPromptingSynapse, PromptingSynapse
 
 from functools import partial
-from typing import Dict, List, Union, AsyncGenerator, Any
+from typing import Dict, List, Union, AsyncGenerator, Any, Iterator
 
 
 class MockTokenizer:
@@ -127,8 +127,24 @@ class MockStreamMiner:
 
     def forward(
         self, synapse: StreamPromptingSynapse, start_time: float
-    ) -> StreamPromptingSynapse:
+    ) -> Iterator:
+        """Mock forward returns a token_streamer, which is a partial function 
+        that simulates the async streaming of tokens from the axon. 
+
+        In production, we actually return the synapse.create_streaming_response(token_streamer).
+         > create_streaming_response enables communication between miner/validator via aiohttp post requests
+         via a BTStreamingResponse.
+
+        Returns:
+            StreamPromptingSynapse: _description_
+        """
         def _forward(self, prompt: str, start_time: float, sample: Any):
+            """In production, _forward is an async def _forward. This is because we are sending an 
+            aiohttp post request to the axon to get chunks of data. This is the "send" packet defined
+            in typical _forward functions. 
+
+            Here, we simulate streaming by iterating through a prompt and stochastically delaying. 
+            """
             buffer = []
             continue_streaming = True
 
@@ -158,12 +174,14 @@ class MockStreamMiner:
 
         prompt = synapse.messages[-1]
         token_streamer = partial(_forward, self, prompt, start_time)
+
         return token_streamer
 
 
 class MockDendrite(bt.dendrite):
     """
-    Replaces a real bittensor network request with a mock request that just returns some static completion for all axons that are passed and adds some random delay.
+    Replaces a real bittensor network request with a mock request that just returns some static 
+    completion for all axons that are passed and adds some random delay.
     """
 
     def __init__(self, wallet):
