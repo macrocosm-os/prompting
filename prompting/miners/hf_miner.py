@@ -135,6 +135,7 @@ class HuggingFaceMiner(BasePromptingMiner):
 
             bt.logging.debug(f"✅ Served Response: {response}")
             torch.cuda.empty_cache()
+            self.step += 1
 
         except Exception as e:
             bt.logging.error(f"Error: {e}")

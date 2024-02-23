@@ -1,12 +1,6 @@
 from typing import List
 
-from prompting.tasks import (
-    DebuggingTask,
-    SummarizationTask,
-    QuestionAnsweringTask,
-    MathTask,
-    DateQuestionAnsweringTask,
-)
+from prompting.tasks import TASKS
 from prompting.rewards import (
     BaseRewardModel,
     RougeRewardModel,
@@ -16,16 +10,6 @@ from prompting.rewards import (
     DateRewardModel,
 )
 
-
-SUPPORTED_TASKS = {
-    "debugging": DebuggingTask,
-    "summarization": SummarizationTask,
-    "qa": QuestionAnsweringTask,
-    "math": MathTask,
-    "date_qa": DateQuestionAnsweringTask,
-}
-
-
 REWARD_MODELS = {
     "rouge": RougeRewardModel,
     "relevance": RelevanceRewardModel,
@@ -33,7 +17,6 @@ REWARD_MODELS = {
     "float_diff": FloatDiffModel,
     "date": DateRewardModel,
 }
-
 
 class RewardPipeline:
     def __init__(self, selected_tasks: List[str], device):
@@ -53,9 +36,9 @@ class RewardPipeline:
 
     def validate_tasks(self):
         for task in self.selected_tasks:
-            if task not in SUPPORTED_TASKS:
+            if task not in TASKS:
                 raise ValueError(
-                    f"Task {task} not supported. Please choose from {SUPPORTED_TASKS.keys()}"
+                    f"Task {task} not supported. Please choose from {TASKS.keys()}"
                 )
             # Check that the reward_definition and penalty_definition are lists of dictionaries whose weights sum to one
             self._check_weights(task, "reward_definition")
@@ -64,9 +47,10 @@ class RewardPipeline:
     def _check_weights(self, task, definition):
         total_weight = 0
 
-        model_infos = getattr(SUPPORTED_TASKS[task], definition)
+        model_infos = getattr(TASKS[task], definition)
 
         for model_info in model_infos:
+
             if not isinstance(model_info, dict):
                 raise ValueError(
                     f"{definition} model {model_info} is not a dictionary."
@@ -77,10 +61,8 @@ class RewardPipeline:
                 )
 
             weight = model_info["weight"]
-            if not isinstance(weight, float):
-                raise ValueError(
-                    f"{definition} model {model_info} weight is not a float."
-                )
+            if not isinstance(weight, (float, int)):
+                raise ValueError(f"{definition} model {model_info} weight is not a float.")
             if not 0 <= weight <= 1:
                 raise ValueError(
                     f"{definition} model {model_info} weight is not between 0 and 1."
@@ -98,8 +80,9 @@ class RewardPipeline:
         active_reward_models = []
 
         for task in self.selected_tasks:
-            active_reward_models += SUPPORTED_TASKS[task].reward_definition
-            active_reward_models += SUPPORTED_TASKS[task].penalty_definition
+
+            active_reward_models += TASKS[task].reward_definition
+            active_reward_models += TASKS[task].penalty_definition
 
         # Instantiate only the required reward models
         reward_models = {}
