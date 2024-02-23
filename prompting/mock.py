@@ -197,31 +197,25 @@ class MockDendrite(bt.dendrite):
     async def call(
         self,
         i: int,
-        start_time: float,
         synapse: bt.Synapse = bt.Synapse(),
         timeout: float = 12.0,
         deserialize: bool = True,
     ) -> bt.Synapse:
         """Simulated call method to fill synapses with mock data."""
 
-        # Add some random delay to the response
-        process_time_upper_bound = (
-            timeout * 2
-        )  # meaning roughly 50% of the time we will timeout
-        process_time = random.uniform(0, process_time_upper_bound)
+        process_time = random.random()*(self.max_time-self.min_time) + self.min_time
 
         if process_time < timeout:
-            synapse.dendrite.process_time = str(time.time() - start_time)
             # Update the status code and status message of the dendrite to match the axon
             synapse.completion = f"Mock miner completion {i}"
             synapse.dendrite.status_code = 200
             synapse.dendrite.status_message = "OK"
-            synapse.dendrite.process_time = str(process_time)
         else:
             synapse.completion = ""
             synapse.dendrite.status_code = 408
             synapse.dendrite.status_message = "Timeout"
-            synapse.dendrite.process_time = str(timeout)
+
+        synapse.dendrite.process_time = str(process_time)
 
         # Return the updated synapse object after deserializing if requested
         if deserialize:
@@ -239,6 +233,9 @@ class MockDendrite(bt.dendrite):
         Yields:
             object: Each yielded object contains a chunk of the arbitrary response data from the Axon.
             bittensor.Synapse: After the AsyncGenerator has been exhausted, yields the final filled Synapse.
+
+            Communications delay is simulated in the MockStreamMiner.forward method. Therefore, we can 
+            compute the process_time directly here. 
         """
 
         start_time = time.time()
@@ -303,7 +300,6 @@ class MockDendrite(bt.dendrite):
             ):
                 """Queries a single axon for a response."""
 
-                t0 = time.time()
                 s = synapse.copy()
 
                 target_axon = (
@@ -327,7 +323,6 @@ class MockDendrite(bt.dendrite):
                 else:
                     return await self.call(
                         i=i,
-                        start_time=start_time,
                         synapse=s,  # type: ignore
                         timeout=timeout,
                         deserialize=deserialize,
