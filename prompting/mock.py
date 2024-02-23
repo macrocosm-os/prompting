@@ -130,6 +130,9 @@ class MockStreamMiner:
         self.streaming_batch_size = streaming_batch_size
         self.timeout = timeout
 
+        self.MIN_DELAY_PERCENTAGE = 0.20 # 20%
+        self.MAX_DELAY_PERCENTAGE = 0.50 # 50%
+
     def forward(
         self, synapse: StreamPromptingSynapse, start_time: float
     ) -> Iterator:
@@ -165,7 +168,7 @@ class MockStreamMiner:
 
                     if len(buffer) == self.streaming_batch_size:
                         time.sleep(
-                            self.timeout * random.uniform(0.2, 0.5)
+                            self.timeout * random.uniform(self.MIN_DELAY_PERCENTAGE, self.MAX_DELAY_PERCENTAGE)
                         )  # simulate some async processing time
                         yield buffer, continue_streaming
                         buffer = []
@@ -188,8 +191,8 @@ class MockDendrite(bt.dendrite):
     Replaces a real bittensor network request with a mock request that just returns some static 
     completion for all axons that are passed and adds some random delay.
     """
-    min_time: float = 0
-    max_time: float = 1
+    MIN_TIME: float = 0
+    MAX_TIME: float = 1
 
     def __init__(self, wallet):
         super().__init__(wallet)
@@ -203,7 +206,7 @@ class MockDendrite(bt.dendrite):
     ) -> bt.Synapse:
         """Simulated call method to fill synapses with mock data."""
 
-        process_time = random.random()*(self.max_time-self.min_time) + self.min_time
+        process_time = random.random()*(self.MAX_TIME-self.MIN_TIME) + self.MIN_TIME
 
         if process_time < timeout:
             # Update the status code and status message of the dendrite to match the axon
@@ -316,14 +319,14 @@ class MockDendrite(bt.dendrite):
                 if is_stream:
                     # If in streaming mode, return the async_generator
                     return self.call_stream(
-                        synapse=s,  # type: ignore
+                        synapse=s,
                         timeout=timeout,
                         deserialize=False,
                     )
                 else:
                     return await self.call(
                         i=i,
-                        synapse=s,  # type: ignore
+                        synapse=s, 
                         timeout=timeout,
                         deserialize=deserialize,
                     )
@@ -331,7 +334,7 @@ class MockDendrite(bt.dendrite):
             if not run_async:
                 return [
                     await single_axon_response(target_axon) for target_axon in axons
-                ]  # type: ignore
+                ] 
 
             # If run_async flag is True, get responses concurrently using asyncio.gather().
             return await asyncio.gather(
