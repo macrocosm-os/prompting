@@ -22,5 +22,5 @@ from prompting.miners import PhraseMiner
 if __name__ == "__main__":
     with PhraseMiner() as miner:
         while True:
-            bt.logging.info("Miner running...", time.time())
+            miner.log_status()
             time.sleep(5)
