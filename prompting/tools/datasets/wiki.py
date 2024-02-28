@@ -228,7 +228,7 @@ class WikiDateDataset(Dataset):
         # Step 2: Format the date for Wikipedia URL
         return random_date.strftime("%B_%d")  # E.g., "January_01"
 
-    def get(self, name, pageid=None, auto_suggest=True, redirect=True, selector: Selector = None) -> Dict:
+    def get(self, name, pageid=None, auto_suggest=False, redirect=False, selector: Selector = None) -> Dict:
 
         # Check that name is correctly formatted e.g., "January_01"
         date = name.split('_')
