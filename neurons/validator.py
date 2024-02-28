@@ -21,7 +21,7 @@ import torch
 import bittensor as bt
 
 from prompting.forward import forward
-from prompting.llms.hf_llm import load_hf_pipeline
+from prompting.llms.hf_llm import HuggingFacePipeline
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.rewards import RewardPipeline
 
@@ -36,11 +36,12 @@ class Validator(BaseValidatorNeuron):
         bt.logging.info("load_state()")
         self.load_state()
 
-        self.llm_pipeline = load_hf_pipeline(
+        self.llm_pipeline = HuggingFacePipeline(
             model_id=self.config.neuron.model_id,
             torch_dtype=torch.bfloat16,
             device=self.device,
-            mock=self.config.mock,
+            # mock=self.config.mock,
+            mock=False
         )
 
         if sum(self.config.neuron.task_p) != 1:

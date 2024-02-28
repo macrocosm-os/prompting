@@ -24,7 +24,12 @@ from transformers import Pipeline, pipeline
 from prompting.mock import MockPipeline
 
 from prompting.cleaners.cleaner import CleanerPipeline
+import bittensor as bt
+from prompting.mock import MockPipeline
+from transformers import pipeline
+from prompting.llms import BasePipeline
 
+        
 
 def load_hf_pipeline(model_id, device=None, torch_dtype=None, mock=False, model_kwargs:dict = None):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
@@ -54,10 +59,25 @@ def load_hf_pipeline(model_id, device=None, torch_dtype=None, mock=False, model_
     return llm_pipeline
 
 
+class HuggingFacePipeline(BasePipeline):    
+    def __init__(self, model_id, device=None, torch_dtype=None, mock=False, model_kwargs:dict = None):
+        super().__init__()
+        self.model = model_id
+        self.device = device
+        self.torch_dtype = torch_dtype
+        
+        self.pipeline = load_hf_pipeline(model_id, device, torch_dtype, mock, model_kwargs)
+        self.tokenizer = self.pipeline.tokenizer
+
+
+    def __call__(self, system_prompt:str, prompt:str, **kwargs: dict) -> str:
+        return self.pipeline(prompt, **kwargs)
+
+
 class HuggingFaceLLM:
     def __init__(
         self,
-        llm_pipeline: Pipeline,
+        llm_pipeline: BasePipeline,
         system_prompt,
         max_new_tokens=256,
         do_sample=True,
@@ -113,13 +133,15 @@ class HuggingFaceLLM:
         )
 
     def forward(self, messages: List[Dict[str, str]], preformat_messages: bool = False):
-        prompt = self._make_prompt(messages)
-        outputs = self.llm_pipeline(prompt, **self.kwargs)
+        composed_prompt = self._make_prompt(messages)
+        # System prompt is composed in the prompt
+        outputs = self.llm_pipeline(system_prompt=None, prompt=composed_prompt, **self.kwargs)
         response = outputs[0]["generated_text"]
 
-        response = response.replace(prompt, "").strip()
+        response = response.replace(composed_prompt, "").strip()
 
         bt.logging.info(
             f"{self.__class__.__name__} generated the following output:\n{response}"
         )
         return response
+    
