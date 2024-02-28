@@ -19,7 +19,7 @@ import time
 import bittensor as bt
 from dataclasses import asdict
 from prompting.tasks import Task
-from prompting.llm import HuggingFaceLLM
+from prompting.llms.hf_llm import HuggingFaceLLM
 from prompting.cleaners.cleaner import CleanerPipeline
 
 from prompting.persona import Persona, create_persona

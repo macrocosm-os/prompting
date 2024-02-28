@@ -4,7 +4,7 @@ from abc import ABC
 from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import List, Union, Dict
-from prompting.llm import HuggingFaceLLM
+from prompting.llms.hf_llm import HuggingFaceLLM
 from transformers import Pipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 
