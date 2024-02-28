@@ -18,6 +18,7 @@
 import time
 import bittensor as bt
 import argparse
+from deprecation import deprecated
 
 # Bittensor Miner Template:
 from prompting.protocol import PromptingSynapse
@@ -28,7 +29,7 @@ from dotenv import load_dotenv, find_dotenv
 from prompting.miners.agents import SingleActionAgent, ReactAgent
 from langchain.callbacks import get_openai_callback
 
-
+@deprecated(deprecated_in="1.1.2", removed_in="2.0", details="AgentMiner is unsupported.")
 class AgentMiner(BasePromptingMiner):
     """Langchain-based miner which uses OpenAI's API as the LLM. This uses the ReAct framework.
 
@@ -108,50 +109,5 @@ class AgentMiner(BasePromptingMiner):
         }
 
     async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
-        """
-        Processes the incoming synapse by performing a predefined operation on the input data.
-        This method should be replaced with actual logic relevant to the miner's purpose.
-
-        Args:
-            synapse (PromptingSynapse): The synapse object containing the 'dummy_input' data.
-
-        Returns:
-            PromptingSynapse: The synapse object with the '`dummy_output' field set to twice the 'dummy_input' value.
-
-        The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
-        the miner's intended operation. This method demonstrates a basic transformation of input data.
-        """
-        try:
-            with get_openai_callback() as cb:
-                t0 = time.time()
-                bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
-
-                message = synapse.messages[-1]
-
-                bt.logging.debug(f"💬 Querying openai and wikipedia: {message}")
-
-                response = self.agent.run(message)
-
-                synapse.completion = response
-                synapse_latency = time.time() - t0
-
-                if self.config.wandb.on:
-                    self.log_event(
-                        timing=synapse_latency,
-                        prompt=message,
-                        completion=response,
-                        system_prompt="",
-                        extra_info=self.get_cost_logging(cb),
-                    )
-
-            bt.logging.debug(f"✅ Served Response: {response}")
-            self.step += 1
-
-            return synapse
-        except Exception as e:
-            bt.logging.error(f"Error in forward: {e}")
-            synapse.completion = "Error: " + str(e)
-        finally:
-            if self.config.neuron.stop_on_forward_exception:
-                self.should_exit = True
-            return synapse
+        self.should_exit = True 
+        return synapse 
