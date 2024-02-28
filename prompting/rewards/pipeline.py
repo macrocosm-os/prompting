@@ -42,10 +42,10 @@ class RewardPipeline:
                     f"Task {task} not supported. Please choose from {TASKS.keys()}"
                 )
             # Check that the reward_definition and penalty_definition are lists of dictionaries whose weights sum to one
-            self._check_weights(task, "reward_definition")
-            self._check_weights(task, "penalty_definition")
+            self._check_weights(task, "reward_definition", expected_weight=1)
+            self._check_weights(task, "penalty_definition", expected_weight=None)
 
-    def _check_weights(self, task, definition):
+    def _check_weights(self, task, definition, expected_weight):
 
         total_weight = 0
 
@@ -66,8 +66,8 @@ class RewardPipeline:
 
             total_weight += weight
 
-        if model_infos and total_weight != 1:
-            raise ValueError(f"{definition} model {model_infos} weights do not sum to 1 (sum={total_weight})")
+        if model_infos and expected_weight is not None and total_weight != expected_weight:
+            raise ValueError(f"{definition} model {model_infos} weights do not sum to {expected_weight} (sum={total_weight})")
 
     def load_pipeline(self):
         """Dynamically loads the reward models required by the selected tasks so that we only use the necessary resources."""
