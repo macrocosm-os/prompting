@@ -231,8 +231,8 @@ class WikiDateDataset(Dataset):
     def get(self, name, pageid=None, auto_suggest=False, redirect=False, selector: Selector = None) -> Dict:
 
         # Check that name is correctly formatted e.g., "January 1"
-        date = name.split('_')
-        assert len(date)==2, f"Date should be in the format 'Month_DD' (e.g., 'January_01'), but got {name!r}"
+        date = name.split(' ')
+        assert len(date)==2, f"Date should be in the format 'Month D[D]' (e.g., 'January 1' or 'March 28'), but got {name!r}"
         assert date[0] in self.MONTHS, f"Month should be one of {self.MONTHS}, but got {date[0]!r}"
         assert date[1].isdigit(), f"Day should be a number, but got {date[1]!r}"
 
