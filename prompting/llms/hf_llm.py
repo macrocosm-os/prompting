@@ -27,7 +27,7 @@ from prompting.cleaners.cleaner import CleanerPipeline
 import bittensor as bt
 from prompting.mock import MockPipeline
 from transformers import pipeline
-from prompting.llms import BasePipeline
+from prompting.llms import BasePipeline, BaseLLM
 
         
 
@@ -74,7 +74,7 @@ class HuggingFacePipeline(BasePipeline):
         return self.pipeline(prompt, **kwargs)
 
 
-class HuggingFaceLLM:
+class HuggingFaceLLM(BaseLLM):
     def __init__(
         self,
         llm_pipeline: BasePipeline,
@@ -85,14 +85,14 @@ class HuggingFaceLLM:
         top_k=50,
         top_p=0.95,
     ):
-        self.llm_pipeline = llm_pipeline
-        self.system_prompt = system_prompt
+        super().__init__(llm_pipeline, system_prompt, max_new_tokens, do_sample, temperature, top_k, top_p)
+        
         self.kwargs = dict(
-            do_sample=do_sample,
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
-            max_new_tokens=max_new_tokens,
+            do_sample=self.do_sample,
+            temperature=self.temperature,
+            top_k=self.top_k,
+            top_p=self.top_p,
+            max_new_tokens=self.max_tokens,
         )
 
         self.messages = [{"content": self.system_prompt, "role": "system"}]
@@ -100,7 +100,7 @@ class HuggingFaceLLM:
 
     def query(
         self,
-        message: List[Dict[str, str]],
+        message: str,
         role: str = "user",
         disregard_system_prompt: bool = False,
         cleaner: CleanerPipeline = None,

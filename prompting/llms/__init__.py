@@ -1,1 +1,1 @@
-from .base_pipeline import BasePipeline
+from .base_llm import BasePipeline, BaseLLM
