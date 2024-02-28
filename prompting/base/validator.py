@@ -31,6 +31,7 @@ from prompting.mock import MockDendrite
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
 
+
 class BaseValidatorNeuron(BaseNeuron):
     """
     Base class for Bittensor validators. Your validator should inherit from this class.
@@ -124,7 +125,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Check that validator is registered on the network.
         self.sync()
-        
+
         if not self.config.neuron.axon_off:
             bt.logging.info(
                 f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"

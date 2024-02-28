@@ -77,7 +77,7 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
     def forward(self, synapse: StreamPromptingSynapse):
         async def _forward(
-            self, 
+            self,
             init_time: float,
             timeout_threshold: float,
             chain: RunnableSequence,
@@ -109,7 +109,9 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
                         )
                         buffer = []
 
-                if buffer and not timeout_reached: # Don't send the last buffer of data if timeout.
+                if (
+                    buffer and not timeout_reached
+                ):  # Don't send the last buffer of data if timeout.
                     joined_buffer = "".join(buffer)
                     await send(
                         {
@@ -125,7 +127,6 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
             finally:
                 if self.config.neuron.stop_on_forward_exception:
                     self.should_exit = True
-
 
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
@@ -146,7 +147,7 @@ class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
         token_streamer = partial(
             _forward,
-            self, 
+            self,
             init_time,
             timeout_threshold,
             chain,

@@ -5,7 +5,6 @@ from prompting.tasks import Task
 import difflib
 
 
-
 def corrupt(
     code,
     n_remove=0,
@@ -106,14 +105,11 @@ def diff(query, reference):
 
 @dataclass
 class DebuggingTask(Task):
-
     name = "debugging"
     desc = "get help with debugging"
     goal = "ask for help fixing broken code."
 
-    reward_definition = [
-        dict(name="diff", weight=1.0)
-    ]
+    reward_definition = [dict(name="diff", weight=1.0)]
 
     penalty_definition = []
 
@@ -121,22 +117,20 @@ class DebuggingTask(Task):
     static_query = True
 
     def __init__(self, llm_pipeline, context, create_reference=True):
-
         self.context = context
 
         # No LLM involved in generating the query, we just apply some language-independent corruption to the code
         self.query = corrupt(
-                    context.content,
-                    n_remove=random.randint(1, 3),
-                    n_swap=random.randint(0, 2),
-                    sep=random.choices([""," ","\n"],weights=[0.3,0.6,0.1],k=1)[0]
-                )
+            context.content,
+            n_remove=random.randint(1, 3),
+            n_swap=random.randint(0, 2),
+            sep=random.choices(["", " ", "\n"], weights=[0.3, 0.6, 0.1], k=1)[0],
+        )
         self.reference = context.content
         self.delimiter = "```"
         self.topic = context.title
         self.subtopic = context.subtopic
         self.tags = context.tags
-
 
     def format_challenge(self, challenge):
         return f"{challenge}\n{self.delimiter}\n{self.query}\n{self.delimiter}"

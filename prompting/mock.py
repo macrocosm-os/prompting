@@ -77,7 +77,6 @@ class MockPipeline:
 
 class MockSubtensor(bt.MockSubtensor):
     def __init__(self, netuid, n=16, wallet=None):
-
         super().__init__()
         # reset the underlying subtensor state
         self.chain_state = None
@@ -109,7 +108,6 @@ class MockSubtensor(bt.MockSubtensor):
 
 class MockMetagraph(bt.metagraph):
     def __init__(self, netuid, subtensor, network="mock"):
-
         self.DEFAULT_IP = "127.0.0.0"
         self.DEFAULT_PORT = 8091
 
@@ -130,14 +128,12 @@ class MockStreamMiner:
         self.streaming_batch_size = streaming_batch_size
         self.timeout = timeout
 
-        self.MIN_DELAY_PERCENTAGE = 0.20 # 20%
-        self.MAX_DELAY_PERCENTAGE = 0.50 # 50%
+        self.MIN_DELAY_PERCENTAGE = 0.20  # 20%
+        self.MAX_DELAY_PERCENTAGE = 0.50  # 50%
 
-    def forward(
-        self, synapse: StreamPromptingSynapse, start_time: float
-    ) -> Iterator:
-        """Mock forward returns a token_streamer, which is a partial function 
-        that simulates the async streaming of tokens from the axon. 
+    def forward(self, synapse: StreamPromptingSynapse, start_time: float) -> Iterator:
+        """Mock forward returns a token_streamer, which is a partial function
+        that simulates the async streaming of tokens from the axon.
 
         In production, we actually return the synapse.create_streaming_response(token_streamer).
          > create_streaming_response enables communication between miner/validator via aiohttp post requests
@@ -146,12 +142,13 @@ class MockStreamMiner:
         Returns:
             StreamPromptingSynapse: _description_
         """
-        def _forward(self, prompt: str, start_time: float, sample: Any):
-            """In production, _forward is an async def _forward. This is because we are sending an 
-            aiohttp post request to the axon to get chunks of data. This is the "send" packet defined
-            in typical _forward functions. 
 
-            Here, we simulate streaming by iterating through a prompt and stochastically delaying. 
+        def _forward(self, prompt: str, start_time: float, sample: Any):
+            """In production, _forward is an async def _forward. This is because we are sending an
+            aiohttp post request to the axon to get chunks of data. This is the "send" packet defined
+            in typical _forward functions.
+
+            Here, we simulate streaming by iterating through a prompt and stochastically delaying.
             """
             buffer = []
             continue_streaming = True
@@ -168,7 +165,10 @@ class MockStreamMiner:
 
                     if len(buffer) == self.streaming_batch_size:
                         time.sleep(
-                            self.timeout * random.uniform(self.MIN_DELAY_PERCENTAGE, self.MAX_DELAY_PERCENTAGE)
+                            self.timeout
+                            * random.uniform(
+                                self.MIN_DELAY_PERCENTAGE, self.MAX_DELAY_PERCENTAGE
+                            )
                         )  # simulate some async processing time
                         yield buffer, continue_streaming
                         buffer = []
@@ -188,9 +188,10 @@ class MockStreamMiner:
 
 class MockDendrite(bt.dendrite):
     """
-    Replaces a real bittensor network request with a mock request that just returns some static 
+    Replaces a real bittensor network request with a mock request that just returns some static
     completion for all axons that are passed and adds some random delay.
     """
+
     MIN_TIME: float = 0
     MAX_TIME: float = 1
 
@@ -206,7 +207,7 @@ class MockDendrite(bt.dendrite):
     ) -> bt.Synapse:
         """Simulated call method to fill synapses with mock data."""
 
-        process_time = random.random()*(self.MAX_TIME-self.MIN_TIME) + self.MIN_TIME
+        process_time = random.random() * (self.MAX_TIME - self.MIN_TIME) + self.MIN_TIME
 
         if process_time < timeout:
             # Update the status code and status message of the dendrite to match the axon
@@ -237,8 +238,8 @@ class MockDendrite(bt.dendrite):
             object: Each yielded object contains a chunk of the arbitrary response data from the Axon.
             bittensor.Synapse: After the AsyncGenerator has been exhausted, yields the final filled Synapse.
 
-            Communications delay is simulated in the MockStreamMiner.forward method. Therefore, we can 
-            compute the process_time directly here. 
+            Communications delay is simulated in the MockStreamMiner.forward method. Therefore, we can
+            compute the process_time directly here.
         """
 
         start_time = time.time()
@@ -326,7 +327,7 @@ class MockDendrite(bt.dendrite):
                 else:
                     return await self.call(
                         i=i,
-                        synapse=s, 
+                        synapse=s,
                         timeout=timeout,
                         deserialize=deserialize,
                     )
@@ -334,7 +335,7 @@ class MockDendrite(bt.dendrite):
             if not run_async:
                 return [
                     await single_axon_response(target_axon) for target_axon in axons
-                ] 
+                ]
 
             # If run_async flag is True, get responses concurrently using asyncio.gather().
             return await asyncio.gather(

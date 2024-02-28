@@ -93,7 +93,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         async def _forward(
-            self, 
+            self,
             prompt: str,
             thread: Thread,
             init_time: float,
@@ -110,7 +110,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             temp_completion = ""  # for wandb logging
             timeout_reached = False
 
-            try: 
+            try:
                 for token in streamer:
                     buffer.append(token)
 
@@ -151,8 +151,8 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             except Exception as e:
                 bt.logging.error(f"Error in forward: {e}")
 
-            finally: 
-                #Thread and streamer cleanup
+            finally:
+                # Thread and streamer cleanup
                 thread.join()  # This will close the thread but not stop execution of the model
                 if streamer.has_data():
                     streamer.clear_queue()  # model continues to compute, so remove tokens in queue
@@ -199,7 +199,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
         token_streamer = partial(
             _forward,
-            self, 
+            self,
             prompt,
             thread,
             init_time,

@@ -38,7 +38,8 @@ from dotenv import load_dotenv, find_dotenv
 from langchain_core.runnables.base import RunnableSequence
 from langchain.callbacks import get_openai_callback
 
-import pdb 
+import pdb
+
 
 class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.

@@ -23,6 +23,7 @@ import bittensor as bt
 
 from ..selector import Selector
 from .context import Context
+from prompting.utils.exceptions import MaxRetryError
 
 
 class Dataset(ABC):
@@ -42,19 +43,20 @@ class Dataset(ABC):
     def get(self, name):
         ...
 
-    def next(self, method: str = 'random', selector: Selector = Selector(), **kwargs) -> Dict:
+    def next(
+        self, method: str = "random", selector: Selector = Selector(), **kwargs
+    ) -> Dict:
         tries = 1
         t0 = time.time()
 
         while True:
-
             # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
             info = {}
-            if method == 'random':
+            if method == "random":
                 info = self.random(selector=selector, **kwargs)
-            elif method == 'search':
+            elif method == "search":
                 info = self.search(selector=selector, **kwargs)
-            elif method == 'get':
+            elif method == "get":
                 info = self.get(selector=selector, **kwargs)
             else:
                 raise ValueError(f"Unknown dataset get method {method!r}")
@@ -62,19 +64,21 @@ class Dataset(ABC):
             if info:
                 break
 
-            bt.logging.warning(f"Could not find an sample which meets {self.__class__.__name__} requirements after {tries} tries. Retrying... ({self.max_tries - tries} tries remaining.)")
+            bt.logging.debug(
+                f"Could not find any samples which meet {self.__class__.__name__} requirements after {tries} tries. Retrying... ({self.max_tries - tries} tries remaining.)"
+            )
 
             tries += 1
-            if tries == self.max_tries:
-                raise Exception(
-                    f"Could not find an sample which meets {self.__class__.__name__} requirements after {tries} tries."
+            if tries >= self.max_tries:
+                raise MaxRetryError(
+                    f"Could not find any samples which meet {self.__class__.__name__} requirements after {tries} tries."
                 )
 
-        info['stats'] = {
-            'creator': self.__class__.__name__,
-            'fetch_time': time.time() - t0,
-            'num_tries': tries,
-            'fetch_method': method,
-            'next_kwargs': kwargs
-            }
+        info["stats"] = {
+            "creator": self.__class__.__name__,
+            "fetch_time": time.time() - t0,
+            "num_tries": tries,
+            "fetch_method": method,
+            "next_kwargs": kwargs,
+        }
         return Context(**info)

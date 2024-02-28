@@ -19,7 +19,7 @@ class FloatDiffModel(BaseRewardModel):
         # loop over all words reversed and try to cast as a float, break when you find the first one
         words = text.split()
         for word in reversed(words):
-            cleaned = word.strip('.').replace(',', '')
+            cleaned = word.strip(".").replace(",", "")
             try:
                 return float(parse_expr(cleaned).evalf())
             except Exception:
@@ -40,9 +40,9 @@ class FloatDiffModel(BaseRewardModel):
 
         try:
             if pred == reference:
-                return 1.0            
+                return 1.0
             # Compute the difference
-            diff = (reference - pred)/(reference + 1e-10)
+            diff = (reference - pred) / (reference + 1e-10)
             # Make sure the difference is between 0 and 1
             diff = min(abs(diff), 1)
             # Clip any very small scores
