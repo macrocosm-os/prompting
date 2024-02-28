@@ -175,7 +175,6 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
         prompt = synapse.messages[-1]
 
-        # TODO: is there a way to close this thread? Not sure if this is hanging or not.
         # Create an async thread to generate the data in parallel to the streamer.
         thread = Thread(
             target=HuggingFaceLLM(
