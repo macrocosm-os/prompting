@@ -14,24 +14,103 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
 import time
-
-from typing import List, Dict
 import bittensor as bt
-
-from transformers import Pipeline, pipeline
-from prompting.mock import MockPipeline
-
+from typing import List, Dict
+from vllm import LLM, SamplingParams
 from prompting.cleaners.cleaner import CleanerPipeline
-from prompting.llms import BasePipeline
+from prompting.llms import BasePipeline, BaseLLM
 
 
 class vLLMPipeline(BasePipeline):
-    
-    def __init__():
-        ...
-        
-    def __call__(self, system_prompt: str, prompt: str, **kwargs: Dict) -> time.Any:
-        # return super().__call__(system_prompt, prompt, **kwargs)
-        
+    def __init__(self, model_id, device=None):
+        self.llm = LLM(model=model_id)
+
+    def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:
+        # Compose sampling params
+        temperature = model_kwargs.get("temperature", 0.8)
+        top_p = model_kwargs.get("top_p", 0.95)
+        max_tokens = model_kwargs.get("max_tokens", 256)
+
+        sampling_params = SamplingParams(
+            temperature=temperature, top_p=top_p, max_tokens=max_tokens
+        )
+        output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
+        return output
+
+
+class vLLM_LLM(BaseLLM):
+    def __init__(
+        self,
+        llm_pipeline: BasePipeline,
+        system_prompt,
+        max_tokens=256,
+        temperature=0.7,
+        top_p=0.95,
+    ):
+        model_kwargs = {
+            "temperature": temperature,
+            "top_p": top_p,
+            "max_tokens": max_tokens,
+        }
+        super().__init__(llm_pipeline, system_prompt, model_kwargs)
+
+        # Keep track of generation data using messages and times
+        self.messages = [{"content": self.system_prompt, "role": "system"}]
+        self.times = [0]
+
+    def query(
+        self,
+        message: str,
+        role: str = "user",
+        disregard_system_prompt: bool = False,
+        cleaner: CleanerPipeline = None,
+    ):
+        # Adds the message to the list of messages for tracking purposes, even though it's not used downstream
+        messages = self.messages + [{"content": message, "role": role}]
+
+        t0 = time.time()
+        response = self.forward(messages=messages)
+        response = self.clean_response(cleaner, response)
+
+        self.messages = messages + [{"content": response, "role": "assistant"}]
+        self.times = self.times + [0, time.time() - t0]
+
+        return response
+
+    def _make_prompt(self, messages: List[Dict[str, str]]):
+        composed_prompt = ""
+
+        for message in messages:
+            if message["role"] == "system":
+                composed_prompt += f'<|system|>{message["content"]} '
+            elif message["role"] == "user":
+                composed_prompt += f'<|user|>{message["content"]} '
+            elif message["role"] == "assistant":
+                composed_prompt += f'<|assistant|>{message["content"]} '
+
+        # Adds final tag indicating the assistant's turn
+        composed_prompt += "<|assistant|>"
+        return composed_prompt
+
+    def forward(self, messages: List[Dict[str, str]]):
+        # make composed prompt from messages
+        composed_prompt = self._make_prompt(messages)
+        output = self.llm_pipeline(composed_prompt, **self.model_kwargs)
+        response = output[0].outputs[0].text
+
+        bt.logging.info(
+            f"{self.__class__.__name__} generated the following output:\n{response}"
+        )
+
+        return response
+
+
+if __name__ == "__main__":
+    # Example usage
+    llm_pipeline = vLLMPipeline(model_id="HuggingFaceH4/zephyr-7b-beta")
+    llm = vLLM_LLM(llm_pipeline, system_prompt="You are a helpful AI assistant")
+
+    message = "What is the capital of Texas?"
+    response = llm.query(message)
+    print(response)

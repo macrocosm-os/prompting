@@ -1,11 +1,12 @@
+import bittensor as bt
 from abc import ABC, abstractmethod
 from prompting.cleaners.cleaner import CleanerPipeline
-from typing import Any
+from typing import Any, Dict, List
 
 
 class BasePipeline(ABC):
     @abstractmethod
-    def __call__(self, system_prompt: str, prompt: str, **kwargs: dict) -> Any:
+    def __call__(self, composed_prompt: str, **kwargs: dict) -> Any:
         ...
 
 
@@ -14,20 +15,13 @@ class BaseLLM(ABC):
         self,
         llm_pipeline: BasePipeline,
         system_prompt: str,
-        max_tokens: int,
-        do_sample: bool,
-        temperature: float,
-        top_k: int,
-        top_p: float,
+        model_kwargs: dict,
     ):
         self.llm_pipeline = llm_pipeline
         self.system_prompt = system_prompt
-        self.max_tokens = max_tokens
-        self.do_sample = do_sample
-        self.temperature = temperature
-        self.top_k = top_k
-        self.top_p = top_p
+        self.model_kwargs = model_kwargs
         self.messages = []
+        self.times = []
 
     def query(
         self,
@@ -37,3 +31,17 @@ class BaseLLM(ABC):
         cleaner: CleanerPipeline = None,
     ) -> str:
         ...
+
+    def forward(self, messages: List[Dict[str, str]]):
+        ...
+
+    def clean_response(self, cleaner: CleanerPipeline, response: str) -> str:
+        if cleaner is not None:
+            clean_response = cleaner.apply(generation=response)
+            if clean_response != response:
+                bt.logging.debug(
+                    f"Response cleaned, chars removed: {len(response) - len(clean_response)}..."
+                )
+
+            response = clean_response
+        return response
