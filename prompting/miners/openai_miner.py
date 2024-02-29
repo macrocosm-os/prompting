@@ -131,6 +131,8 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
             except Exception as e:
                 bt.logging.error(f"Error in forward: {e}")
+                if self.config.neuron.stop_on_forward_exception:
+                    self.should_exit = True
 
             finally:
                 synapse_latency = time.time() - init_time
@@ -141,9 +143,6 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                         completion=temp_completion,
                         system_prompt=self.system_prompt,
                     )
-
-                if self.config.neuron.stop_on_forward_exception:
-                    self.should_exit = True
 
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
