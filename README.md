@@ -134,9 +134,11 @@ python -m pip install -e .
 ---
 # Running
 
-We encourage miners to use testnet as this gives you a risk-free playground before running on mainnet. If you require test tao, please reach out to steffen@opentensor.dev
+We encourage miners to use testnet as this gives you a risk-free playground before running on mainnet. If you require test tao, please reach out to brady@opentensor.dev
 
 Prior to running a miner or validator, you must [create a wallet](https://github.com/opentensor/docs/blob/main/reference/btcli.md) and [register the wallet to a netuid](https://github.com/opentensor/docs/blob/main/subnetworks/registration.md). Once you have done so, you can run the miner and validator with the following commands.
+
+For miners and validators running on mainnet we **strongly encourage** you to use a [local subtensor](https://github.com/opentensor/subtensor).
 
 
 ```bash
@@ -161,8 +163,6 @@ python neurons/miners/BASE_MINER/miner.py
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 ```
 where `BASE_MINER` is [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B, however you can choose any of the supplied models found in `neurons/miners`. 
-
-For users who are new to the Bittensor ecosystem, 'finney' is the recommended subtensor, but more advanced users are encouraged to run a subtensor locally for greater performance and stability. 
 
 </div>
 
