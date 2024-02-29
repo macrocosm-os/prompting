@@ -26,7 +26,9 @@ from prompting.mock import MockPipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 
 
-def load_pipeline(model_id, device=None, torch_dtype=None, mock=False, model_kwargs:dict = None):
+def load_pipeline(
+    model_id, device=None, torch_dtype=None, mock=False, model_kwargs: dict = None
+):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
 
     if mock or model_id == "mock":
@@ -41,14 +43,14 @@ def load_pipeline(model_id, device=None, torch_dtype=None, mock=False, model_kwa
             "text-generation",
             model=model_id,
             device=device,
-            torch_dtype=torch_dtype,            
+            torch_dtype=torch_dtype,
         )
     else:
         llm_pipeline = pipeline(
             "text-generation",
             model=model_id,
             device_map=device,
-            model_kwargs=model_kwargs
+            model_kwargs=model_kwargs,
         )
 
     return llm_pipeline
@@ -93,10 +95,12 @@ class HuggingFaceLLM:
         tbeg = time.time()
         response = self.forward(messages=messages)
 
-        if cleaner is not None:            
+        if cleaner is not None:
             clean_response = cleaner.apply(generation=response)
             if clean_response != response:
-                bt.logging.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
+                bt.logging.debug(
+                    f"Response cleaned, chars removed: {len(response) - len(clean_response)}..."
+                )
             response = clean_response
 
         self.messages = messages + [{"content": response, "role": "assistant"}]

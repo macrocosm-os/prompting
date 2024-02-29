@@ -8,7 +8,7 @@ from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTyp
 class FloatDiffModel(BaseRewardModel):
     @property
     def name(self) -> str:
-        return 'float_diff'
+        return "float_diff"
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -19,7 +19,7 @@ class FloatDiffModel(BaseRewardModel):
         # loop over all words reversed and try to cast as a float, break when you find the first one
         words = text.split()
         for word in reversed(words):
-            cleaned = word.strip('.').replace(',', '')
+            cleaned = word.strip(".").replace(",", "")
             try:
                 return float(parse_expr(cleaned).evalf())
             except Exception:
@@ -40,9 +40,9 @@ class FloatDiffModel(BaseRewardModel):
 
         try:
             if pred == reference:
-                return 1.0            
+                return 1.0
             # Compute the difference
-            diff = (reference - pred)/(reference + 1e-10)
+            diff = (reference - pred) / (reference + 1e-10)
             # Make sure the difference is between 0 and 1
             diff = min(abs(diff), 1)
             # Clip any very small scores
@@ -51,7 +51,6 @@ class FloatDiffModel(BaseRewardModel):
             return 1.0 - diff
         except Exception:
             return 0.0
-
 
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
@@ -65,8 +64,10 @@ class FloatDiffModel(BaseRewardModel):
             rewards.append(reward)
 
         output = BatchRewardOutput(
-            rewards = torch.FloatTensor(rewards),
-            timings = torch.FloatTensor(timings),
-            extra_info = {'type': 'math', },
+            rewards=torch.FloatTensor(rewards),
+            timings=torch.FloatTensor(timings),
+            extra_info={
+                "type": "math",
+            },
         )
         return output
