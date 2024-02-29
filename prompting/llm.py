@@ -31,8 +31,12 @@ TOKENIZER_MAPPINGS = {"HuggingFaceH4/zephyr-7b-beta": "HuggingFaceH4/zephyr-7b-b
 
 class CustomTextIteratorStreamer(TextIteratorStreamer):
     """
-    Custom implementation of TextIteratorStreamer to have clean methods for
-    checking and clearing the data queue during streaming events.
+    TextIteratorStreamer stores print-ready text in a queue, to be used by a downstream application as an iterator.
+    The queue is thread-safe and can be used to stream data from the model to the application.
+
+    TextIteratorStreamer has internal methods to raise a StopIteration if a stop signal is received 
+    (stop signal is when the value returned from the Queue is None), but this is not flexible enough. 
+    Therefore, we add methods to check and clean the queue manually. 
     """
 
     def has_data(self):

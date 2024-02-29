@@ -101,8 +101,16 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             streamer: CustomTextIteratorStreamer,
             send: Send,
         ):
-            """
-            CustomTextIteratorStreamer: stores print-ready text in a queue, to be used by a downstream application as an iterator.
+            """_summary_
+
+            Args:
+                prompt (str): The received message (challenge) in the synapse. For logging. 
+                thread (Thread): A background thread that is reponsible for running the model. 
+                init_time (float): Initial time of the forward call. For timeout calculation.
+                timeout_threshold (float): The amount of time that the forward call is allowed to run. If timeout is reached, streaming stops and 
+                    validators recieve a partial response.
+                streamer (CustomTextIteratorStreamer): Iterator that holds tokens within a background Queue to be returned when sampled. 
+                send (Send): bittensor aiohttp send function to send the response back to the validator.
             """
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
@@ -150,6 +158,8 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
             except Exception as e:
                 bt.logging.error(f"Error in forward: {e}")
+                if self.config.neuron.stop_on_forward_exception:
+                    self.should_exit = True
 
             finally:
                 # Thread and streamer cleanup
@@ -168,9 +178,6 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                     )
 
                 torch.cuda.empty_cache()  # cuda cleanup
-
-                if self.config.neuron.stop_on_forward_exception:
-                    self.should_exit = True
 
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
         prompt = synapse.messages[-1]
