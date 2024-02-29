@@ -154,6 +154,9 @@ class BaseNeuron(ABC):
         if self.config.neuron.disable_set_weights:
             return False
 
+        if not self.metagraph.validator_permit[self.uid]:
+            return False
+
         # Define appropriate logic for when set weights.
         return (
             self.block - self.metagraph.last_update[self.uid]
