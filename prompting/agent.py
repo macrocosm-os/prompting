@@ -19,7 +19,7 @@ import time
 import bittensor as bt
 from dataclasses import asdict
 from prompting.tasks import Task
-from prompting.llms.hf_llm import HuggingFaceLLM
+from prompting.llms import HuggingFaceLLM, vLLM_LLM
 from prompting.cleaners.cleaner import CleanerPipeline
 
 from prompting.persona import Persona, create_persona
@@ -27,7 +27,7 @@ from prompting.persona import Persona, create_persona
 from transformers import Pipeline
 
 
-class HumanAgent(HuggingFaceLLM):
+class HumanAgent(vLLM_LLM):
     "Agent that impersonates a human user and makes queries based on its goal."
 
     @property

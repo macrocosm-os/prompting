@@ -72,7 +72,6 @@ class MockPipeline:
     def preprocess(self, **kwargs):
         pass
 
-
 class MockSubtensor(bt.MockSubtensor):
     def __init__(self, netuid, n=16, wallet=None):
 

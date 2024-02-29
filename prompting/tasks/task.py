@@ -4,7 +4,7 @@ from abc import ABC
 from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import List, Union, Dict
-from prompting.llms.hf_llm import HuggingFaceLLM
+from prompting.llms import HuggingFaceLLM, vLLM_LLM
 from transformers import Pipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 
@@ -73,7 +73,7 @@ class Task(ABC):
         cleaner = (
             CleanerPipeline(cleaning_pipeline=self.cleaning_pipeline) if clean else None
         )
-        return HuggingFaceLLM(llm, system_prompt=system).query(
+        return vLLM_LLM(llm, system_prompt=system).query(
             message=prompt, cleaner=cleaner
         )
 

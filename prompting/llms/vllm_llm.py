@@ -21,12 +21,24 @@ from vllm import LLM, SamplingParams
 from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.llms import BasePipeline, BaseLLM
 
+def load_vllm_pipeline(model_id, mock=False):
+    """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
+    if mock or model_id == "mock":
+        return None
+    
+    return LLM(model=model_id)
+
 
 class vLLMPipeline(BasePipeline):
-    def __init__(self, model_id, device=None):
-        self.llm = LLM(model=model_id)
+    def __init__(self, model_id, device=None, mock=False):
+        super().__init__()                                
+        self.llm = load_vllm_pipeline(model_id, mock)
+        self.mock = mock
 
-    def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:
+    def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:        
+        if self.mock:
+            return composed_prompt
+                
         # Compose sampling params
         temperature = model_kwargs.get("temperature", 0.8)
         top_p = model_kwargs.get("top_p", 0.95)
@@ -36,7 +48,8 @@ class vLLMPipeline(BasePipeline):
             temperature=temperature, top_p=top_p, max_tokens=max_tokens
         )
         output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
-        return output
+        response = output[0].outputs[0].text
+        return response 
 
 
 class vLLM_LLM(BaseLLM):
@@ -44,14 +57,14 @@ class vLLM_LLM(BaseLLM):
         self,
         llm_pipeline: BasePipeline,
         system_prompt,
-        max_tokens=256,
+        max_new_tokens=256,
         temperature=0.7,
         top_p=0.95,
     ):
         model_kwargs = {
             "temperature": temperature,
             "top_p": top_p,
-            "max_tokens": max_tokens,
+            "max_tokens": max_new_tokens,
         }
         super().__init__(llm_pipeline, system_prompt, model_kwargs)
 
@@ -96,8 +109,7 @@ class vLLM_LLM(BaseLLM):
     def forward(self, messages: List[Dict[str, str]]):
         # make composed prompt from messages
         composed_prompt = self._make_prompt(messages)
-        output = self.llm_pipeline(composed_prompt, **self.model_kwargs)
-        response = output[0].outputs[0].text
+        response = self.llm_pipeline(composed_prompt, **self.model_kwargs)        
 
         bt.logging.info(
             f"{self.__class__.__name__} generated the following output:\n{response}"
@@ -108,7 +120,7 @@ class vLLM_LLM(BaseLLM):
 
 if __name__ == "__main__":
     # Example usage
-    llm_pipeline = vLLMPipeline(model_id="HuggingFaceH4/zephyr-7b-beta")
+    llm_pipeline = vLLMPipeline(model_id="HuggingFaceH4/zephyr-7b-beta", mock=False)
     llm = vLLM_LLM(llm_pipeline, system_prompt="You are a helpful AI assistant")
 
     message = "What is the capital of Texas?"
