@@ -143,7 +143,7 @@ For miners and validators running on mainnet we **strongly encourage** you to us
 
 ```bash
 # To run the validator
-python ne.urons/validator.py
+python neurons/validator.py
     --netuid 1
     --subtensor.network <finney/local/test>
     --neuron.device cuda
