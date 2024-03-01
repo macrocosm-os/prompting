@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+
 def write_to_pre_commit(content):
     hooks_dir = ".git/hooks"
     pre_commit_path = os.path.join(hooks_dir, "pre-commit")
@@ -22,12 +23,16 @@ def write_to_pre_commit(content):
     else:
         print("Warning: .git/hooks directory not found. Pre-commit hook was not set.")
 
+
 # Example content to write to pre-commit hook
 pre_commit_content = """
 #!/bin/bash
 
 # Run Black formatting on staged Python files with specific parameters
 git diff-index --cached --name-only --diff-filter=ACMRTUXB HEAD | grep '\.py$' | xargs black --line-length=88 --target-version=py38
+
+# Add the formatted files to the staging area
+git diff --name-only --cached | xargs git add
 
 # Continue with the commit
 exit 0
