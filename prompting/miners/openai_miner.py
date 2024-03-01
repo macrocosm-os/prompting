@@ -103,9 +103,6 @@ class OpenAIMiner(BasePromptingMiner):
 
         Returns:
             PromptingSynapse: The synapse object with the 'completion' field set to the miner output
-
-        The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
-        the miner's intended operation. This method demonstrates a basic transformation of input data.
         """
         try:
             with get_openai_callback() as cb:
