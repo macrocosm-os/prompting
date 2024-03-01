@@ -18,18 +18,19 @@
 import time
 import bittensor as bt
 import argparse
+from deprecation import deprecated
 
 # Bittensor Miner Template:
 from prompting.protocol import PromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
-from neurons.miner import Miner
+from prompting.base.prompting_miner import BasePromptingMiner
 from dotenv import load_dotenv, find_dotenv
-from agent import WikiAgent
+from prompting.miners.agents import SingleActionAgent, ReactAgent
 from langchain.callbacks import get_openai_callback
 
-
-class WikipediaAgentMiner(Miner):
+@deprecated(deprecated_in="1.1.2", removed_in="2.0", details="AgentMiner is unsupported.")
+class AgentMiner(BasePromptingMiner):
     """Langchain-based miner which uses OpenAI's API as the LLM. This uses the ReAct framework.
 
     You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
@@ -41,6 +42,13 @@ class WikipediaAgentMiner(Miner):
         Adds OpenAI-specific arguments to the command line parser.
         """
         super().add_args(parser)
+
+        parser.add_argument(
+            "--use_react_agent",
+            type=bool,
+            default=False,
+            help="Flag to enable the ReAct agent",
+        )
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -56,9 +64,23 @@ class WikipediaAgentMiner(Miner):
 
         _ = load_dotenv(find_dotenv())
 
-        self.agent = WikiAgent(
-            self.config.neuron.model_id, self.config.neuron.temperature
-        )
+        if self.config.use_react_agent:
+            self.agent = ReactAgent(
+                self.config.neuron.model_id,
+                self.config.neuron.temperature,
+                self.config.neuron.max_tokens,
+                self.config.neuron.load_in_8bits,
+                self.config.neuron.load_in_4bits,
+            )
+        else:
+            self.agent = SingleActionAgent(
+                self.config.neuron.model_id,
+                self.config.neuron.temperature,
+                self.config.neuron.max_tokens,
+                self.config.neuron.load_in_8bits,
+                self.config.neuron.load_in_4bits,
+            )
+
         self.accumulated_total_tokens = 0
         self.accumulated_prompt_tokens = 0
         self.accumulated_completion_tokens = 0
@@ -87,62 +109,5 @@ class WikipediaAgentMiner(Miner):
         }
 
     async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
-        """
-        Processes the incoming synapse by performing a predefined operation on the input data.
-        This method should be replaced with actual logic relevant to the miner's purpose.
-
-        Args:
-            synapse (PromptingSynapse): The synapse object containing the 'dummy_input' data.
-
-        Returns:
-            PromptingSynapse: The synapse object with the '`dummy_output' field set to twice the 'dummy_input' value.
-
-        The 'forward' function is a placeholder and should be overridden with logic that is appropriate for
-        the miner's intended operation. This method demonstrates a basic transformation of input data.
-        """
-        try:
-            with get_openai_callback() as cb:
-                t0 = time.time()
-                bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
-
-                message = synapse.messages[-1]
-
-                bt.logging.debug(f"💬 Querying openai and wikipedia: {message}")
-
-                response = self.agent.run(message)
-
-                synapse.completion = response
-                synapse_latency = time.time() - t0
-
-                if self.config.wandb.on:
-                    self.log_event(
-                        timing=synapse_latency,
-                        prompt=message,
-                        completion=response,
-                        system_prompt="",
-                        extra_info=self.get_cost_logging(cb),
-                    )
-
-            bt.logging.debug(f"✅ Served Response: {response}")
-            self.step += 1
-
-            return synapse
-        except Exception as e:
-            bt.logging.error(f"Error in forward: {e}")
-            synapse.completion = "Error: " + str(e)
-        finally:
-            if self.config.neuron.stop_on_forward_exception:
-                self.should_exit = True
-            return synapse
-
-
-# This is the main function, which runs the miner.
-if __name__ == "__main__":
-    with WikipediaAgentMiner() as miner:
-        while True:
-            miner.log_status()
-            time.sleep(5)
-
-            if miner.should_exit:
-                bt.logging.warning("Ending miner...")
-                break
+        self.should_exit = True 
+        return synapse 

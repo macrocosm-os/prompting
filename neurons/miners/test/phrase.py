@@ -14,49 +14,9 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
 import time
-import typing
-import argparse
 import bittensor as bt
-
-# Bittensor Miner Template:
-import prompting
-from prompting.protocol import PromptingSynapse
-
-# import base miner class which takes care of most of the boilerplate
-from neurons.miner import Miner
-
-
-class PhraseMiner(Miner):
-    """
-    This little fella responds with whatever phrase you give it.
-    """
-
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
-        super().add_args(parser)
-
-        parser.add_argument(
-            "--neuron.phrase",
-            type=str,
-            help="The phrase to use when running a phrase (test) miner.",
-            default="Can you please repeat that?",
-        )
-
-    def __init__(self, config=None):
-        super().__init__(config=config)
-
-    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
-        synapse.completion = self.config.neuron.phrase
-        self.step += 1
-        return synapse
-
-    async def blacklist(self, synapse: PromptingSynapse) -> typing.Tuple[bool, str]:
-        return False, "All good here"
-
-    async def priority(self, synapse: PromptingSynapse) -> float:
-        return 1e6
+from prompting.miners import PhraseMiner
 
 
 # This is the main function, which runs the miner.

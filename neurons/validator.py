@@ -39,7 +39,6 @@ class Validator(BaseValidatorNeuron):
 
         self.llm_pipeline = load_pipeline(
             model_id=self.config.neuron.model_id,
-            torch_dtype=torch.bfloat16,
             device=self.device,
             mock=self.config.mock,
         )

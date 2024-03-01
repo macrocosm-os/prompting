@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-
+import torch
 from typing import List, Dict
 import bittensor as bt
 
@@ -37,21 +37,13 @@ def load_pipeline(
     if not device.startswith("cuda"):
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
-    # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
+    # Sets default model torch type in case is not defined
     if model_kwargs is None:
-        llm_pipeline = pipeline(
-            "text-generation",
-            model=model_id,
-            device=device,
-            torch_dtype=torch_dtype,
-        )
-    else:
-        llm_pipeline = pipeline(
-            "text-generation",
-            model=model_id,
-            device_map=device,
-            model_kwargs=model_kwargs,
-        )
+        model_kwargs = dict(torch_dtype=torch.bfloat16)
+
+    llm_pipeline = pipeline(
+        "text-generation", model=model_id, device_map=device, model_kwargs=model_kwargs
+    )
 
     return llm_pipeline
 
