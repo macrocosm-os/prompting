@@ -189,15 +189,3 @@ class BasePromptingMiner(BaseMinerNeuron):
         bt.logging.info(
             f"Miner running:: network: {self.subtensor.network} | step: {self.step} | uid: {self.uid} | trust: {m.trust[self.uid]:.3f} | emission {m.emission[self.uid]:.3f}"
         )
-
-
-# This is the main function, which runs the miner.
-if __name__ == "__main__":
-    with BasePromptingMiner() as miner:
-        while True:
-            miner.log_status()
-            time.sleep(5)
-
-            if miner.should_exit:
-                bt.logging.warning("Ending miner...")
-                break
