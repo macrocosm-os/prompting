@@ -23,7 +23,7 @@ class ReactAgent(BaseAgent):
             Tool(
                 name="Wikipedia",
                 func=self.wikipedia.run,
-                description="Useful for when you need to look up a topic, country or person on wikipedia",
+                description="Useful for when you need to look up a topic, event, country or person on wikipedia",
             )
         ]
 
