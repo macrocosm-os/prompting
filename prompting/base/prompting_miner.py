@@ -190,4 +190,6 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
 
     def log_status(self):
         m = self.metagraph
-        bt.logging.info(f"Miner running:: network: {self.subtensor.network} | step: {self.step} | uid: {self.uid} | trust: {m.trust[self.uid]:.3f} | emission {m.emission[self.uid]:.3f}")
+        bt.logging.info(
+            f"Miner running:: network: {self.subtensor.network} | step: {self.step} | uid: {self.uid} | trust: {m.trust[self.uid]:.3f} | emission {m.emission[self.uid]:.3f}"
+        )

@@ -16,13 +16,14 @@ Steps:
 - Iterate over the async generator to extract the yielded tokens on the server side
 """
 
+
 async def handle_response(uid: str, responses: List[Awaitable]) -> tuple[str, str]:
     full_response = ""
     ii = 0
     for resp in responses:
         async for chunk in resp:
             print(f"\nchunk {ii} for resp: {chunk}", end="", flush=True)
-            ii += 1 
+            ii += 1
 
         synapse = (
             chunk  # last object yielded is the synapse itself with completion filled
@@ -36,10 +37,9 @@ async def handle_response(uid: str, responses: List[Awaitable]) -> tuple[str, st
 async def query_stream_miner(
     synapse_protocol, wallet_name, hotkey, network, netuid, uid, message=None
 ):
-    
     if message is None:
         message = "Give me some information about the night sky."
-    
+
     syn = synapse_protocol(
         roles=["user"],
         messages=[message],
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         "--message",
         type=str,
         default="What is the meaning of life?",
-        help='A question that you want to ask to the ai',
+        help="A question that you want to ask to the ai",
     )
 
     # Parse arguments
@@ -120,6 +120,6 @@ if __name__ == "__main__":
             network=args.network,
             netuid=args.netuid,
             uid=args.uid,
-            message = args.message
+            message=args.message,
         )
     )
