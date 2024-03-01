@@ -35,7 +35,7 @@ from langchain.callbacks import get_openai_callback
 
 class OpenAIMiner(BasePromptingMiner):
     """Langchain-based miner which uses OpenAI's API as the LLM.
-
+This miner does not use any tools or external APIs when processing requests - it relies entirely on the models' own representation and world model. In some cases, this can produce lower quality results.
     You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
     """
 
