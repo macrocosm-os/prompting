@@ -173,14 +173,17 @@ class Miner(BaseMinerNeuron):
         bt.logging.info('Logging event to wandb...', step_log)
         wandb.log(step_log)
 
+    def log_status(self):
+        m = self.metagraph
+        bt.logging.info(f"Miner running:: network: {self.subtensor.network} | step: {self.step} | uid: {self.uid} | trust: {m.trust[self.uid]:.3f} | emission {m.emission[self.uid]:.3f}")
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
-    with Miner() as m:
+    with Miner() as miner:
         while True:
-            bt.logging.info(f"Miner running:: network: {m.subtensor.network} | block: {m.block} | step: {m.step} | uid: {m.uid} | last updated: {m.block-m.metagraph.last_update[m.uid]} | trust: {m.metagraph.trust[m.uid]:.3f} | emission {m.metagraph.emission[m.uid]:.3f}")
+            miner.log_status()
             time.sleep(5)
 
-            if m.should_exit:
+            if miner.should_exit:
                 bt.logging.warning("Ending miner...")
                 break

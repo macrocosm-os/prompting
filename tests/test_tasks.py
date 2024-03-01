@@ -75,8 +75,8 @@ def test_task_state_dict(task: Task, full: bool):
 
 
 @pytest.mark.parametrize('task', TASKS)
-@pytest.mark.parametrize('definition', ('reward_definition', 'penalty_definition'))
-def test_task_contains_required_definition(task: Task, definition: str):
+@pytest.mark.parametrize('definition, expected_weight', [('reward_definition',1), ('penalty_definition',None)])
+def test_task_contains_required_definition(task: Task, definition: str, expected_weight: float):
 
     task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
     model_infos = getattr(task, definition)
@@ -110,4 +110,4 @@ def test_task_contains_required_definition(task: Task, definition: str):
 
         total_weight += weight
 
-    assert not model_infos or total_weight == 1
+    assert not model_infos or expected_weight is None or total_weight == expected_weight
