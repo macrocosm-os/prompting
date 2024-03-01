@@ -37,9 +37,7 @@ def get_config() -> "bt.Config":
         help="Chain endpoint to connect to.",
     )
     # Adds override arguments for network and netuid.
-    parser.add_argument(
-        "--netuid", type=int, default=1, help="The chain subnet uid."
-    )
+    parser.add_argument("--netuid", type=int, default=1, help="The chain subnet uid.")
 
     parser.add_argument(
         "--miner.root",

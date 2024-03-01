@@ -25,6 +25,7 @@ from prompting.llm import load_pipeline
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.rewards import RewardPipeline
 
+
 class Validator(BaseValidatorNeuron):
     """
     Text prompt validator neuron.
@@ -68,7 +69,6 @@ class Validator(BaseValidatorNeuron):
         # Filter out tasks with 0 probability
         self.active_tasks = [task for task, prob in zip(tasks, probs) if prob > 0]
 
-
     async def forward(self):
         """
         Validator forward pass. Consists of:
@@ -81,7 +81,6 @@ class Validator(BaseValidatorNeuron):
         return await forward(self)
 
     def __enter__(self):
-
         if self.config.no_background_thread:
             bt.logging.warning("Running validator in main thread.")
             self.run()
@@ -110,14 +109,16 @@ class Validator(BaseValidatorNeuron):
             self.is_running = False
             bt.logging.debug("Stopped")
 
+
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
     with Validator() as v:
         while True:
-            bt.logging.info(f"Validator running:: network: {v.subtensor.network} | block: {v.block} | step: {v.step} | uid: {v.uid} | last updated: {v.block-v.metagraph.last_update[v.uid]} | vtrust: {v.metagraph.validator_trust[v.uid]:.3f} | emission {v.metagraph.emission[v.uid]:.3f}")
+            bt.logging.info(
+                f"Validator running:: network: {v.subtensor.network} | block: {v.block} | step: {v.step} | uid: {v.uid} | last updated: {v.block-v.metagraph.last_update[v.uid]} | vtrust: {v.metagraph.validator_trust[v.uid]:.3f} | emission {v.metagraph.emission[v.uid]:.3f}"
+            )
             time.sleep(5)
 
             if v.should_exit:
                 bt.logging.warning("Ending validator...")
                 break
-

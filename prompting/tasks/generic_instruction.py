@@ -86,15 +86,11 @@ class GenericInstructionTask(Task):
         )
 
         self.criteria = self.create_criteria(llm_pipeline)
-        instruction, reference = self.create_instruction_and_reference(
-            llm_pipeline
-        )
+        instruction, reference = self.create_instruction_and_reference(llm_pipeline)
         self.challenge = instruction
         self.reference = reference
 
-    def extract_instruction_and_reference_from_text(
-        self, text: str
-    ) -> Tuple[str, str]:
+    def extract_instruction_and_reference_from_text(self, text: str) -> Tuple[str, str]:
         # Split the text into problem and response using regular expression
         split_text = re.split(r"\nResponse:\n", text)
 
