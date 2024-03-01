@@ -44,7 +44,7 @@ Final Answer: the final answer to the original input question
 Question: {input}
 {agent_scratchpad}"""
 
-
+@deprecated(deprecated_in="1.1.2", removed_in="2.0", details="AgentMiner is unsupported.")
 # Set up a prompt template
 class CustomPromptTemplate(StringPromptTemplate):
     # The template to use
@@ -70,7 +70,7 @@ class CustomPromptTemplate(StringPromptTemplate):
         kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
         return self.template.format(**kwargs)
 
-
+@deprecated(deprecated_in="1.1.2", removed_in="2.0", details="AgentMiner is unsupported.")
 class CustomOutputParser(AgentOutputParser):
     def parse(self, llm_output: str) -> Union[AgentAction, AgentFinish]:
         # Check if agent should finish
@@ -93,7 +93,7 @@ class CustomOutputParser(AgentOutputParser):
             tool=action, tool_input=action_input.strip(" ").strip('"'), log=llm_output
         )
 
-
+@deprecated(deprecated_in="1.1.2", removed_in="2.0", details="AgentMiner is unsupported.")
 class SingleActionAgent(BaseAgent):
     def __init__(
         self,

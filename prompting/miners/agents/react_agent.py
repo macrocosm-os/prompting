@@ -8,7 +8,7 @@ from langchain.utilities import WikipediaAPIWrapper
 from langchain.agents import Tool
 from langchain.tools import WikipediaQueryRun
 
-
+@deprecated(deprecated_in="1.1.2", removed_in="2.0", details="AgentMiner is unsupported.")
 class ReactAgent(BaseAgent):
     def __init__(
         self,
