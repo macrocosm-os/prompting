@@ -129,6 +129,11 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
+For developers, you can also setup pre-commit hooks. 
+```bash
+python setup_precommit.py
+```
+
 </div>
 
 ---
