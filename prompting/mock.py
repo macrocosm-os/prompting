@@ -76,7 +76,6 @@ class MockPipeline:
 
 class MockSubtensor(bt.MockSubtensor):
     def __init__(self, netuid, n=16, wallet=None):
-
         super().__init__()
         # reset the underlying subtensor state
         self.chain_state = None
@@ -107,7 +106,6 @@ class MockSubtensor(bt.MockSubtensor):
 
 
 class MockMetagraph(bt.metagraph):
-
     default_ip = "127.0.0.0"
     default_port = 8091
 
@@ -127,6 +125,7 @@ class MockDendrite(bt.dendrite):
     """
     Replaces a real bittensor network request with a mock request that just returns some static completion for all axons that are passed and adds some random delay.
     """
+
     min_time: float = 0
     max_time: float = 1
 
@@ -156,7 +155,9 @@ class MockDendrite(bt.dendrite):
                 # Attach some more required data so it looks real
                 s = self.preprocess_synapse_for_request(axon, s, timeout)
                 # We just want to mock the response, so we'll just fill in some data
-                process_time = random.random()*(self.max_time-self.min_time) + self.min_time
+                process_time = (
+                    random.random() * (self.max_time - self.min_time) + self.min_time
+                )
                 await asyncio.sleep(process_time)
                 if process_time < timeout:
                     # Update the status code and status message of the dendrite to match the axon

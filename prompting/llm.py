@@ -26,7 +26,9 @@ from prompting.mock import MockPipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 
 
-def load_pipeline(model_id, device=None, mock=False, model_kwargs: dict = None):
+def load_pipeline(
+    model_id, device=None, torch_dtype=None, mock=False, model_kwargs: dict = None
+):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
 
     if mock or model_id == "mock":

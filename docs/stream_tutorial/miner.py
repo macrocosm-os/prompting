@@ -60,9 +60,7 @@ class StreamMiner(ABC):
             bt.logging.info(f"Running miner on uid: {self.my_subnet_uid}")
 
         # The axon handles request processing, allowing validators to send this process requests.
-        self.axon = axon or bt.axon(
-            wallet=self.wallet, port=self.config.axon.port
-        )
+        self.axon = axon or bt.axon(wallet=self.wallet, port=self.config.axon.port)
         # Attach determiners which functions are called when servicing a request.
         bt.logging.info(f"Attaching forward function to axon.")
         print(f"Attaching forward function to axon. {self._prompt}")
@@ -162,9 +160,7 @@ class StreamMiner(ABC):
         self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
 
         # Start  starts the miner's axon, making it active on the network.
-        bt.logging.info(
-            f"Starting axon server on port: {self.config.axon.port}"
-        )
+        bt.logging.info(f"Starting axon server on port: {self.config.axon.port}")
         self.axon.start()
 
         # --- Run until should_exit = True.
