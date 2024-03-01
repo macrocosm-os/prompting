@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 def write_to_pre_commit(content):
     hooks_dir = ".git/hooks"
@@ -11,6 +12,13 @@ def write_to_pre_commit(content):
                 print("Success: .git/hooks directory was found. Pre-commit hooks set.")
             except Exception as e:
                 print(f"Error setting up pre-commit hooks: {e}")
+
+        # Add execute permission to the pre-commit hook file
+        try:
+            subprocess.run(["chmod", "+x", pre_commit_path], check=True)
+            print("Success: Pre-commit hook file set to executable.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error setting execute permission on pre-commit hook file: {e}")
     else:
         print("Warning: .git/hooks directory not found. Pre-commit hook was not set.")
 
