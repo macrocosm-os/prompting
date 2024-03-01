@@ -23,6 +23,7 @@ import bittensor as bt
 
 from ..selector import Selector
 from .context import Context
+from prompting.utils.exceptions import MaxRetryError
 
 
 class Dataset(ABC):
@@ -62,12 +63,12 @@ class Dataset(ABC):
             if info:
                 break
 
-            bt.logging.warning(f"Could not find an sample which meets {self.__class__.__name__} requirements after {tries} tries. Retrying... ({self.max_tries - tries} tries remaining.)")
+            bt.logging.debug(f"Could not find any samples which meet {self.__class__.__name__} requirements after {tries} tries. Retrying... ({self.max_tries - tries} tries remaining.)")
 
             tries += 1
-            if tries == self.max_tries:
-                raise Exception(
-                    f"Could not find an sample which meets {self.__class__.__name__} requirements after {tries} tries."
+            if tries >= self.max_tries:
+                raise MaxRetryError(
+                    f"Could not find any samples which meet {self.__class__.__name__} requirements after {tries} tries."
                 )
 
         info['stats'] = {

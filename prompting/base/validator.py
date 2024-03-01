@@ -127,10 +127,15 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Check that validator is registered on the network.
         self.sync()
-
-        bt.logging.info(
-            f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
-        )
+        
+        if not self.config.neuron.axon_off:
+            bt.logging.info(
+                f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
+            )
+        else:
+            bt.logging.info(
+                f"Running validator on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
+            )
 
         bt.logging.info(f"Validator starting at block: {self.block}")
 
@@ -329,6 +334,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # shape: [ metagraph.n ]
         alpha = self.config.neuron.moving_average_alpha
         self.scores = alpha * step_rewards + (1 - alpha) * self.scores
+        self.scores = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)
         bt.logging.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):

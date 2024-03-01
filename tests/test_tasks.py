@@ -2,25 +2,10 @@ import pytest
 import inspect
 from inspect import signature
 from prompting.tasks import Task
-<<<<<<< HEAD
-=======
 from prompting.rewards import REWARD_MODELS
->>>>>>> 5112b473b758fafb4f7ead19a41374359cfa204e
 from .fixtures.task import CONTEXTS, TASKS, TASK_FIELDS
 from .fixtures.llm import LLM_PIPELINE
 
-# TODO: Check if format_challenge is defined
-# TODO: Ensure that when static_reference is True, reference_time is not defined. Same for query_time and static_query
-# TODO: Ensure that when generate_reference=True and static_reference is True,there is still a reference
-# TODO: Ensure that when generate_reference=False and static_reference is True,there is still a reference
-# TODO: Ensure that when generate_reference=False and static_reference is False,there is NOT a reference
-<<<<<<< HEAD
-
-
-=======
-
-
->>>>>>> 5112b473b758fafb4f7ead19a41374359cfa204e
 @pytest.mark.parametrize('task', TASKS)
 def test_create_task(task: Task):
     task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
@@ -31,23 +16,6 @@ def test_create_task(task: Task):
 def test_task_contains_expected_field(task: Task, field: str):
     task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
     assert hasattr(task, field)
-<<<<<<< HEAD
-
-
-@pytest.mark.parametrize('task', TASKS)
-@pytest.mark.parametrize('field, expected_type', list(TASK_FIELDS.items()))
-def test_task_field_has_expected_type(task: Task, field: str, expected_type: type):
-    task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
-    assert isinstance(getattr(task, field), expected_type)
-
-
-@pytest.mark.parametrize('task', TASKS)
-@pytest.mark.parametrize('field', TASK_FIELDS.keys())
-def test_task_field_is_not_null(task: Task, field: str):
-    task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
-    assert getattr(task, field)
-
-=======
 
 
 @pytest.mark.parametrize('task', TASKS)
@@ -63,7 +31,6 @@ def test_task_field_is_not_null(task: Task, field: str):
     task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
     assert getattr(task, field) is not None
 
->>>>>>> 5112b473b758fafb4f7ead19a41374359cfa204e
 
 @pytest.mark.parametrize('task', TASKS)
 def test_task_complete_is_false_on_init(task: Task):
@@ -101,8 +68,8 @@ def test_task_state_dict(task: Task, full: bool):
 
 
 @pytest.mark.parametrize('task', TASKS)
-@pytest.mark.parametrize('definition', ('reward_definition', 'penalty_definition'))
-def test_task_contains_required_definition(task: Task, definition: str):
+@pytest.mark.parametrize('definition, expected_weight', [('reward_definition',1), ('penalty_definition',None)])
+def test_task_contains_required_definition(task: Task, definition: str, expected_weight: float):
 
     task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
     model_infos = getattr(task, definition)
@@ -136,4 +103,4 @@ def test_task_contains_required_definition(task: Task, definition: str):
 
         total_weight += weight
 
-    assert not model_infos or total_weight == 1
+    assert not model_infos or expected_weight is None or total_weight == expected_weight

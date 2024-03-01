@@ -23,7 +23,6 @@ class DateRewardModel(BaseRewardModel):
         try:
             return abs(ref_date[0] - comp_date[0]).days + 365*abs(int(ref_date[1]) - int(comp_date[1]))
         except Exception as e:
-            bt.logging.error(f"Error in date_diff: {e}")
             return 500
 
     def parse_dates_from_text(self, text: str) -> tuple:

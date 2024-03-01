@@ -53,16 +53,16 @@ class OpenAIMiner(Miner):
 
         if self.config.wandb.on:
             self.identity_tags =  ("openai_miner", ) + (self.config.neuron.model_id, )
-        
-        _ = load_dotenv(find_dotenv()) 
-        api_key = os.environ.get("OPENAI_API_KEY")        
+
+        _ = load_dotenv(find_dotenv())
+        api_key = os.environ.get("OPENAI_API_KEY")
 
         # Set openai key and other args
         self.model = ChatOpenAI(
             api_key=api_key,
             model_name=self.config.neuron.model_id,
             max_tokens = self.config.neuron.max_tokens,
-            temperature = self.config.neuron.temperature,            
+            temperature = self.config.neuron.temperature,
         )
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
@@ -122,7 +122,7 @@ class OpenAIMiner(Miner):
 
                 role = synapse.roles[-1]
                 message = synapse.messages[-1]
-                
+
                 bt.logging.debug(f"💬 Querying openai: {prompt}")
                 response = chain.invoke(
                     {"role": role, "input": message}
@@ -133,7 +133,7 @@ class OpenAIMiner(Miner):
 
                 if self.config.wandb.on:
                     self.log_event(
-                        timing=synapse_latency, 
+                        timing=synapse_latency,
                         prompt=message,
                         completion=response,
                         system_prompt=self.system_prompt,
@@ -141,6 +141,8 @@ class OpenAIMiner(Miner):
                     )
 
             bt.logging.debug(f"✅ Served Response: {response}")
+            self.step += 1
+
             return synapse
         except Exception as e:
             bt.logging.error(f"Error in forward: {e}")
@@ -155,9 +157,9 @@ class OpenAIMiner(Miner):
 if __name__ == "__main__":
     with OpenAIMiner() as miner:
         while True:
-            bt.logging.info("Miner running...", time.time())
+            miner.log_status()
             time.sleep(5)
 
             if miner.should_exit:
                 bt.logging.warning("Ending miner...")
-                break   
+                break

@@ -122,6 +122,7 @@ class ZephyrMiner(Miner):
 
             bt.logging.debug(f"✅ Served Response: {response}")
             torch.cuda.empty_cache()
+            self.step += 1
 
         except Exception as e:
             bt.logging.error(f"Error: {e}")
@@ -136,7 +137,7 @@ class ZephyrMiner(Miner):
 if __name__ == "__main__":
     with ZephyrMiner() as miner:
         while True:
-            bt.logging.info("Miner running...", time.time())
+            miner.log_status()
             time.sleep(5)
 
             if miner.should_exit:

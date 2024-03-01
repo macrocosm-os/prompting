@@ -41,7 +41,7 @@ class MockMiner(Miner):
     ) -> PromptingSynapse:
 
         synapse.completion = f'Hey you reached mock miner {self.config.wallet.hotkey!r}. Please leave a message after the tone.. Beep!'
-
+        self.step += 1
         return synapse
 
     async def blacklist(
@@ -56,5 +56,5 @@ class MockMiner(Miner):
 if __name__ == "__main__":
     with MockMiner() as miner:
         while True:
-            bt.logging.info("Miner running...", time.time())
+            miner.log_status()
             time.sleep(5)

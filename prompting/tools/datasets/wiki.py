@@ -28,8 +28,6 @@ from functools import lru_cache
 from .base import Dataset
 from ..selector import Selector
 
-# DO WE NEED INTERNAL LINKS??
-
 # speed up page loading
 @lru_cache(maxsize=1000)
 def _get_page(title, pageid=None, auto_suggest=False, redirect=True, seed=None) -> wiki.WikipediaPage:
@@ -44,7 +42,10 @@ def _get_page(title, pageid=None, auto_suggest=False, redirect=True, seed=None) 
 
     except wiki.DisambiguationError as e:
         bt.logging.debug(f"{e.__class__.__name__} loading page {title!r}: {e}")
-        pages = sys.exc_info()[1].args
+        # exc info contains a tuple of (requested_title: str, possible_matches: List[str])
+        pages = sys.exc_info()[1].args[1]
+        if not type(pages) == list:
+            return None
         title = random.Random(seed).choice(pages)
         return _get_page(title, auto_suggest=auto_suggest, redirect=redirect)
 
@@ -95,7 +96,7 @@ def process_page(page, valid_header: callable = None, valid_content: callable = 
         sections[key] = content.splitlines()
 
     if not sections:
-        raise Exception(f"No valid sections found in page {page.title!r} ({page.url})")
+        bt.logging.debug(f"No valid sections found in page {page.title!r} ({page.url})")
 
     return sections
 
@@ -169,6 +170,8 @@ class WikiDataset(Dataset):
                                 valid_header=lambda x: x not in exclude and (not include or x in include),
                                 valid_content=lambda x: len(x.split())>=self.min_length_words
                                 )
+        if not sections:
+            return None
 
         key = header, section_title = selector(list(sections.keys()))
         content = '\n'.join(sections[key])
@@ -223,13 +226,13 @@ class WikiDateDataset(Dataset):
 
         random_date = datetime.date(year, month, day)
         # Step 2: Format the date for Wikipedia URL
-        return random_date.strftime("%B_%d")  # E.g., "January_01"
+        return random_date.strftime("%B %-d")  # E.g., "January 1"
 
-    def get(self, name, pageid=None, auto_suggest=True, redirect=True, selector: Selector = None) -> Dict:
+    def get(self, name, pageid=None, auto_suggest=False, redirect=False, selector: Selector = None) -> Dict:
 
-        # Check that name is correctly formatted e.g., "January_01"
-        date = name.split('_')
-        assert len(date)==2, f"Date should be in the format 'Month_DD' (e.g., 'January_01'), but got {name!r}"
+        # Check that name is correctly formatted e.g., "January 1"
+        date = name.split(' ')
+        assert len(date)==2, f"Date should be in the format 'Month D[D]' (e.g., 'January 1' or 'March 28'), but got {name!r}"
         assert date[0] in self.MONTHS, f"Month should be one of {self.MONTHS}, but got {date[0]!r}"
         assert date[1].isdigit(), f"Day should be a number, but got {date[1]!r}"
 
@@ -243,6 +246,8 @@ class WikiDateDataset(Dataset):
                                 valid_header=lambda x: x in self.INCLUDE_HEADERS,
                                 valid_content=lambda x: any([re.search(r'^\d+',line) for line in x.splitlines()])
                                 )
+        if not sections:
+            return None
 
         key = header, section_title = selector(list(sections.keys()))
         line = selector(sections[key])

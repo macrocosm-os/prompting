@@ -39,7 +39,7 @@ The design of the network's incentive mechanism is based on two important requir
 
 It is imperative that the validation process engages with miners in the same way as real users. The reasons for this are as follows:
 - Miners will compete and continuously improve at performing the validation task(s), and so this fine tuning should be aligned with the goals of the subnet.
-- It should not be possible to distinguish between validation and API client queries so that miners always serve requests (even when they do not recieve emissions for doing so).
+- It should not be possible to distinguish between validation and API client queries so that miners always serve requests (even when they do not receive emissions for doing so).
 
 In the context of this subnet, miners are required to be intelligent AI assistants that provide helpful and correct responses to a range of queries. 
 
@@ -104,7 +104,7 @@ These validators are designed to run and update themselves automatically. To run
    pm2 start run.sh --name s1_validator_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key>
    ```
 
-This will run **two** PM2 process: one for the validator which is called `s1_validator_main_process` by default (you can change this in `run.sh`), and one for the run.sh script (in step 4, we named it `s1_validator_autoupdate`). The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `s1_validator_main_process` and then restart itself.
+This will run **two** PM2 processes: one for the validator which is called `s1_validator_main_process` by default (you can change this in `run.sh`), and one for the run.sh script (in step 4, we named it `s1_validator_autoupdate`). The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `s1_validator_main_process` and then restart itself.
 
 
 
@@ -134,9 +134,11 @@ python -m pip install -e .
 ---
 # Running
 
-We encourage miners to use testnet as this gives you a risk-free playground before running on mainnet. If you require test tao, please reach out to steffen@opentensor.dev
+We encourage miners to use testnet as this gives you a risk-free playground before running on mainnet. If you require test tao, please reach out to brady@opentensor.dev
 
 Prior to running a miner or validator, you must [create a wallet](https://github.com/opentensor/docs/blob/main/reference/btcli.md) and [register the wallet to a netuid](https://github.com/opentensor/docs/blob/main/subnetworks/registration.md). Once you have done so, you can run the miner and validator with the following commands.
+
+For miners and validators running on mainnet we **strongly encourage** you to use a [local subtensor](https://github.com/opentensor/subtensor).
 
 
 ```bash
@@ -161,8 +163,6 @@ python neurons/miners/BASE_MINER/miner.py
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 ```
 where `BASE_MINER` is [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B, however you can choose any of the supplied models found in `neurons/miners`. 
-
-For users who are new to the Bittensor ecosystem, 'finney' is the recommended subtensor, but more advanced users are encouraged to run a subtensor locally for greater performance and stability. 
 
 </div>
 

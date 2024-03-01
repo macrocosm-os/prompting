@@ -29,7 +29,7 @@ from langchain.callbacks import get_openai_callback
 
 class WikipediaAgentMiner(Miner):
     """Langchain-based miner which uses OpenAI's API as the LLM. This uses the ReAct framework.
-    
+
     You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
     """
     @classmethod
@@ -41,14 +41,14 @@ class WikipediaAgentMiner(Miner):
 
     def __init__(self, config=None):
         super().__init__(config=config)
-        
+
         bt.logging.info(f"🤖📖 Initializing wikipedia agent with model {self.config.neuron.model_id}...")
 
         if self.config.wandb.on:
             self.identity_tags = ("wikipedia_agent_miner", ) + (self.config.neuron.model_id, )
-        
-        _ = load_dotenv(find_dotenv()) 
-                
+
+        _ = load_dotenv(find_dotenv())
+
         self.agent = WikiAgent(self.config.neuron.model_id, self.config.neuron.temperature)
         self.accumulated_total_tokens = 0
         self.accumulated_prompt_tokens = 0
@@ -99,11 +99,11 @@ class WikipediaAgentMiner(Miner):
             with get_openai_callback() as cb:
                 t0 = time.time()
                 bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
-                            
+
                 message = synapse.messages[-1]
-                
+
                 bt.logging.debug(f"💬 Querying openai and wikipedia: {message}")
-                
+
                 response = self.agent.run(message)
 
                 synapse.completion = response
@@ -111,7 +111,7 @@ class WikipediaAgentMiner(Miner):
 
                 if self.config.wandb.on:
                     self.log_event(
-                        timing=synapse_latency, 
+                        timing=synapse_latency,
                         prompt=message,
                         completion=response,
                         system_prompt='',
@@ -119,6 +119,8 @@ class WikipediaAgentMiner(Miner):
                     )
 
             bt.logging.debug(f"✅ Served Response: {response}")
+            self.step += 1
+
             return synapse
         except Exception as e:
             bt.logging.error(f"Error in forward: {e}")
@@ -133,7 +135,7 @@ class WikipediaAgentMiner(Miner):
 if __name__ == "__main__":
     with WikipediaAgentMiner() as miner:
         while True:
-            bt.logging.info("Miner running...", time.time())
+            miner.log_status()
             time.sleep(5)
 
             if miner.should_exit:
