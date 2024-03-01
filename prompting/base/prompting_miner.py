@@ -193,7 +193,7 @@ class BasePromptingMiner(BaseMinerNeuron):
 
 # This is the main function, which runs the miner.
 if __name__ == "__main__":
-    with Miner() as miner:
+    with BasePromptingMiner() as miner:
         while True:
             miner.log_status()
             time.sleep(5)
