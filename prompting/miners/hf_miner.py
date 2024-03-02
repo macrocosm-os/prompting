@@ -36,7 +36,8 @@ from prompting.llm import CustomTextIteratorStreamer
 
 class HuggingFaceMiner(BaseStreamPromptingMiner):
     """
-    Base 🤗 Hugging Face miner, integrated with hf pipeline.
+    Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
+    This requires a GPU with at least 20GB of memory.
     To run this miner from the project root directory:
 
     python neurons/miners/huggingface/miner.py --wallet.name <wallet_name> --wallet.hotkey <wallet_hotkey> --neuron.model_id <model_id> --subtensor.network <network> --netuid <netuid> --axon.port <port> --axon.external_port <port> --logging.debug True --neuron.model_id HuggingFaceH4/zephyr-7b-beta --neuron.system_prompt "Hello, I am a chatbot. I am here to help you with your questions." --neuron.max_tokens 64 --neuron.do_sample True --neuron.temperature 0.9 --neuron.top_k 50 --neuron.top_p 0.95 --wandb.on True --wandb.entity sn1 --wandb.project_name miners_experiments

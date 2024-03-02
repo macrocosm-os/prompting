@@ -23,8 +23,12 @@ from langchain.callbacks import get_openai_callback
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables.base import RunnableSequence
+from deprecation import deprecated
 
 
+@deprecated(
+    deprecated_in="1.1.2", removed_in="2.0", details="ToolMiner is unsupported."
+)
 class ToolMiner(BaseStreamPromptingMiner, OpenAIUtils):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
