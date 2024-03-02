@@ -7,7 +7,7 @@ from prompting.mock import MockDendrite, MockMetagraph, MockSubtensor
 from prompting.protocol import StreamPromptingSynapse
 
 
-async def handle_response(responses) -> tuple[str, str]:
+async def handle_response(responses) -> List[StreamPromptingSynapse]:
     synapses = []
     resp_idx = 0
     for resp in responses:
