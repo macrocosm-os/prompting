@@ -76,7 +76,7 @@ class Task(ABC):
             message=prompt, cleaner=cleaner
         )
 
-    def generate_reference(self, llm: BasePipeline, clean=True) -> str:
+    def generate_reference(self, pipeline: BasePipeline, clean=True) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         t0 = time.time()
         if not self.static_reference:
@@ -85,14 +85,14 @@ class Task(ABC):
             self.reference = self.generate(
                 system=self.reference_system_prompt,
                 prompt=self.reference_prompt,
-                pipeline=llm,
+                pipeline=pipeline,
                 clean=clean,
             )
 
         self.reference_time = time.time() - t0
         return self.reference
 
-    def generate_query(self, llm: BasePipeline, clean=True) -> str:
+    def generate_query(self, pipeline: BasePipeline, clean=True) -> str:
         """Generates a query to be used for generating the challenge"""
         t0 = time.time()
         if not self.static_query:
@@ -100,7 +100,7 @@ class Task(ABC):
             self.query = self.generate(
                 system=self.query_system_prompt,
                 prompt=self.query_prompt,
-                pipeline=llm,
+                pipeline=pipeline,
                 clean=clean,
             )
 

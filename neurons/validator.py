@@ -31,20 +31,12 @@ class Validator(BaseValidatorNeuron):
         super(Validator, self).__init__(config=config)
 
         bt.logging.info("load_state()")
-        self.load_state()
-
-        # self.llm_pipeline = HuggingFacePipeline(
-        #     model_id=self.config.neuron.model_id,
-        #     torch_dtype=torch.bfloat16,
-        #     device=self.device,
-        #     # mock=self.config.mock,
-        #     mock=False
-        # )
+        self.load_state()        
         
         self.llm_pipeline = vLLMPipeline(
             model_id=self.config.neuron.model_id,
             device=self.device,
-            mock=False
+            mock=self.config.mock,
         )
 
         if sum(self.config.neuron.task_p) != 1:
