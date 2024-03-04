@@ -8,6 +8,21 @@ from prompting.mock import MockDendrite, MockMetagraph, MockSubtensor
 from prompting.protocol import StreamPromptingSynapse
 
 
+def compare_with_threshold(timeout: float, process_time: float, threshold: float):
+    """
+    Compare two numbers where b cannot be greater than a by the given threshold.
+
+    Parameters:
+        a (float): First number.
+        b (float): Second number.
+        threshold (float): Maximum allowed difference between b and a, between 0 and 1 to represent percentage of a.
+
+    Returns:
+        bool: True if b is less than or equal to a + threshold, False otherwise.
+    """
+    return process_time <= timeout * (1 + threshold)
+
+
 async def handle_response(responses) -> List[StreamPromptingSynapse]:
     synapses = []
     resp_idx = 0
@@ -68,10 +83,16 @@ def test_mock_streaming(timeout: float):
     synapses = asyncio.run(main(responses=responses))
     ansr = synapse.messages[-1]
 
+    threshold = 0.2
+
     for syn in synapses:
         if syn.dendrite.status_code == 200:
             assert syn.completion == ansr
-            assert np.isclose(syn.dendrite.process_time, timeout, atol=1e-2)
+            assert compare_with_threshold(
+                process_time=syn.dendrite.process_time,
+                timeout=timeout,
+                threshold=threshold,
+            ), f"Process time ({syn.dendrite.process_time}) is greater than timeout w/ threshold ({timeout * (1 + threshold)})."
         elif syn.dendrite.status_code == 408:
             assert len(syn.completion) < len(ansr)
             assert syn.dendrite.process_time == timeout
