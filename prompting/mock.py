@@ -67,7 +67,7 @@ class MockPipeline:
         output = output.split(
             self.model.tokenizer.role_expr.format(role="assistant")
         )[-1].strip()
-        return [{"generated_text": output}]
+        return output
 
     def preprocess(self, **kwargs):
         pass
