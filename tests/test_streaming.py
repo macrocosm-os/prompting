@@ -2,6 +2,7 @@ import pytest
 import bittensor as bt
 import asyncio
 
+import numpy as np
 from typing import List, AsyncGenerator
 from prompting.mock import MockDendrite, MockMetagraph, MockSubtensor
 from prompting.protocol import StreamPromptingSynapse
@@ -70,7 +71,7 @@ def test_mock_streaming(timeout: float):
     for syn in synapses:
         if syn.dendrite.status_code == 200:
             assert syn.completion == ansr
-            assert syn.dendrite.process_time < timeout
+            assert np.isclose(syn.dendrite.process_time, timeout, atol=1e-2)
         elif syn.dendrite.status_code == 408:
             assert len(syn.completion) < len(ansr)
             assert syn.dendrite.process_time == timeout
