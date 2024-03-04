@@ -253,16 +253,17 @@ class MockDendrite(bt.dendrite):
         while continue_streaming:
             for buffer, continue_streaming in token_streamer(True):
                 response_buffer.extend(buffer)  # buffer is a List[str]
+                process_time = time.time() - start_time
 
                 if not continue_streaming:
+                    synapse.dendrite.process_time = process_time
                     synapse.completion = " ".join(response_buffer)
                     synapse.dendrite.status_code = 200
                     synapse.dendrite.status_message = "OK"
-                    synapse.dendrite.process_time = time.time() - start_time
                     response_buffer = []
                     break
 
-                elif (time.time() - start_time) > timeout:
+                elif process_time > timeout:
                     synapse.completion = " ".join(
                         response_buffer
                     )  # partially completed response buffer
