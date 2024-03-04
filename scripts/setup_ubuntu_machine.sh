@@ -25,8 +25,6 @@ cd prompting
 
 # Install Python dependencies
 python3 -m pip install -r requirements.txt
-python3 -m pip install -r neurons/miners/openai/requirements.txt
-
 
 # Install prompting package
 python3 -m pip install -e .
