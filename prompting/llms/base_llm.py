@@ -43,5 +43,5 @@ class BaseLLM(ABC):
                     f"Response cleaned, chars removed: {len(response) - len(clean_response)}..."
                 )
 
-            response = clean_response
+            return clean_response
         return response
