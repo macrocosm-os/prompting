@@ -263,7 +263,7 @@ class MockDendrite(bt.dendrite):
                     response_buffer = []
                     break
 
-                elif process_time > timeout:
+                elif process_time >= timeout:
                     synapse.completion = " ".join(
                         response_buffer
                     )  # partially completed response buffer
