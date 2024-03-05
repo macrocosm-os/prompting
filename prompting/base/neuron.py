@@ -157,6 +157,9 @@ class BaseNeuron(ABC):
         if not self.metagraph.validator_permit[self.uid]:
             return False
 
+        if self.config.netuid in [61, 102]: 
+            return False 
+
         # Define appropriate logic for when set weights.
         return (
             self.block - self.metagraph.last_update[self.uid]
