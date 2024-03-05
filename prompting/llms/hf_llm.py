@@ -77,7 +77,7 @@ class HuggingFacePipeline(BasePipeline):
     def __call__(self, composed_prompt: str, **kwargs: dict) -> str:
         if self.mock:
             return self.pipeline(composed_prompt, **kwargs)
-        
+
         # Extract the generated text from the pipeline output
         outputs = self.pipeline(composed_prompt, **kwargs)
         return outputs[0]["generated_text"]
