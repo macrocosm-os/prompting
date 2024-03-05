@@ -120,7 +120,8 @@ class BaseNeuron(ABC):
             self.resync_metagraph()
 
         if self.should_set_weights():
-            self.set_weights()
+            if hasattr(self, "set_weights"):
+                self.set_weights()
 
         # Always save state.
         self.save_state()
@@ -156,9 +157,6 @@ class BaseNeuron(ABC):
 
         if not self.metagraph.validator_permit[self.uid]:
             return False
-
-        if self.config.netuid in [61, 102]: 
-            return False 
 
         # Define appropriate logic for when set weights.
         return (
