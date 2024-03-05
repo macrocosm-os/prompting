@@ -20,11 +20,12 @@ from typing import List, Dict
 from vllm import LLM, SamplingParams
 from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.llms import BasePipeline, BaseLLM
+from prompting.mock import MockPipeline
 
 def load_vllm_pipeline(model_id, mock=False):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
     if mock or model_id == "mock":
-        return None
+        return MockPipeline(model_id)
     
     return LLM(model=model_id)
 
@@ -37,7 +38,7 @@ class vLLMPipeline(BasePipeline):
 
     def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:        
         if self.mock:
-            return composed_prompt
+            return self.llm(composed_prompt, **model_kwargs)
                 
         # Compose sampling params
         temperature = model_kwargs.get("temperature", 0.8)
@@ -120,7 +121,7 @@ class vLLM_LLM(BaseLLM):
 
 if __name__ == "__main__":
     # Example usage
-    llm_pipeline = vLLMPipeline(model_id="HuggingFaceH4/zephyr-7b-beta", mock=False)
+    llm_pipeline = vLLMPipeline(model_id="HuggingFaceH4/zephyr-7b-beta", mock=True)    
     llm = vLLM_LLM(llm_pipeline, system_prompt="You are a helpful AI assistant")
 
     message = "What is the capital of Texas?"

@@ -56,8 +56,8 @@ class MockPipeline:
     def __repr__(self):
         return f"{self.__class__.__name__}(phrase={self.model.phrase})"
 
-    def __call__(self, messages, **kwargs):
-        return self.forward(messages, **kwargs)
+    def __call__(self, composed_prompt, **kwargs):
+        return self.forward(composed_prompt, **kwargs)
 
     def forward(self, messages, **kwargs):
         output = self.model(messages)

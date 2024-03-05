@@ -68,14 +68,19 @@ class HuggingFacePipeline(BasePipeline):
         self.model = model_id
         self.device = device
         self.torch_dtype = torch_dtype
-
+        self.mock = mock
         self.pipeline = load_hf_pipeline(
             model_id, device, torch_dtype, mock, model_kwargs
         )
         self.tokenizer = self.pipeline.tokenizer
 
     def __call__(self, composed_prompt: str, **kwargs: dict) -> str:
-        return self.pipeline(composed_prompt, **kwargs)
+        if self.mock:
+            return self.pipeline(composed_prompt, **kwargs)
+        
+        # Extract the generated text from the pipeline output
+        outputs = self.pipeline(composed_prompt, **kwargs)
+        return outputs[0]["generated_text"]
 
 
 class HuggingFaceLLM(BaseLLM):
@@ -135,10 +140,9 @@ class HuggingFaceLLM(BaseLLM):
     def forward(self, messages: List[Dict[str, str]]):
         composed_prompt = self._make_prompt(messages)
         # System prompt is composed in the prompt
-        outputs = self.llm_pipeline(
+        response = self.llm_pipeline(
             composed_prompt=composed_prompt, **self.model_kwargs
         )
-        response = outputs[0]["generated_text"]
 
         response = response.replace(composed_prompt, "").strip()
 
