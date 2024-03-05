@@ -21,20 +21,22 @@ from vllm import LLM, SamplingParams
 from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.llms import BasePipeline, BaseLLM
 from prompting.mock import MockPipeline
+from prompting.llms.utils import calculate_gpu_requirements
 
 
-def load_vllm_pipeline(model_id, mock=False):
+def load_vllm_pipeline(model_id:str, device:str, mock=False):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
     if mock or model_id == "mock":
         return MockPipeline(model_id)
-
-    return LLM(model=model_id)
+    
+    gpu_mem_utilization = calculate_gpu_requirements(device)
+    return LLM(model=model_id, gpu_memory_utilization=gpu_mem_utilization)
 
 
 class vLLMPipeline(BasePipeline):
-    def __init__(self, model_id, device=None, mock=False):
+    def __init__(self, model_id:str, device:str=None, mock=False):
         super().__init__()
-        self.llm = load_vllm_pipeline(model_id, mock)
+        self.llm = load_vllm_pipeline(model_id, device, mock)
         self.mock = mock
 
     def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:
