@@ -14,7 +14,9 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import gc
 import time
+import torch
 import bittensor as bt
 from typing import List, Dict
 from vllm import LLM, SamplingParams
@@ -22,6 +24,7 @@ from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.llms import BasePipeline, BaseLLM
 from prompting.mock import MockPipeline
 from prompting.llms.utils import calculate_gpu_requirements
+from vllm.model_executor.parallel_utils.parallel_state import destroy_model_parallel
 
 
 def clean_gpu_cache():
