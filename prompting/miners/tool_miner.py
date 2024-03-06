@@ -18,7 +18,10 @@ from langchain_core.output_parsers import StrOutputParser
 from traceback import print_exception
 from deprecation import deprecated
 
-@deprecated(deprecated_in="1.1.2", removed_in="2.0", details="ToolMiner is unsupported.")
+
+@deprecated(
+    deprecated_in="1.1.2", removed_in="2.0", details="ToolMiner is unsupported."
+)
 class ToolMiner(BasePromptingMiner):
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
