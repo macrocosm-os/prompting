@@ -24,6 +24,17 @@ from prompting.mock import MockPipeline
 from prompting.llms.utils import calculate_gpu_requirements
 
 
+def clean_gpu_cache():
+    destroy_model_parallel()
+    gc.collect()
+    torch.cuda.empty_cache()
+    torch.distributed.destroy_process_group()
+
+    # Wait for the GPU to clean up
+    time.sleep(10)
+    torch.cuda.synchronize()
+
+
 def load_vllm_pipeline(model_id: str, device: str, mock=False):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
     if mock or model_id == "mock":
@@ -40,26 +51,37 @@ def load_vllm_pipeline(model_id: str, device: str, mock=False):
         # Attempt to initialize the LLM
         return LLM(model=model_id, gpu_memory_utilization=gpu_mem_utilization)
     except ValueError as e:
-        # If the model initialization fails due to exceeding GPU memory limits, a ValueError is raised.
-        # In response, we attempt a second initialization with a higher memory allocation, still respecting the predefined limits of SN1.
+        bt.logging.error(
+            f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}"
+        )
+
+    # If the first attempt fails, retry with increased memory allocation
+    try:
+        bt.logging.info(
+            "Trying to cleanup GPU and retrying to load the model with extra allocation..."
+        )
+        # Clean the GPU from memory before retrying
+        clean_gpu_cache()
+
+        # Increase the memory allocation for the second attempt
         max_allowed_memory_in_gb_second_attempt = 24
         max_allowed_memory_allocation_in_bytes = (
             max_allowed_memory_in_gb_second_attempt * 1e9
         )
-        bt.logging.error(
-            f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}"
-        )
         bt.logging.warning(
             f"Retrying to load with {max_allowed_memory_in_gb_second_attempt}GB..."
         )
-
-        # Note: Some GPUs might perform their block allocation differently, leading to conflicts between the model's max tokens
-        # and what can be stored in the KV (Key-Value store). This is discussed in open issue #2418 on the VLLM repository.
-        # As a workaround, we adjust the GPU memory utilization slightly higher to allow the model and KV store to load successfully.
         gpu_mem_utilization = calculate_gpu_requirements(
             device, max_allowed_memory_allocation_in_bytes
         )
+
+        # Attempt to initialize the LLM again with increased memory allocation
         return LLM(model=model_id, gpu_memory_utilization=gpu_mem_utilization)
+    except Exception as e:
+        bt.logging.error(
+            f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb_second_attempt}GB: {e}"
+        )
+        raise e
 
 
 class vLLMPipeline(BasePipeline):
