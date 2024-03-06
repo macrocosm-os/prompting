@@ -124,7 +124,7 @@ class vLLM_LLM(BaseLLM):
 
 if __name__ == "__main__":
     # Example usage
-    llm_pipeline = vLLMPipeline(model_id="HuggingFaceH4/zephyr-7b-beta", mock=True)
+    llm_pipeline = vLLMPipeline(model_id="HuggingFaceH4/zephyr-7b-beta", device='cuda', mock=False)
     llm = vLLM_LLM(llm_pipeline, system_prompt="You are a helpful AI assistant")
 
     message = "What is the capital of Texas?"

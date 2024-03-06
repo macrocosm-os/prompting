@@ -1,13 +1,13 @@
-# llm, input, expected output, cleaner
-
-##test_llm_forward
-# test llm query (check messages, times)
-# test llm query (calls forward, clean_response)
-
 import pytest
+import torch
 from prompting.llms import BaseLLM, BasePipeline
+from prompting.llms.utils import (
+    contains_gpu_index_in_device,
+    calculate_gpu_requirements,
+)
 from prompting.cleaners import CleanerPipeline
 from prompting.mock import MockPipeline
+from unittest import mock
 from .fixtures.llm import llms, pipelines
 from .fixtures.cleaner import DEFAULT_CLEANER_PIPELINE
 
@@ -72,3 +72,48 @@ def test_llm_forward(llm: BaseLLM):
     assert len(llm.messages) == 1
     assert len(llm.times) == 1
     assert llm.messages[0]["role"] == "system"
+
+
+@pytest.mark.parametrize(
+    "device, expected_result", [("cpu", False), ("cuda", False), ("cuda:0", True)]
+)
+def test_contains_gpu_index_in_device(device: str, expected_result: bool):
+    result = contains_gpu_index_in_device(device)
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "device, max_allowed_memory_allocation_in_bytes, available_memory, expected_result",
+    [
+        ("cuda", 20e9, 20e9, 1),
+        ("cuda", 20e9, 40e9, 0.5),
+        ("cuda:0", 40e9, 160e9, 0.25),
+    ],
+)
+@mock.patch("torch.cuda.mem_get_info")
+def test_calculate_gpu_requirements(
+    mock_mem_get_info,
+    device: str,
+    max_allowed_memory_allocation_in_bytes: int,
+    available_memory: float,
+    expected_result: float,
+):
+    mock_mem_get_info.return_value = (available_memory, available_memory)
+    result = calculate_gpu_requirements(device, max_allowed_memory_allocation_in_bytes)
+    assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "available_memory, max_allowed_memory_allocation_in_bytes",
+    [(10e9, 20e9), (20e9, 40e9)],
+)
+@mock.patch("torch.cuda.mem_get_info")
+def test_calulate_gpu_requirements_raises_cuda_error(
+    mock_mem_get_info,
+    available_memory: float,
+    max_allowed_memory_allocation_in_bytes: float,
+):
+    mock_mem_get_info.return_value = (available_memory, available_memory)
+
+    with pytest.raises(Exception):
+        calculate_gpu_requirements("cuda", max_allowed_memory_allocation_in_bytes)
