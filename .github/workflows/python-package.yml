@@ -47,4 +47,4 @@ jobs:
         git config --global user.name "GitHub Actions"
         git add .
         git commit -m "Apply Black formatting"
-        git push
+        git push origin HEAD:${GITHUB_REF#refs/heads/}
