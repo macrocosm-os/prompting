@@ -21,17 +21,13 @@ class DiffRewardModel(BaseRewardModel):
 
     def unified_diff(self, reference, completion):
         return len(
-            difflib.unified_diff(
-                reference.splitlines(), completion.splitlines()
-            )
+            difflib.unified_diff(reference.splitlines(), completion.splitlines())
         )
 
     def seq_match(self, reference, completion):
         return difflib.SequenceMatcher(None, reference, completion).ratio()
 
-    def reward(
-        self, reference: str, completions: List[str]
-    ) -> BatchRewardOutput:
+    def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
         """Get the score between two strings.
         lines: If True, return a unified diff. If False, return a ratio.
         """
@@ -52,7 +48,7 @@ class DiffRewardModel(BaseRewardModel):
 
         output = BatchRewardOutput(
             rewards=torch.FloatTensor(rewards),
-            timings=torch.FloatTensor(timings),            
+            timings=torch.FloatTensor(timings),
             extra_info={"threshold": self.threshold, "lines": self.lines},
         )
 

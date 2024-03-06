@@ -22,7 +22,8 @@ import argparse
 import bittensor as bt
 from loguru import logger
 
-#TODO: enable 4bit and 8bit precision llms via config
+# TODO: enable 4bit and 8bit precision llms via config
+
 
 def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
@@ -37,7 +38,7 @@ def check_config(cls, config: "bt.Config"):
             config.neuron.name,
         )
     )
-    bt.logging.info(f'Logging path: {full_path}')
+    bt.logging.info(f"Logging path: {full_path}")
     config.neuron.full_path = os.path.expanduser(full_path)
     if not os.path.exists(config.neuron.full_path):
         os.makedirs(config.neuron.full_path, exist_ok=True)
@@ -117,7 +118,6 @@ def add_args(cls, parser):
         "--wandb.off", action="store_true", help="Turn off wandb.", default=False
     )
 
-
     parser.add_argument(
         "--wandb.offline",
         action="store_true",
@@ -132,6 +132,7 @@ def add_args(cls, parser):
         default="",
     )
 
+
 def add_miner_args(cls, parser):
     """Add miner specific arguments to the parser."""
 
@@ -139,7 +140,7 @@ def add_miner_args(cls, parser):
         "--neuron.name",
         type=str,
         help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
-        default='miner',
+        default="miner",
     )
 
     parser.add_argument(
@@ -233,6 +234,7 @@ def add_miner_args(cls, parser):
         help="Wandb project to log to.",
     )
 
+
 def add_validator_args(cls, parser):
     """Add validator specific arguments to the parser."""
 
@@ -240,7 +242,7 @@ def add_validator_args(cls, parser):
         "--neuron.name",
         type=str,
         help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
-        default='validator',
+        default="validator",
     )
 
     parser.add_argument(
@@ -329,9 +331,9 @@ def add_validator_args(cls, parser):
         "--neuron.vpermit_tao_limit",
         type=int,
         help="The maximum number of TAO allowed to query a validator with a vpermit.",
-            default=4096,
-        )
-    
+        default=4096,
+    )
+
     parser.add_argument(
         "--wandb.project_name",
         type=str,
@@ -346,20 +348,20 @@ def add_validator_args(cls, parser):
         default="opentensor-dev",
     )
 
-
     parser.add_argument(
         "--neuron.query_unique_coldkeys",
         action="store_true",
         help="Only query a single hotkey per coldkey.",
         default=False,
-        )
+    )
 
     parser.add_argument(
         "--neuron.query_unique_ips",
         action="store_true",
         help="Only query a single hotkey per ip.",
         default=False,
-        )
+    )
+
 
 def config(cls):
     """
