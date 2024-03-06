@@ -18,6 +18,7 @@ def calculate_gpu_requirements(device: str, max_allowed_memory_allocation_in_byt
     else:
         device_with_gpu_index = torch.cuda.current_device()
         
+    torch.cuda.synchronize()
     global_free, total_gpu_memory = torch.cuda.mem_get_info(device=device_with_gpu_index)
 
     bt.logging.info(f'Available free memory: {round(global_free / 10e8, 2)} GB')
