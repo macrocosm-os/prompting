@@ -25,6 +25,7 @@ from prompting.llm import load_pipeline
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.rewards import RewardPipeline
 
+
 class Validator(BaseValidatorNeuron):
     """
     Text prompt validator neuron.
@@ -38,7 +39,6 @@ class Validator(BaseValidatorNeuron):
 
         self.llm_pipeline = load_pipeline(
             model_id=self.config.neuron.model_id,
-            torch_dtype=torch.bfloat16,
             device=self.device,
             mock=self.config.mock,
         )
@@ -49,13 +49,13 @@ class Validator(BaseValidatorNeuron):
         # Filter out tasks with 0 probability
         self.active_tasks = [
             task
-            for task, p in zip(
-                self.config.neuron.tasks, self.config.neuron.task_p
-            )
+            for task, p in zip(self.config.neuron.tasks, self.config.neuron.task_p)
             if p > 0
         ]
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
+        self.reward_pipeline = RewardPipeline(
+            selected_tasks=self.active_tasks, device=self.device
+        )
 
     async def forward(self):
         """
@@ -69,7 +69,6 @@ class Validator(BaseValidatorNeuron):
         return await forward(self)
 
     def __enter__(self):
-
         if self.config.no_background_thread:
             bt.logging.warning("Running validator in main thread.")
             self.run()
@@ -98,14 +97,16 @@ class Validator(BaseValidatorNeuron):
             self.is_running = False
             bt.logging.debug("Stopped")
 
+
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
     with Validator() as v:
         while True:
-            bt.logging.info(f"Validator running:: network: {v.subtensor.network} | block: {v.block} | step: {v.step} | uid: {v.uid} | last updated: {v.block-v.metagraph.last_update[v.uid]} | vtrust: {v.metagraph.validator_trust[v.uid]:.3f} | emission {v.metagraph.emission[v.uid]:.3f}")
+            bt.logging.info(
+                f"Validator running:: network: {v.subtensor.network} | block: {v.block} | step: {v.step} | uid: {v.uid} | last updated: {v.block-v.metagraph.last_update[v.uid]} | vtrust: {v.metagraph.validator_trust[v.uid]:.3f} | emission {v.metagraph.emission[v.uid]:.3f}"
+            )
             time.sleep(5)
 
             if v.should_exit:
                 bt.logging.warning("Ending validator...")
                 break
-

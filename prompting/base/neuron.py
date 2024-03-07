@@ -102,12 +102,10 @@ class BaseNeuron(ABC):
         self.step = 0
 
     @abstractmethod
-    async def forward(self, synapse: bt.Synapse) -> bt.Synapse:
-        ...
+    async def forward(self, synapse: bt.Synapse) -> bt.Synapse: ...
 
     @abstractmethod
-    def run(self):
-        ...
+    def run(self): ...
 
     def sync(self):
         """
@@ -153,8 +151,9 @@ class BaseNeuron(ABC):
         # Check if enough epoch blocks have elapsed since the last epoch.
         if self.config.neuron.disable_set_weights:
             return False
-
-        if not self.metagraph.validator_permit[self.uid]:
+            
+        # If neuron has validator permit we assume its running the validator code. If it is a dual permit neuron then we check that it also has a set_weights method (only true if it is running validator neuron)
+        if not self.metagraph.validator_permit[self.uid] or not hasattr(self, 'set_weights'):
             return False
 
         # Define appropriate logic for when set weights.

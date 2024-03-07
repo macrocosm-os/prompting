@@ -18,14 +18,17 @@ import wandb
 import time
 import typing
 import bittensor as bt
+
 # Bittensor Miner Template:
 import prompting
 from prompting.protocol import PromptingSynapse
+
 # import base miner class which takes care of most of the boilerplate
 from prompting.base.miner import BaseMinerNeuron
 from datetime import datetime
 
-class Miner(BaseMinerNeuron):
+
+class BasePromptingMiner(BaseMinerNeuron):
     """
     Your miner neuron class. You should use this class to define your miner's behavior. In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
 
@@ -35,13 +38,10 @@ class Miner(BaseMinerNeuron):
     """
 
     def __init__(self, config=None):
-        super(Miner, self).__init__(config=config)                
+        super().__init__(config=config)
         self.identity_tags = None
-         
 
-    async def blacklist(
-        self, synapse: PromptingSynapse
-    ) -> typing.Tuple[bool, str]:
+    async def blacklist(self, synapse: PromptingSynapse) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
         define the logic for blacklisting requests based on your needs and desired security parameters.
@@ -113,34 +113,38 @@ class Miner(BaseMinerNeuron):
             f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
         )
         return prirority
-    
+
     def init_wandb(self):
         bt.logging.info("Initializing wandb...")
-        
+
         uid = f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
         net_uid = f"netuid_{self.config.netuid}"
         tags = [
-            self.wallet.hotkey.ss58_address, 
-            net_uid, 
+            self.wallet.hotkey.ss58_address,
+            net_uid,
             f"uid_{uid}",
             prompting.__version__,
             str(prompting.__spec_version__),
         ]
-        
+
         run_name = None
         if self.identity_tags:
             # Add identity tags to run tags
-            tags += self.identity_tags     
+            tags += self.identity_tags
 
-            # Create run name from identity tags       
-            run_name_tags = [str(tag) for tag in self.identity_tags]            
-            
+            # Create run name from identity tags
+            run_name_tags = [str(tag) for tag in self.identity_tags]
+
             # Add uid, netuid and timestamp to run name
-            run_name_tags += [uid, net_uid, datetime.now().strftime('%Y_%m_%d_%H_%M_%S')]
+            run_name_tags += [
+                uid,
+                net_uid,
+                datetime.now().strftime("%Y_%m_%d_%H_%M_%S"),
+            ]
 
             # Compose run name
-            run_name = '_'.join(run_name_tags)                
-                    
+            run_name = "_".join(run_name_tags)
+
         # inits wandb in case it hasn't been inited yet
         self.wandb_run = wandb.init(
             name=run_name,
@@ -148,13 +152,20 @@ class Miner(BaseMinerNeuron):
             entity=self.config.wandb.entity,
             config=self.config,
             mode="online" if self.config.wandb.on else "offline",
-            tags=tags,                
+            tags=tags,
         )
-    
-    def log_event(self, timing: float, prompt: str, completion: str, system_prompt: str, extra_info: dict = {}):        
+
+    def log_event(
+        self,
+        timing: float,
+        prompt: str,
+        completion: str,
+        system_prompt: str,
+        extra_info: dict = {},
+    ):
         if not getattr(self, "wandb_run", None):
             self.init_wandb()
-        
+
         step_log = {
             "epoch_time": timing,
             # "block": self.last_epoch_block,
@@ -167,23 +178,14 @@ class Miner(BaseMinerNeuron):
             "incentive": self.metagraph.I[self.uid].item(),
             "consensus": self.metagraph.C[self.uid].item(),
             "dividends": self.metagraph.D[self.uid].item(),
-            **extra_info
+            **extra_info,
         }
 
-        bt.logging.info('Logging event to wandb...', step_log)
+        bt.logging.info("Logging event to wandb...", step_log)
         wandb.log(step_log)
 
     def log_status(self):
         m = self.metagraph
-        bt.logging.info(f"Miner running:: network: {self.subtensor.network} | step: {self.step} | uid: {self.uid} | trust: {m.trust[self.uid]:.3f} | emission {m.emission[self.uid]:.3f}")
-
-# This is the main function, which runs the miner.
-if __name__ == "__main__":
-    with Miner() as miner:
-        while True:
-            miner.log_status()
-            time.sleep(5)
-
-            if miner.should_exit:
-                bt.logging.warning("Ending miner...")
-                break
+        bt.logging.info(
+            f"Miner running:: network: {self.subtensor.network} | step: {self.step} | uid: {self.uid} | trust: {m.trust[self.uid]:.3f} | emission {m.emission[self.uid]:.3f}"
+        )
