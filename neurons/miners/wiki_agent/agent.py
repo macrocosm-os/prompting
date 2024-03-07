@@ -1,12 +1,3 @@
-from langchain.utilities import WikipediaAPIWrapper
-from langchain.agents import Tool
-from langchain.agents import (
-    Tool,
-    AgentExecutor,
-    LLMSingleActionAgent,
-    AgentOutputParser,
-)
-from langchain.schema import AgentAction, AgentFinish, OutputParserException
 import re
 import bittensor as bt
 from typing import Union
@@ -14,15 +5,15 @@ from typing import List
 from langchain.prompts import StringPromptTemplate
 from langchain import OpenAI
 from langchain.agents import Tool
-from langchain.agents import initialize_agent
 from langchain.chains import LLMChain
+from langchain.utilities import WikipediaAPIWrapper
+from langchain.schema import AgentAction, AgentFinish, OutputParserException
 from langchain.agents import (
     Tool,
     AgentExecutor,
     LLMSingleActionAgent,
     AgentOutputParser,
 )
-
 
 # Set up the base template
 template = """Answer the following questions as best you can. You have access to the following tools:
