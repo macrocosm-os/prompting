@@ -29,7 +29,10 @@ from dotenv import load_dotenv, find_dotenv
 from prompting.miners.agents import SingleActionAgent, ReactAgent
 from langchain.callbacks import get_openai_callback
 
-@deprecated(deprecated_in="1.1.2", removed_in="2.0", details="AgentMiner is unsupported.")
+
+@deprecated(
+    deprecated_in="1.1.2", removed_in="2.0", details="AgentMiner is unsupported."
+)
 class AgentMiner(BasePromptingMiner):
     """Langchain-based miner which uses OpenAI's API as the LLM. This uses the ReAct framework.
 
@@ -109,5 +112,5 @@ class AgentMiner(BasePromptingMiner):
         }
 
     async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
-        self.should_exit = True 
-        return synapse 
+        self.should_exit = True
+        return synapse

@@ -9,7 +9,10 @@ from langchain.agents import Tool
 from langchain.tools import WikipediaQueryRun
 from deprecation import deprecated
 
-@deprecated(deprecated_in="1.1.2", removed_in="2.0", details="AgentMiner is unsupported.")
+
+@deprecated(
+    deprecated_in="1.1.2", removed_in="2.0", details="AgentMiner is unsupported."
+)
 class ReactAgent(BaseAgent):
     def __init__(
         self,

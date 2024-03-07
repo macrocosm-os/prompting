@@ -143,8 +143,7 @@ class BatchRewardOutput:
 class BaseRewardModel(ABC):
     @property
     @abstractmethod
-    def name(self) -> str:
-        ...
+    def name(self) -> str: ...
 
     @abstractmethod
     def __init__(self, **kwargs):

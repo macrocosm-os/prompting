@@ -77,13 +77,11 @@ class StreamMiner(ABC):
         self.request_timestamps: Dict = {}
 
     @abstractmethod
-    def config(self) -> "bt.Config":
-        ...
+    def config(self) -> "bt.Config": ...
 
     @classmethod
     @abstractmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
-        ...
+    def add_args(cls, parser: argparse.ArgumentParser): ...
 
     def _prompt(self, synapse: StreamPrompting) -> StreamPrompting:
         """
