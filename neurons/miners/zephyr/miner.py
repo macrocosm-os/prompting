@@ -23,7 +23,7 @@ import bittensor as bt
 # Bittensor Miner Template:
 import prompting
 from prompting.protocol import PromptingSynapse
-from prompting.llms.hf_llm import load_hf_pipeline
+from prompting.llms.hf_llm import load_hf_pipeline, HuggingFaceLLM
 from prompting.llms.hf_llm import HuggingFaceLLM
 
 # import base miner class which takes care of most of the boilerplate
