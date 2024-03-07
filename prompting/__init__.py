@@ -36,4 +36,4 @@ from . import forward
 from . import agent
 from . import conversation
 from . import dendrite
-from .llms import hf_llm
+from .llms import hf
