@@ -4,7 +4,6 @@ from typing import Union
 from typing import List
 from langchain.prompts import StringPromptTemplate
 from langchain import OpenAI
-from langchain.agents import Tool
 from langchain.chains import LLMChain
 from langchain.utilities import WikipediaAPIWrapper
 from langchain.schema import AgentAction, AgentFinish, OutputParserException
