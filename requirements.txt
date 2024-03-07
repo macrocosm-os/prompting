@@ -17,4 +17,4 @@ tenacity
 antlr4-python3-runtime==4.11
 wikipedia
 wikipedia_sections
-vllm
+vllm==0.3.0
