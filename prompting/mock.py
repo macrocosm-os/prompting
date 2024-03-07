@@ -7,6 +7,7 @@ import bittensor as bt
 
 from typing import List
 
+
 class MockTokenizer:
     def __init__(self):
         super().__init__()
@@ -64,9 +65,9 @@ class MockPipeline:
         return self.postprocess(output)
 
     def postprocess(self, output, **kwargs):
-        output = output.split(
-            self.model.tokenizer.role_expr.format(role="assistant")
-        )[-1].strip()
+        output = output.split(self.model.tokenizer.role_expr.format(role="assistant"))[
+            -1
+        ].strip()
         return [{"generated_text": output}]
 
     def preprocess(self, **kwargs):
@@ -111,9 +112,7 @@ class MockMetagraph(bt.metagraph):
     default_port = 8091
 
     def __init__(self, netuid=1, network="mock", subtensor=None):
-        super().__init__(
-            netuid=netuid, network=network, sync=False
-        )
+        super().__init__(netuid=netuid, network=network, sync=False)
 
         if subtensor is not None:
             self.subtensor = subtensor
@@ -128,6 +127,7 @@ class MockDendrite(bt.dendrite):
     """
     Replaces a real bittensor network request with a mock request that just returns some static completion for all axons that are passed and adds some random delay.
     """
+
     min_time: float = 0
     max_time: float = 1
 
@@ -158,11 +158,13 @@ class MockDendrite(bt.dendrite):
                 # Attach some more required data so it looks real
                 s = self.preprocess_synapse_for_request(axon, s, timeout)
                 # We just want to mock the response, so we'll just fill in some data
-                process_time = random.random()*(self.max_time-self.min_time) + self.min_time
+                process_time = (
+                    random.random() * (self.max_time - self.min_time) + self.min_time
+                )
                 await asyncio.sleep(process_time)
                 if process_time < timeout:
                     # Update the status code and status message of the dendrite to match the axon
-                    s.completion = f'Mock miner completion {i}'
+                    s.completion = f"Mock miner completion {i}"
                     s.dendrite.status_code = 200
                     s.dendrite.status_message = "OK"
                 else:
@@ -179,7 +181,10 @@ class MockDendrite(bt.dendrite):
                     return s
 
             return await asyncio.gather(
-                *(single_axon_response(i, target_axon) for i, target_axon in enumerate(axons))
+                *(
+                    single_axon_response(i, target_axon)
+                    for i, target_axon in enumerate(axons)
+                )
             )
 
         return await query_all_axons(streaming)

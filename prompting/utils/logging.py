@@ -9,6 +9,7 @@ from typing import List
 from loguru import logger
 import prompting
 
+
 @dataclass
 class Log:
     validator_model_id: str
@@ -23,6 +24,7 @@ class Log:
     rewards: List[float]
     task: dict
     # extra_info: dict
+
 
 def export_logs(logs: List[Log]):
     bt.logging.info("📝 Exporting logs...")
@@ -100,7 +102,6 @@ def reinit_wandb(self):
     """Reinitializes wandb, rolling over the run."""
     self.wandb.finish()
     init_wandb(self, reinit=True)
-
 
 
 def log_event(self, event):
