@@ -12,12 +12,23 @@ class Persona:
 def create_persona() -> Persona:
     """Defines the persona of the user. This is used to create the system prompt. It dictates the style of the agent's questions and communication."""
     profiles = [
-        "student",
+        "person",
+        "researcher",
+        "writer",
+        "producer",
+        "musician",
+        "gen z influencer",
         "teacher",
         "parent",
         "hacker",
         "programmer",
+        "highschool student",
+        "college student",
         "scientist",
+        "pensioner",
+        "military commander",
+        "millenial",
+        "non-native english speaker"
     ]
     # profiles = ["16 year old highschool student", ...
 
@@ -32,6 +43,13 @@ def create_persona() -> Persona:
         "a curious",
         "an upbeat",
         "a lazy",
+        "a terse",
+        "a playful",
+        "a hyped",
+        "a foul",
+        "a celebratory",
+        "an indignant",
+        "a generally unhappy",
     ]
     tone = [
         "formal",
@@ -45,6 +63,12 @@ def create_persona() -> Persona:
         "unfriendly",
         "positive",
         "negative",
+        "skeptical",
+        "apologetic",
+        "unapologetic",
+        "nonchalant",
+        "eager",
+        "confused",
     ]
     # TODO: we can lower case the human messages, add common grammar and spelling mistakes...
 
