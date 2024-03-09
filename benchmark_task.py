@@ -109,7 +109,6 @@ def parse_args():
     parser.add_argument('--model_id', default='HuggingFaceH4/zephyr-7b-beta', help='Which LLM to use for the experiment')
     parser.add_argument('--miners', nargs='+', default=[], help='Which miners to use')
     parser.add_argument('--device', default="cuda" if torch.cuda.is_available() else "cpu", help='Run on a specific device')
-    parser.add_argument('--name', default='test-experiment', help='Experiment name')
     parser.add_argument('--generate_challenge', action='store_true', help='Use agent to generate challenge')
     parser.add_argument('--challenge_template', type=str, default=None, help='Challenge template string (to be used instead of agent LLM generation)')
     parser.add_argument('--reward', action='store_true', help='Enable rewarding of responses (miners must be set to take effect)')
@@ -153,7 +152,7 @@ def get_challenge(agent):
         missing_fields = [field for field in expected_fields if not hasattr(agent.task, field)]
         assert not missing_fields, f'The following fields were specified in the challenge template but are not in the task ({missing_fields}). Did you use the correct names?'
         
-        fields = {fields: getattr(agent.task, fields) for fields in expected_fields}
+        fields = {field: getattr(agent.task, field) for field in expected_fields}
         challenge = args.challenge_template.format(**fields)
     else:
         challenge = agent.task.query
