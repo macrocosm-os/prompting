@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument('--template_names', type=str, nargs="+", default=None, help='User template names, to be used to name the evals')
 
     parser.add_argument('--wandb_off', action='store_true', help='Turn off wandb logging')
-    parser.add_argument('--num_evals', type=int, default=1, help='Number of evals to run on each example')
+    parser.add_argument('--num_evals', type=int, default=5, help='Number of evals to run on each example')
     parser.add_argument('--max_samples', type=int, default=100, help='Max. number of samples to evaluate')
 
     parser.add_argument('--system_prompt', default=DEFAULT_SYSTEM_PROMPT)
