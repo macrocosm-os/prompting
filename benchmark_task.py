@@ -144,7 +144,7 @@ def get_challenge(agent):
     # Generate a challenge, either using agent, a format string or the raw query
     
     if args.generate_challenge:
-        agent.create_challene()
+        agent.create_challenge()
         return agent.challenge
     
     if args.challenge_template:
