@@ -75,11 +75,11 @@ The reference below has been assigned as the accepted answer for the given chall
 """
 
 BUILTIN_TEMPLATES = {
-    1: QUERY_FROM_TEMPLATE_PROMPT,
-    2: CHALLENGE_FROM_QUERY_PROMPT,
-    3: COMPLETION_FROM_CHALLENGE_PROMPT,
-    4: REFERENCE_FROM_QUERY_PROMPT,
-    5: REFERENCE_FROM_CHALLENGE_PROMPT
+    "1": QUERY_FROM_TEMPLATE_PROMPT,
+    "2": CHALLENGE_FROM_QUERY_PROMPT,
+    "3": COMPLETION_FROM_CHALLENGE_PROMPT,
+    "4": REFERENCE_FROM_QUERY_PROMPT,
+    "5": REFERENCE_FROM_CHALLENGE_PROMPT
 }
 
 DEFAULT_SYSTEM_PROMPT =  """
@@ -95,6 +95,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Run a set of gpt evals using a wandb run or local data')
     parser.add_argument('--path', type=str, help='Wandb or local filepath (glob) to get data from')
     parser.add_argument('--mock', action='store_true', help='Run with a mock validator')
+    parser.add_argument('--dry_run', action='store_true', help='Run in mock mode without wandb')
+    parser.add_argument('--save_local', action='store_true', help='Save results to a local file')
 
     parser.add_argument('--tasks', type=str, nargs="+", default=None, help='Which tasks to evaluate. If not set, all the template strings will be applied to all the tasks in the data.')
     parser.add_argument('--templates', type=str, nargs="+", default=None, help='User template strings, to be used to form the user prompt')
@@ -224,7 +226,7 @@ def main(df, name):
                 if not args.wandb_off:
                     wandb.log(results[-1])
 
-        if idx%10 == 0 or idx==len(df)-1:
+        if args.save_local and (idx%10 == 0 or idx==len(df)-1):
             bt.logging.info(f'Saving results at step {idx} to {save_path!r}')
             pd.DataFrame(results).to_csv(save_path, index=False)
 
@@ -236,6 +238,10 @@ def main(df, name):
 
 
 if __name__ == '__main__':
+    
+    if args.dry_run:
+        args.mock = True
+        args.wandb_off = True
 
     df = load_data(args.path)
     if not args.tasks:
@@ -260,7 +266,7 @@ if __name__ == '__main__':
     elif args.template_names and len(args.template_names) == len(args.templates):
         raise ValueError(f'Template names are a different length to templates. {len(args.templates)=} and {len(args.template_names)=}')
 
-    for i, template in enumerate(args.templates, start=1):
+    for i, template in enumerate(args.templates):
         
         if template in BUILTIN_TEMPLATES.keys():
             name = f'BUILTIN::{template}'
