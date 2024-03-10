@@ -255,14 +255,17 @@ if __name__ == '__main__':
 
     bt.logging.success(f'Data contains {len(df)} samples which match tasks {args.tasks}')
 
-    for i, template in enumerate(args.templates):
-        
-        if template in BUILTIN_TEMPLATES.keys():
-            args.templates[i] = BUILTIN_TEMPLATES[template]
-            
     if not args.template_names:
         args.template_names = [f'eval-{i}' for i in range(len(args.templates))]
     elif args.template_names and len(args.template_names) == len(args.templates):
         raise ValueError(f'Template names are a different length to templates. {len(args.templates)=} and {len(args.template_names)=}')
 
+    for i, template in enumerate(args.templates, start=1):
+        
+        if template in BUILTIN_TEMPLATES.keys():
+            name = f'BUILTIN::{template}'
+            args.templates[i] = BUILTIN_TEMPLATES[template]
+            args.template_names[i] = name
+            bt.logging.info(f'-> Replaced user template {template!r} with {name!r}')
+            
     main(df_task, name)
