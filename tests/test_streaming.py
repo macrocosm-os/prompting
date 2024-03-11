@@ -2,7 +2,6 @@ import pytest
 import bittensor as bt
 import asyncio
 
-import numpy as np
 from typing import List, AsyncGenerator
 from prompting.mock import MockDendrite, MockMetagraph, MockSubtensor
 from prompting.protocol import StreamPromptingSynapse
@@ -13,9 +12,7 @@ def compare_with_threshold(timeout: float, process_time: float, threshold: float
     Compare two numbers where b cannot be greater than a by the given threshold.
 
     Parameters:
-        a (float): First number.
-        b (float): Second number.
-        threshold (float): Maximum allowed difference between b and a, between 0 and 1 to represent percentage of a.
+        threshold (float): between 0 and 1 to represent percentage of timout.
 
     Returns:
         bool: True if b is less than or equal to a + threshold, False otherwise.

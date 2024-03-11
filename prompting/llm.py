@@ -25,9 +25,6 @@ from prompting.mock import MockPipeline
 
 from prompting.cleaners.cleaner import CleanerPipeline
 
-# Some models don't use the same name for the tokenizer.
-TOKENIZER_MAPPINGS = {"HuggingFaceH4/zephyr-7b-beta": "HuggingFaceH4/zephyr-7b-beta"}
-
 
 class CustomTextIteratorStreamer(TextIteratorStreamer):
     """
@@ -65,11 +62,14 @@ def load_pipeline(
     if not device.startswith("cuda"):
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
-    tokenizer = (
-        AutoTokenizer.from_pretrained(TOKENIZER_MAPPINGS[model_id])
-        if model_id in TOKENIZER_MAPPINGS
-        else None
-    )
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_id
+        )  # model_id is usually the name of the tokenizer.
+    except Exception as e:
+        bt.logging.error(f"Failed to load tokenizer from model_id: {model_id}.")
+        raise e
+
     streamer = CustomTextIteratorStreamer(tokenizer=tokenizer)
 
     # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
@@ -92,9 +92,9 @@ def load_pipeline(
             streamer=streamer,
         )
 
-    if not return_streamer:
-        return llm_pipeline
-    return llm_pipeline, streamer
+    if return_streamer:
+        return llm_pipeline, streamer
+    return llm_pipeline
 
 
 class HuggingFaceLLM:
