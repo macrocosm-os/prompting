@@ -35,7 +35,6 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     You can override any of the methods in BaseNeuron if you need to customize the behavior.
 
     This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function.
-    If you need to define custom
     """
 
     def __init__(self, config=None):
