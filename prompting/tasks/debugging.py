@@ -5,7 +5,6 @@ from prompting.tasks import Task
 import difflib
 
 
-
 def corrupt(
     code,
     n_remove=0,
@@ -53,9 +52,7 @@ def corrupt(
             f"Removing the following {len(indices)} chunks: {[chunks[i] for i in indices]} at indices {indices}"
         )
 
-        return sep.join(
-            [chunk for i, chunk in enumerate(chunks) if i not in indices]
-        )
+        return sep.join([chunk for i, chunk in enumerate(chunks) if i not in indices])
 
     def swap(code, sep=" ", min_length=1, max_length=10):
         """Swap two random chunks in the code. Chunks can be characters, words, or lines."""
@@ -94,9 +91,7 @@ def corrupt(
 
     # spread n corruptions across the code
     for i in range(n_remove):
-        code = remove(
-            code, n=1, sep=sep, min_length=min_length, max_length=max_length
-        )
+        code = remove(code, n=1, sep=sep, min_length=min_length, max_length=max_length)
     for i in range(n_swap):
         code = swap(code, sep=sep, min_length=min_length, max_length=max_length)
 
@@ -105,9 +100,7 @@ def corrupt(
 
 def diff(query, reference):
     """Get the diff between two strings."""
-    return "\n".join(
-        difflib.unified_diff(query.splitlines(), reference.splitlines())
-    )
+    return "\n".join(difflib.unified_diff(query.splitlines(), reference.splitlines()))
 
 
 @dataclass
@@ -117,9 +110,7 @@ class DebuggingTask(Task):
     desc = "get help with debugging"
     goal = "ask for help fixing broken code."
 
-    reward_definition = [
-        dict(name="diff", weight=1.0)
-    ]
+    reward_definition = [dict(name="diff", weight=1.0)]
 
     penalty_definition = []
 
@@ -132,17 +123,16 @@ class DebuggingTask(Task):
 
         # No LLM involved in generating the query, we just apply some language-independent corruption to the code
         self.query = corrupt(
-                    context.content,
-                    n_remove=random.randint(1, 3),
-                    n_swap=random.randint(0, 2),
-                    sep=random.choices([""," ","\n"],weights=[0.3,0.6,0.1],k=1)[0]
-                )
+            context.content,
+            n_remove=random.randint(1, 3),
+            n_swap=random.randint(0, 2),
+            sep=random.choices(["", " ", "\n"], weights=[0.3, 0.6, 0.1], k=1)[0],
+        )
         self.reference = context.content
         self.delimiter = "```"
         self.topic = context.title
         self.subtopic = context.subtopic
         self.tags = context.tags
 
-
     def format_challenge(self, challenge):
-        return f'{challenge}\n{self.delimiter}\n{self.query}\n{self.delimiter}'
+        return f"{challenge}\n{self.delimiter}\n{self.query}\n{self.delimiter}"

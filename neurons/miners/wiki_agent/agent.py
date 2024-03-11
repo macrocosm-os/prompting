@@ -1,18 +1,18 @@
-from langchain.utilities import WikipediaAPIWrapper
-from langchain.agents import Tool
-from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser
-from langchain.schema import AgentAction, AgentFinish, OutputParserException
 import re
 import bittensor as bt
 from typing import Union
 from typing import List
 from langchain.prompts import StringPromptTemplate
 from langchain import OpenAI
-from langchain.agents import Tool
-from langchain.agents import initialize_agent
 from langchain.chains import LLMChain
-from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser
-
+from langchain.utilities import WikipediaAPIWrapper
+from langchain.schema import AgentAction, AgentFinish, OutputParserException
+from langchain.agents import (
+    Tool,
+    AgentExecutor,
+    LLMSingleActionAgent,
+    AgentOutputParser,
+)
 
 # Set up the base template
 template = """Answer the following questions as best you can. You have access to the following tools:
@@ -52,12 +52,12 @@ class CustomPromptTemplate(StringPromptTemplate):
         # Set the agent_scratchpad variable to that value
         kwargs["agent_scratchpad"] = thoughts
         # Create a tools variable from the list of tools provided
-        kwargs["tools"] = "\n".join([f"{tool.name}: {tool.description}" for tool in self.tools])
+        kwargs["tools"] = "\n".join(
+            [f"{tool.name}: {tool.description}" for tool in self.tools]
+        )
         # Create a list of tool names for the tools provided
         kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
         return self.template.format(**kwargs)
-    
-
 
 
 class CustomOutputParser(AgentOutputParser):
@@ -78,33 +78,34 @@ class CustomOutputParser(AgentOutputParser):
         action = match.group(1).strip()
         action_input = match.group(2)
         # Return the action and action input
-        return AgentAction(tool=action, tool_input=action_input.strip(" ").strip('"'), log=llm_output)
-
-
+        return AgentAction(
+            tool=action, tool_input=action_input.strip(" ").strip('"'), log=llm_output
+        )
 
 
 class WikiAgent:
     def __init__(self, model_id: str, model_temperature: float):
         self.wikipedia = WikipediaAPIWrapper()
-        tools = [    
+        tools = [
             Tool(
-                name='wikipedia',
-                func= self.wikipedia.run,
-                description="Useful for when you need to look up a topic, country or person on wikipedia"
-        )]
-
+                name="wikipedia",
+                func=self.wikipedia.run,
+                description="Useful for when you need to look up a topic, country or person on wikipedia",
+            )
+        ]
 
         prompt = CustomPromptTemplate(
             template=template,
             tools=tools,
             # This omits the `agent_scratchpad`, `tools`, and `tool_names` variables because those are generated dynamically
             # This includes the `intermediate_steps` variable because that is needed
-            input_variables=["input", "intermediate_steps"]
+            input_variables=["input", "intermediate_steps"],
         )
 
-        bt.logging.info(f"Initializing agent with model_id: {model_id} and model_temperature: {model_temperature}")
+        bt.logging.info(
+            f"Initializing agent with model_id: {model_id} and model_temperature: {model_temperature}"
+        )
         llm = OpenAI(model_name=model_id, temperature=model_temperature)
-
 
         llm_chain = LLMChain(llm=llm, prompt=prompt)
         output_parser = CustomOutputParser()
@@ -113,11 +114,12 @@ class WikiAgent:
             llm_chain=llm_chain,
             output_parser=output_parser,
             stop=["\nObservation:"],
-            allowed_tools=tools,            
+            allowed_tools=tools,
         )
 
-        self.agent_executor = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
-        
+        self.agent_executor = AgentExecutor.from_agent_and_tools(
+            agent=agent, tools=tools, verbose=True, handle_parsing_errors=True
+        )
 
     def run(self, input: str) -> str:
         return self.agent_executor.run(input)
