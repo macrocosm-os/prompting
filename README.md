@@ -129,6 +129,8 @@ python -m pip install -r requirements.txt
 python -m pip install -e .
 ```
 
+Alternatively, if you are running on a clean Ubuntu machine, you can run `python scripts/setup_ubuntu_machine.sh` to effortlessly install everything you need. If you are wanting to run an OpenAI miner, you will need to place your OpenAI API key in the `OPENAI_API_KEY` variable in the script. 
+
 </div>
 
 ---
