@@ -17,157 +17,75 @@
 
 This repository is the **official codebase for Bittensor Subnet 1 (SN1) v1.0.0+, which was released on 22nd January 2024**. To learn more about the Bittensor project and the underlying mechanics, [read here.](https://docs.bittensor.com/).
 
-# Introduction
+# SN1 Pre-Staging Testnet 102 Streaming Experiments
+If you are seeing this README, you are on the pre-staging branch of SN1 designed to facilitate the development of streaming-capable miners, and running streaming experiments. The README that is currently on `main` is temporarily renamed as `README_main.md` as a reference. 
 
-This repo defines an incentive mechanism to create a distributed conversational AI. 
+As of March 25th, 2024, SN1 will **only support miners with streaming capabilities**. Therefore, the goal of this branch is to give the community access to the production environment before it goes live. 
 
-Validators and miners are based on large language models (LLM). The [validation process](#validation) uses **[internet-scale datasets](#tools)** and **[goal-driven](#tasks)** behaviour to drive **[human-like conversations](#agents)**. 
+**The intended use of this branch is for miners and validators to run on testnet 102**. 
 
-</div>
+## Important Questions
 
-# Compute Requirements
+### 1. What is streaming? 
+Streaming is when the miner sends back chunks of data to the validator to enable getting partial responses before timeout. The benefits are two fold:
+1. getting rewards for unfinished, high quality responses, and
+2. enabling a stream-based UI for responsive frontends. 
 
-1. To run a **validator**, you will need at least 24GB of VRAM. 
-2. To run the default Zephyr **miner**, you will need at least 18GB of VRAM. 
-
-</div>
-
-# Validation
-The design of the network's incentive mechanism is based on two important requirements:
-
-### 1. Validation should mimic human interactions
-
-It is imperative that the validation process engages with miners in the same way as real users. The reasons for this are as follows:
-- Miners will compete and continuously improve at performing the validation task(s), and so this fine tuning should be aligned with the goals of the subnet.
-- It should not be possible to distinguish between validation and API client queries so that miners always serve requests (even when they do not receive emissions for doing so).
-
-In the context of this subnet, miners are required to be intelligent AI assistants that provide helpful and correct responses to a range of queries. 
-
-### 2. Reward models should mimic human preferences
-
-In our experience, we have found that it is tricky to evaluate whether miner responses are high quality. Existing methods typically rely on using LLMs to score completions given a prompt, but this is often exploited and gives rise to many adversarial strategies.
-
-In the present version, the validator produces one or more **reference** answers which all miner responses are compared to. Those which are most similar to the reference answer will attain the highest rewards and ultimately gain the most incentive.
-
-**We presently use a combination of string literal similarity and semantic similarity as the basis for rewarding.**
-
-# Tools
-Contexts, which are the basis of conversations, are from external APIs (which we call tools) which ensure that conversations remain grounded in factuality. Contexts are also used to obtain ground-truth answers.
-
-Currently, the tooling stack includes:
-1. Wikipedia API 
-2. StackOverflow 
-3. mathgenerator
-
-More tooling will be included in future releases. 
-
-# Tasks
-The validation process supports an ever-growing number of tasks. Tasks drive agent behaviour based on specific goals, such as; 
-- Question answering
-- Summarization
-- Code debugging
-- Mathematics
- and more. 
-
-Tasks contain a **query** (basic question/problem) and a **reference** (ideal answer), where a downstream HumanAgent creates a more nuanced version of the **query**.
-
-# Agents
-
-In order to mimic human interactions, validators participate in a roleplaying game where they take on the persona of **random** human users. Equipped with this persona and a task, validators prompt miners in a style and tone that is similar to humans and drive the conversation in order to reach a pre-defined goal. We refer to these prompts as **challenges**. 
-
-Challenges are based on the query by wrapping the query in an agent persona which results in a lossy "one-way" function. This results in challenges that are overall more interesting, and less predictable.
-
-The [diagram below](#validation-diagram) illustrates the validation flow.
-
-#### Our approach innovatively transforms straightforward queries into complex challenges, a process akin to a 'hash function', requiring advanced NLP for resolution. This transformation is crucial for preventing simple lookups in source documents, ensuring that responses necessitate authentic analytical effort.
-
-
-# Validation Diagram
-![sn1 overview](assets/sn1-overview.png)
-
-# Running Validators
-These validators are designed to run and update themselves automatically. To run a validator, follow these steps:
-
-1. Install this repository, you can do so by following the steps outlined in [the installation section](#installation).
-2. Install [Weights and Biases](https://docs.wandb.ai/quickstart) and run `wandb login` within this repository. This will initialize Weights and Biases, enabling you to view KPIs and Metrics on your validator. (Strongly recommended to help the network improve from data sharing)
-3. Install [PM2](https://pm2.io/docs/runtime/guide/installation/) and the [`jq` package](https://jqlang.github.io/jq/) on your system.
-   **On Linux**:
-   ```bash
-   sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm install pm2 -g && pm2 update
-   ``` 
-   **On Mac OS**
-   ```bash
-   brew update && brew install jq && brew install npm && sudo npm install pm2 -g && pm2 update
-   ```
-4. Run the `run.sh` script which will handle running your validator and pulling the latest updates as they are issued. 
-   ```bash
-   pm2 start run.sh --name s1_validator_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key>
-   ```
-
-This will run **two** PM2 processes: one for the validator which is called `s1_validator_main_process` by default (you can change this in `run.sh`), and one for the run.sh script (in step 4, we named it `s1_validator_autoupdate`). The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `s1_validator_main_process` and then restart itself.
-
-
-
-# Available Miners
-
-Miners are scored based on the similarity between their completions and the reference answer. Furthermore, they should utilize the same API tools as the validators in order to be able to closely reproduce the reference answer. We currently provide the following miners out-of-the-box:
-1. [Zephyr 7B](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)
-2. [OpenAI](https://platform.openai.com/docs/introduction) (GPT variants)
-3. wiki-agent ([GPT ReAct agent with langchain](https://python.langchain.com/docs/modules/agents/agent_types/react))
-    
-
-</div>
-
----
-
-# Installation
-This repository requires python3.8 or higher. To install, simply clone this repository and install the requirements.
-```bash
-git clone https://github.com/opentensor/prompting.git
-cd prompting
-python -m pip install -r requirements.txt
-python -m pip install -e .
-```
-
-</div>
-
----
-# Running
-
-We encourage miners to use testnet as this gives you a risk-free playground before running on mainnet. If you require test tao, please reach out to brady@opentensor.dev
-
-Prior to running a miner or validator, you must [create a wallet](https://github.com/opentensor/docs/blob/main/reference/btcli.md) and [register the wallet to a netuid](https://github.com/opentensor/docs/blob/main/subnetworks/registration.md). Once you have done so, you can run the miner and validator with the following commands.
-
-For miners and validators running on mainnet we **strongly encourage** you to use a [local subtensor](https://github.com/opentensor/subtensor).
-
-
-```bash
-# To run the validator
-python neurons/validator.py
-    --netuid 1
-    --subtensor.network <finney/local/test>
-    --neuron.device cuda
-    --wallet.name <your validator wallet>  # Must be created using the bittensor-cli
-    --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
-    --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
-
-```
+### 2. How will this change my miner? 
+Stream miners need to implement a new `forward` method that enables async communications to the validator. The template for miners can be found in `docs/stream_miner_template.md`. Follow the instructions in this markdown file to learn the **important** steps needed to convert your miner to this new format. Alternatively, you can run one of the two base miners in the repo: 
 
 ```bash
 # To run the miner
-python neurons/miners/BASE_MINER/miner.py 
-    --netuid 1
-    --subtensor.network <finney/local/test>
+python <MINER_PATH>
+    --netuid 102
+    --subtensor.network test
     --wallet.name <your miner wallet> # Must be created using the bittensor-cli
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 ```
-where `BASE_MINER` is [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B, however you can choose any of the supplied models found in `neurons/miners`. 
+where `MINER_PATH` is either: 
+1. neurons/miners/huggingface/miner.py
+2. neurons/miners/openai/miner.py
 
-</div>
+### 3. Do I need to change my hardware?!? 
+No! The hardware requirements for running streaming are identical to before, so there is no need to provision new or more capable resources. 
 
----
+### 4. Registration 
+Similar to registering a miner on mainnet, you need to register your miner for testnet 102. Here is a simple command to do so: 
+`btcli subnet register --netuid 102 --subtensor.network test --wallet.name <YOUR_WALLET_NAME> --wallet.hotkey <YOUR_HOTKEY_NAME>`
 
+To register, you will need test tao! Please reach out to @mccrinbc or @ellesmier for test tao if needed. 
+
+### 5. Validators
+Folks who want to run validators are encouraged to do so. The SN1 development team are dedicating resources to run (at present) 2 validators on testnet 102 to ensure that miners will be busy getting queried. 
+
+### 6. How do I know that my miner is working? 
+The easiest way to make sure that your miner is working is to use the script in `scripts/client.py`. You can query your miner from a **separate** registered hotkey. This must be done because the same hotkey cannot ping itself. 
+
+```bash
+python scripts/client.py --uids YOUR_UIDS --wallet_name <YOUR_WALLET_NAME> --hotkey <YOUR_DIFFERENT_HOTKEY> --message "WHATEVER MESSAGE YOU WANT TO SEND"
+```
+
+An example is:
+```bash
+python scripts/client.py --wallet_name testnet --hotkey my_validator --message "Write me a 500 word essay about albert einstein" --uids 1 2
+```
+
+In order to query the networek, the hotkey you provide will need to have a vpermit. Until netuid 102 has more than 64 neurons registered, all neurons will have a vpermit by default. To check your neurons on netuid 102, run the following btcli command: 
+
+```bash
+btcli wallet overview --subtensor.network test --wallet.name <YOUR_WALLET_NAME> 
+```
+
+You can also wait to get queried by the validators, and pull the appropriate wandb data to checkout that your miners are being queried will all the data needed for analysis. Filtering by `netuid=102` is important here so that you see the active validators running on testnet, and previous test data. 
+
+[Click here to be taken to the wandb validator page filtered by netuid 102.](https://wandb.ai/opentensor-dev/alpha-validators?nw=nwusermccrinbcsl) 
+
+### 7. Installation
+You will need to reinstall the repo to ensure that you do not see any errors. Please run:
+```bash
+python -m pip install -e . --force-reinstall
+```
 
 
 # Real-time monitoring with wandb integration

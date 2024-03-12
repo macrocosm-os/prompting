@@ -16,18 +16,43 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import torch
+
 from typing import List, Dict
 import bittensor as bt
 
-from transformers import Pipeline, pipeline
+from transformers import Pipeline, pipeline, AutoTokenizer, TextIteratorStreamer
 from prompting.mock import MockPipeline
 
 from prompting.cleaners.cleaner import CleanerPipeline
 
 
+class CustomTextIteratorStreamer(TextIteratorStreamer):
+    """
+    TextIteratorStreamer stores print-ready text in a queue, to be used by a downstream application as an iterator.
+    The queue is thread-safe and can be used to stream data from the model to the application.
+
+    TextIteratorStreamer has internal methods to raise a StopIteration if a stop signal is received
+    (stop signal is when the value returned from the Queue is None), but this is not flexible enough.
+    Therefore, we add methods to check and clean the queue manually.
+    """
+
+    def has_data(self):
+        """Check if the queue has data."""
+        return not self.text_queue.empty()
+
+    def clear_queue(self):
+        """Clear the queue."""
+        with self.text_queue.mutex:  # ensures that the queue is cleared safely in a multi-threaded environment
+            self.text_queue.queue.clear()
+
+
 def load_pipeline(
-    model_id, device=None, torch_dtype=None, mock=False, model_kwargs: dict = None
+    model_id: str,
+    device=None,
+    torch_dtype=None,
+    mock=False,
+    return_streamer=False,
+    model_kwargs: dict = None,
 ):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
 
@@ -37,14 +62,38 @@ def load_pipeline(
     if not device.startswith("cuda"):
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
-    # Sets default model torch type in case is not defined
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_id
+        )  # model_id is usually the name of the tokenizer.
+    except Exception as e:
+        bt.logging.error(f"Failed to load tokenizer from model_id: {model_id}.")
+        raise e
+
+    streamer = CustomTextIteratorStreamer(tokenizer=tokenizer)
+
+    # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
     if model_kwargs is None:
-        model_kwargs = dict(torch_dtype=torch.bfloat16)
+        llm_pipeline = pipeline(
+            "text-generation",
+            model=model_id,
+            tokenizer=tokenizer,
+            device=device,
+            torch_dtype=torch_dtype,
+            streamer=streamer,
+        )
+    else:
+        llm_pipeline = pipeline(
+            "text-generation",
+            model=model_id,
+            tokenizer=tokenizer,
+            device_map=device,
+            model_kwargs=model_kwargs,
+            streamer=streamer,
+        )
 
-    llm_pipeline = pipeline(
-        "text-generation", model=model_id, device_map=device, model_kwargs=model_kwargs
-    )
-
+    if return_streamer:
+        return llm_pipeline, streamer
     return llm_pipeline
 
 

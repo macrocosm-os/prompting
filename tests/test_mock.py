@@ -42,8 +42,8 @@ def test_mock_metagraph(n):
     # Check ip and port
     for axon in axons:
         assert type(axon) == bt.AxonInfo
-        assert axon.ip == mock_metagraph.default_ip
-        assert axon.port == mock_metagraph.default_port
+        assert axon.ip == mock_metagraph.DEFAULT_IP
+        assert axon.port == mock_metagraph.DEFAULT_PORT
 
 
 def test_mock_reward_pipeline():
@@ -61,8 +61,8 @@ def test_mock_neuron():
 def test_mock_dendrite_timings(timeout, min_time, max_time, n):
     mock_wallet = bt.MockWallet(config=None)
     mock_dendrite = MockDendrite(mock_wallet)
-    mock_dendrite.min_time = min_time
-    mock_dendrite.max_time = max_time
+    mock_dendrite.MIN_TIME = min_time
+    mock_dendrite.MAX_TIME = max_time
     mock_subtensor = MockSubtensor(netuid=1, n=n)
     mock_metagraph = MockMetagraph(subtensor=mock_subtensor)
     axons = mock_metagraph.axons

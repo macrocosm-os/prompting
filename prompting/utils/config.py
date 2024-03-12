@@ -247,6 +247,13 @@ def add_miner_args(cls, parser):
         help="Wandb project to log to.",
     )
 
+    parser.add_argument(
+        "--neuron.streaming_batch_size",
+        type=int,
+        default=12,
+        help="Batch size in tokens for streaming forward calls.",
+    )
+
 
 def add_validator_args(cls, parser):
     """Add validator specific arguments to the parser."""

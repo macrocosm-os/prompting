@@ -49,7 +49,6 @@ class BaseValidatorNeuron(BaseNeuron):
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
         # Dendrite lets us send messages to other nodes (axons) in the network.
-        # TODO: Mock the dendrite (Brian/Pedro)
         if self.config.mock:
             self.dendrite = MockDendrite(wallet=self.wallet)
         else:
