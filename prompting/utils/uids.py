@@ -86,6 +86,5 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
     elif len(candidate_uids) >= k:
         return torch.tensor(random.sample(candidate_uids, k))
     else:
-        raise ValueError(
-            f"len(candidate_uids) for network sampling is less than or equal to 0, {len(candidate_uids)}"
+        raise ValueError(f'No eligible uids were found. Cannot return {k} uids')
         )
