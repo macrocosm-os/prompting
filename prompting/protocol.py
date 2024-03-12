@@ -208,8 +208,6 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
                       response is expected to be a set of tokens that can be decoded and split into individual messages or prompts.
         """
 
-        bt.logging.debug("Inside of process_streaming_response")
-
         if self.completion is None:
             self.completion = ""
 
@@ -218,9 +216,6 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
                 chunk.decode("utf-8").split("<|assistant|>")[-1].split("\n")
             )  # temp
             self.completion = self.completion + "".join([t for t in tokens if t])
-            bt.logging.debug(
-                f"\nCompletion chunk during streaming is: \n{self.completion}"
-            )
             yield tokens
 
     def deserialize(self) -> str:
