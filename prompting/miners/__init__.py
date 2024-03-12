@@ -6,4 +6,3 @@ from .phrase import PhraseMiner
 # Real miners
 from .hf_miner import HuggingFaceMiner
 from .openai_miner import OpenAIMiner
-from .tool_miner import ToolMiner
