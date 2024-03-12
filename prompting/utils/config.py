@@ -251,7 +251,7 @@ def add_miner_args(cls, parser):
         "--neuron.streaming_batch_size",
         type=int,
         default=12,
-        help="Batch size for streaming forward calls.",
+        help="Batch size in tokens for streaming forward calls.",
     )
 
 
