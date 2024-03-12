@@ -52,7 +52,7 @@ No! The hardware requirements for running streaming are identical to before, so 
 
 ### 4. Registration 
 Similar to registering a miner on mainnet, you need to register your miner for testnet 102. Here is a simple command to do so: 
-`btcli subnet register --netuid 102 --subtensor.network test --wallet.name YOUR_WALLET_NAME --wallet.hotkey YOUR_HOTKEY_NAME`
+`btcli subnet register --netuid 102 --subtensor.network test --wallet.name <YOUR_WALLET_NAME> --wallet.hotkey <YOUR_HOTKEY_NAME>`
 
 To register, you will need test tao! Please reach out to @mccrinbc or @ellesmier for test tao if needed. 
 
@@ -60,9 +60,22 @@ To register, you will need test tao! Please reach out to @mccrinbc or @ellesmier
 Folks who want to run validators are encouraged to do so. The SN1 development team are dedicating resources to run (at present) 2 validators on testnet 102 to ensure that miners will be busy getting queried. 
 
 ### 6. How do I know that my miner is working? 
-The easiest way to make sure that your miner is working is to use the script in `scripts/client.py`. You can query your miner from a **separate** registered hotkey. 
+The easiest way to make sure that your miner is working is to use the script in `scripts/client.py`. You can query your miner from a **separate** registered hotkey. This must be done because the same hotkey cannot ping itself. 
 
-`python scripts/client.py --uid YOUR_UID --netuid 102 --wallet_name YOUR_WALLET_NAME --hotkey YOUR_DIFFERENT_HOTKEY --network test --message "WHATEVER MESSAGE YOU WANT TO SEND"`
+```bash
+python scripts/client.py --uids YOUR_UIDS --wallet_name <YOUR_WALLET_NAME> --hotkey <YOUR_DIFFERENT_HOTKEY> --message "WHATEVER MESSAGE YOU WANT TO SEND"
+```
+
+An example is:
+```bash
+python scripts/client.py --wallet_name testnet --hotkey my_validator --message "Write me a 500 word essay about albert einstein" --uids 1 2
+```
+
+In order to query the networek, the hotkey you provide will need to have a vpermit. Until netuid 102 has more than 64 neurons registered, all neurons will have a vpermit by default. To check your neurons on netuid 102, run the following btcli command: 
+
+```bash
+btcli wallet overview --subtensor.network test --wallet.name <YOUR_WALLET_NAME> 
+```
 
 You can also wait to get queried by the validators, and pull the appropriate wandb data to checkout that your miners are being queried will all the data needed for analysis. Filtering by `netuid=102` is important here so that you see the active validators running on testnet, and previous test data. 
 
