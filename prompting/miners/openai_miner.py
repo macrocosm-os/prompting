@@ -21,7 +21,7 @@ import bittensor as bt
 import argparse
 from starlette.types import Send
 from functools import partial
-from typing import Dict
+from typing import Dict, Awaitable
 
 # Bittensor Miner Template:
 from prompting.base.prompting_miner import BaseStreamPromptingMiner
@@ -79,7 +79,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
         self.accumulated_completion_tokens = 0
         self.accumulated_total_cost = 0
 
-    def forward(self, synapse: StreamPromptingSynapse):
+    def forward(self, synapse: StreamPromptingSynapse) -> Awaitable:
         async def _forward(
             self,
             message: str,

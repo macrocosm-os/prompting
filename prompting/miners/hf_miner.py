@@ -22,7 +22,7 @@ import bittensor as bt
 from functools import partial
 from threading import Thread
 from starlette.types import Send
-from typing import Dict, List
+from typing import Awaitable
 
 # Bittensor Miner Template:
 from prompting.protocol import StreamPromptingSynapse
@@ -92,7 +92,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         self.model_id = self.config.neuron.model_id
         self.system_prompt = self.config.neuron.system_prompt
 
-    def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+    def forward(self, synapse: StreamPromptingSynapse) -> Awaitable:
         async def _forward(
             self,
             prompt: str,
