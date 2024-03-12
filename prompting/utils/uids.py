@@ -81,10 +81,11 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
 
     # Check if candidate_uids contain enough for querying, if not grab all avaliable uids
     if 0 < len(candidate_uids) < k:
-        bt.logging.warning(f'Requested {k} uids but only {len(candidate_uids}} were available. To disable this warning reduce the sample size (--neuron.sample_size)')
+        bt.logging.warning(
+            f"Requested {k} uids but only {len(candidate_uids)} were available. To disable this warning reduce the sample size (--neuron.sample_size)"
+        )
         return torch.tensor(candidate_uids)
     elif len(candidate_uids) >= k:
         return torch.tensor(random.sample(candidate_uids, k))
     else:
-        raise ValueError(f'No eligible uids were found. Cannot return {k} uids')
-        )
+        raise ValueError(f"No eligible uids were found. Cannot return {k} uids")
