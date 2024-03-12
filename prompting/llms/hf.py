@@ -25,7 +25,7 @@ from transformers import pipeline
 from prompting.llms import BasePipeline, BaseLLM
 
 
-def load_hf_pipeline(
+def load_pipeline(
     model_id, device=None, torch_dtype=None, mock=False, model_kwargs: dict = None
 ):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""

@@ -19,9 +19,11 @@ import os
 import time
 import bittensor as bt
 import argparse
+
 # Bittensor Miner Template:
 import prompting
 from prompting.protocol import PromptingSynapse
+
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import Miner
 
@@ -32,12 +34,12 @@ from dotenv import load_dotenv, find_dotenv
 from langchain.callbacks import get_openai_callback
 
 
-
 class OpenAIMiner(Miner):
     """Langchain-based miner which uses OpenAI's API as the LLM.
 
     You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
     """
+
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         """
@@ -45,14 +47,13 @@ class OpenAIMiner(Miner):
         """
         super().add_args(parser)
 
-
     def __init__(self, config=None):
         super().__init__(config=config)
 
         bt.logging.info(f"Initializing with model {self.config.neuron.model_id}...")
 
         if self.config.wandb.on:
-            self.identity_tags =  ("openai_miner", ) + (self.config.neuron.model_id, )
+            self.identity_tags = ("openai_miner",) + (self.config.neuron.model_id,)
 
         _ = load_dotenv(find_dotenv())
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -61,8 +62,8 @@ class OpenAIMiner(Miner):
         self.model = ChatOpenAI(
             api_key=api_key,
             model_name=self.config.neuron.model_id,
-            max_tokens = self.config.neuron.max_tokens,
-            temperature = self.config.neuron.temperature,
+            max_tokens=self.config.neuron.max_tokens,
+            temperature=self.config.neuron.temperature,
         )
 
         self.system_prompt = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
@@ -82,20 +83,18 @@ class OpenAIMiner(Miner):
         self.accumulated_completion_tokens += cb.completion_tokens
         self.accumulated_total_cost += cb.total_cost
 
-        return  {
-            'total_tokens': cb.total_tokens,
-            'prompt_tokens': cb.prompt_tokens,
-            'completion_tokens': cb.completion_tokens,
-            'total_cost': cb.total_cost,
-            'accumulated_total_tokens': self.accumulated_total_tokens,
-            'accumulated_prompt_tokens': self.accumulated_prompt_tokens,
-            'accumulated_completion_tokens': self.accumulated_completion_tokens,
-            'accumulated_total_cost': self.accumulated_total_cost,
+        return {
+            "total_tokens": cb.total_tokens,
+            "prompt_tokens": cb.prompt_tokens,
+            "completion_tokens": cb.completion_tokens,
+            "total_cost": cb.total_cost,
+            "accumulated_total_tokens": self.accumulated_total_tokens,
+            "accumulated_prompt_tokens": self.accumulated_prompt_tokens,
+            "accumulated_completion_tokens": self.accumulated_completion_tokens,
+            "accumulated_total_cost": self.accumulated_total_cost,
         }
 
-    async def forward(
-        self, synapse: PromptingSynapse
-    ) -> PromptingSynapse:
+    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
         """
         Processes the incoming synapse by performing a predefined operation on the input data.
         This method should be replaced with actual logic relevant to the miner's purpose.
@@ -114,19 +113,16 @@ class OpenAIMiner(Miner):
                 t0 = time.time()
                 bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
-                prompt = ChatPromptTemplate.from_messages([
-                    ("system", self.system_prompt),
-                    ("user", "{input}")
-                ])
+                prompt = ChatPromptTemplate.from_messages(
+                    [("system", self.system_prompt), ("user", "{input}")]
+                )
                 chain = prompt | self.model | StrOutputParser()
 
                 role = synapse.roles[-1]
                 message = synapse.messages[-1]
 
                 bt.logging.debug(f"💬 Querying openai: {prompt}")
-                response = chain.invoke(
-                    {"role": role, "input": message}
-                )
+                response = chain.invoke({"role": role, "input": message})
 
                 synapse.completion = response
                 synapse_latency = time.time() - t0
@@ -137,7 +133,7 @@ class OpenAIMiner(Miner):
                         prompt=message,
                         completion=response,
                         system_prompt=self.system_prompt,
-                        extra_info=self.get_cost_logging(cb)
+                        extra_info=self.get_cost_logging(cb),
                     )
 
             bt.logging.debug(f"✅ Served Response: {response}")
