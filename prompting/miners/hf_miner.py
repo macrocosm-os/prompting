@@ -83,6 +83,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
         self.llm_pipeline, self.streamer = load_pipeline(
             model_id=self.config.neuron.model_id,
+            torch_dtype=torch.bfloat16,
             device=self.device,
             mock=mock,
             return_streamer=True,
