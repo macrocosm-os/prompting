@@ -229,7 +229,7 @@ def add_miner_args(cls, parser):
     parser.add_argument(
         "--wandb.on",
         type=bool,
-        default=True,
+        default=False,
         help="Enable wandb logging.",
     )
 

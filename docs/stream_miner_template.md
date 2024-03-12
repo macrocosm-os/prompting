@@ -29,7 +29,6 @@ def forward(self, synapse: StreamPromptingSynapse) -> Awaitable:
 
                 if len(buffer) == self.config.neuron.streaming_batch_size:
                     joined_buffer = "".join(buffer)
-                    temp_completion += joined_buffer
                     bt.logging.debug(f"Streamed tokens: {joined_buffer}")
 
                     await send(

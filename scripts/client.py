@@ -1,6 +1,9 @@
 import argparse
 import asyncio
+
 import bittensor as bt
+import time
+
 from typing import List, Awaitable
 from prompting.protocol import StreamPromptingSynapse
 
@@ -17,25 +20,41 @@ Steps:
 """
 
 
-async def handle_response(uid: str, responses: List[Awaitable]) -> tuple[str, str]:
-    full_response = ""
-    ii = 0
-    for resp in responses:
+async def handle_response(
+    uids: List[int], responses: List[Awaitable]
+) -> tuple[str, str]:
+    synapses = []
+
+    for uid_num, resp in enumerate(responses):
+        ii = 0
+        chunk_times = []
+        start_time = time.time()
+
+        chunk_start_time = time.time()
         async for chunk in resp:
-            print(f"\nchunk {ii} for resp: {chunk}", end="", flush=True)
+            chunk_time = round(time.time() - chunk_start_time, 3)
+            bt.logging.info(
+                f"UID: {uids[uid_num]}. chunk {ii}({chunk_time}s) for resp: {chunk} "
+            )
             ii += 1
+
+            chunk_times.append(chunk_time)
+            chunk_start_time = time.time()
+
+        bt.logging.success(
+            f"UID {uids[uid_num]} took {(time.time() - start_time):.3f} seconds\n"
+        )
 
         synapse = (
             chunk  # last object yielded is the synapse itself with completion filled
         )
+        synapses.append(synapse)
 
-        print(f"Final Synapse: {synapse}")
-        break
-    return uid, full_response
+    return synapses
 
 
 async def query_stream_miner(
-    synapse_protocol, wallet_name, hotkey, network, netuid, uid, message=None
+    args, synapse_protocol, wallet_name, hotkey, network, netuid, message=None
 ):
     if message is None:
         message = "Give me some information about the night sky."
@@ -54,23 +73,25 @@ async def query_stream_miner(
     # Create a Dendrite instance to handle client-side communication.
     dendrite = bt.dendrite(wallet=wallet)
 
-    print(f"Synapse: {syn}")
+    bt.logging.info(f"Synapse: {syn}")
 
     async def main():
         try:
+            uids = args.uids
+            axons = [metagraph.axons[uid] for uid in uids]
             responses = await dendrite(  # responses is an async generator that yields the response tokens
-                [metagraph.axons[uid]],
+                axons,
                 syn,
                 deserialize=False,
                 timeout=10,
                 streaming=True,
             )
-            # return responses
-            return await handle_response(uid, responses)
+
+            return await handle_response(uids, responses)
 
         except Exception as e:
-            print(f"Exception during query for uid {uid}: {e}")
-            return uid, None
+            bt.logging.error(f"Exception during query to uids: {uids}: {e}")
+            return None
 
     await main()
 
@@ -80,14 +101,15 @@ if __name__ == "__main__":
         description="Query a Bittensor synapse with given parameters."
     )
 
-    # Adding arguments
     parser.add_argument(
-        "--uid",
-        type=int,
+        "--uids",
+        nargs="+",
         required=True,
-        help="Your unique miner ID on the chain",
+        help="UIDs to query.",
+        default=[1, 2],
+        type=int,
     )
-    parser.add_argument("--netuid", type=int, required=True, help="Network Unique ID")
+    parser.add_argument("--netuid", type=int, default=102, help="Network Unique ID")
     parser.add_argument(
         "--wallet_name", type=str, default="default", help="Name of the wallet"
     )
@@ -114,12 +136,12 @@ if __name__ == "__main__":
     # Running the async function with provided arguments
     asyncio.run(
         query_stream_miner(
+            args,
             synapse_protocol=StreamPromptingSynapse,
             wallet_name=args.wallet_name,
             hotkey=args.hotkey,
             network=args.network,
             netuid=args.netuid,
-            uid=args.uid,
             message=args.message,
         )
     )
