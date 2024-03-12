@@ -20,12 +20,10 @@ class RelevanceRewardModel(BaseRewardModel):
         self.threshold = threshold
         self.model = AnglE.from_pretrained(
             "WhereIsAI/UAE-Large-V1", pooling_strategy=pooling_strategy, device=device
-        )        
+        )
         if device.startswith("cuda"):
             # This line is necessary to pass the model to the device defined at its initialization
             self.model = self.model.cuda()
-
-
 
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
         """Calculates the cosine similarity between sentence embeddings of the reference and completions.

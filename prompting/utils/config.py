@@ -22,7 +22,6 @@ import argparse
 import bittensor as bt
 from loguru import logger
 
-#TODO: enable 4bit and 8bit precision llms via config
 
 def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
@@ -37,12 +36,13 @@ def check_config(cls, config: "bt.Config"):
             config.neuron.name,
         )
     )
-    bt.logging.info(f'Logging path: {full_path}')
+    bt.logging.info(f"Logging path: {full_path}")
     config.neuron.full_path = os.path.expanduser(full_path)
     if not os.path.exists(config.neuron.full_path):
         os.makedirs(config.neuron.full_path, exist_ok=True)
 
-    if not config.neuron.dont_save_events:
+    log_level_exists = "EVENTS" in logger._core.levels
+    if not config.neuron.dont_save_events and not log_level_exists:
         # Add custom event logger for the events.
         logger.level("EVENTS", no=38, icon="📝")
         logger.add(
@@ -117,7 +117,6 @@ def add_args(cls, parser):
         "--wandb.off", action="store_true", help="Turn off wandb.", default=False
     )
 
-
     parser.add_argument(
         "--wandb.offline",
         action="store_true",
@@ -132,6 +131,7 @@ def add_args(cls, parser):
         default="",
     )
 
+
 def add_miner_args(cls, parser):
     """Add miner specific arguments to the parser."""
 
@@ -139,7 +139,7 @@ def add_miner_args(cls, parser):
         "--neuron.name",
         type=str,
         help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
-        default='miner',
+        default="miner",
     )
 
     parser.add_argument(
@@ -150,10 +150,17 @@ def add_miner_args(cls, parser):
     )
 
     parser.add_argument(
-        "--neuron.load_quantized",
+        "--neuron.load_in_8bit",
         type=str,
         default=False,
-        help="Load quantized model.",
+        help="Load quantized model in 8 bits. Note that this parameter only applies to hugging face miners.",
+    )
+
+    parser.add_argument(
+        "--neuron.load_in_4bit",
+        type=str,
+        default=False,
+        help="Load quantized model in 4 bits. Note that this parameter only applies to hugging face miners.",
     )
 
     parser.add_argument(
@@ -174,7 +181,7 @@ def add_miner_args(cls, parser):
         "--neuron.system_prompt",
         type=str,
         help="The system prompt to use for the miner.",
-        default="You are a helpful AI assistant. You answer questions, summarize documents, and debug code. You are always straight to the point and honest.",
+        default="You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know.",
     )
 
     parser.add_argument(
@@ -213,6 +220,13 @@ def add_miner_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.should_force_model_loading",
+        type=bool,
+        default=False,
+        help="Force model loading independent of mock flag.",
+    )
+
+    parser.add_argument(
         "--wandb.on",
         type=bool,
         default=False,
@@ -233,6 +247,7 @@ def add_miner_args(cls, parser):
         help="Wandb project to log to.",
     )
 
+
 def add_validator_args(cls, parser):
     """Add validator specific arguments to the parser."""
 
@@ -240,7 +255,7 @@ def add_validator_args(cls, parser):
         "--neuron.name",
         type=str,
         help="Trials for this neuron go in neuron.root / (wallet_cold - wallet_hot) / neuron.name. ",
-        default='validator',
+        default="validator",
     )
 
     parser.add_argument(
@@ -329,9 +344,9 @@ def add_validator_args(cls, parser):
         "--neuron.vpermit_tao_limit",
         type=int,
         help="The maximum number of TAO allowed to query a validator with a vpermit.",
-            default=4096,
-        )
-    
+        default=4096,
+    )
+
     parser.add_argument(
         "--wandb.project_name",
         type=str,
@@ -346,20 +361,20 @@ def add_validator_args(cls, parser):
         default="opentensor-dev",
     )
 
-
     parser.add_argument(
         "--neuron.query_unique_coldkeys",
         action="store_true",
         help="Only query a single hotkey per coldkey.",
         default=False,
-        )
+    )
 
     parser.add_argument(
         "--neuron.query_unique_ips",
         action="store_true",
         help="Only query a single hotkey per ip.",
         default=False,
-        )
+    )
+
 
 def config(cls):
     """
