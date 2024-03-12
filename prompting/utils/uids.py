@@ -80,7 +80,7 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
             candidate_uids.append(uid)
 
     # Check if candidate_uids contain enough for querying, if not grab all avaliable uids
-    if len(candidate_uids) < k and len(candidate_uids) > 0:
+    if 0 < len(candidate_uids) < k:
         return torch.tensor(candidate_uids)
     elif len(candidate_uids) >= k:
         return torch.tensor(random.sample(candidate_uids, k))
