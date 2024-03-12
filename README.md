@@ -28,7 +28,7 @@ As of March 25th, 2024, SN1 will **only support miners with streaming capabiliti
 
 ### 1. What is streaming? 
 Streaming is when the miner sends back chunks of data to the validator to enable getting partial responses before timeout. The benefits are two fold:
-1. getting rewards for unfinished, high qualirt responses, and
+1. getting rewards for unfinished, high quality responses, and
 2. enabling a stream-based UI for responsive frontends. 
 
 ### 2. How will this change my miner? 
