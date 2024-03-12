@@ -123,13 +123,12 @@ class MockMetagraph(bt.metagraph):
 
 class MockStreamMiner:
     """MockStreamMiner is an echo miner"""
-
+    MIN_DELAY_PERCENTAGE = 0.20  # 20%
+    MAX_DELAY_PERCENTAGE = 0.50  # 50%
+    
     def __init__(self, streaming_batch_size: int, timeout: float):
         self.streaming_batch_size = streaming_batch_size
         self.timeout = timeout
-
-        self.MIN_DELAY_PERCENTAGE = 0.20  # 20%
-        self.MAX_DELAY_PERCENTAGE = 0.50  # 50%
 
     def forward(self, synapse: StreamPromptingSynapse, start_time: float) -> Iterator:
         """Mock forward returns a token_streamer, which is a partial function
