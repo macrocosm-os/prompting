@@ -107,10 +107,10 @@ class MockSubtensor(bt.MockSubtensor):
 
 
 class MockMetagraph(bt.metagraph):
-    def __init__(self, subtensor, netuid=1, network="mock"):
-        self.DEFAULT_IP = "127.0.0.0"
-        self.DEFAULT_PORT = 8091
+    DEFAULT_IP = "127.0.0.0"
+    DEFAULT_PORT = 8091
 
+    def __init__(self, subtensor, netuid=1, network="mock"):
         super().__init__(netuid=netuid, network=network, sync=False)
 
         self.subtensor = subtensor
@@ -123,9 +123,10 @@ class MockMetagraph(bt.metagraph):
 
 class MockStreamMiner:
     """MockStreamMiner is an echo miner"""
+
     MIN_DELAY_PERCENTAGE = 0.20  # 20%
     MAX_DELAY_PERCENTAGE = 0.50  # 50%
-    
+
     def __init__(self, streaming_batch_size: int, timeout: float):
         self.streaming_batch_size = streaming_batch_size
         self.timeout = timeout
