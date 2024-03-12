@@ -107,9 +107,10 @@ class MockSubtensor(bt.MockSubtensor):
 
 
 class MockMetagraph(bt.metagraph):
+    DEFAULT_IP = "127.0.0.0"
+    DEFAULT_PORT = 8091
+    
     def __init__(self, subtensor, netuid=1, network="mock"):
-        self.DEFAULT_IP = "127.0.0.0"
-        self.DEFAULT_PORT = 8091
 
         super().__init__(netuid=netuid, network=network, sync=False)
 
