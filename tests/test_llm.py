@@ -120,7 +120,7 @@ def test_calulate_gpu_requirements_raises_cuda_error(
 
 
 # Test 1: Success on first attempt
-@patch("prompting.llms.utils.calculate_gpu_requirements")
+@patch("prompting.llms.vllm_llm.calculate_gpu_requirements")
 @patch("prompting.llms.vllm_llm.LLM")
 def test_load_vllm_pipeline_success_first_try(
     mock_llm, mock_calculate_gpu_requirements
@@ -137,7 +137,7 @@ def test_load_vllm_pipeline_success_first_try(
 
 # # Test 2: Success on second attempt with larger memory allocation
 @patch("prompting.llms.vllm_llm.clean_gpu_cache")
-@patch("prompting.llms.utils.calculate_gpu_requirements")
+@patch("prompting.llms.vllm_llm.calculate_gpu_requirements")
 @patch(
     "prompting.llms.vllm_llm.LLM",
     side_effect=[ValueError("First attempt failed"), MagicMock(spec=LLM)],
@@ -155,7 +155,7 @@ def test_load_vllm_pipeline_success_second_try(
 
 # # Test 3: Exception on second attempt
 @patch("prompting.llms.vllm_llm.clean_gpu_cache")
-@patch("prompting.llms.utils.calculate_gpu_requirements")
+@patch("prompting.llms.vllm_llm.calculate_gpu_requirements")
 @patch(
     "prompting.llms.vllm_llm.LLM",
     side_effect=[
