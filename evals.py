@@ -145,25 +145,34 @@ def load_data(path):
 
 
 @lru_cache(maxsize=16000)
-def gpt_inference(message, system_prompt, engine, n=1, temperature=0.7, seed=1234, max_tokens=128):
+def gpt_inference(message):
     """Inference gpt
     TODO: allow args to be set
     """
     if args.mock:
-        return random.choices(range(1,5), k=n)
+        return random.choices(range(1,5), k=args.num_evals)
 
     messages = [
-        {"role": "system", "content": system_prompt},
+        {"role": "system", "content": args.system_prompt},
         {"role": "user", "content": message}
         ]
+    
+    if args.model_id == 'human':
+        # TODO: Show/hide system prompt
+        result = None
+        prompt = '\n\n'.join(["# {role} Prompt\n{content}".format(**message) for message in messages])+'\nYOUR ANSWER = '
+        while not result:
+            result = input(prompt)
+        return [result]
+
     try:
         client_response = client.chat.completions.create(
                 messages=messages,
-                model=engine,
-                seed=seed,
-                n=n,
-                temperature=temperature,
-                max_tokens=max_tokens,
+                model=args.model_id,
+                seed=args.seed,
+                n=args.num_evals,
+                temperature=args.temperature,
+                max_tokens=args.max_tokens,
             )
 
         return [text.message.content.strip() for text in client_response.choices]
@@ -205,10 +214,7 @@ def main(df, name):
 
             user_prompt = template.format(**fields)
 
-            eval_results = gpt_inference(message = user_prompt, system_prompt = args.system_prompt, engine=args.model_id,
-                                         temperature = args.temperature, n = args.num_evals,
-                                         max_tokens = args.max_tokens, seed = args.seed
-                                         )
+            eval_results = gpt_inference(message = user_prompt)
 
             for k, eval_result in enumerate(eval_results):
 
