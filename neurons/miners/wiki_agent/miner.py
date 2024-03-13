@@ -18,8 +18,10 @@
 import time
 import bittensor as bt
 import argparse
+
 # Bittensor Miner Template:
 from prompting.protocol import PromptingSynapse
+
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import Miner
 from dotenv import load_dotenv, find_dotenv
@@ -32,6 +34,7 @@ class WikipediaAgentMiner(Miner):
 
     You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
     """
+
     @classmethod
     def add_args(cls, parser: argparse.ArgumentParser):
         """
@@ -42,19 +45,24 @@ class WikipediaAgentMiner(Miner):
     def __init__(self, config=None):
         super().__init__(config=config)
 
-        bt.logging.info(f"🤖📖 Initializing wikipedia agent with model {self.config.neuron.model_id}...")
+        bt.logging.info(
+            f"🤖📖 Initializing wikipedia agent with model {self.config.neuron.model_id}..."
+        )
 
         if self.config.wandb.on:
-            self.identity_tags = ("wikipedia_agent_miner", ) + (self.config.neuron.model_id, )
+            self.identity_tags = ("wikipedia_agent_miner",) + (
+                self.config.neuron.model_id,
+            )
 
         _ = load_dotenv(find_dotenv())
 
-        self.agent = WikiAgent(self.config.neuron.model_id, self.config.neuron.temperature)
+        self.agent = WikiAgent(
+            self.config.neuron.model_id, self.config.neuron.temperature
+        )
         self.accumulated_total_tokens = 0
         self.accumulated_prompt_tokens = 0
         self.accumulated_completion_tokens = 0
         self.accumulated_total_cost = 0
-
 
     def get_cost_logging(self, cb):
         bt.logging.info(f"Total Tokens: {cb.total_tokens}")
@@ -67,21 +75,18 @@ class WikipediaAgentMiner(Miner):
         self.accumulated_completion_tokens += cb.completion_tokens
         self.accumulated_total_cost += cb.total_cost
 
-        return  {
-            'total_tokens': cb.total_tokens,
-            'prompt_tokens': cb.prompt_tokens,
-            'completion_tokens': cb.completion_tokens,
-            'total_cost': cb.total_cost,
-            'accumulated_total_tokens': self.accumulated_total_tokens,
-            'accumulated_prompt_tokens': self.accumulated_prompt_tokens,
-            'accumulated_completion_tokens': self.accumulated_completion_tokens,
-            'accumulated_total_cost': self.accumulated_total_cost,
+        return {
+            "total_tokens": cb.total_tokens,
+            "prompt_tokens": cb.prompt_tokens,
+            "completion_tokens": cb.completion_tokens,
+            "total_cost": cb.total_cost,
+            "accumulated_total_tokens": self.accumulated_total_tokens,
+            "accumulated_prompt_tokens": self.accumulated_prompt_tokens,
+            "accumulated_completion_tokens": self.accumulated_completion_tokens,
+            "accumulated_total_cost": self.accumulated_total_cost,
         }
 
-
-    async def forward(
-        self, synapse: PromptingSynapse
-    ) -> PromptingSynapse:
+    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
         """
         Processes the incoming synapse by performing a predefined operation on the input data.
         This method should be replaced with actual logic relevant to the miner's purpose.
@@ -114,8 +119,8 @@ class WikipediaAgentMiner(Miner):
                         timing=synapse_latency,
                         prompt=message,
                         completion=response,
-                        system_prompt='',
-                        extra_info=self.get_cost_logging(cb)
+                        system_prompt="",
+                        extra_info=self.get_cost_logging(cb),
                     )
 
             bt.logging.debug(f"✅ Served Response: {response}")

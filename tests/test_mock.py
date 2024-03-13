@@ -7,9 +7,10 @@ from prompting.protocol import PromptingSynapse
 wallet = bt.MockWallet()
 wallet.create(coldkey_use_password=False)
 
-@pytest.mark.parametrize('netuid', [1, 2, 3])
-@pytest.mark.parametrize('n', [2, 4, 8, 16, 32, 64])
-@pytest.mark.parametrize('wallet', [wallet, None])
+
+@pytest.mark.parametrize("netuid", [1, 2, 3])
+@pytest.mark.parametrize("n", [2, 4, 8, 16, 32, 64])
+@pytest.mark.parametrize("wallet", [wallet, None])
 def test_mock_subtensor(netuid, n, wallet):
 
     subtensor = MockSubtensor(netuid=netuid, n=n, wallet=wallet)
@@ -17,19 +18,22 @@ def test_mock_subtensor(netuid, n, wallet):
     # Check netuid
     assert subtensor.subnet_exists(netuid)
     # Check network
-    assert subtensor.network == 'mock'
-    assert subtensor.chain_endpoint == 'mock_endpoint'
+    assert subtensor.network == "mock"
+    assert subtensor.chain_endpoint == "mock_endpoint"
     # Check number of neurons
     assert len(neurons) == (n + 1 if wallet is not None else n)
     # Check wallet
     if wallet is not None:
-        assert subtensor.is_hotkey_registered(netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address)
+        assert subtensor.is_hotkey_registered(
+            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
+        )
 
     for neuron in neurons:
         assert type(neuron) == bt.NeuronInfo
         assert subtensor.is_hotkey_registered(netuid=netuid, hotkey_ss58=neuron.hotkey)
 
-@pytest.mark.parametrize('n', [16, 32, 64])
+
+@pytest.mark.parametrize("n", [16, 32, 64])
 def test_mock_metagraph(n):
     mock_subtensor = MockSubtensor(netuid=1, n=n)
     mock_metagraph = MockMetagraph(subtensor=mock_subtensor)
@@ -42,16 +46,19 @@ def test_mock_metagraph(n):
         assert axon.ip == mock_metagraph.default_ip
         assert axon.port == mock_metagraph.default_port
 
+
 def test_mock_reward_pipeline():
     pass
+
 
 def test_mock_neuron():
     pass
 
-@pytest.mark.parametrize('timeout', [0.1, 0.2])
-@pytest.mark.parametrize('min_time', [0, 0.05, 0.1])
-@pytest.mark.parametrize('max_time', [0.1, 0.15, 0.2])
-@pytest.mark.parametrize('n', [4, 16, 64])
+
+@pytest.mark.parametrize("timeout", [0.1, 0.2])
+@pytest.mark.parametrize("min_time", [0, 0.05, 0.1])
+@pytest.mark.parametrize("max_time", [0.1, 0.15, 0.2])
+@pytest.mark.parametrize("n", [4, 16, 64])
 def test_mock_dendrite_timings(timeout, min_time, max_time, n):
     mock_wallet = bt.MockWallet(config=None)
     mock_dendrite = MockDendrite(mock_wallet)
@@ -64,17 +71,21 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
     async def run():
         return await mock_dendrite(
             axons,
-            synapse = PromptingSynapse(roles=["user"], messages=["What is the capital of France?"]),
-            timeout = timeout
+            synapse=PromptingSynapse(
+                roles=["user"], messages=["What is the capital of France?"]
+            ),
+            timeout=timeout,
         )
 
     responses = asyncio.run(run())
     for synapse in responses:
-        assert hasattr(synapse, 'dendrite') and type(synapse.dendrite) == bt.TerminalInfo
+        assert (
+            hasattr(synapse, "dendrite") and type(synapse.dendrite) == bt.TerminalInfo
+        )
 
         dendrite = synapse.dendrite
         # check synapse.dendrite has (process_time, status_code, status_message)
-        for field in ('process_time', 'status_code', 'status_message'):
+        for field in ("process_time", "status_code", "status_message"):
             assert hasattr(dendrite, field) and getattr(dendrite, field) is not None
 
         # check that the dendrite take between min_time and max_time
@@ -83,12 +94,12 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
         # check that responses which take longer than timeout have 408 status code
         if dendrite.process_time >= timeout + 0.1:
             assert dendrite.status_code == 408
-            assert dendrite.status_message == 'Timeout'
-            assert synapse.completion == ''
+            assert dendrite.status_message == "Timeout"
+            assert synapse.completion == ""
         # check that responses which take less than timeout have 200 status code
         elif dendrite.process_time < timeout:
             assert dendrite.status_code == 200
-            assert dendrite.status_message == 'OK'
+            assert dendrite.status_message == "OK"
             # check that completions are not empty for successful responses
             assert type(synapse.completion) == str and len(synapse.completion) > 0
         # dont check for responses which take between timeout and max_time because they are not guaranteed to have a status code of 200 or 408

@@ -1,4 +1,3 @@
-
 class MaxRetryError(Exception):
     """Exception raised when the maximum number of retries is exceeded."""
 

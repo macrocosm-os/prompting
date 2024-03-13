@@ -31,41 +31,474 @@ from datasets import load_dataset
 
 LANGUAGES = {
     "C++": {
-        'keywords': ['auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extern', 'float', 'for', 'goto', 'if', 'int', 'long', 'register', 'return', 'short', 'signed', 'sizeof', 'static', 'struct', 'switch', 'typedef', 'union', 'unsigned', 'void', 'volatile', 'while'],
-        'libraries': ['iostream', 'fstream', 'string', 'vector', 'map', 'set', 'algorithm', 'cmath', 'cstdio', 'cstdlib', 'ctime', 'cstring', 'cassert', 'cctype', 'cerrno', 'cfloat', 'ciso646', 'climits', 'clocale', 'cmath', 'csetjmp', 'csignal', 'cstdarg', 'cstddef', 'cstdio', 'cstdlib', 'cstring', 'ctime', 'cwchar', 'cwctype', 'complex', 'deque', 'exception', 'fstream', 'functional', 'iomanip', 'ios', 'iosfwd', 'iostream', 'istream', 'iterator', 'limits', 'list', 'locale', 'map', 'memory', 'new', 'numeric', 'ostream', 'queue', 'set', 'sstream', 'stack', 'stdexcept', 'streambuf', 'string', 'typeinfo', 'utility', 'valarray', 'vector'],
-        'comments': ['//', '/*', '*/'],
+        "keywords": [
+            "auto",
+            "break",
+            "case",
+            "char",
+            "const",
+            "continue",
+            "default",
+            "do",
+            "double",
+            "else",
+            "enum",
+            "extern",
+            "float",
+            "for",
+            "goto",
+            "if",
+            "int",
+            "long",
+            "register",
+            "return",
+            "short",
+            "signed",
+            "sizeof",
+            "static",
+            "struct",
+            "switch",
+            "typedef",
+            "union",
+            "unsigned",
+            "void",
+            "volatile",
+            "while",
+        ],
+        "libraries": [
+            "iostream",
+            "fstream",
+            "string",
+            "vector",
+            "map",
+            "set",
+            "algorithm",
+            "cmath",
+            "cstdio",
+            "cstdlib",
+            "ctime",
+            "cstring",
+            "cassert",
+            "cctype",
+            "cerrno",
+            "cfloat",
+            "ciso646",
+            "climits",
+            "clocale",
+            "cmath",
+            "csetjmp",
+            "csignal",
+            "cstdarg",
+            "cstddef",
+            "cstdio",
+            "cstdlib",
+            "cstring",
+            "ctime",
+            "cwchar",
+            "cwctype",
+            "complex",
+            "deque",
+            "exception",
+            "fstream",
+            "functional",
+            "iomanip",
+            "ios",
+            "iosfwd",
+            "iostream",
+            "istream",
+            "iterator",
+            "limits",
+            "list",
+            "locale",
+            "map",
+            "memory",
+            "new",
+            "numeric",
+            "ostream",
+            "queue",
+            "set",
+            "sstream",
+            "stack",
+            "stdexcept",
+            "streambuf",
+            "string",
+            "typeinfo",
+            "utility",
+            "valarray",
+            "vector",
+        ],
+        "comments": ["//", "/*", "*/"],
     },
     "Dockerfile": {
-        'keywords': ['from', 'maintainer', 'run', 'cmd', 'expose', 'env', 'add', 'copy', 'entrypoint', 'volume', 'user', 'workdir', 'onbuild'],
-        'libraries': [],
-        'comments': ['#']
+        "keywords": [
+            "from",
+            "maintainer",
+            "run",
+            "cmd",
+            "expose",
+            "env",
+            "add",
+            "copy",
+            "entrypoint",
+            "volume",
+            "user",
+            "workdir",
+            "onbuild",
+        ],
+        "libraries": [],
+        "comments": ["#"],
     },
     "HTML": {
-        'keywords': ['div', 'span', 'input', 'ul', 'body', 'tag', 'html', 'head', 'title', 'meta', 'link', 'script', 'style', 'a', 'img', 'table', 'label'],
-        'libraries': [],
-        'comments': ['<!--', '-->']
+        "keywords": [
+            "div",
+            "span",
+            "input",
+            "ul",
+            "body",
+            "tag",
+            "html",
+            "head",
+            "title",
+            "meta",
+            "link",
+            "script",
+            "style",
+            "a",
+            "img",
+            "table",
+            "label",
+        ],
+        "libraries": [],
+        "comments": ["<!--", "-->"],
     },
     "Java": {
-        'keywords': ['abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extends', 'final', 'finally', 'float', 'for', 'if', 'implements', 'import', 'instanceof', 'int', 'interface', 'long', 'native', 'new', 'package', 'private', 'protected', 'public', 'return', 'short', 'static', 'strictfp', 'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient', 'try', 'void', 'volatile', 'while'],
-        'libraries': ['java.awt', 'java.awt.event', 'java.io', 'java.lang', 'java.math', 'java.net', 'java.text', 'java.util', 'javax.swing'],
-        'comments': ['//', '/*', '*/', '*'],
+        "keywords": [
+            "abstract",
+            "assert",
+            "boolean",
+            "break",
+            "byte",
+            "case",
+            "catch",
+            "char",
+            "class",
+            "continue",
+            "default",
+            "do",
+            "double",
+            "else",
+            "enum",
+            "extends",
+            "final",
+            "finally",
+            "float",
+            "for",
+            "if",
+            "implements",
+            "import",
+            "instanceof",
+            "int",
+            "interface",
+            "long",
+            "native",
+            "new",
+            "package",
+            "private",
+            "protected",
+            "public",
+            "return",
+            "short",
+            "static",
+            "strictfp",
+            "super",
+            "switch",
+            "synchronized",
+            "this",
+            "throw",
+            "throws",
+            "transient",
+            "try",
+            "void",
+            "volatile",
+            "while",
+        ],
+        "libraries": [
+            "java.awt",
+            "java.awt.event",
+            "java.io",
+            "java.lang",
+            "java.math",
+            "java.net",
+            "java.text",
+            "java.util",
+            "javax.swing",
+        ],
+        "comments": ["//", "/*", "*/", "*"],
     },
     "JavaScript": {
-        'keywords': ['abstract', 'arguments', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue', 'debugger', 'default', 'delete', 'do', 'double', 'else', 'enum', 'eval', 'export', 'extends', 'false', 'final', 'finally', 'float', 'for', 'function', 'goto', 'if', 'implements', 'import', 'in', 'instanceof', 'int', 'interface', 'let', 'long', 'native', 'module.exports' 'new', 'null', 'package', 'private', 'protected', 'public', 'return', 'short', 'static', 'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient', 'true', 'try', 'typeof', 'var', 'void', 'volatile', 'while', 'with', 'yield'],
-        'libraries': ['react', 'express','mongoose', 'axios', 'redux', 'react-redux', 'react-router-dom', 'react-dom', 'react-scripts', 'material-ui'],
-        'comments': ['//', '/*', '*/']
+        "keywords": [
+            "abstract",
+            "arguments",
+            "boolean",
+            "break",
+            "byte",
+            "case",
+            "catch",
+            "char",
+            "class",
+            "const",
+            "continue",
+            "debugger",
+            "default",
+            "delete",
+            "do",
+            "double",
+            "else",
+            "enum",
+            "eval",
+            "export",
+            "extends",
+            "false",
+            "final",
+            "finally",
+            "float",
+            "for",
+            "function",
+            "goto",
+            "if",
+            "implements",
+            "import",
+            "in",
+            "instanceof",
+            "int",
+            "interface",
+            "let",
+            "long",
+            "native",
+            "module.exports" "new",
+            "null",
+            "package",
+            "private",
+            "protected",
+            "public",
+            "return",
+            "short",
+            "static",
+            "super",
+            "switch",
+            "synchronized",
+            "this",
+            "throw",
+            "throws",
+            "transient",
+            "true",
+            "try",
+            "typeof",
+            "var",
+            "void",
+            "volatile",
+            "while",
+            "with",
+            "yield",
+        ],
+        "libraries": [
+            "react",
+            "express",
+            "mongoose",
+            "axios",
+            "redux",
+            "react-redux",
+            "react-router-dom",
+            "react-dom",
+            "react-scripts",
+            "material-ui",
+        ],
+        "comments": ["//", "/*", "*/"],
     },
-    "Python": {'keywords': ['False', 'None', 'True', 'and', 'as', 'assert', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield'],
-               'libraries': ['numpy', 'pandas', 'matplotlib', 'seaborn', 'scipy', 'sklearn', 'tensorflow', 'keras', 'pytorch', 'django', 'flask', 'requests', 'bs4', 'selenium', 'pyautogui', 'pyperclip', 'pyinputplus', 'pillow'],
-               'comments': ['#']
+    "Python": {
+        "keywords": [
+            "False",
+            "None",
+            "True",
+            "and",
+            "as",
+            "assert",
+            "break",
+            "class",
+            "continue",
+            "def",
+            "del",
+            "elif",
+            "else",
+            "except",
+            "finally",
+            "for",
+            "from",
+            "global",
+            "if",
+            "import",
+            "in",
+            "is",
+            "lambda",
+            "nonlocal",
+            "not",
+            "or",
+            "pass",
+            "raise",
+            "return",
+            "try",
+            "while",
+            "with",
+            "yield",
+        ],
+        "libraries": [
+            "numpy",
+            "pandas",
+            "matplotlib",
+            "seaborn",
+            "scipy",
+            "sklearn",
+            "tensorflow",
+            "keras",
+            "pytorch",
+            "django",
+            "flask",
+            "requests",
+            "bs4",
+            "selenium",
+            "pyautogui",
+            "pyperclip",
+            "pyinputplus",
+            "pillow",
+        ],
+        "comments": ["#"],
     },
-    "SQL": {'keywords': ['add', 'all', 'alter', 'and', 'any', 'as', 'asc', 'backup', 'between', 'case', 'check', 'column', 'constraint', 'create', 'database', 'default', 'delete', 'desc', 'distinct', 'drop', 'exec', 'exists', 'foreign', 'from', 'full', 'group', 'having', 'in', 'index', 'inner', 'insert', 'into', 'is', 'join', 'key', 'left', 'like', 'limit', 'not', 'null', 'on', 'or', 'order', 'outer', 'primary', 'procedure', 'right', 'rownum', 'select', 'set', 'table', 'top', 'truncate', 'union', 'unique', 'update', 'values', 'view', 'where'],
-            'comments': ['--', '/*', '*/']
+    "SQL": {
+        "keywords": [
+            "add",
+            "all",
+            "alter",
+            "and",
+            "any",
+            "as",
+            "asc",
+            "backup",
+            "between",
+            "case",
+            "check",
+            "column",
+            "constraint",
+            "create",
+            "database",
+            "default",
+            "delete",
+            "desc",
+            "distinct",
+            "drop",
+            "exec",
+            "exists",
+            "foreign",
+            "from",
+            "full",
+            "group",
+            "having",
+            "in",
+            "index",
+            "inner",
+            "insert",
+            "into",
+            "is",
+            "join",
+            "key",
+            "left",
+            "like",
+            "limit",
+            "not",
+            "null",
+            "on",
+            "or",
+            "order",
+            "outer",
+            "primary",
+            "procedure",
+            "right",
+            "rownum",
+            "select",
+            "set",
+            "table",
+            "top",
+            "truncate",
+            "union",
+            "unique",
+            "update",
+            "values",
+            "view",
+            "where",
+        ],
+        "comments": ["--", "/*", "*/"],
     },
-    "Shell": {'keywords': ['alias', 'bg', 'bind', 'break', 'builtin', 'caller', 'cd', 'command', 'compgen', 'complete', 'continue', 'declare', 'dirs', 'disown', 'echo', 'enable', 'eval', 'exec', 'exit', 'export', 'false', 'fc', 'fg', 'getopts', 'hash', 'help', 'history', 'jobs', 'kill', 'let', 'local', 'logout', 'popd', 'printf', 'pushd', 'pwd', 'read', 'readonly', 'return', 'set', 'shift', 'shopt', 'source', 'suspend', 'test', 'times', 'trap', 'true', 'type', 'typeset', 'ulimit', 'umask', 'unalias', 'unset', 'wait'],
-              'comments': ['#']
+    "Shell": {
+        "keywords": [
+            "alias",
+            "bg",
+            "bind",
+            "break",
+            "builtin",
+            "caller",
+            "cd",
+            "command",
+            "compgen",
+            "complete",
+            "continue",
+            "declare",
+            "dirs",
+            "disown",
+            "echo",
+            "enable",
+            "eval",
+            "exec",
+            "exit",
+            "export",
+            "false",
+            "fc",
+            "fg",
+            "getopts",
+            "hash",
+            "help",
+            "history",
+            "jobs",
+            "kill",
+            "let",
+            "local",
+            "logout",
+            "popd",
+            "printf",
+            "pushd",
+            "pwd",
+            "read",
+            "readonly",
+            "return",
+            "set",
+            "shift",
+            "shopt",
+            "source",
+            "suspend",
+            "test",
+            "times",
+            "trap",
+            "true",
+            "type",
+            "typeset",
+            "ulimit",
+            "umask",
+            "unalias",
+            "unset",
+            "wait",
+        ],
+        "comments": ["#"],
     },
 }
+
 
 def filter_comments(code, language):
     # TODO: multiline comments
@@ -77,15 +510,18 @@ def filter_comments(code, language):
     lines = []
     for line in code.splitlines():
         # TODO: use regex
-        if any(line.strip().startswith(symbol) for symbol in LANGUAGES[language]['comments']):
+        if any(
+            line.strip().startswith(symbol)
+            for symbol in LANGUAGES[language]["comments"]
+        ):
             continue
 
         lines.append(line.lower())
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
-#TODO: why not define the chain_in, chain_out logic in the class itself?
+# TODO: why not define the chain_in, chain_out logic in the class itself?
 class HFCodingDataset(Dataset):
 
     def __init__(
@@ -120,41 +556,52 @@ class HFCodingDataset(Dataset):
         if not (min_lines <= len(info["code"].splitlines()) <= max_lines):
             return None
 
-        present_keywords, present_libraries = self.get_special_contents(info["code"], info["language"])
+        present_keywords, present_libraries = self.get_special_contents(
+            info["code"], info["language"]
+        )
         keywords = list(present_keywords) + list(present_libraries)
-        code_words = ['code','programming','coding','code reference','programming technique']
+        code_words = [
+            "code",
+            "programming",
+            "coding",
+            "code reference",
+            "programming technique",
+        ]
         external_links = []
         for bigram in itertools.combinations(keywords, 2):
-            words = list(bigram) + [selector(code_words) + info['language']]
+            words = list(bigram) + [selector(code_words) + info["language"]]
             # shuffle the words e.g. ['react', 'promise', 'code reference'] -> 'code reference promise react'
-            external_links.append(' '.join(random.sample(words, len(words))))
+            external_links.append(" ".join(random.sample(words, len(words))))
 
         return {
-            "title": info['repo_name'], # name of the repo
-            "topic": info["language"], # language of the code
-            'subtopic': info['path'],
-            'content': info["code"],
-            'internal_links': [info['repo_name'], info['path'], info['language']],
-            'external_links': external_links,
-            'source': 'GitHub',
-            'tags': [info['language'], info['repo_name'], info['path']],
-            'extra': {'size': info['size'], 'license': info['license']}
+            "title": info["repo_name"],  # name of the repo
+            "topic": info["language"],  # language of the code
+            "subtopic": info["path"],
+            "content": info["code"],
+            "internal_links": [info["repo_name"], info["path"], info["language"]],
+            "external_links": external_links,
+            "source": "GitHub",
+            "tags": [info["language"], info["repo_name"], info["path"]],
+            "extra": {"size": info["size"], "license": info["license"]},
         }
 
-    def search(self, query, min_lines=5, max_lines=100, selector: Selector = None, **kwargs):
+    def search(
+        self, query, min_lines=5, max_lines=100, selector: Selector = None, **kwargs
+    ):
         # TODO: Would be great to be able to get other files from the same repo
-        raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
+        raise NotImplementedError(
+            f"Search is not implemented for {self.__class__.__name__}"
+        )
 
     def random(self, min_lines=5, max_lines=100, selector: Selector = None, **kwargs):
         return self.get(min_lines, max_lines, selector)
-
 
     def extract_keywords(self, code, language, field):
         matches = set()
 
         # check which keywords and libraries are present in the code
-        for keyword in LANGUAGES[language].get(field,[]):
-            if re.search(r'\b' + keyword + r'\b', code):
+        for keyword in LANGUAGES[language].get(field, []):
+            if re.search(r"\b" + keyword + r"\b", code):
                 matches.add(keyword)
 
         return matches
@@ -164,11 +611,10 @@ class HFCodingDataset(Dataset):
         if remove_comments:
             code = filter_comments(code, language)
 
-        present_libraries = self.extract_keywords(code, language, 'libraries')
-        present_keywords = self.extract_keywords(code, language, 'keywords')
+        present_libraries = self.extract_keywords(code, language, "libraries")
+        present_keywords = self.extract_keywords(code, language, "keywords")
 
         return present_keywords, present_libraries
-
 
 
 class StackOverflowDataset:
@@ -239,4 +685,3 @@ class StackOverflowDataset:
         info = self.get_stack_question()
         info["fetch_time"] = time.time() - t0
         return info
-

@@ -49,5 +49,7 @@ class CleanerPipeline:
             return generation
 
         except Exception as E:
-            bt.logging.error(f"Failed to apply cleaning pipeline {cleaner['name']}. {E},")
+            bt.logging.error(
+                f"Failed to apply cleaning pipeline {cleaner['name']}. {E},"
+            )
             return generation

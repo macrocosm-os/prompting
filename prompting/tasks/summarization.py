@@ -35,9 +35,7 @@ class SummarizationTask(Task):
         dict(name="rouge", ngram="rouge-l", metric="f", weight=0.5),
         dict(name="relevance", weight=0.5),
     ]
-    penalty_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5)
-    ]
+    penalty_definition = [dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5)]
 
     # This is where you define cleaning procedures for the generation.
     # Can be used when wanting to clean the challenge.
@@ -54,11 +52,11 @@ class SummarizationTask(Task):
         self.context = context
 
         # Query is just the article title and section name
-        self.query = context.title + ', ' + context.topic
+        self.query = context.title + ", " + context.topic
 
         self.reference_system_prompt = SUMMARIZATION_SYSTEM_PROMPT
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
-            context = context.content
+            context=context.content
         )
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
@@ -66,4 +64,3 @@ class SummarizationTask(Task):
         self.topic = context.title
         self.subtopic = context.topic
         self.tags = context.tags
-

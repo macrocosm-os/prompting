@@ -1,5 +1,6 @@
 import random
 
+
 class Selector:
     def __init__(self, seed=None):
         self.seed = seed
@@ -11,6 +12,7 @@ class Selector:
 
 class PageRankSelector(Selector):
     """Preferentially chooses the items at the top of the list, under the assumption that they are more important."""
+
     def __init__(self, seed=None, alpha=0.85):
         super().__init__(seed)
         self.alpha = alpha
@@ -22,6 +24,7 @@ class PageRankSelector(Selector):
 
 class SimilaritySelector(Selector):
     """Chooses the item most similar to the query."""
+
     def __init__(self, seed=None, similarity_fn=None):
         super().__init__(seed)
         self.similarity_fn = similarity_fn
@@ -32,6 +35,7 @@ class SimilaritySelector(Selector):
 
 class TopSelector(Selector):
     """Chooses the top item."""
+
     def __init__(self, seed=None):
         super().__init__(seed)
 
