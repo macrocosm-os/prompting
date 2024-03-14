@@ -41,12 +41,7 @@ def test_task_field_is_not_null(task: Task, field: str):
 
 @pytest.mark.parametrize("task", TASKS)
 def test_task_complete_is_false_on_init(task: Task):
-<<<<<<< HEAD
-
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
-=======
-    task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
->>>>>>> origin/pre-staging
     assert task.complete == False
 
 
@@ -58,37 +53,23 @@ def test_task_contains_no_reference_if_not_static(task: Task):
 
 @pytest.mark.parametrize("task", TASKS)
 def test_task_contains_query_time(task: Task):
-<<<<<<< HEAD
 
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
     assert task.static_reference or task.reference_time>=0
-=======
-    task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
-    assert task.static_reference or task.reference_time >= 0
->>>>>>> origin/pre-staging
 
 
 @pytest.mark.parametrize("task", TASKS)
 def test_task_contains_reference_time(task: Task):
-<<<<<<< HEAD
 
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
     assert task.static_query or task.query_time>=0
-=======
-    task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
-    assert task.static_query or task.query_time >= 0
->>>>>>> origin/pre-staging
 
 
 @pytest.mark.parametrize("task", TASKS)
 @pytest.mark.parametrize("full", (True, False))
 def test_task_state_dict(task: Task, full: bool):
-<<<<<<< HEAD
 
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
-=======
-    task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
->>>>>>> origin/pre-staging
     assert type(task.__state_dict__(full)) == dict
 
 
@@ -100,12 +81,8 @@ def test_task_state_dict(task: Task, full: bool):
 def test_task_contains_required_definition(
     task: Task, definition: str, expected_weight: float
 ):
-<<<<<<< HEAD
 
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
-=======
-    task = task(llm_pipeline=LLM_PIPELINE, context=CONTEXTS[task])
->>>>>>> origin/pre-staging
     model_infos = getattr(task, definition)
     total_weight = 0
     for model_info in model_infos:
