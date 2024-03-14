@@ -104,6 +104,9 @@ class RewardResult:
         rewards = torch.zeros_like(
             self.response_event.uids, dtype=torch.float32, device=self.device
         )
+        rewards = torch.zeros_like(
+            self.response_event.uids, dtype=torch.float32, device=self.device
+        )
 
         for event in self.reward_events:
             for reward_info in filter(

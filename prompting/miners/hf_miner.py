@@ -102,8 +102,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             streamer: CustomTextIteratorStreamer,
             send: Send,
         ):
-            """_summary_
-
+            """
             Args:
                 prompt (str): The received message (challenge) in the synapse. For logging.
                 thread (Thread): A background thread that is reponsible for running the model.
