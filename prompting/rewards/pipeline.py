@@ -36,7 +36,6 @@ class RewardPipeline:
         return f"RewardPipeline({self.reward_models})"
 
     def validate_tasks(self):
-
         for task in self.selected_tasks:
             if task not in TASKS:
                 raise ValueError(
@@ -47,13 +46,11 @@ class RewardPipeline:
             self._check_weights(task, "penalty_definition", expected_weight=None)
 
     def _check_weights(self, task, definition, expected_weight):
-
         total_weight = 0
 
         model_infos = getattr(TASKS[task], definition)
 
         for model_info in model_infos:
-
             if not isinstance(model_info, dict):
                 raise ValueError(
                     f"{definition} model {model_info} is not a dictionary."
@@ -89,7 +86,6 @@ class RewardPipeline:
         active_reward_models = []
 
         for task in self.selected_tasks:
-
             active_reward_models += TASKS[task].reward_definition
             active_reward_models += TASKS[task].penalty_definition
 

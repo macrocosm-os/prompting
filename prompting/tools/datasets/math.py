@@ -33,7 +33,6 @@ class MathDataset(Dataset):
     topics_list = mathgenerator.getGenList()
 
     def __init__(self, seed=None):
-
         self.seed = seed
         self.rng = random.Random(seed)
 

@@ -240,7 +240,6 @@ class WikiDataset(Dataset):
 
 
 class WikiDateDataset(Dataset):
-
     INCLUDE_HEADERS = ("Events", "Births", "Deaths")
     MONTHS = (
         "January",
@@ -279,14 +278,7 @@ class WikiDateDataset(Dataset):
         # Step 2: Format the date for Wikipedia URL
         return random_date.strftime("%B %-d")  # E.g., "January 1"
 
-    def get(
-        self,
-        name,
-        pageid=None,
-        auto_suggest=False,
-        redirect=False,
-        selector: Selector = None,
-    ) -> Dict:
+    def get(self, name, pageid=None, auto_suggest=False, redirect=False, selector: Selector = None) -> Dict:
 
         # Check that name is correctly formatted e.g., "January 1"
         date = name.split(" ")

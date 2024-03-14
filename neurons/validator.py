@@ -38,6 +38,7 @@ class Validator(BaseValidatorNeuron):
             model_id=self.config.neuron.model_id,
             device=self.device,
             mock=self.config.mock,
+            return_streamer=False,
         )
 
         if sum(self.config.neuron.task_p) != 1:
@@ -66,7 +67,6 @@ class Validator(BaseValidatorNeuron):
         return await forward(self)
 
     def __enter__(self):
-
         if self.config.no_background_thread:
             bt.logging.warning("Running validator in main thread.")
             self.run()

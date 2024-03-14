@@ -43,7 +43,8 @@ def check_config(cls, config: "bt.Config"):
     if not os.path.exists(config.neuron.full_path):
         os.makedirs(config.neuron.full_path, exist_ok=True)
 
-    if not config.neuron.dont_save_events:
+    log_level_exists = "EVENTS" in logger._core.levels
+    if not config.neuron.dont_save_events and not log_level_exists:
         # Add custom event logger for the events.
         logger.level("EVENTS", no=38, icon="📝")
         logger.add(
@@ -151,10 +152,17 @@ def add_miner_args(cls, parser):
     )
 
     parser.add_argument(
-        "--neuron.load_quantized",
+        "--neuron.load_in_8bit",
         type=str,
         default=False,
-        help="Load quantized model.",
+        help="Load quantized model in 8 bits. Note that this parameter only applies to hugging face miners.",
+    )
+
+    parser.add_argument(
+        "--neuron.load_in_4bit",
+        type=str,
+        default=False,
+        help="Load quantized model in 4 bits. Note that this parameter only applies to hugging face miners.",
     )
 
     parser.add_argument(
@@ -175,7 +183,7 @@ def add_miner_args(cls, parser):
         "--neuron.system_prompt",
         type=str,
         help="The system prompt to use for the miner.",
-        default="You are a helpful AI assistant. You answer questions, summarize documents, and debug code. You are always straight to the point and honest.",
+        default="You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know.",
     )
 
     parser.add_argument(
@@ -214,6 +222,13 @@ def add_miner_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.should_force_model_loading",
+        type=bool,
+        default=False,
+        help="Force model loading independent of mock flag.",
+    )
+
+    parser.add_argument(
         "--wandb.on",
         type=bool,
         default=False,
@@ -232,6 +247,13 @@ def add_miner_args(cls, parser):
         type=str,
         default="alpha-miners",
         help="Wandb project to log to.",
+    )
+
+    parser.add_argument(
+        "--neuron.streaming_batch_size",
+        type=int,
+        default=12,
+        help="Batch size in tokens for streaming forward calls.",
     )
 
 

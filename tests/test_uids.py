@@ -5,13 +5,14 @@ from prompting.utils.uids import get_random_uids
 
 
 def make_mock_neuron(unique_coldkeys=False, unique_ips=False, vpermit_tao_limit=1000):
-
     axons = [
         SimpleNamespace(coldkey="a", ip="0.0.0.1", is_serving=True),
         SimpleNamespace(coldkey="a", ip="0.0.0.0", is_serving=True),
         SimpleNamespace(coldkey="b", ip="0.0.0.1", is_serving=True),
         SimpleNamespace(coldkey="b", ip="0.0.0.0", is_serving=True),
-        SimpleNamespace(coldkey="c", ip="0.0.0.2", is_serving=True),
+        SimpleNamespace(
+            coldkey="c", ip="0.0.0.2", is_serving=True
+        ),  # This is the validator coldkey
     ]
     metagraph = SimpleNamespace(
         axons=axons,
@@ -36,6 +37,7 @@ def make_mock_neuron(unique_coldkeys=False, unique_ips=False, vpermit_tao_limit=
 @pytest.mark.parametrize(
     "unique_coldkeys, unique_ips, k, expected_result",
     [
+        (False, False, 6, [0, 1, 2, 3]),
         (False, False, 4, [0, 1, 2, 3]),
         (True, False, 2, [0, 2]),
         (False, True, 2, [0, 1]),
@@ -43,9 +45,9 @@ def make_mock_neuron(unique_coldkeys=False, unique_ips=False, vpermit_tao_limit=
     ],
 )
 def test_get_random_uids(unique_coldkeys, unique_ips, k, expected_result):
-
     mock_neuron = make_mock_neuron(unique_coldkeys, unique_ips)
+    uids_returned = sorted(get_random_uids(mock_neuron, k).tolist())
 
     assert (
-        sorted(get_random_uids(mock_neuron, k).tolist()) == expected_result
-    ), "Incorrect uids returned."
+        uids_returned == expected_result
+    ), f"Incorrect uids returned., {uids_returned}"

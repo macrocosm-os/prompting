@@ -5,7 +5,6 @@ from typing import List
 
 class DendriteResponseEvent:
     def __init__(self, responses: List[bt.Synapse], uids: torch.LongTensor):
-
         self.uids = uids
         self.completions = [synapse.completion for synapse in responses]
         self.timings = [synapse.dendrite.process_time or 0 for synapse in responses]

@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 @dataclass
 class Context:
-
     # TODO: Pydantic model
     title: str
     topic: str

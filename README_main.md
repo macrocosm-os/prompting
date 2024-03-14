@@ -17,6 +17,17 @@
 
 This repository is the **official codebase for Bittensor Subnet 1 (SN1) v1.0.0+, which was released on 22nd January 2024**. To learn more about the Bittensor project and the underlying mechanics, [read here.](https://docs.bittensor.com/).
 
+# SN1 Pre-Staging Streaming Experiments
+- General streaming information (what is it)
+- How can you get test tao 
+- There are an N number of validators. 
+- 
+- hardware doesn't change
+- different machines needed? 
+- How do I know it's working? 
+- how this impacts installation instructions 
+- This is a testing expreiment will be alive until March 25 
+
 # Introduction
 
 This repo defines an incentive mechanism to create a distributed conversational AI. 
@@ -107,9 +118,6 @@ These validators are designed to run and update themselves automatically. To run
 This will run **two** PM2 processes: one for the validator which is called `s1_validator_main_process` by default (you can change this in `run.sh`), and one for the run.sh script (in step 4, we named it `s1_validator_autoupdate`). The script will check for updates every 30 minutes, if there is an update then it will pull it, install it, restart `s1_validator_main_process` and then restart itself.
 
 
-> Important: vLLM currently faces a [notable limitation](https://github.com/vllm-project/vllm/issues/3012) in designating a specific GPU for model execution via code. Consequently, to employ a particular CUDA device for your model's operations, it's necessary to manually adjust your environment variable `CUDA_VISIBLE_DEVICES`. For instance, setting `export CUDA_VISIBLE_DEVICES=1,2` will explicitly define the CUDA devices available for use.
-
-
 
 # Available Miners
 
@@ -158,56 +166,19 @@ python neurons/validator.py
 
 ```bash
 # To run the miner
-python <MINER_PATH>
-    --netuid 102
-    --subtensor.network test
+python neurons/miners/BASE_MINER/miner.py 
+    --netuid 1
+    --subtensor.network <finney/local/test>
     --wallet.name <your miner wallet> # Must be created using the bittensor-cli
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
 ```
-where `MINER_PATH` is either: 
-1. neurons/miners/huggingface/miner.py
-2. neurons/miners/openai/miner.py
+where `BASE_MINER` is [zephyr](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta), which is a fine-tuned Mistral-7B, however you can choose any of the supplied models found in `neurons/miners`. 
 
-### 3. Do I need to change my hardware?!? 
-No! The hardware requirements for running streaming are identical to before, so there is no need to provision new or more capable resources. 
+</div>
 
-### 4. Registration 
-Similar to registering a miner on mainnet, you need to register your miner for testnet 102. Here is a simple command to do so: 
-`btcli subnet register --netuid 102 --subtensor.network test --wallet.name <YOUR_WALLET_NAME> --wallet.hotkey <YOUR_HOTKEY_NAME>`
+---
 
-To register, you will need test tao! Please reach out to @mccrinbc or @ellesmier for test tao if needed. 
-
-### 5. Validators
-Folks who want to run validators are encouraged to do so. The SN1 development team are dedicating resources to run (at present) 2 validators on testnet 102 to ensure that miners will be busy getting queried. 
-
-### 6. How do I know that my miner is working? 
-The easiest way to make sure that your miner is working is to use the script in `scripts/client.py`. You can query your miner from a **separate** registered hotkey. This must be done because the same hotkey cannot ping itself. 
-
-```bash
-python scripts/client.py --uids YOUR_UIDS --wallet_name <YOUR_WALLET_NAME> --hotkey <YOUR_DIFFERENT_HOTKEY> --message "WHATEVER MESSAGE YOU WANT TO SEND"
-```
-
-An example is:
-```bash
-python scripts/client.py --wallet_name testnet --hotkey my_validator --message "Write me a 500 word essay about albert einstein" --uids 1 2
-```
-
-In order to query the networek, the hotkey you provide will need to have a vpermit. Until netuid 102 has more than 64 neurons registered, all neurons will have a vpermit by default. To check your neurons on netuid 102, run the following btcli command: 
-
-```bash
-btcli wallet overview --subtensor.network test --wallet.name <YOUR_WALLET_NAME> 
-```
-
-You can also wait to get queried by the validators, and pull the appropriate wandb data to checkout that your miners are being queried will all the data needed for analysis. Filtering by `netuid=102` is important here so that you see the active validators running on testnet, and previous test data. 
-
-[Click here to be taken to the wandb validator page filtered by netuid 102.](https://wandb.ai/opentensor-dev/alpha-validators?nw=nwusermccrinbcsl) 
-
-### 7. Installation
-You will need to reinstall the repo to ensure that you do not see any errors. Please run:
-```bash
-python -m pip install -e . --force-reinstall
-```
 
 
 # Real-time monitoring with wandb integration

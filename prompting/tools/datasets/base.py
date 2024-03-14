@@ -47,7 +47,6 @@ class Dataset(ABC):
         t0 = time.time()
 
         while True:
-
             # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
             info = {}
             if method == "random":

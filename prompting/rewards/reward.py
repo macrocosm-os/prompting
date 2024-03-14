@@ -65,7 +65,6 @@ class RewardResult:
         self.rewards = self.total_reward()
 
     def __state_dict__(self, full=False):
-
         state = {"rewards": self.rewards.tolist()}
         for event in self.reward_events + self.penalty_events:
             state.update(event.asdict())
@@ -83,7 +82,6 @@ class RewardResult:
         reward_events = []
 
         for reward_info in models:
-
             # Select the reward model from preloaded reward model pipeline
             reward_model = self.reward_pipeline.get(reward_info["name"])
             if not reward_model:
@@ -156,7 +154,6 @@ class BaseRewardModel(ABC):
         pass
 
     def apply(self, reference: str, response_event, reward_type) -> RewardEvent:
-
         t0 = time.time()
         batch_rewards_output = self.reward(reference, response_event.completions)
         batch_rewards_time = time.time() - t0

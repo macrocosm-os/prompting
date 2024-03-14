@@ -14,45 +14,42 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import time
-import bittensor as bt
-from prompting.miners import MockMiner
+import typing
+from functools import partial
+from starlette.types import Send
 
-<<<<<<< HEAD
 # Bittensor Miner Template:
-import prompting
-from prompting.protocol import PromptingSynapse
+from prompting.protocol import StreamPromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
-from neurons.miner import Miner
+from prompting.base.prompting_miner import BaseStreamPromptingMiner
 
 
-class MockMiner(Miner):
+class EchoMiner(BaseStreamPromptingMiner):
     """
-    This little fella responds with a static message.
+    This little fella just repeats the last message it received.
     """
 
     def __init__(self, config=None):
         super().__init__(config=config)
 
-    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
+    def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        async def _forward(message: str, send: Send):
+            await send(
+                {
+                    "type": "http.response.body",
+                    "body": message,
+                    "more_body": False,
+                }
+            )
 
-        synapse.completion = f"Hey you reached mock miner {self.config.wallet.hotkey!r}. Please leave a message after the tone.. Beep!"
-        self.step += 1
-        return synapse
+        token_streamer = partial(_forward, synapse.messages[-1])
+        return synapse.create_streaming_response(token_streamer)
 
-    async def blacklist(self, synapse: PromptingSynapse) -> typing.Tuple[bool, str]:
+    async def blacklist(
+        self, synapse: StreamPromptingSynapse
+    ) -> typing.Tuple[bool, str]:
         return False, "All good here"
 
-    async def priority(self, synapse: PromptingSynapse) -> float:
+    async def priority(self, synapse: StreamPromptingSynapse) -> float:
         return 1e6
-=======
->>>>>>> origin/pre-staging
-
-
-# This is the main function, which runs the miner.
-if __name__ == "__main__":
-    with MockMiner() as miner:
-        while True:
-            miner.log_status()
-            time.sleep(5)
