@@ -26,12 +26,11 @@ from typing import Awaitable
 
 # Bittensor Miner Template:
 from prompting.protocol import StreamPromptingSynapse
-from prompting.llm import load_pipeline
-from prompting.llm import HuggingFaceLLM
+from prompting.llms import HuggingFaceLLM, HuggingFacePipeline
 
 # import base miner class which takes care of most of the boilerplate
 from prompting.base.prompting_miner import BaseStreamPromptingMiner
-from prompting.llm import CustomTextIteratorStreamer
+from prompting.llms import CustomTextIteratorStreamer
 
 
 class HuggingFaceMiner(BaseStreamPromptingMiner):
@@ -81,12 +80,11 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             False if self.config.neuron.should_force_model_loading else self.config.mock
         )
 
-        self.llm_pipeline, self.streamer = load_pipeline(
+        self.llm_pipeline = HuggingFacePipeline(
             model_id=self.config.neuron.model_id,
             torch_dtype=torch.bfloat16,
             device=self.device,
             mock=mock,
-            return_streamer=True,
             model_kwargs=model_kwargs,
         )
 
@@ -212,7 +210,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             thread,
             init_time,
             timeout_threshold,
-            self.streamer,
+            self.llm_pipeline.streamer,
         )
 
         return synapse.create_streaming_response(token_streamer)
