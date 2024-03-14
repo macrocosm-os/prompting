@@ -20,6 +20,7 @@ import torch
 import argparse
 import bittensor as bt
 from functools import partial
+from asyncio import Semaphore as AsyncSemaphore
 from threading import Thread
 from starlette.types import Send
 from typing import Awaitable
@@ -92,6 +93,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
         self.model_id = self.config.neuron.model_id
         self.system_prompt = self.config.neuron.system_prompt
+        self._lock = AsyncSemaphore(1)  # Allow only one thread to enter the method at a time
 
     def forward(self, synapse: StreamPromptingSynapse) -> Awaitable:
         async def _forward(
@@ -101,7 +103,8 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             init_time: float,
             timeout_threshold: float,
             streamer: CustomTextIteratorStreamer,
-            send: Send,
+            semaphore: AsyncSemaphore,
+            send: Send,        
         ):
             """_summary_
 
@@ -119,17 +122,33 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             buffer = []
             temp_completion = ""  # for wandb logging
             timeout_reached = False
+            async with semaphore:
+                try:
+                    for token in streamer:
+                        buffer.append(token)
 
-            try:
-                for token in streamer:
-                    buffer.append(token)
+                        if time.time() - init_time > timeout_threshold:
+                            bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
+                            timeout_reached = True
+                            break
 
-                    if time.time() - init_time > timeout_threshold:
-                        bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
-                        timeout_reached = True
-                        break
+                        if len(buffer) == self.config.neuron.streaming_batch_size:
+                            joined_buffer = "".join(buffer)
+                            temp_completion += joined_buffer
+                            bt.logging.debug(f"Streamed tokens: {joined_buffer}")
 
-                    if len(buffer) == self.config.neuron.streaming_batch_size:
+                            await send(
+                                {
+                                    "type": "http.response.body",
+                                    "body": joined_buffer.encode("utf-8"),
+                                    "more_body": True,
+                                }
+                            )
+                            buffer = []
+
+                    if (
+                        buffer and not timeout_reached
+                    ):  # Don't send the last buffer of data if timeout.
                         joined_buffer = "".join(buffer)
                         temp_completion += joined_buffer
                         bt.logging.debug(f"Streamed tokens: {joined_buffer}")
@@ -138,48 +157,32 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                             {
                                 "type": "http.response.body",
                                 "body": joined_buffer.encode("utf-8"),
-                                "more_body": True,
+                                "more_body": False,
                             }
                         )
-                        buffer = []
 
-                if (
-                    buffer and not timeout_reached
-                ):  # Don't send the last buffer of data if timeout.
-                    joined_buffer = "".join(buffer)
-                    temp_completion += joined_buffer
-                    bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                except Exception as e:
+                    bt.logging.error(f"Error in forward: {e}")
+                    if self.config.neuron.stop_on_forward_exception:
+                        self.should_exit = True
 
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": joined_buffer.encode("utf-8"),
-                            "more_body": False,
-                        }
-                    )
+                finally:
+                    # Thread and streamer cleanup
+                    thread.join()  # This will close the thread but not stop execution of the model
+                    if streamer.has_data():
+                        streamer.clear_queue()  # model continues to compute, so remove tokens in queue
 
-            except Exception as e:
-                bt.logging.error(f"Error in forward: {e}")
-                if self.config.neuron.stop_on_forward_exception:
-                    self.should_exit = True
+                    synapse_latency = time.time() - init_time
 
-            finally:
-                # Thread and streamer cleanup
-                thread.join()  # This will close the thread but not stop execution of the model
-                if streamer.has_data():
-                    streamer.clear_queue()  # model continues to compute, so remove tokens in queue
+                    if self.config.wandb.on:
+                        self.log_event(
+                            timing=synapse_latency,
+                            prompt=prompt,
+                            completion=temp_completion,
+                            system_prompt=self.system_prompt,
+                        )
 
-                synapse_latency = time.time() - init_time
-
-                if self.config.wandb.on:
-                    self.log_event(
-                        timing=synapse_latency,
-                        prompt=prompt,
-                        completion=temp_completion,
-                        system_prompt=self.system_prompt,
-                    )
-
-                torch.cuda.empty_cache()  # cuda cleanup
+                    torch.cuda.empty_cache()  # cuda cleanup
 
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
         prompt = synapse.messages[-1]
@@ -213,6 +216,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             init_time,
             timeout_threshold,
             self.streamer,
+            self._lock
         )
 
         return synapse.create_streaming_response(token_streamer)
