@@ -32,8 +32,8 @@ class Validator(BaseValidatorNeuron):
         super(Validator, self).__init__(config=config)
 
         bt.logging.info("load_state()")
-        self.load_state()        
-        
+        self.load_state()
+
         self.llm_pipeline = vLLMPipeline(
             model_id=self.config.neuron.model_id,
             device=self.device,
