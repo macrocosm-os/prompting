@@ -1,4 +1,5 @@
 import pytest
+
 from prompting.llms import BaseLLM, BasePipeline, load_vllm_pipeline
 from prompting.llms.utils import (
     contains_gpu_index_in_device,
@@ -6,11 +7,13 @@ from prompting.llms.utils import (
 )
 from prompting.cleaners import CleanerPipeline
 from prompting.mock import MockPipeline
+
 from unittest import mock
+from unittest.mock import patch, MagicMock
+
 from .fixtures.llm import llms, pipelines
 from .fixtures.cleaner import DEFAULT_CLEANER_PIPELINE
-import pytest
-from unittest.mock import patch, MagicMock
+
 from vllm import LLM
 
 
