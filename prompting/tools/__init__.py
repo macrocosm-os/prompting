@@ -7,5 +7,6 @@ from .datasets import (
     StackOverflowDataset,
     WikiDateDataset,
     MathDataset,
+    ReviewDataset,
 )
 from .selector import Selector
