@@ -5,12 +5,13 @@ from .qa import QuestionAnsweringTask
 from .date_qa import DateQuestionAnsweringTask
 from .generic_instruction import GenericInstructionTask
 from .math import MathTask
-
+from .sentiment import SentimentAnalysisTask
 
 TASKS = {
     "qa": QuestionAnsweringTask,
     "summarization": SummarizationTask,
     "date_qa": DateQuestionAnsweringTask,
-    "debugging": DebuggingTask,
+    # "debugging": DebuggingTask,
     "math": MathTask,
+    "sentiment": SentimentAnalysisTask,
 }
