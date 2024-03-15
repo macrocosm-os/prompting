@@ -23,9 +23,6 @@ import bittensor as bt
 from loguru import logger
 from prompting.tasks import TASKS
 
-# TODO: enable 4bit and 8bit precision llms via config
-
-
 def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
     bt.logging.check_config(config)

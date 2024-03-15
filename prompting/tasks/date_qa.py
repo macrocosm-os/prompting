@@ -3,7 +3,8 @@ from prompting.tasks import Task
 from prompting.cleaners.cleaner import CleanerPipeline
 
 
-SECTION_MESSAGES = {'Births':' was born ', 'Deaths':' died ', 'Events':' '}
+SECTION_MESSAGES = {"Births": " was born ", "Deaths": " died ", "Events": " "}
+
 
 @dataclass
 class DateQuestionAnsweringTask(Task):
@@ -26,11 +27,11 @@ class DateQuestionAnsweringTask(Task):
 
         self.context = context
 
-        self.query = context.content + SECTION_MESSAGES[context.topic] + 'on what exact date?'
-        self.reference = self.context.title.replace('_',' ') + ", " + context.subtopic
+        self.query = (
+            context.content + SECTION_MESSAGES[context.topic] + "on what exact date?"
+        )
+        self.reference = self.context.title.replace("_", " ") + ", " + context.subtopic
 
         self.topic = context.title
         self.subtopic = context.topic
         self.tags = context.tags
-
-
