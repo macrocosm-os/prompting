@@ -2,10 +2,14 @@ import random
 from transformers import Pipeline
 from prompting import TASK_REGISTRY, TASKS, DATASETS
 from prompting.tasks import Task
+from prompting.tools import Selector
 
 
 def create_task(
-    llm_pipeline: Pipeline, task_name: str, create_reference: bool = True
+    llm_pipeline: Pipeline,
+    task_name: str,
+    create_reference: bool = True,
+    selector: Selector = random.choice,
 ) -> Task:
     """Create a task from the given task name and LLM pipeline.
 
@@ -13,6 +17,7 @@ def create_task(
         llm_pipeline (Pipeline): Pipeline to use for text generation
         task_name (str): Name of the task to create
         create_reference (bool, optional): Generate text for task reference answer upon creation. Defaults to True.
+        selector (Selector, optional): Selector function to choose a dataset. Defaults to random.choice.
 
     Raises:
         ValueError: If task_name is not a valid alias for a task, or if the task is not a subclass of Task
@@ -31,7 +36,7 @@ def create_task(
     if len(dataset_choices) == 0:
         raise ValueError(f"No datasets available for task {task_name}")
 
-    dataset_name = random.choice(dataset_choices)
+    dataset_name = selector(dataset_choices)
     dataset = DATASETS.get(dataset_name, None)
     if dataset is None:
         raise ValueError(f"Dataset {dataset_name} not found")
