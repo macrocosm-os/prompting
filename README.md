@@ -124,12 +124,11 @@ Miners are scored based on the similarity between their completions and the refe
 ---
 
 # Installation
-This repository requires python3.8 or higher. To install, simply clone this repository and install the requirements.
+This repository requires python3.8 or higher. To install it, simply clone this repository and run the [install.sh](./install.sh) script.
 ```bash
 git clone https://github.com/opentensor/prompting.git
 cd prompting
-python -m pip install -r requirements.txt
-python -m pip install -e .
+bash install.sh
 ```
 
 Alternatively, if you are running on a clean Ubuntu machine, you can run `python scripts/setup_ubuntu_machine.sh` to effortlessly install everything you need. If you are wanting to run an OpenAI miner, you will need to place your OpenAI API key in the `OPENAI_API_KEY` variable in the script. 
