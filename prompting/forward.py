@@ -21,7 +21,7 @@ import sys
 import asyncio
 import numpy as np
 import bittensor as bt
-
+import threading
 from typing import List
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
@@ -31,8 +31,33 @@ from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 
+def async_log(func):
+    async def wrapper(*args, **kwargs):
+        start_time = time.time()
+        thread_id = threading.get_ident()
+        func_name = func.__name__
+        bt.logging.warning(f"Starting {func_name} on thread {thread_id} at {start_time}")
+        
+        # Execute the wrapped function
+        result = await func(*args, **kwargs)
+        
+        end_time = time.time()
+        execution_time = end_time - start_time
+        bt.logging.warning(f"Completed {func_name} on thread {thread_id} in {execution_time} seconds")
+        
+        return result
+    return wrapper
+
+@async_log
 async def async_generate_reference(agent):
-    return await agent.task.generate_reference(agent.llm_pipeline)
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
+    return result
+
+@async_log
+async def execute_dendrite_call(dendrite_call):
+    responses = await dendrite_call
+    return responses
 
 async def run_step(
     self, agent: HumanAgent, k: int, timeout: float, exclude: list = None
@@ -71,7 +96,7 @@ async def run_step(
     # If the task doesn't have a static reference, generate one asynchronously
     if not agent.task.static_reference:
         reference_call = asyncio.create_task(async_generate_reference(agent))
-        responses, _ = await asyncio.gather(dendrite_call, reference_call)
+        responses, _ = await asyncio.gather(execute_dendrite_call(dendrite_call), reference_call)
     else:
         responses: List[PromptingSynapse] = await dendrite_call
 
