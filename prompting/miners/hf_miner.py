@@ -22,6 +22,7 @@ import bittensor as bt
 from functools import partial
 from asyncio import Semaphore as AsyncSemaphore
 from threading import Thread
+import threading
 from starlette.types import Send
 from typing import Awaitable
 
@@ -117,13 +118,18 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                 streamer (CustomTextIteratorStreamer): Iterator that holds tokens within a background Queue to be returned when sampled.
                 send (Send): bittensor aiohttp send function to send the response back to the validator.
             """
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
             buffer = []
             temp_completion = ""  # for wandb logging
             timeout_reached = False
+
+            num = threading.get_ident()
+
+            bt.logging.warning(f"⏰⏰⏰ LOCKING THREAD {num} ⏰⏰⏰")
+            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
             async with semaphore:
                 try:
+                    bt.logging.warning(f"⏰⏰⏰ THREAD IS LOCKED {num} ⏰⏰⏰")
                     for token in streamer:
                         buffer.append(token)
 
@@ -135,7 +141,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                         if len(buffer) == self.config.neuron.streaming_batch_size:
                             joined_buffer = "".join(buffer)
                             temp_completion += joined_buffer
-                            bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                            # bt.logging.debug(f"Streamed tokens: {joined_buffer}")
 
                             await send(
                                 {
@@ -151,7 +157,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                     ):  # Don't send the last buffer of data if timeout.
                         joined_buffer = "".join(buffer)
                         temp_completion += joined_buffer
-                        bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                        # bt.logging.debug(f"Streamed tokens: {joined_buffer}")
 
                         await send(
                             {
@@ -184,7 +190,12 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
                     torch.cuda.empty_cache()  # cuda cleanup
 
-        bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+                    bt.logging.warning(f"⏰⏰⏰ UNLOCKING THREAD {num} ⏰⏰⏰")
+                    semaphore.release()
+                    bt.logging.warning(f"⏰⏰⏰ THREAD RELEASED {num} ⏰⏰⏰")
+
+
+        # bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
         prompt = synapse.messages[-1]
 
         # Create an async thread to generate the data in parallel to the streamer.
