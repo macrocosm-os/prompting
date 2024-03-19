@@ -31,41 +31,8 @@ from prompting.protocol import PromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-def threaded_log(func):
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        thread_id = threading.get_ident()
-        func_name = func.__name__
-        bt.logging.warning(f"Starting {func_name} on thread {thread_id} at {start_time}")
-        
-        # Execute the wrapped function
-        result = func(*args, **kwargs)
-        
-        end_time = time.time()
-        execution_time = end_time - start_time
-        bt.logging.warning(f"Completed {func_name} on thread {thread_id} in {execution_time} seconds")
-        
-        return result
-    return wrapper
-
-def async_log(func):
-    async def wrapper(*args, **kwargs):
-        start_time = time.time()
-        thread_id = threading.get_ident()
-        func_name = func.__name__
-        bt.logging.warning(f"Starting {func_name} on thread {thread_id} at {start_time}")
-
-        # Execute the wrapped function
-        result = await func(*args, **kwargs)
-
-        end_time = time.time()
-        execution_time = end_time - start_time
-        bt.logging.warning(f"Completed {func_name} on thread {thread_id} in {execution_time} seconds")
-
-        return result
-    return wrapper
+from concurrent.futures import ThreadPoolExecutor
+from utils.misc import async_log, threaded_log
 
 @threaded_log
 def generate_reference(agent):    
@@ -103,16 +70,21 @@ async def run_step(
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
     axons = [self.metagraph.axons[uid] for uid in uids]
 
+    reference_generation_task = None
     with ThreadPoolExecutor() as executor:
-        # Make calls to the network with the prompt.
+        # Start the task to generate the reference
         if not agent.task.static_reference:            
-            executor.submit(generate_reference, agent)
+            reference_generation_task = executor.submit(generate_reference, agent)        
             
         # Prepare the tasks
         responses = await execute_dendrite_call(self.dendrite(axons=axons, synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]), timeout=timeout))
-
+            
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses, uids)
+    
+    # If the reference generation task is not None, wait for it to finish by calling result
+    if reference_generation_task is not None:
+        _ = reference_generation_task.result()
 
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
     # Reward the responses and get the reward result (dataclass)
