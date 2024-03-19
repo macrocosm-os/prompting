@@ -22,6 +22,7 @@ import asyncio
 import numpy as np
 import bittensor as bt
 import threading
+import queue
 from typing import List
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
@@ -30,16 +31,17 @@ from prompting.protocol import PromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-def async_log(func):
-    async def wrapper(*args, **kwargs):
+def threaded_log(func):
+    def wrapper(*args, **kwargs):
         start_time = time.time()
         thread_id = threading.get_ident()
         func_name = func.__name__
         bt.logging.warning(f"Starting {func_name} on thread {thread_id} at {start_time}")
         
         # Execute the wrapped function
-        result = await func(*args, **kwargs)
+        result = func(*args, **kwargs)
         
         end_time = time.time()
         execution_time = end_time - start_time
@@ -48,16 +50,42 @@ def async_log(func):
         return result
     return wrapper
 
-@async_log
-async def async_generate_reference(agent):
-    loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
+@threaded_log
+def generate_reference(agent):    
+    result = agent.task.generate_reference(agent.llm_pipeline)
     return result
 
-@async_log
-async def execute_dendrite_call(dendrite_call):
-    responses = await dendrite_call
-    return responses
+@threaded_log
+def execute_dendrite_call(coroutine):
+    """
+    Runs an asyncio coroutine in a separate thread and waits for the result.
+    This function ensures that the coroutine is executed properly in an asyncio event loop,
+    and returns the future result.
+    """
+    def run_coroutine(coroutine, result_queue):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(coroutine)
+            result_queue.put(result)
+        except Exception as e:
+            result_queue.put(e)
+        finally:
+            loop.close()
+        
+    result_queue = queue.Queue()
+
+    # Execute the coroutine in a separate thread to not block the main thread.
+    thread = threading.Thread(target=run_coroutine, args=(coroutine, result_queue))
+    thread.start()
+    thread.join()
+
+    # Get the result from the queue. It could be an exception.
+    result = result_queue.get()
+    if isinstance(result, Exception):
+        raise result
+    return result
+
 
 async def run_step(
     self, agent: HumanAgent, k: int, timeout: float, exclude: list = None
@@ -84,21 +112,21 @@ async def run_step(
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
     axons = [self.metagraph.axons[uid] for uid in uids]
 
-    # Make calls to the network with the prompt.
-    dendrite_call = asyncio.create_task(
-        self.dendrite(
-            axons=axons,
-            synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]),
-            timeout=timeout,
-        )
-    )
+    with ThreadPoolExecutor() as executor:
+        # Make calls to the network with the prompt.
+        # Prepare the tasks
+        dendrite_task = executor.submit(execute_dendrite_call, coroutine=self.dendrite(axons=axons, synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]), timeout=timeout))       
+        tasks = [dendrite_task]                      
 
-    # If the task doesn't have a static reference, generate one asynchronously
-    if not agent.task.static_reference:
-        reference_call = asyncio.create_task(async_generate_reference(agent))
-        responses, _ = await asyncio.gather(execute_dendrite_call(dendrite_call), reference_call)
-    else:
-        responses: List[PromptingSynapse] = await dendrite_call
+        # If the task doesn't have a static reference, generate one asynchronously        
+        if not agent.task.static_reference:            
+            reference_task = executor.submit(generate_reference, agent)
+            tasks.append(reference_task)
+                
+        # Wait for tasks to complete
+        for future in as_completed(tasks):
+            if future == dendrite_task:
+                responses = future.result()
 
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses, uids)
