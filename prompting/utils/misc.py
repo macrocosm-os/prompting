@@ -17,6 +17,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import threading
+import bittensor as bt
 from math import floor
 from typing import Callable, Any
 from functools import lru_cache, update_wrapper
@@ -108,3 +110,38 @@ def ttl_get_block(self) -> int:
     Note: self here is the miner or validator instance
     """
     return self.subtensor.get_current_block()
+
+
+def threaded_log(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        thread_id = threading.get_ident()
+        func_name = func.__name__
+        bt.logging.warning(f"Starting {func_name} on thread {thread_id} at {start_time}")
+        
+        # Execute the wrapped function
+        result = func(*args, **kwargs)
+        
+        end_time = time.time()
+        execution_time = end_time - start_time
+        bt.logging.warning(f"Completed {func_name} on thread {thread_id} in {execution_time} seconds")
+        
+        return result
+    return wrapper
+
+def async_log(func):
+    async def wrapper(*args, **kwargs):
+        start_time = time.time()
+        thread_id = threading.get_ident()
+        func_name = func.__name__
+        bt.logging.warning(f"Starting {func_name} on thread {thread_id} at {start_time}")
+
+        # Execute the wrapped function
+        result = await func(*args, **kwargs)
+
+        end_time = time.time()
+        execution_time = end_time - start_time
+        bt.logging.warning(f"Completed {func_name} on thread {thread_id} in {execution_time} seconds")
+
+        return result
+    return wrapper
