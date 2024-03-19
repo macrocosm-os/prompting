@@ -32,7 +32,7 @@ from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from concurrent.futures import ThreadPoolExecutor
-from utils.misc import async_log, threaded_log
+from prompting.utils.misc import async_log, threaded_log
 
 @threaded_log
 def generate_reference(agent):    
