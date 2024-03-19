@@ -142,13 +142,12 @@ async def run_step(
         **response_event.__state_dict__(),
     }
 
-    log_event(self, event)
-
     return event
 
 
 async def forward(self):
     bt.logging.info("🚀 Starting forward loop...")
+    forward_start_time = time.time()
 
     while True:
         bt.logging.info(
@@ -185,6 +184,11 @@ async def forward(self):
             timeout=self.config.neuron.timeout,
             exclude=exclude_uids,
         )
+        
+        # Adds forward time to event and logs it to wandb
+        event['forward_time'] = time.time() - forward_start_time        
+        log_event(self, event)
+        
         exclude_uids += event["uids"]
         task.complete = True
 
