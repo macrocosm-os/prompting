@@ -216,7 +216,6 @@ class WikiDataset(Dataset):
             "internal_links": list(filter(lambda x: x not in exclude, page.sections)),
             "external_links": most_relevant_links(page, num_links=self.max_links),
             "tags": filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
-            "source": "Wikipedia",
             "extra": {
                 "url": page.url,
                 "page_length": len(page.content.split()),
@@ -240,7 +239,6 @@ class WikiDataset(Dataset):
 
 
 class WikiDateDataset(Dataset):
-
     INCLUDE_HEADERS = ("Events", "Births", "Deaths")
     MONTHS = (
         "January",
@@ -287,7 +285,6 @@ class WikiDateDataset(Dataset):
         redirect=False,
         selector: Selector = None,
     ) -> Dict:
-
         # Check that name is correctly formatted e.g., "January 1"
         date = name.split(" ")
         assert (
@@ -331,7 +328,6 @@ class WikiDateDataset(Dataset):
             "tags": filter_categories(
                 page.categories, exclude=WikiDataset.EXCLUDE_CATEGORIES
             ),
-            "source": "Wikipedia",
             "extra": {
                 "url": page.url,
                 "year": year,

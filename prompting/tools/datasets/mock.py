@@ -4,7 +4,6 @@ from .base import Dataset
 
 
 class MockDataset(Dataset):
-
     def get(self, name, exclude=None, selector=None):
         return {
             "title": name,
@@ -19,7 +18,6 @@ class MockDataset(Dataset):
             ],
             "external_links": ["Einstein", "Bohr", "Feynman", "Hawking"],
             "tags": ["fraud", "hologram", "gold"],
-            "source": "Mockpedia",
             "extra": {"solution": "religion"},
         }
 

@@ -523,7 +523,6 @@ def filter_comments(code, language):
 
 # TODO: why not define the chain_in, chain_out logic in the class itself?
 class HFCodingDataset(Dataset):
-
     def __init__(
         self,
         dataset_id="codeparrot/github-code",
@@ -550,7 +549,6 @@ class HFCodingDataset(Dataset):
         )
 
     def get(self, min_lines=5, max_lines=100, selector: Selector = None):
-
         info = next(self.dataset)
 
         if not (min_lines <= len(info["code"].splitlines()) <= max_lines):
@@ -580,7 +578,6 @@ class HFCodingDataset(Dataset):
             "content": info["code"],
             "internal_links": [info["repo_name"], info["path"], info["language"]],
             "external_links": external_links,
-            "source": "GitHub",
             "tags": [info["language"], info["repo_name"], info["path"]],
             "extra": {"size": info["size"], "license": info["license"]},
         }
@@ -607,7 +604,6 @@ class HFCodingDataset(Dataset):
         return matches
 
     def get_special_contents(self, code, language, remove_comments=True):
-
         if remove_comments:
             code = filter_comments(code, language)
 
