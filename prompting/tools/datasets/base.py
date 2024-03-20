@@ -17,6 +17,8 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import random
+import functools
 from abc import ABC, abstractmethod
 from typing import Dict
 import bittensor as bt
@@ -32,13 +34,16 @@ class Dataset(ABC):
     max_tries: int = 10
 
     @abstractmethod
-    def search(self, name): ...
+    def search(self, name):
+        ...
 
     @abstractmethod
-    def random(self, name): ...
+    def random(self, name):
+        ...
 
     @abstractmethod
-    def get(self, name): ...
+    def get(self, name):
+        ...
 
     def next(
         self, method: str = "random", selector: Selector = Selector(), **kwargs
@@ -47,7 +52,6 @@ class Dataset(ABC):
         t0 = time.time()
 
         while True:
-
             # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
             info = {}
             if method == "random":
@@ -72,11 +76,51 @@ class Dataset(ABC):
                     f"Could not find any samples which meet {self.__class__.__name__} requirements after {tries} tries."
                 )
 
+        info["source"] = (self.__class__.__name__,)
         info["stats"] = {
-            "creator": self.__class__.__name__,
             "fetch_time": time.time() - t0,
             "num_tries": tries,
             "fetch_method": method,
             "next_kwargs": kwargs,
         }
         return Context(**info)
+
+
+class TemplateDataset(Dataset):
+    """Base class for datasets based on a template."""
+
+    @property
+    def size(self):
+        return functools.reduce(
+            lambda x, y: x * y, [len(v) for v in self.params.values()], 1
+        )
+
+    def __repr__(self):
+        return f"{self.__class__.__name__} with template: {self.query_template!r} and {self.size} possible phrases"
+
+    def get(self, params: dict):
+        content = self.query_template.format(**params)
+        keys, values = list(zip(*params.items()))
+
+        return {
+            "title": params.get(
+                "title", keys[0]
+            ),  # Use the first key as the title if no field called title is present
+            "topic": params.get("topic", keys[min(1, len(keys) - 1)]),  # Same for topic
+            "subtopic": params.get(
+                "subtopic", keys[min(2, len(keys) - 2)]
+            ),  # Same for subtopic
+            "content": content,  # content
+            "internal_links": values,  # internal links
+            "external_links": values,  # external links
+            "tags": values,  # tags
+            "extra": {},
+        }
+
+    def random(self, selector: Selector = None):
+        selected = {k: selector(v) for k, v in self.params.items()}
+        return self.get(selected)
+
+    def search(self, params: dict, selector: Selector = None):
+        selected = {k: params.get(k, selector(v)) for k, v in self.params.items()}
+        return self.get(selected)
