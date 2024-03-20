@@ -21,9 +21,6 @@ import sys
 import asyncio
 import numpy as np
 import bittensor as bt
-import threading
-import queue
-from typing import List
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
 from prompting.conversation import create_task
@@ -31,19 +28,18 @@ from prompting.protocol import PromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
-from concurrent.futures import ThreadPoolExecutor
-from prompting.utils.misc import async_log, threaded_log
-
-@threaded_log
-def generate_reference(agent):    
-    result = agent.task.generate_reference(agent.llm_pipeline)
-    return result
+from prompting.utils.misc import async_log
 
 @async_log
-async def execute_dendrite_call(coroutine):
-    responses = await coroutine
-    return responses
+async def generate_reference(agent):    
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
+    return result    
 
+@async_log
+async def execute_dendrite_call(dendrite_call):
+    responses = await dendrite_call
+    return responses
 
 async def run_step(
     self, agent: HumanAgent, k: int, timeout: float, exclude: list = None
@@ -70,22 +66,17 @@ async def run_step(
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
     axons = [self.metagraph.axons[uid] for uid in uids]
 
-    reference_generation_task = None
-    with ThreadPoolExecutor() as executor:
-        # Start the task to generate the reference
-        if not agent.task.static_reference:            
-            reference_generation_task = executor.submit(generate_reference, agent)        
-            
-        # Prepare the tasks
-        responses = await execute_dendrite_call(self.dendrite(axons=axons, synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]), timeout=timeout))
+    # Prepare the tasks
+    dendrite_call_task = execute_dendrite_call(self.dendrite(axons=axons, synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]), timeout=timeout))
+    
+    if not agent.task.static_reference:            
+        reference_generation_task = generate_reference(agent)
+        _, responses = await asyncio.gather(reference_generation_task, dendrite_call_task)
+    else:
+        responses = await dendrite_call_task    
             
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses, uids)
-    
-    # If the reference generation task is not None, wait for it to finish by calling result
-    if reference_generation_task is not None:
-        _ = reference_generation_task.result()
-
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc

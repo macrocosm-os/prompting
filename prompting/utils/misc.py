@@ -17,6 +17,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import asyncio
 import threading
 import bittensor as bt
 from math import floor
@@ -132,16 +133,16 @@ def threaded_log(func):
 def async_log(func):
     async def wrapper(*args, **kwargs):
         start_time = time.time()
-        thread_id = threading.get_ident()
+        task_id =  id(asyncio.current_task())
         func_name = func.__name__
-        bt.logging.debug(f"Starting {func_name} on thread {thread_id} at {start_time}")
+        bt.logging.debug(f"Starting {func_name} on task {task_id} at {start_time}")
 
         # Execute the wrapped function
         result = await func(*args, **kwargs)
 
         end_time = time.time()
         execution_time = end_time - start_time
-        bt.logging.debug(f"Completed {func_name} on thread {thread_id} in {execution_time} seconds")
+        bt.logging.debug(f"Completed {func_name} on task {task_id} in {execution_time} seconds")
 
         return result
     return wrapper
