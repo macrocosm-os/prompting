@@ -8,5 +8,6 @@ from .datasets import (
     WikiDateDataset,
     MathDataset,
     ReviewDataset,
+    GenericQuestionDataset,
 )
 from .selector import Selector

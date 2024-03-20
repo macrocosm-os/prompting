@@ -5,3 +5,4 @@ from .math import MathDataset
 from .mock import MockDataset
 from .wiki import WikiDataset, WikiDateDataset
 from .review import ReviewDataset
+from .generic_question import GenericQuestionDataset
