@@ -16,14 +16,14 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-
 from typing import List, Dict
 import bittensor as bt
 
 from transformers import Pipeline, pipeline, AutoTokenizer, TextIteratorStreamer
 from prompting.mock import MockPipeline
-
 from prompting.cleaners.cleaner import CleanerPipeline
+from transformers import pipeline
+from prompting.llms import BasePipeline, BaseLLM
 
 
 class CustomTextIteratorStreamer(TextIteratorStreamer):
@@ -97,10 +97,38 @@ def load_pipeline(
     return llm_pipeline
 
 
-class HuggingFaceLLM:
+class HuggingFacePipeline(BasePipeline):
     def __init__(
         self,
-        llm_pipeline: Pipeline,
+        model_id,
+        device=None,
+        torch_dtype=None,
+        mock=False,
+        model_kwargs: dict = None,
+    ):
+        super().__init__()
+        self.model = model_id
+        self.device = device
+        self.torch_dtype = torch_dtype
+        self.mock = mock
+        self.pipeline = load_hf_pipeline(
+            model_id, device, torch_dtype, mock, model_kwargs
+        )
+        self.tokenizer = self.pipeline.tokenizer
+
+    def __call__(self, composed_prompt: str, **kwargs: dict) -> str:
+        if self.mock:
+            return self.pipeline(composed_prompt, **kwargs)
+
+        # Extract the generated text from the pipeline output
+        outputs = self.pipeline(composed_prompt, **kwargs)
+        return outputs[0]["generated_text"]
+
+
+class HuggingFaceLLM(BaseLLM):
+    def __init__(
+        self,
+        llm_pipeline: BasePipeline,
         system_prompt,
         max_new_tokens=256,
         do_sample=True,
@@ -108,9 +136,8 @@ class HuggingFaceLLM:
         top_k=50,
         top_p=0.95,
     ):
-        self.llm_pipeline = llm_pipeline
-        self.system_prompt = system_prompt
-        self.kwargs = dict(
+        # Sets specific kwargs for hf pipeline
+        model_kwargs = dict(
             do_sample=do_sample,
             temperature=temperature,
             top_k=top_k,
@@ -118,12 +145,14 @@ class HuggingFaceLLM:
             max_new_tokens=max_new_tokens,
         )
 
+        super().__init__(llm_pipeline, system_prompt, model_kwargs)
+
         self.messages = [{"content": self.system_prompt, "role": "system"}]
         self.times = [0]
 
     def query(
         self,
-        message: List[Dict[str, str]],
+        message: str,
         role: str = "user",
         disregard_system_prompt: bool = False,
         cleaner: CleanerPipeline = None,
@@ -135,14 +164,7 @@ class HuggingFaceLLM:
 
         tbeg = time.time()
         response = self.forward(messages=messages)
-
-        if cleaner is not None:
-            clean_response = cleaner.apply(generation=response)
-            if clean_response != response:
-                bt.logging.debug(
-                    f"Response cleaned, chars removed: {len(response) - len(clean_response)}..."
-                )
-            response = clean_response
+        response = self.clean_response(cleaner, response)
 
         self.messages = messages + [{"content": response, "role": "assistant"}]
         self.times = self.times + [0, time.time() - tbeg]
@@ -171,14 +193,32 @@ class HuggingFaceLLM:
             messages, tokenize=False, add_generation_prompt=True
         )
 
-    def forward(self, messages: List[Dict[str, str]], preformat_messages: bool = False):
-        prompt = self._make_prompt(messages)
-        outputs = self.llm_pipeline(prompt, **self.kwargs)
-        response = outputs[0]["generated_text"]
+    def forward(self, messages: List[Dict[str, str]]):
+        composed_prompt = self._make_prompt(messages)
+        # System prompt is composed in the prompt
+        response = self.llm_pipeline(
+            composed_prompt=composed_prompt, **self.model_kwargs
+        )
 
-        response = response.replace(prompt, "").strip()
+        response = response.replace(composed_prompt, "").strip()
 
         bt.logging.info(
             f"{self.__class__.__name__} generated the following output:\n{response}"
         )
         return response
+
+
+if __name__ == "__main__":
+    # Test the HuggingFacePipeline and HuggingFaceLLM
+    model_id = "HuggingFaceH4/zephyr-7b-beta"
+    device = "cuda"
+    torch_dtype = "float16"
+    mock = True
+
+    llm_pipeline = HuggingFacePipeline(model_id, device, torch_dtype, mock)
+
+    llm = HuggingFaceLLM(llm_pipeline, "You are a helpful AI assistant")
+
+    message = "What is the capital of Texas?"
+    response = llm.query(message)
+    print(response)
