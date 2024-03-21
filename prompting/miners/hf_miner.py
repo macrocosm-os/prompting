@@ -24,8 +24,7 @@ from typing import Awaitable
 
 # Bittensor Miner Template:
 from prompting.protocol import StreamPromptingSynapse
-from prompting.llms import load_hf_pipeline
-from prompting.llms import HuggingFaceLLM
+from prompting.llms import HuggingFaceLLM, HuggingFacePipeline, load_hf_pipeline
 
 # import base miner class which takes care of most of the boilerplate
 from prompting.base.prompting_miner import BaseStreamPromptingMiner
@@ -78,7 +77,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             False if self.config.neuron.should_force_model_loading else self.config.mock
         )
 
-        self.llm_pipeline = load_hf_pipeline(
+        self.llm_pipeline = HuggingFacePipeline(
             model_id=self.config.neuron.model_id,
             torch_dtype=torch.bfloat16,
             device=self.device,
@@ -97,8 +96,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             timeout_threshold: float,
             send: Send,
         ):
-            """_summary_
-
+            """
             Args:
                 prompt (str): The received message (challenge) in the synapse. For logging.
                 thread (Thread): A background thread that is reponsible for running the model.
@@ -212,9 +210,9 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         token_streamer = partial(
             _forward,
             self,
-            prompt,
+            prompt,            
             init_time,
             timeout_threshold,
-        )
+        )                
 
         return synapse.create_streaming_response(token_streamer)

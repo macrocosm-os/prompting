@@ -22,7 +22,7 @@ import bittensor as bt
 from transformers import Pipeline, pipeline, AutoTokenizer, TextIteratorStreamer
 from prompting.mock import MockPipeline
 from prompting.cleaners.cleaner import CleanerPipeline
-from transformers import pipeline
+from transformers import pipeline, TextIteratorStreamer, AutoTokenizer
 from prompting.llms import BasePipeline, BaseLLM
 
 
@@ -51,8 +51,8 @@ def load_hf_pipeline(
     device=None,
     torch_dtype=None,
     mock=False,
-    return_streamer=False,
     model_kwargs: dict = None,
+    return_streamer: bool = False,
 ):
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
 
@@ -105,15 +105,28 @@ class HuggingFacePipeline(BasePipeline):
         torch_dtype=None,
         mock=False,
         model_kwargs: dict = None,
+        return_streamer: bool = False,
     ):
         super().__init__()
         self.model = model_id
         self.device = device
         self.torch_dtype = torch_dtype
         self.mock = mock
-        self.pipeline = load_hf_pipeline(
-            model_id, device, torch_dtype, mock, model_kwargs
+
+        package = load_hf_pipeline(
+            model_id=model_id,
+            device=device,
+            torch_dtype=torch_dtype,
+            mock=mock,
+            model_kwargs=model_kwargs,
+            return_streamer=return_streamer,
         )
+
+        if return_streamer:
+            self.pipeline, self.streamer = package
+        else:
+            self.pipeline = package
+
         self.tokenizer = self.pipeline.tokenizer
 
     def __call__(self, composed_prompt: str, **kwargs: dict) -> str:
@@ -215,7 +228,9 @@ if __name__ == "__main__":
     torch_dtype = "float16"
     mock = True
 
-    llm_pipeline = HuggingFacePipeline(model_id, device, torch_dtype, mock)
+    llm_pipeline = HuggingFacePipeline(
+        model_id=model_id, device=device, torch_dtype=torch_dtype, mock=mock
+    )
 
     llm = HuggingFaceLLM(llm_pipeline, "You are a helpful AI assistant")
 

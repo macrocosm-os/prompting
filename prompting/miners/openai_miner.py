@@ -36,9 +36,6 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain.chat_models import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
 from langchain_core.runnables.base import RunnableSequence
-from langchain.callbacks import get_openai_callback
-
-import pdb
 
 
 class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
