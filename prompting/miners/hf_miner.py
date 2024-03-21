@@ -113,22 +113,21 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             buffer = []
             temp_completion = ""  # for wandb logging
             timeout_reached = False
-            system_message = ""
-            
-            # loop.run_until_complete(task)            
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
-            
-            streamer = HuggingFaceLLM(
-                    llm_pipeline=self.llm_pipeline,
-                    system_prompt=self.system_prompt,
-                    max_new_tokens=self.config.neuron.max_tokens,
-                    do_sample=self.config.neuron.do_sample,
-                    temperature=self.config.neuron.temperature,
-                    top_k=self.config.neuron.top_k,
-                    top_p=self.config.neuron.top_p,
-            ).stream(message=prompt)
-                                                                            
-            try:    
+            system_message = ""                    
+            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")            
+                                         
+            try:
+                streamer = HuggingFaceLLM(
+                        llm_pipeline=self.llm_pipeline,
+                        system_prompt=self.system_prompt,
+                        max_new_tokens=self.config.neuron.max_tokens,
+                        do_sample=self.config.neuron.do_sample,
+                        temperature=self.config.neuron.temperature,
+                        top_k=self.config.neuron.top_k,
+                        top_p=self.config.neuron.top_p,
+                ).stream(message=prompt)
+                                                
+                bt.logging.debug('Starting streaming loop...')
                 synapse_message = synapse.messages[-1]                                
                 for token in streamer:                    
                     system_message += token                                        

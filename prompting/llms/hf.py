@@ -180,6 +180,7 @@ class HuggingFaceLLM(BaseLLM):
         messages = self.messages + [{"content": message, "role": role}]        
         prompt = self._make_prompt(messages)
         
+        bt.logging.debug('Starting LLM streaming process...')
         streamer = CustomTextIteratorStreamer(tokenizer=self.llm_pipeline.tokenizer)
         _ = self.llm_pipeline(prompt, streamer=streamer, **self.kwargs)
                 
