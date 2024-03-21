@@ -37,8 +37,7 @@ class Validator(BaseValidatorNeuron):
         self.llm_pipeline = vLLMPipeline(
             model_id=self.config.neuron.model_id,
             device=self.device,
-            mock=self.config.mock,
-            return_streamer=False,
+            mock=self.config.mock
         )
 
         if sum(self.config.neuron.task_p) != 1:

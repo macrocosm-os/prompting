@@ -46,7 +46,7 @@ class CustomTextIteratorStreamer(TextIteratorStreamer):
             self.text_queue.queue.clear()
 
 
-def load_pipeline(
+def load_hf_pipeline(
     model_id: str,
     device=None,
     torch_dtype=None,

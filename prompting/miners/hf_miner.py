@@ -24,7 +24,7 @@ from typing import Awaitable
 
 # Bittensor Miner Template:
 from prompting.protocol import StreamPromptingSynapse
-from prompting.llms import load_pipeline
+from prompting.llms import load_hf_pipeline
 from prompting.llms import HuggingFaceLLM
 
 # import base miner class which takes care of most of the boilerplate
@@ -78,7 +78,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             False if self.config.neuron.should_force_model_loading else self.config.mock
         )
 
-        self.llm_pipeline = load_pipeline(
+        self.llm_pipeline = load_hf_pipeline(
             model_id=self.config.neuron.model_id,
             torch_dtype=torch.bfloat16,
             device=self.device,
