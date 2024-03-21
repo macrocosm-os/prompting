@@ -18,7 +18,7 @@ from transformers import Pipeline
 
 def create_task(llm_pipeline: Pipeline, task_name: str) -> Task:
     wiki_based_tasks = ["summarization", "qa"]
-    coding_based_tasks = ["debugging"]    
+    coding_based_tasks = ["debugging"]
     # TODO: Abstract dataset classes into common dynamic interface
     if task_name in wiki_based_tasks:
         dataset = WikiDataset()
