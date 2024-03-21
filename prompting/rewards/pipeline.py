@@ -81,7 +81,6 @@ class RewardPipeline:
                 f"{definition} model {model_infos} weights do not sum to {expected_weight} (sum={total_weight})"
             )
 
-
     def load_reward_pipeline(self):
         """Dynamically loads the reward models required by the selected tasks so that we only use the necessary resources."""
         active_reward_models = []
