@@ -18,7 +18,8 @@
 import time
 from typing import List, Dict
 import bittensor as bt
-from transformers import pipeline
+
+from transformers import Pipeline, pipeline, AutoTokenizer, TextIteratorStreamer
 from prompting.mock import MockPipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 from transformers import pipeline, TextIteratorStreamer, AutoTokenizer

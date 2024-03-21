@@ -42,10 +42,13 @@ python <MINER_PATH>
     --wallet.name <your miner wallet> # Must be created using the bittensor-cli
     --wallet.hotkey <your validator hotkey> # Must be created using the bittensor-cli
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
+    --axon.port #VERY IMPORTANT: set the port to be one of the open TCP ports on your machine
 ```
 where `MINER_PATH` is either: 
 1. neurons/miners/huggingface/miner.py
 2. neurons/miners/openai/miner.py
+
+It is highly important that you set the `--axon.port` to be one of the open TCP ports on your machine. If you do not do this, you will not recieve requests from validators and will not be able to check the performance of your miner. 
 
 ### 3. Do I need to change my hardware?!? 
 No! The hardware requirements for running streaming are identical to before, so there is no need to provision new or more capable resources. 
