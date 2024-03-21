@@ -90,6 +90,7 @@ You will need to reinstall the repo to ensure that you do not see any errors. Pl
 python -m pip install -e . --force-reinstall
 ```
 
+> Important: vLLM currently faces a [notable limitation](https://github.com/vllm-project/vllm/issues/3012) in designating a specific GPU for model execution via code. Consequently, to employ a particular CUDA device for your model's operations, it's necessary to manually adjust your environment variable `CUDA_VISIBLE_DEVICES`. For instance, setting `export CUDA_VISIBLE_DEVICES=1,2` will explicitly define the CUDA devices available for use.
 
 # Real-time monitoring with wandb integration
 
