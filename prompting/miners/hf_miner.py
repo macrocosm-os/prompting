@@ -14,23 +14,20 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
 import time
 import torch
 import argparse
 import bittensor as bt
 from functools import partial
-from threading import Thread
 from starlette.types import Send
 from typing import Awaitable
 
 # Bittensor Miner Template:
 from prompting.protocol import StreamPromptingSynapse
-from prompting.llms import HuggingFaceLLM, HuggingFacePipeline
+from prompting.llms import HuggingFaceLLM, HuggingFacePipeline, load_hf_pipeline
 
 # import base miner class which takes care of most of the boilerplate
 from prompting.base.prompting_miner import BaseStreamPromptingMiner
-from prompting.llms import CustomTextIteratorStreamer
 
 
 class HuggingFaceMiner(BaseStreamPromptingMiner):
@@ -86,20 +83,18 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             device=self.device,
             mock=mock,
             model_kwargs=model_kwargs,
-            return_streamer=True,
         )
 
         self.model_id = self.config.neuron.model_id
-        self.system_prompt = self.config.neuron.system_prompt
-
+        self.system_prompt = self.config.neuron.system_prompt                   
+            
+                    
     def forward(self, synapse: StreamPromptingSynapse) -> Awaitable:
         async def _forward(
             self,
-            prompt: str,
-            thread: Thread,
+            prompt: str,            
             init_time: float,
-            timeout_threshold: float,
-            streamer: CustomTextIteratorStreamer,
+            timeout_threshold: float,            
             send: Send,
         ):
             """
@@ -112,15 +107,40 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                 streamer (CustomTextIteratorStreamer): Iterator that holds tokens within a background Queue to be returned when sampled.
                 send (Send): bittensor aiohttp send function to send the response back to the validator.
             """
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
             buffer = []
             temp_completion = ""  # for wandb logging
             timeout_reached = False
-
-            try:
-                for token in streamer:
-                    buffer.append(token)
+            system_message = ""
+            
+            # loop.run_until_complete(task)            
+            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+            
+            streamer = HuggingFaceLLM(
+                    llm_pipeline=self.llm_pipeline,
+                    system_prompt=self.system_prompt,
+                    max_new_tokens=self.config.neuron.max_tokens,
+                    do_sample=self.config.neuron.do_sample,
+                    temperature=self.config.neuron.temperature,
+                    top_k=self.config.neuron.top_k,
+                    top_p=self.config.neuron.top_p,
+            ).stream(message=prompt)
+                                                                            
+            try:    
+                synapse_message = synapse.messages[-1]                                
+                for token in streamer:                    
+                    system_message += token                                        
+                    
+                    buffer.append(token)                    
+                    system_message += "".join(buffer)
+                    
+                    if synapse_message in system_message:
+                        # Cleans system message and challenge from model response
+                        bt.logging.warning(f"Discarding initial system_prompt / user prompt inputs from generation...")
+                        buffer=[]
+                        system_message = ""
+                        continue
+                    
 
                     if time.time() - init_time > timeout_threshold:
                         bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
@@ -130,7 +150,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                     if len(buffer) == self.config.neuron.streaming_batch_size:
                         joined_buffer = "".join(buffer)
                         temp_completion += joined_buffer
-                        bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                        # bt.logging.debug(f"Streamed tokens: {joined_buffer}")
 
                         await send(
                             {
@@ -146,7 +166,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                 ):  # Don't send the last buffer of data if timeout.
                     joined_buffer = "".join(buffer)
                     temp_completion += joined_buffer
-                    bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                    # bt.logging.debug(f"Streamed tokens: {joined_buffer}")
 
                     await send(
                         {
@@ -155,20 +175,25 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                             "more_body": False,
                         }
                     )
-
+               
             except Exception as e:
                 bt.logging.error(f"Error in forward: {e}")
                 if self.config.neuron.stop_on_forward_exception:
                     self.should_exit = True
 
             finally:
-                # Thread and streamer cleanup
-                thread.join()  # This will close the thread but not stop execution of the model
-                if streamer.has_data():
-                    streamer.clear_queue()  # model continues to compute, so remove tokens in queue
+                # _ = task.result() # wait for thread to finish                                
+                bt.logging.debug('Finishing streaming loop...')
+                bt.logging.debug('-' * 50)
+                bt.logging.debug(f'---->>> Received message:')
+                bt.logging.debug(synapse.messages[0])
+                bt.logging.debug('-' * 50)
+                bt.logging.debug(f'<<<----- Returned message:')
+                bt.logging.debug(temp_completion)
+                bt.logging.debug('-' * 50)
 
                 synapse_latency = time.time() - init_time
-
+                
                 if self.config.wandb.on:
                     self.log_event(
                         timing=synapse_latency,
@@ -177,40 +202,18 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                         system_prompt=self.system_prompt,
                     )
 
-                torch.cuda.empty_cache()  # cuda cleanup
-
-        bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+        # bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
         prompt = synapse.messages[-1]
-
-        # Create an async thread to generate the data in parallel to the streamer.
-        thread = Thread(
-            target=HuggingFaceLLM(
-                llm_pipeline=self.llm_pipeline,
-                system_prompt=self.system_prompt,
-                max_new_tokens=self.config.neuron.max_tokens,
-                do_sample=self.config.neuron.do_sample,
-                temperature=self.config.neuron.temperature,
-                top_k=self.config.neuron.top_k,
-                top_p=self.config.neuron.top_p,
-            ).query,
-            kwargs=dict(message=prompt, role="user", disregard_system_prompt=False),
-        )
-
-        thread.start()
-
-        bt.logging.debug(f"💬 Querying hf-miner: {prompt}")
-
+        
         init_time = time.time()
         timeout_threshold = synapse.timeout
 
         token_streamer = partial(
             _forward,
             self,
-            prompt,
-            thread,
-            init_time,
+            prompt,            
+            init_time,g
             timeout_threshold,
-            self.llm_pipeline.streamer,
         )
-
+                
         return synapse.create_streaming_response(token_streamer)

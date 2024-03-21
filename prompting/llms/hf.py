@@ -183,11 +183,25 @@ class HuggingFaceLLM(BaseLLM):
         self.times = self.times + [0, time.time() - tbeg]
 
         return response
+    
+    
+    def stream(
+        self,
+        message: str,
+        role: str = "user",        
+    ):
+        messages = self.messages + [{"content": message, "role": role}]        
+        prompt = self._make_prompt(messages)
+        
+        streamer = CustomTextIteratorStreamer(tokenizer=self.llm_pipeline.tokenizer)
+        _ = self.llm_pipeline(prompt, streamer=streamer, **self.kwargs)
+                
+        return streamer
 
     def __call__(self, messages: List[Dict[str, str]]):
         return self.forward(messages=messages)
 
-    def _make_prompt(self, messages: List[Dict[str, str]]):
+    def _make_prompt(self, messages: List[Dict[str, str]]):        
         return self.llm_pipeline.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
