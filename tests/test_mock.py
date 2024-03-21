@@ -46,7 +46,6 @@ def test_mock_metagraph(n):
         assert axon.port == mock_metagraph.DEFAULT_PORT
 
 
-
 def test_mock_reward_pipeline():
     pass
 

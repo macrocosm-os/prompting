@@ -82,20 +82,19 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             model_id=self.config.neuron.model_id,
             torch_dtype=torch.bfloat16,
             device=self.device,
-            mock=mock,            
+            mock=mock,
             model_kwargs=model_kwargs,
         )
 
         self.model_id = self.config.neuron.model_id
-        self.system_prompt = self.config.neuron.system_prompt                   
-            
-                    
+        self.system_prompt = self.config.neuron.system_prompt
+
     def forward(self, synapse: StreamPromptingSynapse) -> Awaitable:
         async def _forward(
             self,
-            prompt: str,            
+            prompt: str,
             init_time: float,
-            timeout_threshold: float,            
+            timeout_threshold: float,
             send: Send,
         ):
             """_summary_
@@ -113,35 +112,36 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             buffer = []
             temp_completion = ""  # for wandb logging
             timeout_reached = False
-            system_message = ""                    
-            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")            
-                                         
+            system_message = ""
+            bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+
             try:
                 streamer = HuggingFaceLLM(
-                        llm_pipeline=self.llm_pipeline,
-                        system_prompt=self.system_prompt,
-                        max_new_tokens=self.config.neuron.max_tokens,
-                        do_sample=self.config.neuron.do_sample,
-                        temperature=self.config.neuron.temperature,
-                        top_k=self.config.neuron.top_k,
-                        top_p=self.config.neuron.top_p,
+                    llm_pipeline=self.llm_pipeline,
+                    system_prompt=self.system_prompt,
+                    max_new_tokens=self.config.neuron.max_tokens,
+                    do_sample=self.config.neuron.do_sample,
+                    temperature=self.config.neuron.temperature,
+                    top_k=self.config.neuron.top_k,
+                    top_p=self.config.neuron.top_p,
                 ).stream(message=prompt)
-                                                
-                bt.logging.debug('Starting streaming loop...')
-                synapse_message = synapse.messages[-1]                                
-                for token in streamer:                    
-                    system_message += token                                        
-                    
-                    buffer.append(token)                    
+
+                bt.logging.debug("Starting streaming loop...")
+                synapse_message = synapse.messages[-1]
+                for token in streamer:
+                    system_message += token
+
+                    buffer.append(token)
                     system_message += "".join(buffer)
-                    
+
                     if synapse_message in system_message:
                         # Cleans system message and challenge from model response
-                        bt.logging.warning(f"Discarding initial system_prompt / user prompt inputs from generation...")
-                        buffer=[]
+                        bt.logging.warning(
+                            f"Discarding initial system_prompt / user prompt inputs from generation..."
+                        )
+                        buffer = []
                         system_message = ""
                         continue
-                    
 
                     if time.time() - init_time > timeout_threshold:
                         bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
@@ -176,25 +176,25 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                             "more_body": False,
                         }
                     )
-               
+
             except Exception as e:
                 bt.logging.error(f"Error in forward: {e}")
                 if self.config.neuron.stop_on_forward_exception:
                     self.should_exit = True
 
             finally:
-                # _ = task.result() # wait for thread to finish                                
-                bt.logging.debug('Finishing streaming loop...')
-                bt.logging.debug('-' * 50)
-                bt.logging.debug(f'---->>> Received message:')
+                # _ = task.result() # wait for thread to finish
+                bt.logging.debug("Finishing streaming loop...")
+                bt.logging.debug("-" * 50)
+                bt.logging.debug(f"---->>> Received message:")
                 bt.logging.debug(synapse.messages[0])
-                bt.logging.debug('-' * 50)
-                bt.logging.debug(f'<<<----- Returned message:')
+                bt.logging.debug("-" * 50)
+                bt.logging.debug(f"<<<----- Returned message:")
                 bt.logging.debug(temp_completion)
-                bt.logging.debug('-' * 50)
+                bt.logging.debug("-" * 50)
 
                 synapse_latency = time.time() - init_time
-                
+
                 if self.config.wandb.on:
                     self.log_event(
                         timing=synapse_latency,
@@ -205,16 +205,16 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
         # bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
         prompt = synapse.messages[-1]
-        
+
         init_time = time.time()
         timeout_threshold = synapse.timeout
 
         token_streamer = partial(
             _forward,
             self,
-            prompt,            
+            prompt,
             init_time,
-            timeout_threshold,  
-        )        
-                
+            timeout_threshold,
+        )
+
         return synapse.create_streaming_response(token_streamer)
