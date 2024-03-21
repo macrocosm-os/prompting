@@ -9,7 +9,6 @@ from functools import partial
 from typing import Dict, List, Union, AsyncGenerator, Any, Iterator
 
 
-
 class MockTokenizer:
     def __init__(self):
         super().__init__()
@@ -67,13 +66,14 @@ class MockPipeline:
         return self.postprocess(output)
 
     def postprocess(self, output, **kwargs):
-        output = output.split(
-            self.model.tokenizer.role_expr.format(role="assistant")
-        )[-1].strip()
+        output = output.split(self.model.tokenizer.role_expr.format(role="assistant"))[
+            -1
+        ].strip()
         return output
 
     def preprocess(self, **kwargs):
         pass
+
 
 class MockSubtensor(bt.MockSubtensor):
     def __init__(self, netuid, n=16, wallet=None):

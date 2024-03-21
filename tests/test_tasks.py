@@ -41,35 +41,33 @@ def test_task_field_is_not_null(task: Task, field: str):
 
 @pytest.mark.parametrize("task", TASKS)
 def test_task_complete_is_false_on_init(task: Task):
-
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
     assert task.complete == False
 
 
 @pytest.mark.parametrize("task", TASKS)
 def test_task_contains_no_reference_if_not_static(task: Task):
-    task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task], create_reference=False)
+    task(
+        llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task], create_reference=False
+    )
     assert task.static_reference or not task.reference
 
 
 @pytest.mark.parametrize("task", TASKS)
 def test_task_contains_query_time(task: Task):
-
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
-    assert task.static_reference or task.reference_time>=0
+    assert task.static_reference or task.reference_time >= 0
 
 
 @pytest.mark.parametrize("task", TASKS)
 def test_task_contains_reference_time(task: Task):
-
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
-    assert task.static_query or task.query_time>=0
+    assert task.static_query or task.query_time >= 0
 
 
 @pytest.mark.parametrize("task", TASKS)
 @pytest.mark.parametrize("full", (True, False))
 def test_task_state_dict(task: Task, full: bool):
-
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
     assert type(task.__state_dict__(full)) == dict
 
@@ -82,7 +80,6 @@ def test_task_state_dict(task: Task, full: bool):
 def test_task_contains_required_definition(
     task: Task, definition: str, expected_weight: float
 ):
-
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
     model_infos = getattr(task, definition)
     total_weight = 0
