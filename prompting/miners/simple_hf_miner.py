@@ -122,7 +122,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             streamer = HuggingFaceLLM(
                     llm_pipeline=self.llm_pipeline,
                     system_prompt=self.system_prompt,
-                    max_new_tokens=128,
+                    max_new_tokens=self.config.neuron.max_tokens,
                     do_sample=self.config.neuron.do_sample,
                     temperature=self.config.neuron.temperature,
                     top_k=self.config.neuron.top_k,
@@ -187,11 +187,13 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             finally:
                 # _ = task.result() # wait for thread to finish                                
                 bt.logging.debug('Finishing streaming loop...')
-                bt.logging.info('-' * 50)
-                bt.logging.info(f'Received message: {synapse.messages[0]}')
-                bt.logging.info('-' * 50)
-                bt.logging.info(f'Returned message: {temp_completion}')
-                bt.logging.info('-' * 50)
+                bt.logging.debug('-' * 50)
+                bt.logging.debug(f'---->>> Received message:')
+                bt.logging.debug(synapse.messages[0])
+                bt.logging.debug('-' * 50)
+                bt.logging.debug(f'<<<----- Returned message:')
+                bt.logging.debug(temp_completion)
+                bt.logging.debug('-' * 50)
 
                 synapse_latency = time.time() - init_time
                 

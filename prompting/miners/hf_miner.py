@@ -111,12 +111,12 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         self.thread.join()
     
     async def start_llm_generation(self, prompt, timeout = 5):
-        bt.logging.warning(f"🛑 Attempting to acquire the lock for llm in {timeout} seconds - task_id: {id(asyncio.current_task())}")
+        bt.logging.debug(f"🛑 Attempting to acquire the lock for llm in {timeout} seconds - task_id: {id(asyncio.current_task())}")
         
         try:                        
             await asyncio.wait_for(self.lock.acquire(), timeout)            
-            bt.logging.warning("🔒 Lock acquired. Accessing the shared resource...")                        
-            bt.logging.warning('📦 Starting llm generation, populating streamer...')
+            bt.logging.debug("🔒 Lock acquired. Accessing the shared resource...")                        
+            bt.logging.debug('📦 Starting llm generation, populating streamer...')
             response = HuggingFaceLLM(
                     llm_pipeline=self.llm_pipeline,
                     system_prompt=self.system_prompt,
@@ -127,7 +127,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                     top_p=self.config.neuron.top_p,
                 ).query(message=prompt, role="user", disregard_system_prompt=False)
             
-            bt.logging.warning('🧼 Generation completed, cleaning streamer...')
+            bt.logging.debug('🧼 Generation completed, cleaning streamer...')
             if self.streamer.has_data():
                 self.streamer.clear_queue()
             
@@ -142,7 +142,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             bt.logging.error(f"Error in forward: {e}")
             
         finally:
-            bt.logging.warning(f"🔓 Releasing lock from task_id {id(asyncio.current_task())}") 
+            bt.logging.debug(f"🔓 Releasing lock from task_id {id(asyncio.current_task())}") 
             self.lock.release()
             bt.logging.success(f"🟢 Semaphore released from task_id {id(asyncio.current_task())}")
                        
@@ -174,14 +174,27 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
             buffer = []
             temp_completion = ""  # for wandb logging
             timeout_reached = False
+            system_message = ""
             
             # loop.run_until_complete(task)
             asyncio.run_coroutine_threadsafe(task, self.loop)
             bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
                                     
-            try:                
+            try:
+                synapse_message = synapse.messages[-1]    
                 for token in streamer:
-                    buffer.append(token)
+                    system_message += token                                        
+                    
+                    buffer.append(token)                    
+                    system_message += "".join(buffer)
+                    
+                    if synapse_message in system_message:
+                        # Cleans system message and challenge from model response
+                        bt.logging.debug(f"Discarding initial system_prompt / user prompt inputs from generation...")
+                        buffer=[]
+                        system_message = ""
+                        continue
+                    
 
                     if time.time() - init_time > timeout_threshold:
                         bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
@@ -190,8 +203,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
                     if len(buffer) == self.config.neuron.streaming_batch_size:
                         joined_buffer = "".join(buffer)
-                        temp_completion += joined_buffer
-                        # bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                        temp_completion += joined_buffer                        
 
                         await send(
                             {
@@ -206,8 +218,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                     buffer and not timeout_reached
                 ):  # Don't send the last buffer of data if timeout.
                     joined_buffer = "".join(buffer)
-                    temp_completion += joined_buffer
-                    # bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                    temp_completion += joined_buffer                    
 
                     await send(
                         {
@@ -216,7 +227,6 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                             "more_body": False,
                         }
                     )
-                bt.logging.debug('Finishing streaming loop...')
 
             except Exception as e:
                 bt.logging.error(f"Error in forward: {e}")
@@ -224,14 +234,15 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                     self.should_exit = True
 
             finally:
-                _ = task.result() # wait for thread to finish
-                
-                bt.logging.info('-' * 50)
-                bt.logging.info(f'Received message: {synapse.messages[0]}')
-                bt.logging.info('-' * 50)
-                bt.logging.info(f'Returned message: {"".join(buffer)}')
-                bt.logging.info('-' * 50)
-                
+                #_ = task.result() # wait for thread to finish          
+                bt.logging.debug('Finishing streaming loop...')
+                bt.logging.debug('-' * 50)
+                bt.logging.debug(f'---->>> Received message:')
+                bt.logging.debug(synapse.messages[0])
+                bt.logging.debug('-' * 50)
+                bt.logging.debug(f'<<<----- Returned message:')
+                bt.logging.debug(temp_completion)
+                bt.logging.debug('-' * 50)                  
                 synapse_latency = time.time() - init_time
                 
                 if self.config.wandb.on:
