@@ -106,8 +106,7 @@ class BaseNeuron(ABC):
         ...
 
     @abstractmethod
-    def run(self):
-        ...
+    def run(self): ...
 
     def sync(self):
         """

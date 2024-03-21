@@ -14,14 +14,11 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
-
 import time
 import torch
 import bittensor as bt
-
 from prompting.forward import forward
-from prompting.llm import load_pipeline
+from prompting.llms import HuggingFacePipeline, vLLMPipeline
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.rewards import RewardPipeline
 
@@ -35,11 +32,10 @@ class Validator(BaseValidatorNeuron):
         super(Validator, self).__init__(config=config)
 
         bt.logging.info("load_state()")
-        self.load_state()
-
-        self.llm_pipeline = load_pipeline(
+        self.load_state()        
+        
+        self.llm_pipeline = vLLMPipeline(
             model_id=self.config.neuron.model_id,
-            torch_dtype=torch.bfloat16,
             device=self.device,
             mock=self.config.mock,
             return_streamer=False,
