@@ -210,9 +210,9 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
         token_streamer = partial(
             _forward,
             self,
-            prompt,            
+            prompt,
             init_time,
             timeout_threshold,
-        )                
+        )
 
         return synapse.create_streaming_response(token_streamer)
