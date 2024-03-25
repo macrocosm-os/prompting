@@ -23,18 +23,6 @@ git clone https://github.com/opentensor/prompting.git
 # Change to the prompting directory
 cd prompting
 
-# Install prompting package
-python3 -m pip install -e .
-
-python3 -m pip uninstall mathgenerator -y
-
-# Install Python dependencies
-python3 -m pip install -r requirements.txt
-
-# Uninstalling uvloop to prevent conflicts with bittensor
-python3 -m pip uninstall uvloop -y
-
-# Reinstalling pydantic and transformers with specific versions that work with our repository and vllm
-python3 -m pip install pydantic==1.10.7 transformers==4.36.2 angle_emb==0.3.8 peft==0.9.0
+bash install.sh
 
 echo "Script completed successfully."
