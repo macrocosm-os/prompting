@@ -13,4 +13,4 @@ pip install -r requirements.txt
 pip uninstall uvloop -y
 
 # Reinstalling pydantic and transformers with specific versions that work with our repository and vllm
-pip install pydantic==1.10.7 transformers==4.36.2
+pip install pydantic==1.10.7 transformers==4.36.2 angle_emb==0.3.8 peft==0.9.0
