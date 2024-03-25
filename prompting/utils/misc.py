@@ -113,23 +113,6 @@ def ttl_get_block(self) -> int:
     return self.subtensor.get_current_block()
 
 
-def threaded_log(func):
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        thread_id = threading.get_ident()
-        func_name = func.__name__
-        bt.logging.debug(f"Starting {func_name} on thread {thread_id} at {start_time}")
-        
-        # Execute the wrapped function
-        result = func(*args, **kwargs)
-        
-        end_time = time.time()
-        execution_time = end_time - start_time
-        bt.logging.debug(f"Completed {func_name} on thread {thread_id} in {execution_time} seconds")
-        
-        return result
-    return wrapper
-
 def async_log(func):
     async def wrapper(*args, **kwargs):
         start_time = time.time()
