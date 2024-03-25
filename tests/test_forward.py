@@ -36,7 +36,7 @@ async def mock_dendrite_call(delay=1, **kwargs):
 
 @pytest.mark.parametrize(
     "generate_reference_time, dendrite_time, expected_forward_time",
-    [(0.1, 0.1, 0.1), (0.2, 0.1, 0.2), (0.1, 0.2, 0.2)],
+    [(0.5, 0.5, 0.5), (0.5, 0.4, 0.5), (0.4, 0.5, 0.5)],
 )
 def test_generate_reference_parallel_to_dendrite(
     generate_reference_time, dendrite_time, expected_forward_time
