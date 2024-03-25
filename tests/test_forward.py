@@ -1,5 +1,4 @@
 import pytest
-import torch
 import time
 import asyncio
 import sys
@@ -10,39 +9,51 @@ from neurons.validator import Validator
 from prompting.tasks import Task, QuestionAnsweringTask
 from .fixtures.task import WIKI_CONTEXT
 from prompting.agent import HumanAgent
+from unittest.mock import patch, Mock
+from prompting.protocol import PromptingSynapse
 
-sys.argv = [__file__, '--mock', '--wandb.off','--neuron.tasks','qa']
+sys.argv = [__file__, "--mock", "--wandb.off", "--neuron.tasks", "qa"]
 mock_neuron = Validator()
 
-task = QuestionAnsweringTask(llm_pipeline=mock_neuron.llm_pipeline, context=WIKI_CONTEXT, create_reference=False)
+task = QuestionAnsweringTask(
+    llm_pipeline=mock_neuron.llm_pipeline, context=WIKI_CONTEXT, create_reference=False
+)
+
 
 def generate_reference(x, delay=1):
     time.sleep(delay)
-    return 'Fake reference'
+    return "Fake reference"
 
-@pytest.mark.parametrize('delay', [0.1, 0.2, 0.3])
-@pytest.mark.parametrize('timeout', [0.1, 0.2])
-@pytest.mark.parametrize('min_time', [0, 0.05, 0.1])
-@pytest.mark.parametrize('max_time', [0.1, 0.15, 0.2])
-def test_generate_reference_while_waiting_for_dendrite(delay, timeout, min_time, max_time):
 
-    # force the mock dendrite to take at least min_time to respond
-    mock_neuron.dendrite.min_time = min_time
-    mock_neuron.dendrite.max_time = max_time
-    task.generate_reference = partial(generate_reference, delay=delay)
-    agent = HumanAgent(task, mock_neuron.llm_pipeline)
+async def mock_dendrite_call(delay=1, **kwargs):
+    time.sleep(delay)
 
-    async def run():
-        return await run_step(mock_neuron, agent, k=4, timeout=timeout)
+    mock_synapse = PromptingSynapse(roles=["user"], messages=[""])
+    mock_synapse.completion = "Fake response"
 
-    event = asyncio.run(run())
+    return [mock_synapse]
 
-    step_time = event['step_time']
-    network_time = step_time - sum(event[key] for key in event if key.endswith('batch_time'))
-    eps = 0.1
-    assert network_time <= max(delay, max_time) + eps
 
-    # check that even when delay > timeout, the dendrites still have 200 status codes
-    # if delay > timeout:
-    #     status_codes = [status_code for status_code in event['status_codes']]
-    #     assert status_codes == [200] * len(status_codes)
+@pytest.mark.parametrize(
+    "generate_reference_time, dendrite_time, expected_forward_time",
+    [(0.1, 0.1, 0.1), (0.2, 0.1, 0.2), (0.1, 0.2, 0.2)],
+)
+def test_generate_reference_parallel_to_dendrite(
+    generate_reference_time, dendrite_time, expected_forward_time
+):
+    task.generate_reference = partial(generate_reference, delay=generate_reference_time)
+    mock_agent = HumanAgent(task, mock_neuron.llm_pipeline)
+
+    mock_neuron.dendrite = partial(mock_dendrite_call, delay=dendrite_time)
+
+    event = asyncio.run(run_step(mock_neuron, mock_agent, k=4, timeout=0.1))
+
+    step_time = event["step_time"]
+    reward_pipeline_time = sum(
+        event[key] for key in event if key.endswith("batch_time")
+    )
+    network_and_reference_gen_time = step_time - reward_pipeline_time
+
+    assert network_and_reference_gen_time == pytest.approx(
+        expected_forward_time, abs=0.1
+    )
