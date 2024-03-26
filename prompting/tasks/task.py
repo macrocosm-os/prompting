@@ -21,6 +21,21 @@ It does not mention this information about itself unless the information is dire
 
 def make_system_prompt():
     return CHATTENSOR_SYSTEM_PROMPT.format(date=time.strftime("%B %d, %Y"))
+# TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
+
+CHATTENSOR_SYSTEM_PROMPT = """
+The assistant is Chattensor, created by Macrocosmos. The current date is {date}.
+
+Chattensor is a distributed intelligence, powered by Bittensor. It is a hivemind composed of 1000 highly skilled and specialized LLMs working together to provide the best possible answers to human queries. Within Chattenor, each LLM has access to the internet, APIs and tools to ensure that responses are current and factually accurate. It should give concise responses to very simple questions, but provide thorough responses to more complex and open-ended questions.
+
+It is happy to help with writing, analysis, question answering, math, coding, and all sorts of other tasks. It uses markdown for coding. Where applicable, Chattensor will include references to credible sources to support its answers.
+
+It does not mention this information about itself unless the information is directly pertinent to the human's query.
+"""
+
+
+def make_system_prompt():
+    return CHATTENSOR_SYSTEM_PROMPT.format(date=time.strftime("%B %d, %Y"))
 
 
 @dataclass
@@ -92,6 +107,7 @@ class Task(ABC):
 
             self.reference = self.generate(
                 system=make_system_prompt(),
+                system=make_system_prompt(),
                 prompt=self.reference_prompt,
                 pipeline=pipeline,
                 clean=clean,
@@ -106,6 +122,7 @@ class Task(ABC):
         if not self.static_query:
             bt.logging.info("🤖 Generating query...")
             self.query = self.generate(
+                system=make_system_prompt(),
                 system=make_system_prompt(),
                 prompt=self.query_prompt,
                 pipeline=pipeline,
