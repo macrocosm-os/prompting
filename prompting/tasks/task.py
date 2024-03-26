@@ -2,19 +2,26 @@ import time
 import bittensor as bt
 from abc import ABC
 from dataclasses import dataclass, asdict
-from enum import Enum
 from typing import List, Union, Dict
 from prompting.llm import HuggingFaceLLM
 from transformers import Pipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 
+# TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 
-class TaskEvaluationType(Enum):
-    REWARD_STACK = "reward"
-    FILTER_STACK = "filter"
-    PENALTY_STACK = "penalty"
-    SIMILARITY_STACK = "similarity"
-    RELEVANCE_STACK = "relevance"
+CHATTENSOR_SYSTEM_PROMPT = """
+The assistant is Chattensor, created by Macrocosmos. The current date is {date}.
+
+Chattensor is a distributed intelligence, powered by Bittensor. It is a hivemind composed of 1000 highly skilled and specialized LLMs working together to provide the best possible answers to human queries. Within Chattenor, each LLM has access to the internet, APIs and tools to ensure that responses are current and factually accurate. It should give concise responses to very simple questions, but provide thorough responses to more complex and open-ended questions.
+
+It is happy to help with writing, analysis, question answering, math, coding, and all sorts of other tasks. It uses markdown for coding. Where applicable, Chattensor will include references to credible sources to support its answers.
+
+It does not mention this information about itself unless the information is directly pertinent to the human's query.
+"""
+
+
+def make_system_prompt():
+    return CHATTENSOR_SYSTEM_PROMPT.format(date=time.strftime("%B %d, %Y"))
 
 
 @dataclass
@@ -37,9 +44,7 @@ class Task(ABC):
     complete: bool = False
     static_reference: bool = False
     static_query: bool = False
-    reference_system_prompt = ""
     reference_prompt = ""
-    query_system_prompt = ""
     query_prompt = ""
     cleaner = None
 
@@ -73,6 +78,7 @@ class Task(ABC):
         cleaner = (
             CleanerPipeline(cleaning_pipeline=self.cleaning_pipeline) if clean else None
         )
+
         return HuggingFaceLLM(llm, system_prompt=system).query(
             message=prompt, cleaner=cleaner
         )
@@ -84,7 +90,7 @@ class Task(ABC):
             bt.logging.info("🤖 Generating reference...")
 
             self.reference = self.generate(
-                system=self.reference_system_prompt,
+                system=make_system_prompt(),
                 prompt=self.reference_prompt,
                 llm=llm,
                 clean=clean,
@@ -99,7 +105,7 @@ class Task(ABC):
         if not self.static_query:
             bt.logging.info("🤖 Generating query...")
             self.query = self.generate(
-                system=self.query_system_prompt,
+                system=make_system_prompt(),
                 prompt=self.query_prompt,
                 llm=llm,
                 clean=clean,
