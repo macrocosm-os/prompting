@@ -1,11 +1,14 @@
-from .task import Task
+from .task import Task, CHATTENSOR_SYSTEM_PROMPT
 from .debugging import DebuggingTask
 from .summarization import SummarizationTask
 from .qa import QuestionAnsweringTask
 from .date_qa import DateQuestionAnsweringTask
-from .generic_instruction import GenericInstructionTask
+from .generic import GenericInstructionTask
 from .math import MathTask
 from .sentiment import SentimentAnalysisTask
+from .generic import GenericInstructionTask
+from .translate import TranslationTask
+from .howto import HowToTask
 
 TASKS = {
     "qa": QuestionAnsweringTask,
@@ -14,4 +17,7 @@ TASKS = {
     # "debugging": DebuggingTask,
     "math": MathTask,
     "sentiment": SentimentAnalysisTask,
+    "generic": GenericInstructionTask,
+    "translation": TranslationTask,
+    "howto": HowToTask,
 }
