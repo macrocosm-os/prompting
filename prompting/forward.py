@@ -18,6 +18,7 @@
 
 import time
 import sys
+import asyncio
 import numpy as np
 import bittensor as bt
 
@@ -29,6 +30,22 @@ from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
+from prompting.utils.misc import async_log
+
+
+@async_log
+async def generate_reference(agent):
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(
+        None, agent.task.generate_reference, agent.llm_pipeline
+    )
+    return result
+
+
+@async_log
+async def execute_dendrite_call(dendrite_call):
+    responses = await dendrite_call
+    return responses
 
 
 async def handle_response(responses: Dict[int, Awaitable]) -> List[bt.Synapse]:
@@ -137,13 +154,12 @@ async def run_step(
         **response_event.__state_dict__(),
     }
 
-    log_event(self, event)
-
     return event
 
 
 async def forward(self):
     bt.logging.info("🚀 Starting forward loop...")
+    forward_start_time = time.time()
 
     while True:
         bt.logging.info(
@@ -155,7 +171,11 @@ async def forward(self):
         )
         bt.logging.info(f"📋 Creating {task_name} task... ")
         try:
-            task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name)
+            task = create_task(
+                llm_pipeline=self.llm_pipeline,
+                task_name=task_name,
+                create_reference=False,
+            )
             break
         except Exception as e:
             bt.logging.error(
@@ -180,6 +200,11 @@ async def forward(self):
             timeout=self.config.neuron.timeout,
             exclude=exclude_uids,
         )
+
+        # Adds forward time to event and logs it to wandb
+        event["forward_time"] = time.time() - forward_start_time
+        log_event(self, event)
+
         exclude_uids += event["uids"]
         task.complete = True
 

@@ -269,7 +269,7 @@ def add_validator_args(cls, parser):
         "--neuron.model_id",
         type=str,
         help="The model to use for the validator.",
-        default="HuggingFaceH4/zephyr-7b-beta",
+        default="NousResearch/Nous-Hermes-2-SOLAR-10.7B",
     )
 
     parser.add_argument(

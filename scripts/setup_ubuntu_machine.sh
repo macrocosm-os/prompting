@@ -23,10 +23,6 @@ git clone https://github.com/opentensor/prompting.git
 # Change to the prompting directory
 cd prompting
 
-# Install Python dependencies
-python3 -m pip install -r requirements.txt
-
-# Install prompting package
-python3 -m pip install -e .
+bash install.sh
 
 echo "Script completed successfully."
