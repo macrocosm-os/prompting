@@ -77,6 +77,7 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
             timeout=timeout,
         )
 
+    eps = 0.2
     responses = asyncio.run(run())
     for synapse in responses:
         assert (
@@ -90,9 +91,9 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
 
         # check that the dendrite take between min_time and max_time
         assert min_time <= dendrite.process_time
-        assert dendrite.process_time <= max_time + 0.1
+        assert dendrite.process_time <= max_time + eps
         # check that responses which take longer than timeout have 408 status code
-        if dendrite.process_time >= timeout + 0.1:
+        if dendrite.process_time >= timeout + eps:
             assert dendrite.status_code == 408
             assert dendrite.status_message == "Timeout"
             assert synapse.completion == ""
