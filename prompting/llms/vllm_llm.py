@@ -154,14 +154,14 @@ class vLLM_LLM(BaseLLM):
 
         for message in messages:
             if message["role"] == "system":
-                composed_prompt += f'<|system|>{message["content"]} '
+                composed_prompt += f'<|im_start|>system\n{message["content"]} <|im_end|>'
             elif message["role"] == "user":
-                composed_prompt += f'<|user|>{message["content"]} '
+                composed_prompt += f'<|im_start|>user\n{message["content"]} <|im_end|>'
             elif message["role"] == "assistant":
-                composed_prompt += f'<|assistant|>{message["content"]} '
+                composed_prompt += f'<|im_start|>assistant\n{message["content"]} <|im_end|>'
 
         # Adds final tag indicating the assistant's turn
-        composed_prompt += "<|assistant|>"
+        composed_prompt += "<|im_start|>assistant\n"
         return composed_prompt
 
     def forward(self, messages: List[Dict[str, str]]):
