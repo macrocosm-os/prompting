@@ -10,7 +10,7 @@ from prompting.tasks import Task, QuestionAnsweringTask
 from .fixtures.task import WIKI_CONTEXT
 from prompting.agent import HumanAgent
 from unittest.mock import patch, Mock
-from prompting.protocol import PromptingSynapse
+from prompting.protocol import PromptingSynapse, StreamPromptingSynapse
 
 sys.argv = [__file__, "--mock", "--wandb.off", "--neuron.tasks", "qa"]
 mock_neuron = Validator()
@@ -26,12 +26,16 @@ def generate_reference(x, delay=1):
 
 
 async def mock_dendrite_call(delay=1, **kwargs):
-    time.sleep(delay)
-
-    mock_synapse = PromptingSynapse(roles=["user"], messages=[""])
-    mock_synapse.completion = "Fake response"
-
-    return [mock_synapse]
+    time.sleep(delay)    
+    
+    async def async_fn_mock():                   
+        mock_synapse = StreamPromptingSynapse(roles=["user"], messages=[""])
+        mock_synapse.completion = "Fake response"
+            
+        yield mock_synapse
+            
+    mock_stream_synapse = async_fn_mock()                
+    return [mock_stream_synapse]
 
 
 @pytest.mark.parametrize(

@@ -111,7 +111,7 @@ async def run_step(
 
     axons = [self.metagraph.axons[uid] for uid in uids]
     # Make calls to the network with the prompt.
-    responses: List[StreamPromptingSynapse] = await self.dendrite(
+    streams_responses: List[StreamPromptingSynapse] = await self.dendrite(
         axons=axons,
         synapse=StreamPromptingSynapse(roles=["user"], messages=[agent.challenge]),
         timeout=timeout,
@@ -121,7 +121,7 @@ async def run_step(
 
     bt.logging.debug("uids", uids_cpu)
 
-    responses = await handle_response(responses=dict(zip(uids_cpu, responses)))
+    responses = await handle_response(responses=dict(zip(uids_cpu, streams_responses)))
 
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses=responses, uids=uids)
