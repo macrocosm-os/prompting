@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import sentry_sdk
 import time
 import bittensor as bt
 import argparse
@@ -128,6 +129,7 @@ class WikipediaAgentMiner(Miner):
 
             return synapse
         except Exception as e:
+            sentry_sdk.capture_exception()
             bt.logging.error(f"Error in forward: {e}")
             synapse.completion = "Error: " + str(e)
         finally:

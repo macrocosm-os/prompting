@@ -14,6 +14,7 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+import sentry_sdk
 import gc
 import time
 import torch
@@ -54,6 +55,7 @@ def load_vllm_pipeline(model_id: str, device: str, mock=False):
         # Attempt to initialize the LLM
         return LLM(model=model_id, gpu_memory_utilization=gpu_mem_utilization)
     except ValueError as e:
+        sentry_sdk.capture_exception()
         bt.logging.error(
             f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}"
         )
@@ -81,6 +83,7 @@ def load_vllm_pipeline(model_id: str, device: str, mock=False):
         # Attempt to initialize the LLM again with increased memory allocation
         return LLM(model=model_id, gpu_memory_utilization=gpu_mem_utilization)
     except Exception as e:
+        sentry_sdk.capture_exception()
         bt.logging.error(
             f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb_second_attempt}GB: {e}"
         )

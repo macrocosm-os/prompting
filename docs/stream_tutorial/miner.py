@@ -1,4 +1,5 @@
 import copy
+import sentry_sdk
 import time
 import asyncio
 import argparse
@@ -213,12 +214,14 @@ class StreamMiner(ABC):
 
         # If someone intentionally stops the miner, it'll safely terminate operations.
         except KeyboardInterrupt:
+            sentry_sdk.capture_exception()
             self.axon.stop()
             bt.logging.success("Miner killed by keyboard interrupt.")
             exit()
 
         # In case of unforeseen errors, the miner will log the error and continue operations.
         except Exception as e:
+            sentry_sdk.capture_exception()
             bt.logging.error(traceback.format_exc())
 
     def run_in_background_thread(self):

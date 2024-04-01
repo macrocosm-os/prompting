@@ -1,4 +1,5 @@
 import time
+import sentry_sdk
 import torch
 import re
 import pandas as pd
@@ -25,6 +26,7 @@ class DateRewardModel(BaseRewardModel):
                 int(ref_date[1]) - int(comp_date[1])
             )
         except Exception as e:
+            sentry_sdk.capture_exception()
             return 500
 
     def parse_dates_from_text(self, text: str) -> tuple:
@@ -61,6 +63,7 @@ class DateRewardModel(BaseRewardModel):
                     else:
                         raise ValueError
                 except ValueError:
+                    sentry_sdk.capture_exception()
                     pass
 
         return

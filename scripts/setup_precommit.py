@@ -1,4 +1,5 @@
 import os
+import sentry_sdk
 import subprocess
 
 
@@ -12,6 +13,7 @@ def write_to_pre_commit(content):
                 pre_commit_file.write(content)
                 print("Success: .git/hooks directory was found. Pre-commit hooks set.")
             except Exception as e:
+                sentry_sdk.capture_exception()
                 print(f"Error setting up pre-commit hooks: {e}")
 
         # Add execute permission to the pre-commit hook file
@@ -19,6 +21,7 @@ def write_to_pre_commit(content):
             subprocess.run(["chmod", "+x", pre_commit_path], check=True)
             print("Success: Pre-commit hook file set to executable.")
         except subprocess.CalledProcessError as e:
+            sentry_sdk.capture_exception()
             print(f"Error setting execute permission on pre-commit hook file: {e}")
     else:
         print("Warning: .git/hooks directory not found. Pre-commit hook was not set.")

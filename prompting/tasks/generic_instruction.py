@@ -1,4 +1,5 @@
 import re
+import sentry_sdk
 import bittensor as bt
 from dataclasses import dataclass
 from tenacity import retry, stop_after_attempt
@@ -135,6 +136,7 @@ class GenericInstructionTask(Task):
 
             return instruction, reference
         except Exception as e:
+            sentry_sdk.capture_exception()
             bt.logging.error(
                 f"Failed to create instruction and reference text: {e}, retrying..."
             )

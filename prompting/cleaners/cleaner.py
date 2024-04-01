@@ -1,5 +1,6 @@
 from typing import List, Dict
 
+import sentry_sdk
 import bittensor as bt
 
 from prompting.cleaners.all_cleaners import RemoveQuotes, RemoveRoles, PruneEnding
@@ -49,6 +50,7 @@ class CleanerPipeline:
             return generation
 
         except Exception as E:
+            sentry_sdk.capture_exception()
             bt.logging.error(
                 f"Failed to apply cleaning pipeline {cleaner['name']}. {E},"
             )

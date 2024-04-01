@@ -16,6 +16,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import sentry_sdk
 import re
 import sys
 import random
@@ -49,6 +50,7 @@ def _get_page(
         return page
 
     except wiki.DisambiguationError as e:
+        sentry_sdk.capture_exception()
         bt.logging.debug(f"{e.__class__.__name__} loading page {title!r}: {e}")
         # exc info contains a tuple of (requested_title: str, possible_matches: List[str])
         pages = sys.exc_info()[1].args[1]
@@ -58,6 +60,7 @@ def _get_page(
         return _get_page(title, auto_suggest=auto_suggest, redirect=redirect)
 
     except wiki.PageError as e:
+        sentry_sdk.capture_exception()
         bt.logging.warning(f"{e.__class__.__name__} loading page {title!r}: {e}")
         if not auto_suggest:
             return _get_page(title, auto_suggest=True, redirect=redirect)

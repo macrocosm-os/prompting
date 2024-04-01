@@ -1,4 +1,5 @@
 import time
+import sentry_sdk
 import torch
 from typing import List
 from sympy.parsing.sympy_parser import parse_expr
@@ -23,10 +24,12 @@ class FloatDiffModel(BaseRewardModel):
             try:
                 return float(parse_expr(cleaned).evalf())
             except Exception:
+                sentry_sdk.capture_exception()
                 # fall back to simpler parsing if required
                 try:
                     return float(cleaned)
                 except Exception:
+                    sentry_sdk.capture_exception()
                     continue
 
     @staticmethod
@@ -50,6 +53,7 @@ class FloatDiffModel(BaseRewardModel):
                 diff = 1.0
             return 1.0 - diff
         except Exception:
+            sentry_sdk.capture_exception()
             return 0.0
 
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:

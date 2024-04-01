@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import sentry_sdk
 import time
 import torch
 import argparse
@@ -128,12 +129,14 @@ class BaseMinerNeuron(BaseNeuron):
 
         # If someone intentionally stops the miner, it'll safely terminate operations.
         except KeyboardInterrupt:
+            sentry_sdk.capture_exception()
             self.axon.stop()
             bt.logging.success("Miner killed by keyboard interrupt.")
             exit()
 
         # In case of unforeseen errors, the miner will log the error and continue operations.
         except Exception as err:
+            sentry_sdk.capture_exception()
             bt.logging.error("Error during mining", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
             self.should_exit = True

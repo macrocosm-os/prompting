@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import sentry_sdk
 import time
 import torch
 import argparse
@@ -126,6 +127,7 @@ class ZephyrMiner(Miner):
             self.step += 1
 
         except Exception as e:
+            sentry_sdk.capture_exception()
             bt.logging.error(f"Error: {e}")
             synapse.completion = "Error: " + str(e)
         finally:

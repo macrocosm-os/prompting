@@ -16,6 +16,7 @@
 # DEALINGS IN
 #  THE SOFTWARE.
 
+import sentry_sdk
 import time
 import sys
 import asyncio
@@ -125,6 +126,7 @@ async def forward(self):
             task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name, create_reference=False)
             break
         except Exception as e:
+            sentry_sdk.capture_exception()
             bt.logging.error(
                 f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
             )
