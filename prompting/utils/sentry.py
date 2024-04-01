@@ -13,11 +13,10 @@ def init_sentry(config : Config, tags : dict = {}):
     sentry_sdk.init(
         dsn=config.sentry_dsn,
         release=__version__,
+        environment=f"subnet #{config.netuid}",
         traces_sample_rate=1.0,
         profiles_sample_rate=1.0
     )
-
-    sentry_sdk.set_tag("netuid", config.netuid)
 
     for key, value in tags.items():
         sentry_sdk.set_tag(key, value)
