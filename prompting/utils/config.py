@@ -132,6 +132,13 @@ def add_args(cls, parser):
         default="",
     )
 
+    parser.add_argument(
+        "--sentry-dsn",
+        type=str,
+        default=None,
+        help="The url that sentry will use to send exception information to"
+    )
+
 
 def add_miner_args(cls, parser):
     """Add miner specific arguments to the parser."""

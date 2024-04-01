@@ -30,7 +30,7 @@ from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
-
+from prompting.utils.sentry import init_sentry
 
 class BaseValidatorNeuron(BaseNeuron):
     """
@@ -44,6 +44,8 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def __init__(self, config=None):
         super().__init__(config=config)
+
+        init_sentry(self.config, {"node-type": "validator"})
 
         # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)

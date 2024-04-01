@@ -23,6 +23,7 @@ import threading
 import bittensor as bt
 from prompting.base.neuron import BaseNeuron
 from prompting.utils.config import add_miner_args
+from prompting.utils.sentry import init_sentry
 from traceback import print_exception
 
 
@@ -38,6 +39,8 @@ class BaseMinerNeuron(BaseNeuron):
 
     def __init__(self, config=None):
         super().__init__(config=config)
+
+        init_sentry(self.config, {"node-type": "validator"})
 
         # Warn if allowing incoming requests from anyone.
         if not self.config.blacklist.force_validator_permit:
