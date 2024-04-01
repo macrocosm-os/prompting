@@ -65,7 +65,7 @@ class BaseNeuron(ABC):
         self.config.merge(base_config)
         self.check_config(self.config)
 
-        init_sentry(self.config, {"node-type": neuron_type})
+        init_sentry(self.config, {"neuron-type": neuron_type})
 
         # Set up logging with the provided configuration and directory.
         bt.logging(config=self.config, logging_dir=self.config.full_path)
