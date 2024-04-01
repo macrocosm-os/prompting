@@ -28,6 +28,7 @@ from prompting.utils.misc import ttl_get_block
 from prompting import __spec_version__ as spec_version
 
 from prompting.mock import MockSubtensor, MockMetagraph
+from prompting.utils.sentry import init_sentry
 
 
 class BaseNeuron(ABC):
@@ -58,11 +59,13 @@ class BaseNeuron(ABC):
     def block(self):
         return ttl_get_block(self)
 
-    def __init__(self, config=None):
+    def __init__(self, neuron_type, config=None):
         base_config = copy.deepcopy(config or BaseNeuron._config())
         self.config = self._config()
         self.config.merge(base_config)
         self.check_config(self.config)
+
+        init_sentry(self.config, {"node-type": neuron_type})
 
         # Set up logging with the provided configuration and directory.
         bt.logging(config=self.config, logging_dir=self.config.full_path)

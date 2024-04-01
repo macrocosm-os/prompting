@@ -39,9 +39,7 @@ class BaseMinerNeuron(BaseNeuron):
         add_miner_args(cls, parser)
 
     def __init__(self, config=None):
-        super().__init__(config=config)
-
-        init_sentry(self.config, {"node-type": "miner"})
+        super().__init__(config=config, neuron_type="miner")
 
         # Warn if allowing incoming requests from anyone.
         if not self.config.blacklist.force_validator_permit:

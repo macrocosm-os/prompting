@@ -44,9 +44,9 @@ class BaseValidatorNeuron(BaseNeuron):
         add_validator_args(cls, parser)
 
     def __init__(self, config=None):
-        super().__init__(config=config)
+        super().__init__(config=config, neuron_type="validator")
 
-        init_sentry(self.config, {"node-type": "validator"})
+        
 
         # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
