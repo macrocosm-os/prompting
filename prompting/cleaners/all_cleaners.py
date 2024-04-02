@@ -65,6 +65,7 @@ class RemoveRoles(BaseCleaner):
             "Dear AI, ",
             "Dear AI ",
             "#Question: ",
+            "<|im_start|>",
         ]
         for role in roles:
             if role in generation:
