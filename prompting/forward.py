@@ -48,6 +48,7 @@ async def execute_dendrite_call(dendrite_call):
     return responses
 
 
+@async_log
 async def handle_response(responses: Dict[int, Awaitable]) -> List[bt.Synapse]:
     """handles calling the async Awaitable generators.
     Args:
@@ -110,14 +111,22 @@ async def run_step(
     bt.logging.debug("uids", uids_cpu)
 
     axons = [self.metagraph.axons[uid] for uid in uids]
-    # Make calls to the network with the prompt.
-    streams_responses: List[StreamPromptingSynapse] = await self.dendrite(
-        axons=axons,
-        synapse=StreamPromptingSynapse(roles=["user"], messages=[agent.challenge]),
-        timeout=timeout,
-        deserialize=False,
-        streaming=True,
-    )
+
+        # Prepare the tasks
+    dendrite_call_task = execute_dendrite_call(
+        self.dendrite(
+            axons=axons,
+            synapse= StreamPromptingSynapse(roles=["user"], messages=[agent.challenge]), 
+            timeout=timeout,
+            deserialize=False,
+            streaming=True
+    ))
+    
+    if not agent.task.static_reference:            
+        reference_generation_task = generate_reference(agent)
+        _, streams_responses = await asyncio.gather(reference_generation_task, dendrite_call_task)
+    else:
+        streams_responses = await dendrite_call_task                
 
     bt.logging.debug("uids", uids_cpu)
 
