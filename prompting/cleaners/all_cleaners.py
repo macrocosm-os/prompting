@@ -69,7 +69,6 @@ class RemoveRoles(BaseCleaner):
             "<|im_end}>,
             "<i>",
             "</i>",
-            
         ]
         for role in roles:
             if role in generation:
