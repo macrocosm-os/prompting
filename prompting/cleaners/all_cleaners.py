@@ -66,7 +66,7 @@ class RemoveRoles(BaseCleaner):
             "Dear AI ",
             "#Question: ",
             "<|im_start|>",
-            "<|im_end|>,
+            "<|im_end|>",
             "<i>",
             "</i>",
         ]
