@@ -349,7 +349,7 @@ class WikiDateDataset(Dataset):
         return self.get(date, selector=selector)
 
 
-class WikiHowwDataset(Dataset):
+class WikiHowDataset(Dataset):
     """Wikipedia how-to dataset. Uses the wikihow python api to fetch articles and sections."""
 
     def __init__(
