@@ -1,6 +1,5 @@
 import random
 import bittensor as bt
-from dataclasses import dataclass
 from prompting.tasks import Task
 import difflib
 
@@ -103,9 +102,15 @@ def diff(query, reference):
     return "\n".join(difflib.unified_diff(query.splitlines(), reference.splitlines()))
 
 
-@dataclass
-class DebuggingTask(Task):
+PARAPHRASE_TEMPLATE = """\
 
+How do I debug the following code?
+
+{code}
+"""
+
+
+class DebuggingTask(Task):
     name = "debugging"
     desc = "get help with debugging"
     goal = "ask for help fixing broken code."
@@ -118,7 +123,6 @@ class DebuggingTask(Task):
     static_query = True
 
     def __init__(self, llm_pipeline, context, create_reference=True):
-
         self.context = context
 
         # No LLM involved in generating the query, we just apply some language-independent corruption to the code
