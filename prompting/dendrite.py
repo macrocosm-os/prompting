@@ -4,10 +4,14 @@ from typing import List
 
 
 class DendriteResponseEvent:
-    def __init__(self, responses: List[bt.Synapse], uids: torch.LongTensor):
+    def __init__(
+        self, responses: List[bt.Synapse], uids: torch.LongTensor, timeout: float
+    ):
         self.uids = uids
         self.completions = [synapse.completion for synapse in responses]
-        self.timings = [synapse.dendrite.process_time or 0 for synapse in responses]
+        self.timings = [
+            synapse.dendrite.process_time or timeout for synapse in responses
+        ]
         self.status_messages = [
             synapse.dendrite.status_message for synapse in responses
         ]

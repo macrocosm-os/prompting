@@ -107,7 +107,9 @@ async def run_step(
     responses = await handle_response(responses=dict(zip(uids_cpu, responses)))
 
     # Encapsulate the responses in a response event (dataclass)
-    response_event = DendriteResponseEvent(responses=responses, uids=uids)
+    response_event = DendriteResponseEvent(
+        responses=responses, uids=uids, timeout=timeout
+    )
 
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
     # Reward the responses and get the reward result (dataclass)
