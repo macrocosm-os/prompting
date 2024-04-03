@@ -97,12 +97,6 @@ class BaseValidatorNeuron(BaseNeuron):
         except Exception as e:
             bt.logging.error(f"Failed to create Axon initialize with exception: {e}")
 
-    async def concurrent_forward(self):
-        coroutines = [
-            self.forward() for _ in range(self.config.neuron.num_concurrent_forwards)
-        ]
-        await asyncio.gather(*coroutines)
-
     def run(self):
         """
         Initiates and manages the main loop for the miner on the Bittensor network. The main loop handles graceful shutdown on keyboard interrupts and logs unforeseen errors.
@@ -144,7 +138,8 @@ class BaseValidatorNeuron(BaseNeuron):
 
                 # Run multiple forwards concurrently.
                 try:
-                    self.loop.run_until_complete(self.concurrent_forward())
+                    task = self.loop.create_task(self.forward())
+                    self.loop.run_until_complete(task)
                 except torch.cuda.OutOfMemoryError as e:
                     bt.logging.error(f"Out of memory error: {e}")
                     continue

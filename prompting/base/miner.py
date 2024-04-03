@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import torch
 import argparse
 import asyncio
 import threading

@@ -18,7 +18,7 @@
 
 import time
 import asyncio
-import threading
+import traceback
 import bittensor as bt
 from math import floor
 from typing import Callable, Any
@@ -132,3 +132,14 @@ def async_log(func):
         return result
 
     return wrapper
+
+
+def serialize_exception_to_string(e):    
+    if isinstance(e, BaseException):
+        # Format the traceback
+        tb_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+        # Combine type, message, and traceback into one string
+        serialized_str = f"Exception Type: {type(e).__name__}, Message: {str(e)}, Traceback: {tb_str}"
+        return serialized_str
+    else:        
+        return e
