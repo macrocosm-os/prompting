@@ -71,7 +71,9 @@ class Task(ABC):
 
         return state
 
-    def generate(self, system: str, prompt: str, pipeline: BasePipeline, clean=True) -> str:
+    def generate(
+        self, system: str, prompt: str, pipeline: BasePipeline, clean=True
+    ) -> str:
         """Uses the llm to generate a response to a prompt"""
 
         cleaner = (

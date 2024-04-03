@@ -65,17 +65,17 @@ class MockPipeline:
         return self.postprocess(output)
 
     def postprocess(self, output, **kwargs):
-        output = output.split(
-            self.model.tokenizer.role_expr.format(role="assistant")
-        )[-1].strip()
+        output = output.split(self.model.tokenizer.role_expr.format(role="assistant"))[
+            -1
+        ].strip()
         return output
 
     def preprocess(self, **kwargs):
         pass
 
+
 class MockSubtensor(bt.MockSubtensor):
     def __init__(self, netuid, n=16, wallet=None):
-
         super().__init__()
         # reset the underlying subtensor state
         self.chain_state = None
@@ -106,7 +106,6 @@ class MockSubtensor(bt.MockSubtensor):
 
 
 class MockMetagraph(bt.metagraph):
-
     default_ip = "127.0.0.0"
     default_port = 8091
 
@@ -142,7 +141,6 @@ class MockDendrite(bt.dendrite):
         run_async: bool = True,
         streaming: bool = False,
     ):
-
         if streaming:
             raise NotImplementedError("Streaming not implemented yet.")
 

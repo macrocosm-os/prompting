@@ -32,8 +32,8 @@ class Validator(BaseValidatorNeuron):
         super(Validator, self).__init__(config=config)
 
         bt.logging.info("load_state()")
-        self.load_state()        
-        
+        self.load_state()
+
         self.llm_pipeline = vLLMPipeline(
             model_id=self.config.neuron.model_id,
             device=self.device,
@@ -66,7 +66,6 @@ class Validator(BaseValidatorNeuron):
         return await forward(self)
 
     def __enter__(self):
-
         if self.config.no_background_thread:
             bt.logging.warning("Running validator in main thread.")
             self.run()

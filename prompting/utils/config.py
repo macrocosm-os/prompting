@@ -23,6 +23,7 @@ import bittensor as bt
 from loguru import logger
 from prompting.tasks import TASKS
 
+
 def check_config(cls, config: "bt.Config"):
     r"""Checks/validates the config namespace object."""
     bt.logging.check_config(config)

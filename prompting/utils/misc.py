@@ -116,7 +116,7 @@ def ttl_get_block(self) -> int:
 def async_log(func):
     async def wrapper(*args, **kwargs):
         start_time = time.time()
-        task_id =  id(asyncio.current_task())
+        task_id = id(asyncio.current_task())
         func_name = func.__name__
         bt.logging.debug(f"Starting {func_name} on task {task_id} at {start_time}")
 
@@ -125,7 +125,10 @@ def async_log(func):
 
         end_time = time.time()
         execution_time = end_time - start_time
-        bt.logging.debug(f"Completed {func_name} on task {task_id} in {execution_time} seconds")
+        bt.logging.debug(
+            f"Completed {func_name} on task {task_id} in {execution_time} seconds"
+        )
 
         return result
+
     return wrapper

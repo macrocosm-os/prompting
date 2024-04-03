@@ -30,16 +30,21 @@ from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log
 
+
 @async_log
-async def generate_reference(agent):    
+async def generate_reference(agent):
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
-    return result    
+    result = await loop.run_in_executor(
+        None, agent.task.generate_reference, agent.llm_pipeline
+    )
+    return result
+
 
 @async_log
 async def execute_dendrite_call(dendrite_call):
     responses = await dendrite_call
     return responses
+
 
 async def run_step(
     self, agent: HumanAgent, k: int, timeout: float, exclude: list = None
@@ -67,14 +72,22 @@ async def run_step(
     axons = [self.metagraph.axons[uid] for uid in uids]
 
     # Prepare the tasks
-    dendrite_call_task = execute_dendrite_call(self.dendrite(axons=axons, synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]), timeout=timeout))
-    
-    if not agent.task.static_reference:            
+    dendrite_call_task = execute_dendrite_call(
+        self.dendrite(
+            axons=axons,
+            synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]),
+            timeout=timeout,
+        )
+    )
+
+    if not agent.task.static_reference:
         reference_generation_task = generate_reference(agent)
-        _, responses = await asyncio.gather(reference_generation_task, dendrite_call_task)
+        _, responses = await asyncio.gather(
+            reference_generation_task, dendrite_call_task
+        )
     else:
-        responses = await dendrite_call_task    
-            
+        responses = await dendrite_call_task
+
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses, uids)
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
@@ -122,7 +135,11 @@ async def forward(self):
         )
         bt.logging.info(f"📋 Creating {task_name} task... ")
         try:
-            task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name, create_reference=False)
+            task = create_task(
+                llm_pipeline=self.llm_pipeline,
+                task_name=task_name,
+                create_reference=False,
+            )
             break
         except Exception as e:
             bt.logging.error(
@@ -147,11 +164,11 @@ async def forward(self):
             timeout=self.config.neuron.timeout,
             exclude=exclude_uids,
         )
-        
+
         # Adds forward time to event and logs it to wandb
-        event['forward_time'] = time.time() - forward_start_time        
+        event["forward_time"] = time.time() - forward_start_time
         log_event(self, event)
-        
+
         exclude_uids += event["uids"]
         task.complete = True
 

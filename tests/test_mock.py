@@ -12,7 +12,6 @@ wallet.create(coldkey_use_password=False)
 @pytest.mark.parametrize("n", [2, 4, 8, 16, 32, 64])
 @pytest.mark.parametrize("wallet", [wallet, None])
 def test_mock_subtensor(netuid, n, wallet):
-
     subtensor = MockSubtensor(netuid=netuid, n=n, wallet=wallet)
     neurons = subtensor.neurons(netuid=netuid)
     # Check netuid
