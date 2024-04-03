@@ -276,23 +276,38 @@ async def forward(self):
     rounds = 0
     exclude_uids = []
     while not agent.finished:
-        # when run_step is called, the agent updates its progress
-        event = await run_step(
-            self,
-            agent,
-            k=self.config.neuron.sample_size,
-            timeout=self.config.neuron.timeout,
-            exclude=exclude_uids,
-        )
+        # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step. 
+        # To be reconsidered in the next version.
+        try:            
+            # when run_step is called, the agent updates its progress
+            event = await run_step(
+                self,
+                agent,
+                k=self.config.neuron.sample_size,
+                timeout=self.config.neuron.timeout,
+                exclude=exclude_uids,
+            )
 
-        # Adds forward time to event and logs it to wandb
-        event["forward_time"] = time.time() - forward_start_time
-        log_event(self, event)
+            # Adds forward time to event and logs it to wandb
+            event["forward_time"] = time.time() - forward_start_time
+            log_event(self, event)
 
-        exclude_uids += event["uids"]
-        task.complete = True
+            exclude_uids += event["uids"]
+            task.complete = True
 
-        rounds += 1
+            rounds += 1
+        except BaseException as e:
+            unexpected_errors = serialize_exception_to_string(e)
+            bt.logging.error(
+                f"Error in run_step: Skipping to next round. \n {unexpected_errors}"
+            )
+            
+            event = {
+                'unexpect_errors': unexpected_errors
+            }
+            
+            log_event(self, event)                        
+            continue
 
     del agent
     del task
