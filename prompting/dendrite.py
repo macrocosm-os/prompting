@@ -32,6 +32,15 @@ class DendriteResponseEvent:
             else:
                 self.timings.append(0)  # situation where miner is not alive
 
+        self.completions = [synapse.completion for synapse in responses]
+        self.timings = [
+            synapse.dendrite.process_time or timeout for synapse in responses
+        ]
+        self.status_messages = [
+            synapse.dendrite.status_message for synapse in responses
+        ]
+        self.status_codes = [synapse.dendrite.status_code for synapse in responses]
+
     def __state_dict__(self):
         return {
             "uids": self.uids.tolist(),

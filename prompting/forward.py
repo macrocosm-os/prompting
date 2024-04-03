@@ -200,6 +200,7 @@ async def run_step(
     all_synapses_results = [stream_result.synapse for stream_result in stream_results]
 
     # Encapsulate the responses in a response event (dataclass)
+
     response_event = DendriteResponseEvent(responses=all_synapses_results, uids=uids, timeout=timeout)
 
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
