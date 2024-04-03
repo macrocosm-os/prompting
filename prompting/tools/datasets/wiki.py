@@ -22,6 +22,7 @@ import random
 import datetime
 import bittensor as bt
 import wikipedia as wiki
+import pywikihow as wikihow
 from typing import Dict, Union, List, Tuple
 
 from functools import lru_cache
@@ -346,3 +347,71 @@ class WikiDateDataset(Dataset):
     def random(self, selector: Selector = None, **kwargs) -> Dict:
         date = self._random_date()
         return self.get(date, selector=selector)
+
+
+class WikiHowwDataset(Dataset):
+    """Wikipedia how-to dataset. Uses the wikihow python api to fetch articles and sections."""
+
+    def __init__(
+        self,
+        min_length_words: int = 50,
+        max_links: int = 10,
+    ):
+        """
+        Args:
+            min_length_words (int, optional): Minimum section length. Defaults to 50.
+            max_links (int, optional): _description_. Defaults to 10.
+        """
+        self.min_length_words = min_length_words
+        self.max_links = max_links
+
+    def get(
+        self,
+        name: str,
+        selector: Selector = None,
+        include: List = None,
+        exclude: List = None,
+        **kwargs,
+    ) -> Dict:
+        """Get a specified Wikipedia page and extract a section based on the selector.
+
+        Args:
+            name (_type_): _description_
+            pageid (_type_, optional): _description_. Defaults to None.
+            auto_suggest (bool, optional): _description_. Defaults to True.
+            redirect (bool, optional): _description_. Defaults to True.
+            selector (Selector, optional): _description_. Defaults to None.
+            include (List, optional): _description_. Defaults to None.
+            exclude (List, optional): _description_. Defaults to None.
+
+        Returns:
+            Dict: _description_
+        """
+
+        page = wikihow.GetPage(name)
+        if page is None:
+            return None
+
+        return {
+            "title": name,  # title of wikihow article
+            "topic": page.topic,  # title of wiki section
+            "subtopic": page.subtopic,
+            "content": page.content,
+            "internal_links": list(filter(lambda x: x not in exclude, page.sections)),
+            "external_links": most_relevant_links(page, num_links=self.max_links),
+            "tags": filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
+            "extra": {
+                "url": page.url,
+                "page_length": len(page.content.split()),
+                "num_points": len(page.points),
+            },
+        }
+
+    def search(self, name, results=3, selector: Selector = None) -> Dict:
+        titles = wikihow.Search(name, results)
+        title = selector(titles)
+        return self.get(title, selector=selector)
+
+    def random(self, pages=10, seed=None, selector: Selector = None, **kwargs) -> Dict:
+        how_to = wikihow.RandomHowTo()
+        return self.get(how_to.name, selector=selector)
