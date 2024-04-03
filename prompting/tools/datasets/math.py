@@ -57,7 +57,7 @@ class MathDataset(Dataset):
         """
         bt.logging.info(f"Getting math problem {name!r}")
         info = mathgenerator.generate_context(name, **kwargs)
-        if info["reward_type"] != "float":
+        if info["reward_type"] != "float" or info["topic"] == 'computer_science':
             return None
 
         math_words = [

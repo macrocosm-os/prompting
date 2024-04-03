@@ -57,22 +57,21 @@ class MockPipeline:
     def __repr__(self):
         return f"{self.__class__.__name__}(phrase={self.model.phrase})"
 
-    def __call__(self, messages, **kwargs):
-        return self.forward(messages, **kwargs)
+    def __call__(self, composed_prompt, **kwargs):
+        return self.forward(composed_prompt, **kwargs)
 
     def forward(self, messages, **kwargs):
         output = self.model(messages)
         return self.postprocess(output)
 
     def postprocess(self, output, **kwargs):
-        output = output.split(self.model.tokenizer.role_expr.format(role="assistant"))[
-            -1
-        ].strip()
-        return [{"generated_text": output}]
+        output = output.split(
+            self.model.tokenizer.role_expr.format(role="assistant")
+        )[-1].strip()
+        return output
 
     def preprocess(self, **kwargs):
         pass
-
 
 class MockSubtensor(bt.MockSubtensor):
     def __init__(self, netuid, n=16, wallet=None):

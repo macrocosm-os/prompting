@@ -23,8 +23,8 @@ import bittensor as bt
 # Bittensor Miner Template:
 import prompting
 from prompting.protocol import PromptingSynapse
-from prompting.llm import load_pipeline
-from prompting.llm import HuggingFaceLLM
+from prompting.llms.hf import HuggingFacePipeline, HuggingFaceLLM
+from prompting.llms.hf import HuggingFaceLLM
 
 # import base miner class which takes care of most of the boilerplate
 from neurons.miner import Miner
@@ -63,10 +63,10 @@ class ZephyrMiner(Miner):
             if self.config.neuron.load_quantized:
                 self.identity_tags += ("8bits_quantization",)
 
-        self.llm_pipeline = load_pipeline(
+        self.llm_pipeline = HuggingFacePipeline(
             model_id=self.config.neuron.model_id,
-            torch_dtype=torch.float16,
             device=self.device,
+            torch_dtype=torch.float16,
             mock=self.config.mock,
             model_kwargs=model_kwargs,
         )
