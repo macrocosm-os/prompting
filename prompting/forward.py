@@ -32,6 +32,7 @@ from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log
 
+# from bittensor.dendrite
 
 @async_log
 async def generate_reference(agent):
@@ -42,10 +43,27 @@ async def generate_reference(agent):
     return result
 
 
-@async_log
-async def execute_dendrite_call(dendrite_call):
-    responses = await dendrite_call
-    return responses
+async def process_response(uid, async_generator):
+    """Process a single response asynchronously."""            
+    chunk = None  # Initialize chunk with a default value
+    async for chunk in async_generator:
+        bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
+    
+    if chunk is not None:
+        synapse = (
+            chunk  # last object yielded is the synapse itself with completion filled
+        )
+
+        # Assuming chunk holds the last value yielded which should be a synapse
+        if isinstance(synapse, StreamPromptingSynapse):            
+            return synapse
+    
+    bt.logging.debug(
+        f"Synapse is not StreamPromptingSynapse. Miner uid {uid} completion set to '' "
+    )
+    return StreamPromptingSynapse(
+        roles=["user"], messages=["failure"], completion=""
+    )
 
 
 @async_log
@@ -57,29 +75,9 @@ async def handle_response(responses: Dict[int, Awaitable]) -> List[bt.Synapse]:
         List[bt.Synapse]: The last chunk yielded from the bt.dendrite.call() is the original synapse
         with the compeltion attached. Return a list of completed StreamPromptingSynapses.
     """
-    synapses = []
-
-    for uid, resp in responses.items():
-        async for chunk in resp:
-            bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
-
-        synapse = (
-            chunk  # last object yielded is the synapse itself with completion filled
-        )
-
-        # Double check to make sure chunk is a synapse
-        if isinstance(synapse, StreamPromptingSynapse):
-            synapses.append(synapse)
-        else:
-            synapses.append(
-                StreamPromptingSynapse(
-                    roles=["user"], messages=["failure"], completion=""
-                )
-            )
-            bt.logging.debug(
-                f"Synapse is not StreamingPromptingSynapse. Miner uid {uid} completion set to '' "
-            )
-
+    """handles calling the async Awaitable generators in parallel."""
+    tasks = [process_response(uid, resp) for uid, resp in responses.items()]
+    synapses = await asyncio.gather(*tasks)
     return synapses
 
 
@@ -112,25 +110,30 @@ async def run_step(
 
     axons = [self.metagraph.axons[uid] for uid in uids]
 
-        # Prepare the tasks
-    dendrite_call_task = execute_dendrite_call(
-        self.dendrite(
-            axons=axons,
-            synapse= StreamPromptingSynapse(roles=["user"], messages=[agent.challenge]), 
-            timeout=timeout,
-            deserialize=False,
-            streaming=True
-    ))
+    # Directly call dendrite and process responses in parallel
+    streams_responses = await self.dendrite(
+        axons=axons,
+        synapse=StreamPromptingSynapse(roles=["user"], messages=[agent.challenge]), 
+        timeout=timeout,
+        deserialize=False,
+        streaming=True
+    )
+
+    # Prepare the task for handling stream responses
+    handle_stream_responses_task = asyncio.create_task(handle_response(responses=dict(zip(uids_cpu, streams_responses))))
     
-    if not agent.task.static_reference:            
-        reference_generation_task = generate_reference(agent)
-        _, streams_responses = await asyncio.gather(reference_generation_task, dendrite_call_task)
-    else:
-        streams_responses = await dendrite_call_task                
+    
+    try:    
+        if not agent.task.static_reference:            
+            reference_generation_task = generate_reference(agent)
+            _, streams_responses = await asyncio.gather(reference_generation_task, handle_stream_responses_task)
+        else:    
+            responses = await handle_stream_responses_task
+    except Exception as e:
+        bt.logging.error(f"Error in generating reference or handling responses: {e}", exc_info=True)
+        raise ValueError from e
 
     bt.logging.debug("uids", uids_cpu)
-
-    responses = await handle_response(responses=dict(zip(uids_cpu, streams_responses)))
 
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(responses=responses, uids=uids)
