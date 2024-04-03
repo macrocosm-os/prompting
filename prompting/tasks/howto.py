@@ -17,7 +17,6 @@ class HowToTask(Task):
     def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
 
-        # TODO:
         self.query = f"How do I {context.title}?"
         self.reference = context.content
 
