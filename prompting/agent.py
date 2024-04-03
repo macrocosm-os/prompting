@@ -14,7 +14,8 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import textwrap
+# TODO: Remove license (?)
+
 import time
 import bittensor as bt
 from dataclasses import asdict
@@ -25,6 +26,20 @@ from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.persona import Persona, create_persona
 
 from transformers import Pipeline
+
+# TODO: Make the prompt more modular so that we can apply persona to system prompts in a flexible way (maybe?)
+
+ROLEPLAY_SYSTEM_PROMPT = """\
+This is a roleplaying game where you are impersonating {mood} human user with a specific persona. As a human, you are using an AI assistant to {desc} related to {topic} ({subtopic}) in a {tone} tone. You don't need to greet the assistant or be polite, unless this is part of your persona. The spelling and grammar of your messages should also reflect your persona.
+
+Your singular focus is to use the assistant to {goal}: {query}
+"""
+
+PARAPHRASE_SYSTEM_PROMPT = """\
+You are an assistant that rewrites/rephrases user inputs in a different style. Your goal is to retain the exact meaning user query but restructure it and use spelling and grammar to create diverse variations. When you encounter tags (for format strings) you always ensure that they are all present in your response and are placed appropriately. The tags should occur exactly one time. Do not add any extra tags.
+
+Your response should only contain the rewritten user prompt. Do not include explanations, change the subject or attempt to answer to the query in any way. You are just rewriting the user input in a different way, no information should be added or taken away. You will adhere to a word limit of 50 words.
+"""
 
 
 class HumanAgent(HuggingFaceLLM):
@@ -38,18 +53,11 @@ class HumanAgent(HuggingFaceLLM):
     def finished(self):
         return self.progress == 1
 
-    system_prompt_template = textwrap.dedent(
-        """This is a roleplaying game where you are impersonating {mood} human user with a specific persona. As a human, you are using AI assistant to {desc} related to {topic} ({subtopic}) in a {tone} tone. You don't need to greet the assistant or be polite, unless this is part of your persona. The spelling and grammar of your messages should also reflect your persona.
-
-        Your singular focus is to use the assistant to {goal}: {query}
-    """
-    )
-
     def __init__(
         self,
         task: Task,
         llm_pipeline: Pipeline,
-        system_template: str = None,
+        system_template: str = ROLEPLAY_SYSTEM_PROMPT,
         persona: Persona = None,
         begin_conversation=True,
     ):
@@ -60,8 +68,7 @@ class HumanAgent(HuggingFaceLLM):
         self.task = task
         self.llm_pipeline = llm_pipeline
 
-        if system_template is not None:
-            self.system_prompt_template = system_template
+        self.system_prompt_template = system_template
 
         self.system_prompt = self.system_prompt_template.format(
             mood=self.persona.mood,
