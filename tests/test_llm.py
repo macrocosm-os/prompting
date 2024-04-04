@@ -1,4 +1,5 @@
 import pytest
+
 from prompting.llms import BaseLLM, BasePipeline, load_vllm_pipeline
 from prompting.llms.utils import (
     contains_gpu_index_in_device,
@@ -6,11 +7,13 @@ from prompting.llms.utils import (
 )
 from prompting.cleaners import CleanerPipeline
 from prompting.mock import MockPipeline
+
 from unittest import mock
+from unittest.mock import patch, MagicMock
+
 from .fixtures.llm import llms, pipelines
 from .fixtures.cleaner import DEFAULT_CLEANER_PIPELINE
-import pytest
-from unittest.mock import patch, MagicMock
+
 from vllm import LLM
 
 
@@ -92,10 +95,18 @@ def test_contains_gpu_index_in_device(device: str, expected_result: bool):
         ("cuda:0", 40e9, 160e9, 0.25),
     ],
 )
-@mock.patch('torch.cuda.current_device', return_value=0)
-@mock.patch('torch.cuda.synchronize')
+@mock.patch("torch.cuda.current_device", return_value=0)
+@mock.patch("torch.cuda.synchronize")
 @mock.patch("torch.cuda.mem_get_info")
-def test_calculate_gpu_requirements(mock_mem_get_info, mock_synchronize, mock_current_device, device, max_allowed_memory_allocation_in_bytes, available_memory, expected_result):
+def test_calculate_gpu_requirements(
+    mock_mem_get_info,
+    mock_synchronize,
+    mock_current_device,
+    device,
+    max_allowed_memory_allocation_in_bytes,
+    available_memory,
+    expected_result,
+):
     mock_mem_get_info.return_value = (available_memory, available_memory)
     # Mock current_device to return a default device index if needed
     mock_current_device.return_value = 0

@@ -81,7 +81,7 @@ class BaseNeuron(ABC):
         if self.config.mock:
             self.wallet = bt.MockWallet(config=self.config)
             self.subtensor = MockSubtensor(self.config.netuid, wallet=self.wallet)
-            self.metagraph = MockMetagraph(self.config.netuid, subtensor=self.subtensor)
+            self.metagraph = MockMetagraph(netuid=self.config.netuid, subtensor=self.subtensor)
         else:
             self.wallet = bt.wallet(config=self.config)
             self.subtensor = bt.subtensor(config=self.config)
@@ -102,10 +102,12 @@ class BaseNeuron(ABC):
         self.step = 0
 
     @abstractmethod
-    async def forward(self, synapse: bt.Synapse) -> bt.Synapse: ...
+    def forward(self, synapse: bt.Synapse) -> bt.Synapse:
+        ...
 
     @abstractmethod
-    def run(self): ...
+    def run(self):
+        ...
 
     def sync(self):
         """
@@ -152,7 +154,10 @@ class BaseNeuron(ABC):
         if self.config.neuron.disable_set_weights:
             return False
 
-        if not self.metagraph.validator_permit[self.uid]:
+        # If neuron has validator permit we assume its running the validator code. If it is a dual permit neuron then we check that it also has a set_weights method (only true if it is running validator neuron)
+        if not self.metagraph.validator_permit[self.uid] or not hasattr(
+            self, "set_weights"
+        ):
             return False
 
         # Define appropriate logic for when set weights.
