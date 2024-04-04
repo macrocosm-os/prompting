@@ -1,8 +1,15 @@
 # Creating Stream Miners 
 
-Altering your miner code to be compatible with streaming will be a development push for all miners on the network. As such, we want to make this as streamlined as possible to minimize the time needed to go from 0->100%. 
+Miners for SN1 **must** support the StreamPromptingSynapse. This enables all miners on the network to stream batches of tokens to the validator. This has clear beneifts, such as:
 
-Miner architectures now require that you are running a syncronous `forward` method, with an internal `async _forward` function. The code below provides a basic outline of how the `async _forward` function should be structured. There are two main points here:
+1. Getting rewards for partial responses, and
+2. Enabling better user-product interactivity when using a frontend. 
+
+Getting custom miners to use streaming is a large engineering effort. To make this effort easier, we have provided a simple template below that emphasizes the important components needed for streaming. 
+
+## Architecture
+
+Miner architectures require that you are running a syncronous `forward` method, with an internal `async _forward` function. The code below provides a basic outline of how the `async _forward` function should be structured. There are two main points here:
 
 1. Adding data to the buffer and sending it when it reaches the `config.neuron.streaming_batch_size`
 2. Sending the final buffer of data if inference is finished, and there are less tokens than the batch size. 
