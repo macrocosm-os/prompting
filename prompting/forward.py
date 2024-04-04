@@ -18,10 +18,9 @@
 
 import time
 import sys
+import asyncio
 import numpy as np
 import bittensor as bt
-
-from typing import List, Dict, Awaitable
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
 from prompting.conversation import create_task
@@ -29,7 +28,18 @@ from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
+from prompting.utils.misc import async_log
 
+@async_log
+async def generate_reference(agent):    
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
+    return result    
+
+@async_log
+async def execute_dendrite_call(dendrite_call):
+    responses = await dendrite_call
+    return responses
 
 async def handle_response(responses: Dict[int, Awaitable]) -> List[bt.Synapse]:
     """handles calling the async Awaitable generators.
@@ -88,29 +98,19 @@ async def run_step(
     start_time = time.time()
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
-    uids_cpu = uids.cpu().tolist()
-
-    bt.logging.debug("uids", uids_cpu)
-
     axons = [self.metagraph.axons[uid] for uid in uids]
-    # Make calls to the network with the prompt.
-    responses: List[StreamPromptingSynapse] = await self.dendrite(
-        axons=axons,
-        synapse=StreamPromptingSynapse(roles=["user"], messages=[agent.challenge]),
-        timeout=timeout,
-        deserialize=False,
-        streaming=True,
-    )
 
-    bt.logging.debug("uids", uids_cpu)
-
-    responses = await handle_response(responses=dict(zip(uids_cpu, responses)))
-
+    # Prepare the tasks
+    dendrite_call_task = execute_dendrite_call(self.dendrite(axons=axons, synapse=PromptingSynapse(roles=["user"], messages=[agent.challenge]), timeout=timeout))
+    
+    if not agent.task.static_reference:            
+        reference_generation_task = generate_reference(agent)
+        _, responses = await asyncio.gather(reference_generation_task, dendrite_call_task)
+    else:
+        responses = await dendrite_call_task    
+            
     # Encapsulate the responses in a response event (dataclass)
-    response_event = DendriteResponseEvent(
-        responses=responses, uids=uids, timeout=timeout
-    )
-
+    response_event = DendriteResponseEvent(responses, uids)
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
@@ -139,13 +139,12 @@ async def run_step(
         **response_event.__state_dict__(),
     }
 
-    log_event(self, event)
-
     return event
 
 
 async def forward(self):
     bt.logging.info("🚀 Starting forward loop...")
+    forward_start_time = time.time()
 
     while True:
         bt.logging.info(
@@ -157,7 +156,7 @@ async def forward(self):
         )
         bt.logging.info(f"📋 Creating {task_name} task... ")
         try:
-            task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name)
+            task = create_task(llm_pipeline=self.llm_pipeline, task_name=task_name, create_reference=False)
             break
         except Exception as e:
             bt.logging.error(
@@ -182,6 +181,11 @@ async def forward(self):
             timeout=self.config.neuron.timeout,
             exclude=exclude_uids,
         )
+        
+        # Adds forward time to event and logs it to wandb
+        event['forward_time'] = time.time() - forward_start_time        
+        log_event(self, event)
+        
         exclude_uids += event["uids"]
         task.complete = True
 
