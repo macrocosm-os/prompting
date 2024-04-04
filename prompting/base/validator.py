@@ -135,11 +135,13 @@ class BaseValidatorNeuron(BaseNeuron):
         try:
             while True:
                 bt.logging.info(f"step({self.step}) block({self.block})")
-                
-                forward_timeout = self.config.neuron.forward_max_time                
+
+                forward_timeout = self.config.neuron.forward_max_time
                 try:
                     task = self.loop.create_task(self.forward())
-                    self.loop.run_until_complete(asyncio.wait_for(task, timeout=forward_timeout))
+                    self.loop.run_until_complete(
+                        asyncio.wait_for(task, timeout=forward_timeout)
+                    )
                 except torch.cuda.OutOfMemoryError as e:
                     bt.logging.error(f"Out of memory error: {e}")
                     continue
@@ -147,7 +149,9 @@ class BaseValidatorNeuron(BaseNeuron):
                     bt.logging.error(f"MaxRetryError: {e}")
                     continue
                 except asyncio.TimeoutError as e:
-                    bt.logging.error(f"Forward timeout: Task execution exceeded {forward_timeout} seconds and was cancelled.: {e}")
+                    bt.logging.error(
+                        f"Forward timeout: Task execution exceeded {forward_timeout} seconds and was cancelled.: {e}"
+                    )
                     continue
 
                 # Check if we should exit.
