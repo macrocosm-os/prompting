@@ -26,7 +26,7 @@ class SentimentAnalysisTask(Task):
 
         self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
         self.query = self.generate_query(llm_pipeline)
-        self.reference = context.subtopic
+        self.reference = context.sentiment
 
         self.topic = context.title
         self.subtopic = context.topic
