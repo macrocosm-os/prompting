@@ -8,6 +8,7 @@ from prompting.rewards import (
     RelevanceRewardModel,
     FloatDiffModel,
     DateRewardModel,
+    OrdinalRewardModel,
 )
 
 REWARD_MODELS = {
@@ -16,6 +17,7 @@ REWARD_MODELS = {
     "diff": DiffRewardModel,
     "float_diff": FloatDiffModel,
     "date": DateRewardModel,
+    "ordinal": OrdinalRewardModel,
 }
 
 
@@ -44,7 +46,7 @@ class RewardPipeline:
                 )
             # Check that the reward_definition and penalty_definition are lists of dictionaries whose weights sum to one
             self._check_weights(task, "reward_definition", expected_weight=1)
-            self._check_weights(task, "penalty_definition", expected_weight=None)
+            #self._check_weights(task, "penalty_definition", expected_weight=None)
 
     def _check_weights(self, task, definition, expected_weight):
 
@@ -91,7 +93,8 @@ class RewardPipeline:
         for task in self.selected_tasks:
 
             active_reward_models += TASKS[task].reward_definition
-            active_reward_models += TASKS[task].penalty_definition
+            if TASKS[task].penalty_definition:
+                active_reward_models += TASKS[task].penalty_definition
 
         # Instantiate only the required reward models
         reward_models = {}
