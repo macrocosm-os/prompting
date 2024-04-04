@@ -34,37 +34,37 @@ def create_task(llm_pipeline: Pipeline, task_name: str, create_reference=True) -
 
     if task_name == "summarization":
         task = SummarizationTask(
-            llm_pipeline=llm_pipeline, 
+            llm_pipeline=llm_pipeline,
             context=dataset.next(),
-            create_reference=create_reference
+            create_reference=create_reference,
         )
 
     elif task_name == "qa":
         task = QuestionAnsweringTask(
-            llm_pipeline=llm_pipeline, 
+            llm_pipeline=llm_pipeline,
             context=dataset.next(),
-            create_reference=create_reference
+            create_reference=create_reference,
         )
 
     elif task_name == "debugging":
         task = DebuggingTask(
-            llm_pipeline=llm_pipeline, 
-            context=dataset.next(), 
-            create_reference=create_reference
+            llm_pipeline=llm_pipeline,
+            context=dataset.next(),
+            create_reference=create_reference,
         )
 
     elif task_name == "math":
         task = MathTask(
-            llm_pipeline=llm_pipeline, 
-            context=dataset.next(), 
-            create_reference=create_reference
+            llm_pipeline=llm_pipeline,
+            context=dataset.next(),
+            create_reference=create_reference,
         )
 
     elif task_name == "date_qa":
         task = DateQuestionAnsweringTask(
-            llm_pipeline=llm_pipeline, 
+            llm_pipeline=llm_pipeline,
             context=dataset.next(),
-            create_reference=create_reference
+            create_reference=create_reference,
         )
 
     else:

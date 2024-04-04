@@ -285,7 +285,7 @@ def add_validator_args(cls, parser):
         type=float,
         nargs="+",
         help="The probability of sampling each task.",
-        default=[0.25, 0.25, 0.0, 0.25, 0.25],
+        default=[.25, .25, 0, .25, .25],
     )
 
     parser.add_argument(
@@ -380,6 +380,13 @@ def add_validator_args(cls, parser):
         action="store_true",
         help="Only query a single hotkey per ip.",
         default=False,
+    )
+    
+    parser.add_argument(
+        "--neuron.forward_max_time",
+        type=int,
+        help="Max time to wait for a forward call to complete in seconds.",
+        default=120,
     )
 
 
