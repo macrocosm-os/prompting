@@ -95,7 +95,6 @@ validators = [
 neurons = miners + validators
 
 for neuron in neurons:
-
     # Construct the PM2 start command
     command = (
         f"pm2 start {neuron['file']} --interpreter python3 --name {neuron['hotkey']}:{neuron['type']} --"

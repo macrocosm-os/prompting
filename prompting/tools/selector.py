@@ -44,7 +44,6 @@ class TopSelector(Selector):
 
 
 if __name__ == "__main__":
-
     selector = Selector(seed=42)
     items = range(10)
     item = selector(items)

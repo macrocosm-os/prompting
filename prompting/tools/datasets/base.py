@@ -32,13 +32,16 @@ class Dataset(ABC):
     max_tries: int = 10
 
     @abstractmethod
-    def search(self, name): ...
+    def search(self, name):
+        ...
 
     @abstractmethod
-    def random(self, name): ...
+    def random(self, name):
+        ...
 
     @abstractmethod
-    def get(self, name): ...
+    def get(self, name):
+        ...
 
     def next(
         self, method: str = "random", selector: Selector = Selector(), **kwargs
@@ -47,7 +50,6 @@ class Dataset(ABC):
         t0 = time.time()
 
         while True:
-
             # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
             info = {}
             if method == "random":

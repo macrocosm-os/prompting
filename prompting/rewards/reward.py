@@ -65,7 +65,6 @@ class RewardResult:
         self.rewards = self.total_reward()
 
     def __state_dict__(self, full=False):
-
         state = {"rewards": self.rewards.tolist()}
         for event in self.reward_events + self.penalty_events:
             state.update(event.asdict())
@@ -83,7 +82,6 @@ class RewardResult:
         reward_events = []
 
         for reward_info in models:
-
             # Select the reward model from preloaded reward model pipeline
             reward_model = self.reward_pipeline.get(reward_info["name"])
             if not reward_model:
@@ -103,6 +101,9 @@ class RewardResult:
 
         # TODO: How would using the Agent as a reward model fit into this flow?
         # Compute the rewards for the responses given the prompt
+        rewards = torch.zeros_like(
+            self.response_event.uids, dtype=torch.float32, device=self.device
+        )
         rewards = torch.zeros_like(
             self.response_event.uids, dtype=torch.float32, device=self.device
         )
@@ -145,7 +146,8 @@ class BatchRewardOutput:
 class BaseRewardModel(ABC):
     @property
     @abstractmethod
-    def name(self) -> str: ...
+    def name(self) -> str:
+        ...
 
     @abstractmethod
     def __init__(self, **kwargs):
@@ -156,7 +158,6 @@ class BaseRewardModel(ABC):
         pass
 
     def apply(self, reference: str, response_event, reward_type) -> RewardEvent:
-
         t0 = time.time()
         batch_rewards_output = self.reward(reference, response_event.completions)
         batch_rewards_time = time.time() - t0

@@ -105,7 +105,6 @@ def diff(query, reference):
 
 @dataclass
 class DebuggingTask(Task):
-
     name = "debugging"
     desc = "get help with debugging"
     goal = "ask for help fixing broken code."
@@ -118,7 +117,6 @@ class DebuggingTask(Task):
     static_query = True
 
     def __init__(self, llm_pipeline, context, create_reference=True):
-
         self.context = context
 
         # No LLM involved in generating the query, we just apply some language-independent corruption to the code

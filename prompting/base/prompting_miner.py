@@ -15,33 +15,35 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import wandb
-import time
 import typing
 import bittensor as bt
 
 # Bittensor Miner Template:
 import prompting
-from prompting.protocol import PromptingSynapse
-
-# import base miner class which takes care of most of the boilerplate
-from prompting.base.miner import BaseMinerNeuron
+from prompting.protocol import StreamPromptingSynapse
+from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
 
 
-class Miner(BaseMinerNeuron):
+class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     """
-    Your miner neuron class. You should use this class to define your miner's behavior. In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
+    Your miner neuron class. You should use this class to define your miner's behavior.
+    In particular, you should replace the forward function with your own logic. You may also want to override the blacklist and priority functions according to your needs.
 
-    This class inherits from the BaseMinerNeuron class, which in turn inherits from BaseNeuron. The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc. You can override any of the methods in BaseNeuron if you need to customize the behavior.
+    This class inherits from the BaseMinerNeuron class, which in turn inherits from BaseNeuron.
+    The BaseNeuron class takes care of routine tasks such as setting up wallet, subtensor, metagraph, logging directory, parsing config, etc.
+    You can override any of the methods in BaseNeuron if you need to customize the behavior.
 
-    This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function. If you need to define custom
+    This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function.
     """
 
     def __init__(self, config=None):
-        super(Miner, self).__init__(config=config)
+        super().__init__(config=config)
         self.identity_tags = None
 
-    async def blacklist(self, synapse: PromptingSynapse) -> typing.Tuple[bool, str]:
+    async def blacklist(
+        self, synapse: StreamPromptingSynapse
+    ) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
         define the logic for blacklisting requests based on your needs and desired security parameters.
@@ -51,7 +53,7 @@ class Miner(BaseMinerNeuron):
         requests before they are deserialized to avoid wasting resources on requests that will be ignored.
 
         Args:
-            synapse (PromptingSynapse): A synapse object constructed from the headers of the incoming request.
+            synapse (StreamPromptingSynapse): A synapse object constructed from the headers of the incoming request.
 
         Returns:
             Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
@@ -83,7 +85,7 @@ class Miner(BaseMinerNeuron):
         )
         return False, "Hotkey recognized!"
 
-    async def priority(self, synapse: PromptingSynapse) -> float:
+    async def priority(self, synapse: StreamPromptingSynapse) -> float:
         """
         The priority function determines the order in which requests are handled. More valuable or higher-priority
         requests are processed before others. You should design your own priority mechanism with care.
@@ -91,7 +93,7 @@ class Miner(BaseMinerNeuron):
         This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
 
         Args:
-            synapse (PromptingSynapse): The synapse object that contains metadata about the incoming request.
+            synapse (StreamPromptingSynapse): The synapse object that contains metadata about the incoming request.
 
         Returns:
             float: A priority score derived from the stake of the calling entity.
@@ -106,13 +108,13 @@ class Miner(BaseMinerNeuron):
         caller_uid = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
         )  # Get the caller index.
-        prirority = float(
+        priority = float(
             self.metagraph.S[caller_uid]
         )  # Return the stake as the priority.
         bt.logging.trace(
-            f"Prioritizing {synapse.dendrite.hotkey} with value: ", prirority
+            f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority
         )
-        return prirority
+        return priority
 
     def init_wandb(self):
         bt.logging.info("Initializing wandb...")
@@ -189,15 +191,3 @@ class Miner(BaseMinerNeuron):
         bt.logging.info(
             f"Miner running:: network: {self.subtensor.network} | step: {self.step} | uid: {self.uid} | trust: {m.trust[self.uid]:.3f} | emission {m.emission[self.uid]:.3f}"
         )
-
-
-# This is the main function, which runs the miner.
-if __name__ == "__main__":
-    with Miner() as miner:
-        while True:
-            miner.log_status()
-            time.sleep(5)
-
-            if miner.should_exit:
-                bt.logging.warning("Ending miner...")
-                break
