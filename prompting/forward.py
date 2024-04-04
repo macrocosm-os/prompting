@@ -33,6 +33,16 @@ from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from dataclasses import dataclass
 
+@async_log
+async def generate_reference(agent):    
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
+    return result    
+
+@async_log
+async def execute_dendrite_call(dendrite_call):
+    responses = await dendrite_call
+    return responses
 
 @dataclass
 class StreamResult:
@@ -179,10 +189,6 @@ async def run_step(
     start_time = time.time()
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
-    uids_cpu = uids.cpu().tolist()
-
-    bt.logging.debug("uids", uids_cpu)
-
     axons = [self.metagraph.axons[uid] for uid in uids]
 
     # Directly call dendrite and process responses in parallel
@@ -209,10 +215,9 @@ async def run_step(
 
     log_stream_results(stream_results)
 
-    all_synapses_results = [stream_result.synapse for stream_result in stream_results]
-
+    all_synapses_results = [stream_result.synapse for stream_result in stream_results]   
+            
     # Encapsulate the responses in a response event (dataclass)
-
     response_event = DendriteResponseEvent(
         responses=all_synapses_results, uids=uids, timeout=timeout
     )
