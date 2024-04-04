@@ -189,6 +189,8 @@ async def run_step(
     start_time = time.time()
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
+    uids_cpu = uids.cpu().tolist()
+
     axons = [self.metagraph.axons[uid] for uid in uids]
 
     # Directly call dendrite and process responses in parallel
