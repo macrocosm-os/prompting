@@ -42,10 +42,10 @@ class StreamResult:
 
 
 async def process_response(uid: int, async_generator: Awaitable):
+    """Process a single response asynchronously."""
     try:
-        """Process a single response asynchronously."""
         chunk = None  # Initialize chunk with a default value
-        async for chunk in async_generator:
+        async for chunk in async_generator:  # most important loop, as this is where we acquire the final synapse.
             bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
 
         if chunk is not None:
@@ -74,6 +74,18 @@ async def process_response(uid: int, async_generator: Awaitable):
 
 @async_log
 async def handle_response(responses: Dict[int, Awaitable]) -> List[StreamResult]:
+    """The handle_response function is responsible for creating asyncio tasks around acquiring streamed miner chunks
+    and processing them asynchronously. It then pairs the results with their original UIDs and returns a list of StreamResults.
+
+    Args:
+        responses (Dict[int, Awaitable]): Responses contains awaitables that are used to acquire streamed miner chunks.
+
+    Raises:
+        ValueError
+
+    Returns:
+        List[StreamResult]: DataClass containing the synapse, exception, and uid
+    """
     tasks_with_uid = [
         (uid, responses[uid]) for uid, _ in responses.items()
     ]  # Pair UIDs with their tasks
@@ -108,7 +120,7 @@ async def handle_response(responses: Dict[int, Awaitable]) -> List[StreamResult]
 
 
 @async_log
-async def generate_reference(agent):
+async def generate_reference(agent: HumanAgent):
     loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(
         None, agent.task.generate_reference, agent.llm_pipeline
@@ -195,13 +207,15 @@ async def run_step(
     else:
         stream_results = await handle_stream_responses_task
 
-    log_stream_results(stream_results)    
+    log_stream_results(stream_results)
 
     all_synapses_results = [stream_result.synapse for stream_result in stream_results]
 
     # Encapsulate the responses in a response event (dataclass)
 
-    response_event = DendriteResponseEvent(responses=all_synapses_results, uids=uids, timeout=timeout)
+    response_event = DendriteResponseEvent(
+        responses=all_synapses_results, uids=uids, timeout=timeout
+    )
 
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
     # Reward the responses and get the reward result (dataclass)
@@ -276,9 +290,9 @@ async def forward(self):
     rounds = 0
     exclude_uids = []
     while not agent.finished:
-        # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step. 
+        # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step.
         # To be reconsidered in the next version.
-        try:            
+        try:
             # when run_step is called, the agent updates its progress
             event = await run_step(
                 self,
@@ -301,12 +315,10 @@ async def forward(self):
             bt.logging.error(
                 f"Error in run_step: Skipping to next round. \n {unexpected_errors}"
             )
-            
-            event = {
-                'unexpected_errors': unexpected_errors
-            }
-            
-            log_event(self, event)                        
+
+            event = {"unexpected_errors": unexpected_errors}
+
+            log_event(self, event)
             continue
 
     del agent
