@@ -303,7 +303,7 @@ async def forward(self):
             )
             
             event = {
-                'unexpect_errors': unexpected_errors
+                'unexpected_errors': unexpected_errors
             }
             
             log_event(self, event)                        
