@@ -12,6 +12,8 @@ class SentimentAnalysisTask(Task):
     name = "sentiment analysis"
     desc = "get help analyzing the sentiment of a review"
     goal = "to get the sentiment to the following review"
+    challenge = 'paraphrase'
+    tags = ['{context}']
 
     reward_definition = [
         dict(name="ordinal", weight=1.0),
@@ -25,9 +27,12 @@ class SentimentAnalysisTask(Task):
         self.context = context
 
         self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
-        self.query = self.generate_query(llm_pipeline)
-        self.reference = context.sentiment
+        self.query = self.generate_query(llm_pipeline) + "You must absolutely include the entire review in your question."
+        self.reference = context.subtopic
 
         self.topic = context.title
         self.subtopic = context.topic
         self.tags = context.tags
+
+    def format_challenge(self, challenge) -> str:
+        return challenge.format(context = self.query)

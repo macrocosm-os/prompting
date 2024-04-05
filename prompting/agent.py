@@ -64,6 +64,7 @@ class HumanAgent(vLLM_LLM):
         if persona is None:
             persona = create_persona()
 
+        self.challenge_attempts = 0
         self.persona = persona
         self.task = task
         self.llm_pipeline = llm_pipeline
@@ -89,15 +90,34 @@ class HumanAgent(vLLM_LLM):
 
     def create_challenge(self) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
+        if self.challenge_attempts > 1:
+            bt.logging.warning("Generating a new challenge failed too many times.")
+            raise ValueError("Failed to generate a new challenge")
         t0 = time.time()
-
+        self.challenge_attempts += 1
         cleaner = None
         if hasattr(self.task, "cleaning_pipeline"):
             cleaner = CleanerPipeline(cleaning_pipeline=self.task.cleaning_pipeline)
 
-        self.challenge = super().query(
-            message="Ask a question related to your goal", cleaner=cleaner
-        )
+
+        if self.task.challenge_type == "roleplay":
+            self.challenge = super().query(
+                message="Ask a question related to your goal", cleaner=cleaner
+            )
+        elif self.task.challenge_type == "paraphrase":
+            self.system_prompt = PARAPHRASE_SYSTEM_PROMPT
+            self.challenge = super().query(
+                message = self.task.challenge_template, cleaner=cleaner
+            )
+            # Check if the words that are surrounded by curly braces are present in the challenge
+            # If not, we should retry generating the challenge
+            if not all(tag in self.challenge for tag in self.task.tags):
+                self.create_challenge()
+        elif self.task.challenge_type == "query":
+            self.challenge = self.task.query
+        else:
+            raise NotImplementedError(f"Challenge type {self.task.challenge_type} not implemented")
+
         self.challenge = self.task.format_challenge(self.challenge)
         self.challenge_time = time.time() - t0
 

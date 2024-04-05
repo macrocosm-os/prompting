@@ -46,6 +46,7 @@ class Task(ABC):
     reference_prompt = ""
     query_prompt = ""
     cleaner = None
+    challenge_type = 'roleplay'
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"

@@ -12,7 +12,16 @@ class OrdinalRewardModel(BaseRewardModel):
     def __init__(self, **kwargs):
         super().__init__()
         #TODO: Expand to allow for more than 3 classes (Must also adjust dataset/review.py)
-        self.sentiments = ["positive", "neutral", "negative"]
+        self.sentiments = [
+            "casual",
+            "basic",
+            "silly",
+            "random",
+            "thoughtful",
+            "serious",
+            "rushed",
+        ]
+        #NOTE: These sentimens are not the same as the sentiments defined in the dataset/review.py file. These are the subtopic
 
 
     def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
