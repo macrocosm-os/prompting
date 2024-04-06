@@ -9,6 +9,7 @@ You are a question-generating expert, focusing on delivering comprehensive and a
 
 
 class GenericInstructionTask(Task):
+    challenge_type = 'query'
     name = "generic instruction"
     desc = "get help on answering a general instruction"
     goal = "to get the answer to the following instruction"

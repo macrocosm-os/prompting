@@ -9,11 +9,13 @@ You are a review-generating expert, focusing on making highly reaslistic revies.
 
 
 class SentimentAnalysisTask(Task):
+    important_field = ["{context"]
     name = "sentiment analysis"
     desc = "get help analyzing the sentiment of a review"
     goal = "to get the sentiment to the following review"
-    challenge = 'paraphrase'
-    tags = ['{context}']
+    challenge_type = 'paraphrase'
+    challenge_template = "What is the sentiment of the following review: {context}"
+    
 
     reward_definition = [
         dict(name="ordinal", weight=1.0),
@@ -27,7 +29,7 @@ class SentimentAnalysisTask(Task):
         self.context = context
 
         self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
-        self.query = self.generate_query(llm_pipeline) + "You must absolutely include the entire review in your question."
+        self.query = self.generate_query(llm_pipeline)
         self.reference = context.subtopic
 
         self.topic = context.title

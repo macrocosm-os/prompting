@@ -68,14 +68,18 @@ class HumanAgent(vLLM_LLM):
         self.persona = persona
         self.task = task
         self.llm_pipeline = llm_pipeline
-
-        self.system_prompt_template = system_template
-
-        self.system_prompt = self.system_prompt_template.format(
+        if self.task.challenge_type == "roleplay":
+            self.system_prompt_template = system_template
+            self.system_prompt = self.system_prompt_template.format(
             mood=self.persona.mood,
             tone=self.persona.tone,
             **self.task.__state_dict__(),  # Adds desc, subject, topic
-        )
+            )
+        elif self.task.challenge_type == "paraphrase":
+            self.system_prompt_template = PARAPHRASE_SYSTEM_PROMPT
+            self.system_prompt = self.system_prompt_template
+
+
 
         super().__init__(
             llm_pipeline=llm_pipeline,
@@ -90,7 +94,7 @@ class HumanAgent(vLLM_LLM):
 
     def create_challenge(self) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
-        if self.challenge_attempts > 1:
+        if self.challenge_attempts > 3:
             bt.logging.warning("Generating a new challenge failed too many times.")
             raise ValueError("Failed to generate a new challenge")
         t0 = time.time()
@@ -111,7 +115,8 @@ class HumanAgent(vLLM_LLM):
             )
             # Check if the words that are surrounded by curly braces are present in the challenge
             # If not, we should retry generating the challenge
-            if not all(tag in self.challenge for tag in self.task.tags):
+            if not all(tag in self.challenge for tag in self.task.important_field):
+                print("Challenge does not contain all tags, retrying...", self.challenge, self.task.important_field)
                 self.create_challenge()
         elif self.task.challenge_type == "query":
             self.challenge = self.task.query

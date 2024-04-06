@@ -23,7 +23,7 @@ class ReviewDataset(TemplateDataset):
             "terribly written",
             "hilarious",
         ],
-        mood=["angry", "sad", "amused", "bored", "indifferent", "shocked", "terse"],
+        mood=["angry", "sad", "amused", "bored", "indifferent", "shocked", "terse"], #TODO: Remove
         subtopic=[
             "casual",
             "basic",

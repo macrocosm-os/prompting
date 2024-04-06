@@ -18,6 +18,6 @@ TASKS = {
     "math": MathTask,
     "sentiment": SentimentAnalysisTask,
     "generic": GenericInstructionTask,
-    "translation": TranslationTask,
-    "howto": HowToTask,
+    #"translation": TranslationTask,
+    #"howto": HowToTask,
 }
