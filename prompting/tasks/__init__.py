@@ -8,6 +8,7 @@ from .math import MathTask
 
 
 TASKS = {
+    "mock": Task,
     "qa": QuestionAnsweringTask,
     "summarization": SummarizationTask,
     "date_qa": DateQuestionAnsweringTask,

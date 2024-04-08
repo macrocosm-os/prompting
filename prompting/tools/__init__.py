@@ -14,7 +14,7 @@ DATASETS = {
     "mock": MockDataset,
     "hf_coding": HFCodingDataset,
     "wiki": WikiDataset,
-    "stack_overflow": StackOverflowDataset,
+    #"stack_overflow": StackOverflowDataset,
     "wiki_date": WikiDateDataset,
     "math": MathDataset,
 }
