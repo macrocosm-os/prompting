@@ -4,8 +4,7 @@ from abc import ABC
 from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import List, Union, Dict
-from prompting.llm import HuggingFaceLLM
-from transformers import Pipeline
+from prompting.llms import HuggingFaceLLM, vLLM_LLM, BasePipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 
 
@@ -67,17 +66,19 @@ class Task(ABC):
 
         return state
 
-    def generate(self, system: str, prompt: str, llm: Pipeline, clean=True) -> str:
+    def generate(
+        self, system: str, prompt: str, pipeline: BasePipeline, clean=True
+    ) -> str:
         """Uses the llm to generate a response to a prompt"""
 
         cleaner = (
             CleanerPipeline(cleaning_pipeline=self.cleaning_pipeline) if clean else None
         )
-        return HuggingFaceLLM(llm, system_prompt=system).query(
+        return vLLM_LLM(pipeline, system_prompt=system).query(
             message=prompt, cleaner=cleaner
         )
 
-    def generate_reference(self, llm: Pipeline, clean=True) -> str:
+    def generate_reference(self, pipeline: BasePipeline, clean=True) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         t0 = time.time()
         if not self.static_reference:
@@ -86,14 +87,14 @@ class Task(ABC):
             self.reference = self.generate(
                 system=self.reference_system_prompt,
                 prompt=self.reference_prompt,
-                llm=llm,
+                pipeline=pipeline,
                 clean=clean,
             )
 
         self.reference_time = time.time() - t0
         return self.reference
 
-    def generate_query(self, llm: Pipeline, clean=True) -> str:
+    def generate_query(self, pipeline: BasePipeline, clean=True) -> str:
         """Generates a query to be used for generating the challenge"""
         t0 = time.time()
         if not self.static_query:
@@ -101,7 +102,7 @@ class Task(ABC):
             self.query = self.generate(
                 system=self.query_system_prompt,
                 prompt=self.query_prompt,
-                llm=llm,
+                pipeline=pipeline,
                 clean=clean,
             )
 

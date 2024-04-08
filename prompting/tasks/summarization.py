@@ -26,7 +26,6 @@ Summarize the following context in a concise and accurate manner:
 
 @dataclass
 class SummarizationTask(Task):
-
     name = "summarization"
     desc = "get help with summarization"
     goal = "summarize the following topic"
@@ -48,7 +47,6 @@ class SummarizationTask(Task):
     static_query = True
 
     def __init__(self, llm_pipeline: Pipeline, context: str, create_reference=True):
-
         self.context = context
 
         # Query is just the article title and section name

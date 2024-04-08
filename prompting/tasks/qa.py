@@ -40,7 +40,6 @@ Answer the question you will receive in detail, utilizing the following context.
 
 @dataclass
 class QuestionAnsweringTask(Task):
-
     name = "question-answering"
     desc = "get help on answering a question"
     goal = "to get the answer to the following question"
@@ -60,7 +59,6 @@ class QuestionAnsweringTask(Task):
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True):
-
         self.context = context
 
         self.query_system_prompt = QUERY_SYSTEM_PROMPT

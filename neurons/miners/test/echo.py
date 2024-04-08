@@ -14,38 +14,9 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
 import time
-import typing
 import bittensor as bt
-
-# Bittensor Miner Template:
-import prompting
-from prompting.protocol import PromptingSynapse
-
-# import base miner class which takes care of most of the boilerplate
-from neurons.miner import Miner
-
-
-class EchoMiner(Miner):
-    """
-    This little fella just repeats the last message it received.
-    """
-
-    def __init__(self, config=None):
-        super().__init__(config=config)
-
-    async def forward(self, synapse: PromptingSynapse) -> PromptingSynapse:
-
-        synapse.completion = synapse.messages[-1]
-        self.step += 1
-        return synapse
-
-    async def blacklist(self, synapse: PromptingSynapse) -> typing.Tuple[bool, str]:
-        return False, "All good here"
-
-    async def priority(self, synapse: PromptingSynapse) -> float:
-        return 1e6
+from prompting.miners import EchoMiner
 
 
 # This is the main function, which runs the miner.

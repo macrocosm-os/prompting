@@ -240,7 +240,6 @@ class WikiDataset(Dataset):
 
 
 class WikiDateDataset(Dataset):
-
     INCLUDE_HEADERS = ("Events", "Births", "Deaths")
     MONTHS = (
         "January",
@@ -287,7 +286,6 @@ class WikiDateDataset(Dataset):
         redirect=False,
         selector: Selector = None,
     ) -> Dict:
-
         # Check that name is correctly formatted e.g., "January 1"
         date = name.split(" ")
         assert (

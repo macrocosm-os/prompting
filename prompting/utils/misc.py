@@ -17,6 +17,9 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
+import asyncio
+import traceback
+import bittensor as bt
 from math import floor
 from typing import Callable, Any
 from functools import lru_cache, update_wrapper
@@ -108,3 +111,35 @@ def ttl_get_block(self) -> int:
     Note: self here is the miner or validator instance
     """
     return self.subtensor.get_current_block()
+
+
+def async_log(func):
+    async def wrapper(*args, **kwargs):
+        start_time = time.time()
+        task_id = id(asyncio.current_task())
+        func_name = func.__name__
+        bt.logging.debug(f"Starting {func_name} on task {task_id} at {start_time}")
+
+        # Execute the wrapped function
+        result = await func(*args, **kwargs)
+
+        end_time = time.time()
+        execution_time = end_time - start_time
+        bt.logging.debug(
+            f"Completed {func_name} on task {task_id} in {execution_time} seconds"
+        )
+
+        return result
+
+    return wrapper
+
+
+def serialize_exception_to_string(e):    
+    if isinstance(e, BaseException):
+        # Format the traceback
+        tb_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+        # Combine type, message, and traceback into one string
+        serialized_str = f"Exception Type: {type(e).__name__}, Message: {str(e)}, Traceback: {tb_str}"
+        return serialized_str
+    else:        
+        return e

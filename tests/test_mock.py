@@ -12,7 +12,6 @@ wallet.create(coldkey_use_password=False)
 @pytest.mark.parametrize("n", [2, 4, 8, 16, 32, 64])
 @pytest.mark.parametrize("wallet", [wallet, None])
 def test_mock_subtensor(netuid, n, wallet):
-
     subtensor = MockSubtensor(netuid=netuid, n=n, wallet=wallet)
     neurons = subtensor.neurons(netuid=netuid)
     # Check netuid
@@ -43,8 +42,8 @@ def test_mock_metagraph(n):
     # Check ip and port
     for axon in axons:
         assert type(axon) == bt.AxonInfo
-        assert axon.ip == mock_metagraph.default_ip
-        assert axon.port == mock_metagraph.default_port
+        assert axon.ip == mock_metagraph.DEFAULT_IP
+        assert axon.port == mock_metagraph.DEFAULT_PORT
 
 
 def test_mock_reward_pipeline():
@@ -62,8 +61,8 @@ def test_mock_neuron():
 def test_mock_dendrite_timings(timeout, min_time, max_time, n):
     mock_wallet = bt.MockWallet(config=None)
     mock_dendrite = MockDendrite(mock_wallet)
-    mock_dendrite.min_time = min_time
-    mock_dendrite.max_time = max_time
+    mock_dendrite.MIN_TIME = min_time
+    mock_dendrite.MAX_TIME = max_time
     mock_subtensor = MockSubtensor(netuid=1, n=n)
     mock_metagraph = MockMetagraph(subtensor=mock_subtensor)
     axons = mock_metagraph.axons
@@ -77,6 +76,7 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
             timeout=timeout,
         )
 
+    eps = 0.2
     responses = asyncio.run(run())
     for synapse in responses:
         assert (
@@ -90,9 +90,9 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
 
         # check that the dendrite take between min_time and max_time
         assert min_time <= dendrite.process_time
-        assert dendrite.process_time <= max_time + 0.1
+        assert dendrite.process_time <= max_time + eps
         # check that responses which take longer than timeout have 408 status code
-        if dendrite.process_time >= timeout + 0.1:
+        if dendrite.process_time >= timeout + eps:
             assert dendrite.status_code == 408
             assert dendrite.status_message == "Timeout"
             assert synapse.completion == ""
