@@ -39,9 +39,9 @@ from . import dendrite
 
 from .llms import hf
 
-from tasks import TASKS
-from tools import DATASETS
-from task_registry import TASK_REGISTRY
+from .tasks import TASKS
+from .tools import DATASETS
+from .task_registry import TASK_REGISTRY
 
 # Assert that all tasks have a dataset, and all tasks/datasets are in the TASKS and DATASETS dictionaries.
 registry_missing_task = set(TASK_REGISTRY.keys()) - set(TASKS.keys())
