@@ -36,7 +36,8 @@ from . import forward
 from . import agent
 from . import conversation
 from . import dendrite
-from . import llm
+
+from .llms import hf
 
 from tasks import TASKS
 from tools import DATASETS
