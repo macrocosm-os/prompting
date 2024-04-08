@@ -40,15 +40,8 @@ from . import llm
 
 from tasks import TASKS
 from tools import DATASETS
+from task_registry import TASK_REGISTRY
 
-# TODO: Expand this to include extra information beyond just the task and dataset names
-TASK_REGISTRY = {
-    "summarization": ["wiki"],
-    "qa": ["wiki"],
-    "debugging": ["hf_coding"],
-    "math": ["math"],
-    "date_qa": ["wiki_date"],
-}
 # Assert that all tasks have a dataset, and all tasks/datasets are in the TASKS and DATASETS dictionaries.
 registry_missing_task = set(TASK_REGISTRY.keys()) - set(TASKS.keys())
 registry_extra_task = set(TASKS.keys()) - set(TASK_REGISTRY.keys())
