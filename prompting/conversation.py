@@ -1,8 +1,7 @@
 import random
 from transformers import Pipeline
-from prompting import TASK_REGISTRY, TASKS, DATASETS
-from prompting.tasks import Task
-from prompting.tools import Selector
+from prompting.tasks import Task, TASK_REGISTRY, TASKS
+from prompting.tools import Selector, DATASETS
 
 
 def create_task(
