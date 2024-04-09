@@ -1,5 +1,5 @@
 angle_emb
-bittensor==6.6.0
+bittensor==6.10.1
 bs4
 click==8.1.3
 datasets==2.14.6
