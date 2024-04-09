@@ -40,6 +40,8 @@ def create_task(
     dataset = DATASETS.get(dataset_name, None)
     if dataset is None:
         raise ValueError(f"Dataset {dataset_name} not found")
+    else:
+        dataset = dataset()
 
     return task(
         llm_pipeline=llm_pipeline,
