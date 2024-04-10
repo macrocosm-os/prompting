@@ -43,7 +43,6 @@ TASK_FIELDS = {
     "complete": bool,
     "static_reference": bool,
     "static_query": bool,
-    "reference_system_prompt": str,
     "reference_prompt": str,
     "query_system_prompt": str,
     "query_prompt": str,
