@@ -44,16 +44,18 @@ from .tools import DATASETS
 from .task_registry import TASK_REGISTRY
 
 # Assert that all tasks have a dataset, and all tasks/datasets are in the TASKS and DATASETS dictionaries.
-registry_missing_task = set(TASK_REGISTRY.keys()) - set(TASKS.keys())
-registry_extra_task = set(TASKS.keys()) - set(TASK_REGISTRY.keys())
+registry_missing_task = set(TASKS.keys()) - set(TASK_REGISTRY.keys())
+registry_extra_task = set(TASK_REGISTRY.keys()) - set(TASKS.keys())
 assert (
     not registry_missing_task
 ), f"Missing tasks in TASK_REGISTRY: {registry_missing_task}"
 assert not registry_extra_task, f"Extra tasks in TASK_REGISTRY: {registry_extra_task}"
 
 registry_datasets = set(
-    [dataset for task, datasets in TASK_REGISTRY.items() for dataset in datasets]
+    [datasets for task, datasets in TASK_REGISTRY.items()]
 )
+print(registry_datasets)
+print(set(DATASETS.keys()))
 registry_missing_dataset = registry_datasets - set(DATASETS.keys())
 registry_extra_dataset = set(DATASETS.keys()) - registry_datasets
 assert (

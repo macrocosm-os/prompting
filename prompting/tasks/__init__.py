@@ -5,13 +5,14 @@ from .qa import QuestionAnsweringTask
 from .date_qa import DateQuestionAnsweringTask
 from .generic_instruction import GenericInstructionTask
 from .math import MathTask
+from .mock import MockTask
 
 
 TASKS = {
-    "mock": Task,
-    "qa": QuestionAnsweringTask,
+    "mock": MockTask,
+    "question-answering": QuestionAnsweringTask,
     "summarization": SummarizationTask,
-    "date_qa": DateQuestionAnsweringTask,
+    "date-based question answering": DateQuestionAnsweringTask,
     "debugging": DebuggingTask,
     "math": MathTask,
 }

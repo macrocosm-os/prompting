@@ -30,6 +30,7 @@ from ..selector import Selector
 
 
 class MathDataset(Dataset):
+    name = 'math'
     topics_list = mathgenerator.getGenList()
 
     def __init__(self, seed=None):
