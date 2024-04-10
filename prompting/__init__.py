@@ -52,7 +52,7 @@ assert (
 assert not registry_extra_task, f"Extra tasks in TASK_REGISTRY: {registry_extra_task}"
 
 registry_datasets = set(
-    [datasets for task, datasets in TASK_REGISTRY.items()]
+    [dataset for task, datasets in TASK_REGISTRY.items() for dataset in datasets]
 )
 print(registry_datasets)
 print(set(DATASETS.keys()))
