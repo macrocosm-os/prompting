@@ -21,7 +21,7 @@ import torch
 import argparse
 import bittensor as bt
 from loguru import logger
-from prompting.task_registry import TASK_REGISTRY
+from prompting.tasks import TASKS
 
 
 def check_config(cls, config: "bt.Config"):
@@ -278,7 +278,7 @@ def add_validator_args(cls, parser):
         type=str,
         nargs="+",
         help="The tasks to use for the validator.",
-        default=TASK_REGISTRY.keys(),
+        default=list(TASKS.keys())[1:],
     )
 
     parser.add_argument(
@@ -286,7 +286,7 @@ def add_validator_args(cls, parser):
         type=float,
         nargs="+",
         help="The probability of sampling each task.",
-        default=[.25, .25, 0, .25, .25],
+        default=[.25, .25, .25, 0, .25],
     )
 
     parser.add_argument(

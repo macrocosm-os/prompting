@@ -9,10 +9,11 @@ from .mock import MockTask
 
 
 TASKS = {
-    "mock": MockTask,
-    "question-answering": QuestionAnsweringTask,
-    "summarization": SummarizationTask,
-    "date-based question answering": DateQuestionAnsweringTask,
-    "debugging": DebuggingTask,
-    "math": MathTask,
+    MockTask.name: MockTask,
+    QuestionAnsweringTask.name: QuestionAnsweringTask,
+    DateQuestionAnsweringTask.name: DateQuestionAnsweringTask,
+    SummarizationTask.name: SummarizationTask,
+    DebuggingTask.name: DebuggingTask,
+    #GenericInstructionTask.name: GenericInstructionTask,
+    MathTask.name: MathTask,
 }

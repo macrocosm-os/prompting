@@ -32,7 +32,7 @@ def create_task(
     if task is None or not issubclass(task, Task):
         raise ValueError(f"Task {task_name} not found")
 
-    dataset_choices = TASK_REGISTRY.get(task_name, [])
+    dataset_choices = TASK_REGISTRY.get(task_name, None)
     if len(dataset_choices) == 0:
         raise ValueError(f"No datasets available for task {task_name}")
 
