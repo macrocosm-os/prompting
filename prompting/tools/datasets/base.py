@@ -30,7 +30,7 @@ from prompting.utils.exceptions import MaxRetryError
 
 class Dataset(ABC):
     """Base class for datasets."""
-
+    name = "dataset"
     max_tries: int = 10
 
     @abstractmethod
