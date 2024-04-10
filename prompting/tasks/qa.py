@@ -40,7 +40,7 @@ Answer the question you will receive in detail, utilizing the following context.
 
 @dataclass
 class QuestionAnsweringTask(Task):
-    name = "question-answering"
+    name = "qa"
     desc = "get help on answering a question"
     goal = "to get the answer to the following question"
 

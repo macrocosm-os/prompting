@@ -57,36 +57,38 @@ class MathDataset(Dataset):
             Dict: _description_
         """
         bt.logging.info(f"Getting math problem {name!r}")
-        info = mathgenerator.generate_context(name, **kwargs)
-        if info["reward_type"] != "float" or info["topic"] == "computer_science":       
-            return None
+        max_tries = 10
+        for _ in range(max_tries):
+            info = mathgenerator.generate_context(name, **kwargs)
+            if info["reward_type"] != "float" or info["topic"] == "computer_science":       
+                pass
+            else:
+                math_words = [
+                    "math",
+                    "mathematics",
+                    "mathematical",
+                    "math problem",
+                    "math technique",
+                ]
+                external_links = []
+                # construct external links from randomly shuffled trigrams containing 2 words from the problem and 1 random math word
+                # binary_to_decimal -> ['binary to', 'to decimal']
+                for bigram in itertools.combinations(info["forward_words"], 2):
+                    words = list(bigram) + [random.choice(math_words)]
+                    # shuffle the words e.g. ['binary', 'decimal', 'math problem'] -> 'decimal binary math problem'
+                    external_links.append(" ".join(random.sample(words, len(words))))
 
-        math_words = [
-            "math",
-            "mathematics",
-            "mathematical",
-            "math problem",
-            "math technique",
-        ]
-        external_links = []
-        # construct external links from randomly shuffled trigrams containing 2 words from the problem and 1 random math word
-        # binary_to_decimal -> ['binary to', 'to decimal']
-        for bigram in itertools.combinations(info["forward_words"], 2):
-            words = list(bigram) + [random.choice(math_words)]
-            # shuffle the words e.g. ['binary', 'decimal', 'math problem'] -> 'decimal binary math problem'
-            external_links.append(" ".join(random.sample(words, len(words))))
-
-        return {
-            "title": info["topic"],  # title of math problem
-            "topic": info["topic"],  # title of problem topic
-            "subtopic": info["subtopic"],  # title of problem subtopic
-            "content": info["problem"],  # problem statement
-            "internal_links": [info["topic"], info["subtopic"]],  # internal links
-            "external_links": external_links,
-            "tags": info["forward_words"],
-            "source": "Mathgenerator",
-            "extra": {"reward_type": info["reward_type"], "solution": info["solution"]},
-        }
+                return {
+                    "title": info["topic"],  # title of math problem
+                    "topic": info["topic"],  # title of problem topic
+                    "subtopic": info["subtopic"],  # title of problem subtopic
+                    "content": info["problem"],  # problem statement
+                    "internal_links": [info["topic"], info["subtopic"]],  # internal links
+                    "external_links": external_links,
+                    "tags": info["forward_words"],
+                    "source": "Mathgenerator",
+                    "extra": {"reward_type": info["reward_type"], "solution": info["solution"]},
+                }
 
     def search(
         self, name, selector: Selector, include: List = None, exclude: List = None
