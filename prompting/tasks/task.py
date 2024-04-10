@@ -45,7 +45,6 @@ class Task(ABC):
     complete: bool = False
     static_reference: bool = False
     static_query: bool = False
-    reference_system_prompt = ""
     reference_prompt = ""
     query_system_prompt = ""
     query_prompt = ""
