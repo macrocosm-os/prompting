@@ -3,7 +3,7 @@ from prompting.tools import DATASETS
 from prompting.task_registry import TASK_REGISTRY
 
 
-# TODO: Improve more detailed tasks.
+# TODO: Create more detailed tests.
 def test_task_registry():
     registry_missing_task = set(TASK_REGISTRY.keys()) - set(TASKS.keys())
     registry_extra_task = set(TASKS.keys()) - set(TASK_REGISTRY.keys())
