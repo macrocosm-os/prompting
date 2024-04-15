@@ -14,6 +14,6 @@ TASKS = {
     DateQuestionAnsweringTask.name: DateQuestionAnsweringTask,
     SummarizationTask.name: SummarizationTask,
     DebuggingTask.name: DebuggingTask,
-    #GenericInstructionTask.name: GenericInstructionTask,
+    GenericInstructionTask.name: GenericInstructionTask,
     MathTask.name: MathTask,
 }

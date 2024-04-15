@@ -1,9 +1,9 @@
 from .base import TemplateDataset
 
 
-class GenericQuestionDataset(TemplateDataset):
+class GenericInstructionDataset(TemplateDataset):
     "Generic question dataset, which creates LLM prompts for asking questions."
-
+    name = "generic_instruction"
     query_template = (
         "Ask a {style} question about a {theme} {subtopic} related to {topic}"
     )
