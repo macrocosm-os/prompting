@@ -54,8 +54,6 @@ assert not registry_extra_task, f"Extra tasks in TASK_REGISTRY: {registry_extra_
 registry_datasets = set(
     [dataset for task, datasets in TASK_REGISTRY.items() for dataset in datasets]
 )
-print(registry_datasets)
-print(set(DATASETS.keys()))
 registry_missing_dataset = registry_datasets - set(DATASETS.keys())
 registry_extra_dataset = set(DATASETS.keys()) - registry_datasets
 assert (
