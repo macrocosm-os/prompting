@@ -151,7 +151,7 @@ def filter_categories(categories, exclude=None, include=None):
 
 class WikiDataset(Dataset):
     """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
-
+    name = "wiki"
     EXCLUDE_HEADERS = ("See also", "References", "Further reading", "External links")
     EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
 
@@ -240,6 +240,7 @@ class WikiDataset(Dataset):
 
 
 class WikiDateDataset(Dataset):
+    name = "wiki_date"
     INCLUDE_HEADERS = ("Events", "Births", "Deaths")
     MONTHS = (
         "January",

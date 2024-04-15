@@ -8,7 +8,7 @@ SECTION_MESSAGES = {"Births": " was born ", "Deaths": " died ", "Events": " "}
 
 @dataclass
 class DateQuestionAnsweringTask(Task):
-    name = "date-based question answering"
+    name = "date_qa"
     desc = "get help answering a specific date-based question"
     goal = "to get the answer to the following date-based question"
     reward_definition = [
