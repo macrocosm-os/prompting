@@ -15,3 +15,9 @@ class Context:
     tags: List[str] = None
     extra: dict = None  # additional non-essential information
     stats: dict = None  # retrieval stats such as fetch time, number of tries, etc.
+
+
+@dataclass
+class BatchContext:
+    results: List[Context]
+    stats: dict = None

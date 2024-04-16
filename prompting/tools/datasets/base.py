@@ -22,7 +22,7 @@ from typing import Dict
 import bittensor as bt
 
 from ..selector import Selector
-from .context import Context
+from .context import Context, BatchContext
 from prompting.utils.exceptions import MaxRetryError
 
 
@@ -82,3 +82,39 @@ class Dataset(ABC):
             "next_kwargs": kwargs,
         }
         return Context(**info)
+
+
+class BatchDataset(ABC):
+    """Base class for datasets."""
+
+    max_tries: int = 10        
+
+    @abstractmethod
+    async def random_batch(self, name):
+        ...    
+
+    async def next(
+        self, method: str = "random", selector: Selector = Selector(), **kwargs
+    ) -> BatchContext:         
+        t0 = time.time()
+
+        for tries in range(1, self.max_tries + 1):            
+            if method == "random":
+                results = await self.random_batch(selector=selector, **kwargs)
+                stats = {
+                    "creator": self.__class__.__name__,
+                    "fetch_time": time.time() - t0,
+                    "num_tries": tries,
+                    "fetch_method": method,
+                    "next_kwargs": kwargs,
+                }
+                
+                return BatchContext(results=results, stats=stats)
+            else:
+                raise ValueError(f"Unknown dataset get method {method!r}")
+
+        # If no valid info is found after max_tries
+        raise MaxRetryError(
+            f"Could not find any samples which meet {self.__class__.__name__} requirements after {self.max_tries} tries."
+        )
+          
