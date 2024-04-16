@@ -5,6 +5,31 @@ from prompting.tools import Selector, DATASETS
 from prompting.task_registry import TASK_REGISTRY
 
 
+def random_task(self, include=None, exclude=None, history=None):
+    choices = include or [task_name for task_name in self.config.neuron.tasks if not type(exclude)==list or task_name not in exclude]
+    assert choices, f'No valid choices for {include=}, {exclude=}'
+    probs = torch.FloatTensor([self.config.neuron.task_p.index(choice) for choice in choices])
+    probs /= probs.sum()
+    
+    while True:
+        bt.logging.info(
+            f"📋 Selecting task... from {choices=} with distribution {probs.tolist()=}"
+        )
+        # Create a specific task
+        task_name = np.random.choice(choices, probs.tolist())
+        bt.logging.info(f"📋 Creating {task_name} task... ")
+        try:
+            return create_task(
+                llm_pipeline=self.llm_pipeline,
+                task_name=task_name,
+                create_reference=False,
+                history=None,
+            )
+        except Exception as e:
+            bt.logging.error(
+                f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
+            )
+
 def create_task(
     llm_pipeline: Pipeline,
     task_name: str,
