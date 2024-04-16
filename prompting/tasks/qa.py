@@ -30,6 +30,17 @@ Answer the question you will receive in detail, utilizing the following context.
 {question}
 """
 
+# Used to obtain the query (which is a followup question about the context)
+FOLLOWUP_PROMPT_TEMPLATE = """
+Ask a specific question to continue the conversation below. You must adopt the same persona as the human user (tone, style, goals). It must be possible to answer your followup question objectively. You may use using the provided context as the basis for the followup question, but it is not a requirement. Importantly, your followup question must require the conversation history to answer correctly. This can be achieved by using implicit and indirect language (can tell me more about that? what was the reason ...?), or if you are confident that the assistant response was wrong or not useful you can request further information or point out any problems you encounter. If the original user query was itself of poor quality you may use the followup question to clarify and amend it. It can be based on any message in the conversation history.
+
+# Context:
+{context}
+
+# Conversation History:
+{history}
+"""
+
 
 @dataclass
 class QuestionAnsweringTask(Task):
@@ -51,11 +62,15 @@ class QuestionAnsweringTask(Task):
         dict(name="remove_roles"),
     ]
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
+    def __init__(self, llm_pipeline, context, create_reference=True, history=None):
         self.context = context
 
         self.query_system_prompt = QUERY_SYSTEM_PROMPT
-        self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
+        if history:
+            self.query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(context=context.content, history=history)
+        else:
+            self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)            
+            
         self.query = self.generate_query(llm_pipeline)
 
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
