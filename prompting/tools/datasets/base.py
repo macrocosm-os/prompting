@@ -76,7 +76,7 @@ class Dataset(ABC):
                     f"Could not find any samples which meet {self.__class__.__name__} requirements after {tries} tries."
                 )
 
-        info["source"] = (self.__class__.__name__,)
+        info["source"] = self.__class__.__name__
         info["stats"] = {
             "fetch_time": time.time() - t0,
             "num_tries": tries,

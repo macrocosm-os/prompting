@@ -36,7 +36,7 @@ CONTEXT_FIELDS = {
     "content": str,
     "internal_links": list,
     "external_links": list,
-    "source": tuple,
+    "source": str,
     "tags": list,
     "extra": dict,
     "stats": dict,
