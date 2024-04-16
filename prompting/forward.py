@@ -25,7 +25,7 @@ import traceback
 from typing import List, Dict, Awaitable
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
-from prompting.conversation import create_task
+from prompting.conversation import create_task, random_task
 from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.utils.uids import get_random_uids
@@ -34,10 +34,10 @@ from prompting.utils.misc import async_log, serialize_exception_to_string
 from dataclasses import dataclass
 
 @async_log
-async def generate_reference(agent):    
+async def generate_reference(agent):
     loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
-    return result    
+    return result
 
 @async_log
 async def execute_dendrite_call(dendrite_call):
@@ -217,8 +217,8 @@ async def run_step(
 
     log_stream_results(stream_results)
 
-    all_synapses_results = [stream_result.synapse for stream_result in stream_results]   
-            
+    all_synapses_results = [stream_result.synapse for stream_result in stream_results]
+
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(
         responses=all_synapses_results, uids=uids, timeout=timeout
@@ -235,10 +235,12 @@ async def run_step(
     )
     bt.logging.info(f"Created RewardResult:\n {reward_result}")
 
+    best_response = response_event.completions[reward_result.rewards.argmax()]
+
     # The original idea was that the agent is 'satisfied' when it gets a good enough response (e.g. reward critera is met, such as ROUGE>threshold)
     agent.update_progress(
         top_reward=reward_result.rewards.max(),
-        top_response=response_event.completions[reward_result.rewards.argmax()],
+        top_response=best_response,
     )
 
     self.update_scores(reward_result.rewards, uids)
@@ -250,6 +252,7 @@ async def run_step(
     ]
     # Log the step event.
     event = {
+        "best": best_response,
         "block": self.block,
         "step_time": time.time() - start_time,
         "stream_results_uids": stream_results_uids,
@@ -263,30 +266,14 @@ async def run_step(
 
 
 async def forward(self):
+    """
+    Encapsulates a full conversation between the validator and miners. Contains one or more rounds of request-response.
+
+    """
     bt.logging.info("🚀 Starting forward loop...")
     forward_start_time = time.time()
 
-    while True:
-        bt.logging.info(
-            f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
-        )
-        # Create a specific task
-        task_name = np.random.choice(
-            self.config.neuron.tasks, p=self.config.neuron.task_p
-        )
-        bt.logging.info(f"📋 Creating {task_name} task... ")
-        try:
-            task = create_task(
-                llm_pipeline=self.llm_pipeline,
-                task_name=task_name,
-                create_reference=False,
-            )
-            break
-        except Exception as e:
-            bt.logging.error(
-                f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
-            )
-            continue
+    task = random_task(self)
 
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
@@ -296,7 +283,8 @@ async def forward(self):
 
     rounds = 0
     exclude_uids = []
-    while not agent.finished:
+    history = []
+    while True:
         # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step.
         # To be reconsidered in the next version.
         try:
@@ -317,6 +305,21 @@ async def forward(self):
             task.complete = True
 
             rounds += 1
+
+            # 50% chance of single turn conversation, 25% of two turns, 12.5% chance of 3 turns, 6.25% chance of 4 turns, 3.63% chance of 5...
+            if random.rand()<0.5:
+                break
+
+            # Add current round of conversation to history
+            history.extend([
+                {'message': agent.challenge,  'role': 'user'},
+                {'message': event['best'], 'role': 'assistant'}
+            ])
+            # followups are always question-answering tasks, for now
+            agent.task = random_task(self, include=['qa'], history=history)
+            # overwrite the challenge with the followup query, which *should* continue the persona (validate this)
+            agent.challenge = agent.task.query
+
         except BaseException as e:
             unexpected_errors = serialize_exception_to_string(e)
             bt.logging.error(
