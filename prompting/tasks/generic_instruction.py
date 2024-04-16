@@ -5,6 +5,12 @@ You are a question-generating expert, focusing on delivering comprehensive and a
 {context}
 """
 
+REFERENCE_PROMPT_TEMPLATE = """\
+Answer the following question.
+
+# Question:
+{query}"""
+
 
 class GenericInstructionTask(Task):
     challenge_type = 'query'
@@ -31,6 +37,7 @@ class GenericInstructionTask(Task):
         self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
         self.query = self.generate_query(llm_pipeline)
 
+        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(query = self.query)
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
 
