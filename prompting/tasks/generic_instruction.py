@@ -15,6 +15,9 @@ class GenericInstructionTask(Task):
     reward_definition = [
         dict(name="rouge", ngram="rouge-1", metric="f", weight=1.0),
     ]
+    penalty_definition = [
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
+    ]
 
     cleaning_pipeline = [
         dict(name="remove_quotes"),
@@ -28,7 +31,6 @@ class GenericInstructionTask(Task):
         self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
         self.query = self.generate_query(llm_pipeline)
 
-        self.reference_prompt = context.query
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
 
