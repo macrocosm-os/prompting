@@ -18,5 +18,6 @@ TASK_REGISTRY = {
     debugging_task: debugging_dataset,
     math_task: math_dataset,
     date_qa_task: date_qa_dataset,
-    generic_instruction_task: generic_instruction_dataset
+    generic_instruction_task: generic_instruction_dataset,
+    sentiment_analysis_task: sentiment_analysis_dataset,
 }
