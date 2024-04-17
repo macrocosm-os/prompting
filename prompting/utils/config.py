@@ -278,7 +278,7 @@ def add_validator_args(cls, parser):
         type=str,
         nargs="+",
         help="The tasks to use for the validator.",
-        default=list(TASKS.keys())[:1],
+        default=list(TASKS.keys())[1:],
     )
 
     parser.add_argument(
