@@ -13,7 +13,7 @@ from .selector import Selector
 
 DATASETS = {
     MockDataset.name: MockDataset,
-    HFCodingDataset.name: HFCodingDataset,
+    #HFCodingDataset.name: HFCodingDataset,
     WikiDataset.name: WikiDataset,
     #StackOverflowDataset.name: StackOverflowDataset,
     MathDataset.name: MathDataset,

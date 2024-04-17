@@ -278,7 +278,7 @@ def add_validator_args(cls, parser):
         type=str,
         nargs="+",
         help="The tasks to use for the validator.",
-        default=list(TASKS.keys())[1:],
+        default=list(TASKS.keys()),
     )
 
     parser.add_argument(
@@ -286,7 +286,7 @@ def add_validator_args(cls, parser):
         type=float,
         nargs="+",
         help="The probability of sampling each task.",
-        default=[.2, .2, .2, 0, .2, .2],
+        default=[1.0 / len(TASKS)] * len(TASKS),
     )
 
     parser.add_argument(
