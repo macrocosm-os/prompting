@@ -14,7 +14,7 @@ Answer the following question.
 
 class GenericInstructionTask(Task):
     challenge_type = 'query'
-    name = "generic instruction"
+    name = "generic"
     desc = "get help on answering a general instruction"
     goal = "to get the answer to the following instruction"
 
