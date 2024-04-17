@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from prompting.tasks import Task
-from transformers import Pipeline
+
 
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
@@ -39,7 +39,7 @@ class SummarizationTask(Task):
 
     static_query = True
 
-    def __init__(self, llm_pipeline: Pipeline, context: str, create_reference=True):
+    def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
 
         # Query is just the article title and section name

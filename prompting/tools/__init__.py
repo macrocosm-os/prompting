@@ -7,16 +7,18 @@ from .datasets import (
     StackOverflowDataset,
     WikiDateDataset,
     MathDataset,
+    GenericInstructionDataset,
 )
 from .selector import Selector
 
 DATASETS = {
-    "mock": MockDataset,
-    "hf_coding": HFCodingDataset,
-    "wiki": WikiDataset,
-    #"stack_overflow": StackOverflowDataset,
-    "wiki_date": WikiDateDataset,
-    "math": MathDataset,
+    MockDataset.name: MockDataset,
+    #HFCodingDataset.name: HFCodingDataset,
+    WikiDataset.name: WikiDataset,
+    #StackOverflowDataset.name: StackOverflowDataset,
+    MathDataset.name: MathDataset,
+    WikiDateDataset.name: WikiDateDataset,
+    GenericInstructionDataset.name: GenericInstructionDataset, 
 }
  
 
