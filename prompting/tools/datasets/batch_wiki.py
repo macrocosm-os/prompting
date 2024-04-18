@@ -2,7 +2,7 @@ from prompting.utils import async_wiki_utils as async_wiki_utils
 from typing import List
 from .base import BatchDataset
 from prompting.tools.datasets import Context
-from prompting.utils.custom_async_wiki import get_batch_random_sections
+from prompting.utils.async_wiki_utils import get_batch_random_sections
 
 
 class BatchWikiDataset(BatchDataset):

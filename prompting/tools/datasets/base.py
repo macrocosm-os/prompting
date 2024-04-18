@@ -99,7 +99,7 @@ class BatchDataset(ABC):
 
         for tries in range(1, self.max_tries + 1):            
             if method == "random":
-                results = await self.random_batch(selector=selector, **kwargs)
+                results = await self.random_batch()
                 stats = {
                     "creator": self.__class__.__name__,
                     "fetch_time": time.time() - t0,
