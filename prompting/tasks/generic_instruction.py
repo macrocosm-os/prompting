@@ -13,14 +13,14 @@ Answer the following question.
 
 
 class GenericInstructionTask(Task):
-    challenge_type = 'query'
+    challenge_type = "query"
     name = "generic"
     desc = "get help on answering a general instruction"
     goal = "to get the answer to the following instruction"
 
     reward_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.75),
-        dict(name="relevance", weight=0.25),
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.25),
+        dict(name="relevance", weight=0.75),
     ]
     penalty_definition = [
         dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
@@ -38,7 +38,7 @@ class GenericInstructionTask(Task):
         self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
         self.query = self.generate_query(llm_pipeline)
 
-        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(query = self.query)
+        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(query=self.query)
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
 
