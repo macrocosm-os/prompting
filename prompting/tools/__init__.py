@@ -12,7 +12,6 @@ from .datasets import (
 from .selector import Selector
 
 DATASETS = {
-    MockDataset.name: MockDataset,
     #HFCodingDataset.name: HFCodingDataset,
     WikiDataset.name: WikiDataset,
     #StackOverflowDataset.name: StackOverflowDataset,

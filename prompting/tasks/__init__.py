@@ -9,7 +9,6 @@ from .mock import MockTask
 
 
 TASKS = {
-    MockTask.name: MockTask,
     QuestionAnsweringTask.name: QuestionAnsweringTask,
     DateQuestionAnsweringTask.name: DateQuestionAnsweringTask,
     SummarizationTask.name: SummarizationTask,
