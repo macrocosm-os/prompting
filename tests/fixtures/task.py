@@ -1,5 +1,6 @@
 from prompting.tasks import (
     Task,
+    MockTask,
     QuestionAnsweringTask,
     SummarizationTask,
     DebuggingTask,
@@ -7,9 +8,10 @@ from prompting.tasks import (
     DateQuestionAnsweringTask,
 )
 from prompting.tools import Context
-from .dataset import WIKI_CONTEXT, CODING_CONTEXT, MATH_CONTEXT, DATEQA_CONTEXT
+from .dataset import WIKI_CONTEXT, CODING_CONTEXT, MATH_CONTEXT, DATEQA_CONTEXT, MOCK_CONTEXT
 
 TASKS = [
+    MockTask,
     QuestionAnsweringTask,
     SummarizationTask,
     DebuggingTask,
@@ -18,6 +20,7 @@ TASKS = [
 ]
 
 CONTEXTS = {
+    MockTask: MOCK_CONTEXT,
     QuestionAnsweringTask: WIKI_CONTEXT,
     SummarizationTask: WIKI_CONTEXT,
     DebuggingTask: CODING_CONTEXT,
@@ -43,7 +46,6 @@ TASK_FIELDS = {
     "complete": bool,
     "static_reference": bool,
     "static_query": bool,
-    "reference_system_prompt": str,
     "reference_prompt": str,
     "query_system_prompt": str,
     "query_prompt": str,

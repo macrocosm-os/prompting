@@ -19,13 +19,6 @@ Ask a specific question about the following context:
 {context}
 """
 
-# Used to instruct the LLM to provide a good answer to the query when given a context
-REFERENCE_SYSTEM_PROMPT = """\
-You are a question-answering expert, focusing on delivering comprehensive and accurate responses with depth and clarity.
-You will maintain a neutral tone in your explanations.
-You will adhere to a word limit of 150 words for each response. Where applicable, include references to credible sources to support your answers.
-"""
-
 # Used to obtain reference answer
 REFERENCE_PROMPT_TEMPLATE = """\
 Answer the question you will receive in detail, utilizing the following context.
@@ -40,7 +33,7 @@ Answer the question you will receive in detail, utilizing the following context.
 
 @dataclass
 class QuestionAnsweringTask(Task):
-    name = "question-answering"
+    name = "qa"
     desc = "get help on answering a question"
     goal = "to get the answer to the following question"
 
@@ -65,7 +58,6 @@ class QuestionAnsweringTask(Task):
         self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
         self.query = self.generate_query(llm_pipeline)
 
-        self.reference_system_prompt = REFERENCE_SYSTEM_PROMPT
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
             context=context.content, question=self.query
         )

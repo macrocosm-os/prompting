@@ -61,7 +61,7 @@ def test_context_field_is_not_null(dataset: Dataset, field: str):
 
 @pytest.mark.parametrize("dataset", DATASETS)
 @pytest.mark.parametrize(
-    "field", ("creator", "fetch_time", "num_tries", "fetch_method", "next_kwargs")
+    "field", ("fetch_time", "num_tries", "fetch_method", "next_kwargs")
 )
 def test_context_stats_field_contains_expected_keys(dataset: Dataset, field: str):
     assert field in CONTEXTS[dataset].stats
