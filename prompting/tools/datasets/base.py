@@ -86,7 +86,6 @@ class Dataset(ABC):
 
 class BatchDataset(ABC):
     """Base class for datasets."""
-
     max_tries: int = 10        
 
     @abstractmethod
