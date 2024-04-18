@@ -11,8 +11,8 @@ class ReviewDataset(TemplateDataset):
     name = 'review'
     SENTIMENTS = ["positive", "neutral", "negative"]
     # TODO: filter nonsense combinations of params
-
-    query_template = "Create a {topic} review of a {title} in the style of {mood} person in a {subtopic} tone. The review must be of {sentiment} sentiment."
+    # "Create a {topic} review of a {title} in the style of {mood} person in a {subtopic} tone. The review must be of {sentiment} sentiment."
+    query_template = "Create a {topic} review of a {title}. The review must be of {sentiment} sentiment."
     params = dict(
         topic=[
             "short",
@@ -23,16 +23,16 @@ class ReviewDataset(TemplateDataset):
             "terribly written",
             "hilarious",
         ],
-        mood=["angry", "sad", "amused", "bored", "indifferent", "shocked", "terse"], #TODO: Remove
-        subtopic=[
-            "casual",
-            "basic",
-            "silly",
-            "random",
-            "thoughtful",
-            "serious",
-            "rushed",
-        ],
+        #mood=["angry", "sad", "amused", "bored", "indifferent", "shocked", "terse"], #TODO: Remove
+        # subtopic=[
+        #     "casual",
+        #     "basic",
+        #     "silly",
+        #     "random",
+        #     "thoughtful",
+        #     "serious",
+        #     "rushed",
+        # ],
         title=[
             "movie",
             "book",
