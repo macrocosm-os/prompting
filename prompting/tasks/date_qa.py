@@ -8,7 +8,7 @@ SECTION_MESSAGES = {"Births": " was born ", "Deaths": " died ", "Events": " "}
 
 @dataclass
 class DateQuestionAnsweringTask(Task):
-    name = "date-based question answering"
+    name = "date_qa"
     desc = "get help answering a specific date-based question"
     goal = "to get the answer to the following date-based question"
     reward_definition = [
@@ -22,7 +22,7 @@ class DateQuestionAnsweringTask(Task):
     static_reference = True
     static_query = True
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
+    def __init__(self, llm_pipeline, context, create_reference =True):
         self.context = context
 
         self.query = (
