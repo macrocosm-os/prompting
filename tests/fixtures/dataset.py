@@ -4,6 +4,7 @@ from prompting.tools.datasets import (
     WikiDataset,
     WikiDateDataset,
     MathDataset,
+    BatchWikiDataset
 )
 
 DATASETS = [
@@ -14,6 +15,9 @@ DATASETS = [
     MathDataset,
 ]
 
+BATCH_DATASETS = [
+    BatchWikiDataset,    
+]
 
 MOCK_CONTEXT = MockDataset().next()
 WIKI_CONTEXT = WikiDataset().next(name="Emilio Alvarez (bishop)", method="get")

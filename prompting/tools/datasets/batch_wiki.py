@@ -7,15 +7,9 @@ from prompting.utils.async_wiki_utils import get_batch_random_sections
 
 class BatchWikiDataset(BatchDataset):
     """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
-
-    EXCLUDE_HEADERS = ("See also", "References", "Further reading", "External links")
-    EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
-
     def __init__(
         self,
         batch_size: int = 16,
-        min_length_words: int = 50,
-        max_links: int = 10,
     ):
         """
         Args:
@@ -23,10 +17,7 @@ class BatchWikiDataset(BatchDataset):
             max_links (int, optional): _description_. Defaults to 10.
         """
         self.batch_size = batch_size
-        self.min_length_words = min_length_words
-        self.max_links = max_links
-     
-  
+
     async def random_batch(self) -> List[Context]:        
-        contexts = await get_batch_random_sections()
+        contexts = await get_batch_random_sections(self.batch_size)
         return contexts

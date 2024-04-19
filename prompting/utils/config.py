@@ -388,6 +388,13 @@ def add_validator_args(cls, parser):
         help="Max time to wait for a forward call to complete in seconds.",
         default=120,
     )
+    
+    parser.add_argument(
+        "--neuron.batch_size",
+        type=int,
+        help="Max time to wait for a forward call to complete in seconds.",
+        default=16,
+    )
 
 
 def config(cls):

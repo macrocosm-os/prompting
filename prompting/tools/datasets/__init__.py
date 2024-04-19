@@ -1,5 +1,5 @@
 from .context import Context, BatchContext
-from .base import Dataset
+from .base import Dataset, BatchDataset
 from .code import HFCodingDataset, StackOverflowDataset
 from .math import MathDataset
 from .mock import MockDataset
