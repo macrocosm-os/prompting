@@ -6,6 +6,7 @@ import wikipedia as wiki
 from typing import Dict, List
 from functools import lru_cache
 
+
 # speed up page loading
 @lru_cache(maxsize=1000)
 def _get_page(

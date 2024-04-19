@@ -4,7 +4,7 @@ from prompting.tools.datasets import (
     WikiDataset,
     WikiDateDataset,
     MathDataset,
-    BatchWikiDataset
+    BatchWikiDataset,
 )
 
 DATASETS = [
@@ -16,7 +16,7 @@ DATASETS = [
 ]
 
 BATCH_DATASETS = [
-    BatchWikiDataset,    
+    BatchWikiDataset,
 ]
 
 MOCK_CONTEXT = MockDataset().next()

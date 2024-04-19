@@ -3,6 +3,7 @@ from .fixtures.dataset import DATASETS, CONTEXTS, CONTEXT_FIELDS, BATCH_DATASETS
 from prompting.tools.datasets import Dataset
 from prompting.tools import Context
 
+
 @pytest.mark.parametrize("dataset", DATASETS)
 def test_create_dataset(dataset: Dataset):
     ds = dataset()
@@ -69,20 +70,19 @@ def test_context_stats_field_contains_expected_keys(dataset: Dataset, field: str
 @pytest.mark.asyncio
 @pytest.mark.parametrize("dataset", BATCH_DATASETS)
 @pytest.mark.parametrize("batch_size", [1, 2, 4, 8])
-async def test_batch_size_parameter(dataset, batch_size):    
+async def test_batch_size_parameter(dataset, batch_size):
     batch_context = await dataset(batch_size=batch_size).next()
     results = batch_context.results
     # Check if results match expected batch size
-    assert len(results) == batch_size    
+    assert len(results) == batch_size
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("dataset", BATCH_DATASETS)
-async def test_random_batch_retrieval(dataset):        
+async def test_random_batch_retrieval(dataset):
     # Fetch batches
     batch1_results = (await dataset(batch_size=2).next()).results
-    batch2_results = (await dataset(batch_size=2).next()).results        
+    batch2_results = (await dataset(batch_size=2).next()).results
 
     # Check that batches have different elements
     assert batch1_results != batch2_results
-

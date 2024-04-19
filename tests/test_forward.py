@@ -24,14 +24,14 @@ def generate_reference(x, delay=1):
 
 async def mock_dendrite_call(delay=1, **kwargs):
     asyncio.run(asyncio.sleep(delay))
-    
-    async def async_fn_mock():                   
+
+    async def async_fn_mock():
         mock_synapse = StreamPromptingSynapse(roles=["user"], messages=[""])
         mock_synapse.completion = "Fake response"
-            
+
         yield mock_synapse
-            
-    mock_stream_synapse = async_fn_mock()                
+
+    mock_stream_synapse = async_fn_mock()
     return [mock_stream_synapse]
 
 
@@ -57,5 +57,5 @@ def test_generate_reference_parallel_to_dendrite(
 
     # TODO: Fix unit test to work with abs=0.1
     assert network_and_reference_gen_time == pytest.approx(
-        expected_forward_time, abs=1#0.1
+        expected_forward_time, abs=1  # 0.1
     )

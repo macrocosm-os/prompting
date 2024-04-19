@@ -7,6 +7,7 @@ from prompting.utils.async_wiki_utils import get_batch_random_sections
 
 class BatchWikiDataset(BatchDataset):
     """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
+
     def __init__(
         self,
         batch_size: int = 16,
@@ -18,6 +19,6 @@ class BatchWikiDataset(BatchDataset):
         """
         self.batch_size = batch_size
 
-    async def random_batch(self) -> List[Context]:        
+    async def random_batch(self) -> List[Context]:
         contexts = await get_batch_random_sections(self.batch_size)
         return contexts

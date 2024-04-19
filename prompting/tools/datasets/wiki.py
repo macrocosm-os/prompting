@@ -91,8 +91,12 @@ class WikiDataset(Dataset):
             "subtopic": section_title,
             "content": content,
             "internal_links": list(filter(lambda x: x not in exclude, page.sections)),
-            "external_links": wiki_utils.most_relevant_links(page, num_links=self.max_links),
-            "tags": wiki_utils.filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
+            "external_links": wiki_utils.most_relevant_links(
+                page, num_links=self.max_links
+            ),
+            "tags": wiki_utils.filter_categories(
+                page.categories, exclude=self.EXCLUDE_CATEGORIES
+            ),
             "source": "Wikipedia",
             "extra": {
                 "url": page.url,
