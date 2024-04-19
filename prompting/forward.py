@@ -304,7 +304,7 @@ async def forward(self):
         task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True
     )
 
-    rounds = 0
+    turn = 0
     exclude_uids = []
     history = ''
     while True:
@@ -322,12 +322,13 @@ async def forward(self):
 
             # Adds forward time to event and logs it to wandb
             event["forward_time"] = time.time() - forward_start_time
+            event["turn"] = turn
             log_event(self, event)
 
             exclude_uids += event["uids"]
             task.complete = True
 
-            rounds += 1
+            turn += 1
 
             # 50% chance of single turn conversation, 25% of two turns, 12.5% chance of 3 turns, 6.25% chance of 4 turns, 3.63% chance of 5...
             if random.random()<0.5:
