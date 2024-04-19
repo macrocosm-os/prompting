@@ -16,18 +16,20 @@
 # DEALINGS IN
 #  THE SOFTWARE.
 
-import time
 import sys
+import time
+import random
 import asyncio
+import traceback
 import numpy as np
 import bittensor as bt
-import traceback
 from typing import List, Dict, Awaitable
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
-from prompting.conversation import create_task, random_task
+from prompting.conversation import create_task
 from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
+from prompting.tasks import QuestionAnsweringTask
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
@@ -254,6 +256,7 @@ async def run_step(
     event = {
         "best": best_response,
         "block": self.block,
+        "step": self.step,
         "step_time": time.time() - start_time,
         "stream_results_uids": stream_results_uids,
         "stream_results_exceptions": stream_results_exceptions,
@@ -273,7 +276,27 @@ async def forward(self):
     bt.logging.info("🚀 Starting forward loop...")
     forward_start_time = time.time()
 
-    task = random_task(self)
+    while True:
+        bt.logging.info(
+            f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
+        )
+        # Create a specific task
+        task_name = np.random.choice(
+            self.config.neuron.tasks, p=self.config.neuron.task_p
+        )
+        bt.logging.info(f"📋 Creating {task_name} task... ")
+        try:
+            task = create_task(
+                llm_pipeline=self.llm_pipeline,
+                task_name=task_name,
+                create_reference=False,
+            )
+            break
+        except Exception as e:
+            bt.logging.error(
+                f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
+            )
+            continue
 
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
@@ -283,7 +306,7 @@ async def forward(self):
 
     rounds = 0
     exclude_uids = []
-    history = []
+    history = ''
     while True:
         # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step.
         # To be reconsidered in the next version.
@@ -307,16 +330,15 @@ async def forward(self):
             rounds += 1
 
             # 50% chance of single turn conversation, 25% of two turns, 12.5% chance of 3 turns, 6.25% chance of 4 turns, 3.63% chance of 5...
-            if random.rand()<0.5:
+            if random.random()<0.5:
                 break
 
             # Add current round of conversation to history
-            history.extend([
-                {'message': agent.challenge,  'role': 'user'},
-                {'message': event['best'], 'role': 'assistant'}
-            ])
-            # followups are always question-answering tasks, for now
-            agent.task = random_task(self, include=['qa'], history=history)
+            history += f"\nUser: {agent.challenge}\nAssistant: {event['best']}"
+
+            # Use PREVIOUS task context (maybe causes schema issues)
+            agent.task = QuestionAnsweringTask(self.llm_pipeline, context=task.context, create_reference=False, history=history)
+
             # overwrite the challenge with the followup query, which *should* continue the persona (validate this)
             agent.challenge = agent.task.query
 
