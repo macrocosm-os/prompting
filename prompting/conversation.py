@@ -1,73 +1,50 @@
-from prompting.tasks import (
-    Task,
-    DebuggingTask,
-    QuestionAnsweringTask,
-    SummarizationTask,
-    MathTask,
-    DateQuestionAnsweringTask,
-)
-from prompting.tools import (
-    WikiDataset,
-    HFCodingDataset,
-    MathDataset,
-    WikiDateDataset,
-)
-
+import random
 from transformers import Pipeline
+from prompting.tasks import Task, TASKS
+from prompting.tools import Selector, DATASETS
+from prompting.task_registry import TASK_REGISTRY
 
 
-def create_task(llm_pipeline: Pipeline, task_name: str, create_reference=True) -> Task:
-    wiki_based_tasks = ["summarization", "qa"]
-    coding_based_tasks = ["debugging"]
-    # TODO: Abstract dataset classes into common dynamic interface
-    if task_name in wiki_based_tasks:
-        dataset = WikiDataset()
+def create_task(
+    llm_pipeline: Pipeline,
+    task_name: str,
+    create_reference: bool = True,
+    selector: Selector = random.choice,
+) -> Task:
+    """Create a task from the given task name and LLM pipeline.
 
-    elif task_name in coding_based_tasks:
-        dataset = HFCodingDataset()
+    Args:
+        llm_pipeline (Pipeline): Pipeline to use for text generation
+        task_name (str): Name of the task to create
+        create_reference (bool, optional): Generate text for task reference answer upon creation. Defaults to True.
+        selector (Selector, optional): Selector function to choose a dataset. Defaults to random.choice.
 
-    elif task_name == "math":
-        dataset = MathDataset()
+    Raises:
+        ValueError: If task_name is not a valid alias for a task, or if the task is not a subclass of Task
+        ValueError: If no datasets are available for the given task
+        ValueError: If the dataset for the given task is not found
 
-    elif task_name == "date_qa":
-        dataset = WikiDateDataset()
+    Returns:
+        Task: Task instance
+    """
 
-    if task_name == "summarization":
-        task = SummarizationTask(
-            llm_pipeline=llm_pipeline,
-            context=dataset.next(),
-            create_reference=create_reference,
-        )
+    task = TASKS.get(task_name, None)
+    if task is None or not issubclass(task, Task):
+        raise ValueError(f"Task {task_name} not found")
 
-    elif task_name == "qa":
-        task = QuestionAnsweringTask(
-            llm_pipeline=llm_pipeline,
-            context=dataset.next(),
-            create_reference=create_reference,
-        )
+    dataset_choices = TASK_REGISTRY.get(task_name, None)
+    if len(dataset_choices) == 0:
+        raise ValueError(f"No datasets available for task {task_name}")
 
-    elif task_name == "debugging":
-        task = DebuggingTask(
-            llm_pipeline=llm_pipeline,
-            context=dataset.next(),
-            create_reference=create_reference,
-        )
-
-    elif task_name == "math":
-        task = MathTask(
-            llm_pipeline=llm_pipeline,
-            context=dataset.next(),
-            create_reference=create_reference,
-        )
-
-    elif task_name == "date_qa":
-        task = DateQuestionAnsweringTask(
-            llm_pipeline=llm_pipeline,
-            context=dataset.next(),
-            create_reference=create_reference,
-        )
-
+    dataset_name = selector(dataset_choices)
+    dataset = DATASETS.get(dataset_name, None)
+    if dataset is None:
+        raise ValueError(f"Dataset {dataset_name} not found")
     else:
-        raise ValueError(f"Task {task_name} not supported. Please choose a valid task")
+        dataset = dataset()
 
-    return task
+    return task(
+        llm_pipeline=llm_pipeline,
+        context=dataset.next(),
+        create_reference=create_reference,
+    )
