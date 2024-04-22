@@ -1,4 +1,5 @@
 import time
+import random
 import bittensor as bt
 from abc import ABC
 from dataclasses import dataclass, asdict
@@ -49,6 +50,7 @@ class Task(ABC):
     query_system_prompt = ""
     query_prompt = ""
     cleaner = None
+    token_limit = random.choice([None, 256, 512, 1024, 2048])
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
@@ -75,7 +77,7 @@ class Task(ABC):
         return state
 
     def generate(
-        self, system: str, prompt: str, pipeline: BasePipeline, clean=True
+        self, system: str, prompt: str, pipeline: BasePipeline, clean=True, token_limit=None
     ) -> str:
         """Uses the llm to generate a response to a prompt"""
 
@@ -83,7 +85,7 @@ class Task(ABC):
             CleanerPipeline(cleaning_pipeline=self.cleaning_pipeline) if clean else None
         )
         return vLLM_LLM(pipeline, system_prompt=system).query(
-            message=prompt, cleaner=cleaner
+            message=prompt, cleaner=cleaner, token_limit=token_limit,
         )
 
     def generate_reference(self, pipeline: BasePipeline, clean=True) -> str:
@@ -91,12 +93,13 @@ class Task(ABC):
         t0 = time.time()
         if not self.static_reference:
             bt.logging.info("🤖 Generating reference...")
-
+            
             self.reference = self.generate(
                 system=make_system_prompt(),
                 prompt=self.reference_prompt,
                 pipeline=pipeline,
                 clean=clean,
+                token_limit=self.token_limit,
             )
 
         self.reference_time = time.time() - t0
