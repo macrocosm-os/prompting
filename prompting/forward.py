@@ -337,10 +337,10 @@ async def forward(self):
             # Add current round of conversation to history
             history += f"\nUser: {agent.challenge}\nAssistant: {event['best']}"
 
-            # Use PREVIOUS task context (maybe causes schema issues)
+            # Use PREVIOUS task context
             agent.task = QuestionAnsweringTask(self.llm_pipeline, context=task.context, create_reference=False, history=history)
 
-            # overwrite the challenge with the followup query, which *should* continue the persona (validate this)
+            # overwrite the challenge with the followup query, which *should* continue the persona
             agent.challenge = agent.task.query
 
         except BaseException as e:
