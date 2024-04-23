@@ -97,7 +97,7 @@ class Task(ABC):
             
             self.reference = self.generate(
                 system=make_system_prompt(),
-                prompt=self.reference_prompt + f"\n Your answer should be {token_limit[0]} words long",
+                prompt=self.reference_prompt + f"\n Your answer should be {self.token_limit[0]} words long",
                 pipeline=pipeline,
                 clean=clean,
                 token_limit=self.token_limit,
