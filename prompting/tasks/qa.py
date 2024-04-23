@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from prompting.tasks import Task
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
-# TODO
 
 # Used to instruct the LLM to provide a good query when given a context
 QUERY_SYSTEM_PROMPT = """\
@@ -20,6 +19,20 @@ Ask a specific question about the following context:
 {context}
 """
 
+# Used to obtain the query (which is a followup question about the context)
+# TODO: we may not need the entire conversation history - we can sample a subset of it (first k messages, last k messages, etc.)
+FOLLOWUP_PROMPT_TEMPLATE = """
+Compose a single, specific question to continue the dialogue below. Adopt the persona of the original user, including their communication style and objectives. The question should be based on the previous exchanges and must not be answerable with a simple yes or no.
+
+The question should require detailed knowledge of the conversation history for a correct response, emphasizing requests for clarification or additional details (e.g., 'What specific steps did you take?' or 'How did that situation resolve?'). Avoid referring to the subject by name and instead use indirect pronouns or descriptions (e.g., 'he,' 'she,' 'it'). Avoid answering the question yourself and refrain from providing new information not already discussed.
+
+# Context:
+{context}
+
+# Conversation History:
+{history}
+"""
+
 # Used to obtain reference answer
 REFERENCE_PROMPT_TEMPLATE = """\
 Answer the question you will receive in detail, utilizing the following context.
@@ -31,18 +44,6 @@ Answer the question you will receive in detail, utilizing the following context.
 {question}
 """
 
-# Used to obtain the query (which is a followup question about the context)
-FOLLOWUP_PROMPT_TEMPLATE = """
-Ask a specific question to continue the conversation below. You must adopt the same persona as the human user (tone, style, goals). It must be possible to answer your followup question objectively, but you must not answer it. You may use using the provided context as the basis for the followup question, but it is not a requirement. The assistant does not have direct access to the context, so you should not refer to it directly.
-
-Importantly, your followup question must require the conversation history to answer correctly. This can be achieved by using implicit and indirect language (can tell me more about that? what was the reason ...? why did she ...?), or if you are confident that the assistant response was wrong or not useful you can request further information or point out any problems you encounter. You must not answer your own question. If the original user query was itself of poor quality you may use the followup question to clarify and amend it. It can be based on any message in the conversation history.
-
-# Context:
-{context}
-
-# Conversation History:
-{history}
-"""
 # TODO: We also need a special followup reference prompt (or just merge both)
 # Used to obtain reference answer
 FOLLOWUP_REFERENCE_PROMPT_TEMPLATE = """\
