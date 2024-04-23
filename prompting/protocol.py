@@ -151,6 +151,8 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
                           product or result of the streaming process.
     - `required_hash_fields` (List[str]): A list of fields that are required for the hash.
 
+    - `max_tokens` (int): The maximum number of tokens to process in a single streaming response.
+
     Methods:
     - `process_streaming_response`: This method asynchronously processes the incoming streaming response by decoding
                                     the tokens and accumulating them in the `completion` attribute.
@@ -184,6 +186,9 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
         description="A list of required fields for the hash.",
         allow_mutation=False,
     )
+
+    max_tokens: int = pydantic.Field(
+        ..., title="Max Tokens", description="The maximum number of tokens that a miner should send." ) 
 
     completion: str = pydantic.Field(
         "",
