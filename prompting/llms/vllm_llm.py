@@ -101,9 +101,10 @@ class vLLMPipeline(BasePipeline):
         temperature = model_kwargs.get("temperature", 0.8)
         top_p = model_kwargs.get("top_p", 0.95)
         max_tokens = model_kwargs.get("max_tokens", 256)
+        min_tokens = model_kwargs.get("min_tokens", 0)
 
         sampling_params = SamplingParams(
-            temperature=temperature, top_p=top_p, max_tokens=max_tokens
+            temperature=temperature, top_p=top_p, max_tokens=max_tokens, min_tokens=min_tokens,
         )
         output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
         response = output[0].outputs[0].text
@@ -174,7 +175,8 @@ class vLLM_LLM(BaseLLM):
         composed_prompt = self._make_prompt(messages)
         model_kwargs = self.model_kwargs.copy()
         if token_limit:
-            model_kwargs["max_tokens"] = token_limit
+            model_kwargs["min_tokens"] = token_limit[0]
+            model_kwargs["max_tokens"] = token_limit[1]
         response = self.llm_pipeline(composed_prompt, **model_kwargs)
 
         bt.logging.info(
