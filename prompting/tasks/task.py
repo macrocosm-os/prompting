@@ -51,7 +51,7 @@ class Task(ABC):
     query_prompt = ""
     cleaner = None
     token_goal = random.choice([128, 256, 512, 1024,])
-    token_limit = [token_goal/2, token_goal]
+    token_limit = [token_goal//2, token_goal]
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
