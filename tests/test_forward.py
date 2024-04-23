@@ -26,7 +26,7 @@ async def mock_dendrite_call(delay=1, **kwargs):
     asyncio.run(asyncio.sleep(delay))
     
     async def async_fn_mock():                   
-        mock_synapse = StreamPromptingSynapse(roles=["user"], messages=[""])
+        mock_synapse = StreamPromptingSynapse(roles=["user"], messages=[""], max_tokens = 256,)
         mock_synapse.completion = "Fake response"
             
         yield mock_synapse

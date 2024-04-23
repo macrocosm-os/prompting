@@ -76,7 +76,7 @@ async def process_response(uid: int, async_generator: Awaitable):
         )
 
         failed_synapse = StreamPromptingSynapse(
-            roles=["user"], messages=["failure"], completion=""
+            roles=["user"], messages=["failure"], completion="", max_tokens=0
         )
 
         return failed_synapse
@@ -115,7 +115,7 @@ async def handle_response(responses: Dict[int, Awaitable]) -> List[StreamResult]
         # If the result is an exception, the response was unsuccessful and the stream result is added with the exception and an empty synapse
         elif isinstance(result, BaseException):
             failed_synapse = StreamPromptingSynapse(
-                roles=["user"], messages=["failure"], completion=""
+                roles=["user"], messages=["failure"], completion="", max_tokens=0
             )
             mapped_results.append(
                 StreamResult(synapse=failed_synapse, exception=result, uid=uid)
@@ -196,7 +196,7 @@ async def run_step(
     # Directly call dendrite and process responses in parallel
     streams_responses = await self.dendrite(
         axons=axons,
-        synapse=StreamPromptingSynapse(roles=["user"], messages=[agent.challenge]), max_tokens  = agent.task.token_limit[1],
+        synapse=StreamPromptingSynapse(roles=["user"], messages=[agent.challenge], max_tokens  = agent.task.token_limit[1]),
         timeout=timeout,
         deserialize=False,
         streaming=True,

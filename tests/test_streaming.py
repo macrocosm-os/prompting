@@ -55,6 +55,7 @@ def test_mock_streaming(timeout: float):
     synapse = StreamPromptingSynapse(
         roles=["user"],
         messages=messages,
+        max_tokens=256,
     )
 
     async def get_responses(
