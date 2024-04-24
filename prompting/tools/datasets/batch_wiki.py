@@ -6,7 +6,7 @@ from prompting.utils.async_wiki_utils import get_batch_random_sections
 
 
 class BatchWikiDataset(BatchDataset):
-    """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
+    """Wikipedia batch dataset. Uses the wikipedia python api to fetch articles and sections."""
 
     def __init__(
         self,
