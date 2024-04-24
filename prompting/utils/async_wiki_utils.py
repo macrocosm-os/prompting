@@ -1,3 +1,4 @@
+import time
 import aiohttp
 import asyncio
 import random
@@ -72,6 +73,7 @@ async def fetch_random_section_context(
     max_attempts = 10
     for attempt in range(1, max_attempts + 1):
         try:
+            request_time_start = time.time()
             bt.logging.info("Fetching random section context...")
             pageid = await fetch_random_page(session)
             page_details = await fetch_page_details(session, pageid)
@@ -110,6 +112,11 @@ async def fetch_random_section_context(
                 tags=tags,
                 source="Wikipedia",
                 extra={},
+                stats = {
+                    "creator": fetch_random_section_context.__name__,
+                    "fetch_time": time.time() - request_time_start,
+                    "num_tries": attempt,
+                }
             )
             progress.update(1)
             return context
