@@ -126,6 +126,12 @@ class Task(ABC):
 
 
 class ParaphraseTask(Task):
+    """
+    Paraphrase tasks do not require LLM generations to create the challenge from the query.
+    Instead, the query is generated using a set of predefined phrases with placeholders for the fields in the task.
+    
+    This means that they produce a finite but potentially large number of realistc queries.
+    """
     
     phrases: List[str]
     
