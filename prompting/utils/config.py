@@ -393,7 +393,7 @@ def add_validator_args(cls, parser):
     parser.add_argument(
         "--neuron.batch_size",
         type=int,
-        help="Max time to wait for a forward call to complete in seconds.",
+        help="Number of concurrent queries to create in each forward.",
         default=16,
     )
 
