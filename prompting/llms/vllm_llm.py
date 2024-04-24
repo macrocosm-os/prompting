@@ -175,8 +175,7 @@ class vLLM_LLM(BaseLLM):
         composed_prompt = self._make_prompt(messages)
         model_kwargs = self.model_kwargs.copy()
         if token_limit:
-            model_kwargs["min_tokens"] = token_limit[0]
-            model_kwargs["max_tokens"] = token_limit[1]
+            model_kwargs["max_tokens"] = token_limit
         response = self.llm_pipeline(composed_prompt, **model_kwargs)
 
         bt.logging.info(
