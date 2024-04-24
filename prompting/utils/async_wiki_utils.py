@@ -2,7 +2,7 @@ import aiohttp
 import asyncio
 import random
 import bittensor as bt
-from dataclasses import dataclass, field
+from prompting.tools.datasets import Context
 from typing import List, Dict
 from tqdm.asyncio import tqdm
 
@@ -12,28 +12,12 @@ EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
 
 class SectionNotFoundException(Exception):
     """Exception raised when no valid section is found."""
-
     pass
 
 
 class MaxRetriesReachedException(Exception):
     """Exception raised when maximum retry attempts are reached."""
-
     pass
-
-
-@dataclass
-class Context:
-    title: str
-    topic: str
-    subtopic: str
-    content: str
-    internal_links: List[str]
-    external_links: List[str]
-    source: str
-    tags: List[str] = field(default_factory=list)
-    extra: Dict[str, any] = field(default_factory=dict)
-    stats: Dict[str, any] = field(default_factory=dict)
 
 
 async def fetch_content(session: aiohttp.ClientSession, pageid: str) -> str:
