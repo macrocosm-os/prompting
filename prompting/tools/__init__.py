@@ -1,6 +1,7 @@
 from .datasets import (
     Context,
     Dataset,
+    TemplateDataset,
     MockDataset,
     HFCodingDataset,
     WikiDataset,
