@@ -18,6 +18,6 @@ class BatchWikiDataset(BatchDataset):
         """
         self.batch_size = batch_size
 
-    async def random_batch(self) -> List[Context]:
+    async def random(self) -> List[Context]:
         contexts = await get_batch_random_sections(self.batch_size)
         return contexts
