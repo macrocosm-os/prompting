@@ -169,7 +169,7 @@ def log_stream_results(stream_results: List[StreamResult]):
 
 
 async def run_step(
-    self, agent: HumanAgent, k: int, timeout: float, exclude: list = None
+    self, agent: HumanAgent, roles: List[str], messages: List[str], k: int, timeout: float, exclude: list = None
 ):
     """Executes a single step of the agent, which consists of:
     - Getting a list of uids to query
@@ -180,6 +180,8 @@ async def run_step(
 
     Args:
         agent (HumanAgent): The agent to run the step for.
+        roles (List[str]): The roles for the synapse.
+        messages (List[str]): The messages for the synapse.
         k (int): The number of uids to query.
         timeout (float): The timeout for the queries.
         exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
@@ -198,7 +200,7 @@ async def run_step(
     # Directly call dendrite and process responses in parallel
     streams_responses = await self.dendrite(
         axons=axons,
-        synapse=StreamPromptingSynapse(roles=["user"], messages=[agent.challenge]),
+        synapse=StreamPromptingSynapse(roles=roles, messages=messages),
         timeout=timeout,
         deserialize=False,
         streaming=True,
@@ -306,7 +308,8 @@ async def forward(self):
 
     turn = 0
     exclude_uids = []
-    history = ''
+    roles = ['user']
+    messages = [agent.challenge]
     while True:
         # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step.
         # To be reconsidered in the next version.
@@ -315,6 +318,8 @@ async def forward(self):
             event = await run_step(
                 self,
                 agent,
+                roles=roles,
+                messages=messages,
                 k=self.config.neuron.sample_size,
                 timeout=self.config.neuron.timeout,
                 exclude=exclude_uids,
@@ -327,21 +332,26 @@ async def forward(self):
 
             exclude_uids += event["uids"]
             task.complete = True
-
-            turn += 1
+            
+            accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
+            roles.append("assistant")
+            messages.append(accepted_answer)
 
             # 50% chance of single turn conversation, 25% of two turns, 12.5% chance of 3 turns, 6.25% chance of 4 turns, 3.63% chance of 5...
-            if random.random()<0.5:
+            if random.random()<0.5 or turn>=2:
                 break
 
-            # Add current round of conversation to history
-            history += f"\nUser: {agent.challenge}\nAssistant: {event['best']}"
+            history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])
 
             # Use PREVIOUS task context
             agent.task = QuestionAnsweringTask(self.llm_pipeline, context=task.context, create_reference=False, history=history)
 
             # overwrite the challenge with the followup query, which *should* continue the persona
             agent.challenge = agent.task.query
+
+            roles.append("user")
+            messages.append(agent.challenge)
+            turn += 1
 
         except BaseException as e:
             unexpected_errors = serialize_exception_to_string(e)
