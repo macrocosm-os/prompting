@@ -22,6 +22,19 @@ class MaxRetriesReachedException(Exception):
 
 
 async def fetch_content(session: aiohttp.ClientSession, pageid: str) -> str:
+    """
+    Asynchronously fetches the plain text content of a Wikipedia page given its page ID.
+
+    Args:
+        session (aiohttp.ClientSession): The session used to make HTTP requests.
+        pageid (str): The Wikipedia page ID of the page from which to fetch content.
+
+    Returns:
+        str: The plain text content of the Wikipedia page.
+
+    Raises:
+        aiohttp.ClientError: If there's an HTTP related error during the request.
+    """
     url = "https://en.wikipedia.org/w/api.php"
     params = {
         "action": "query",
@@ -37,6 +50,18 @@ async def fetch_content(session: aiohttp.ClientSession, pageid: str) -> str:
 
 
 async def fetch_random_page(session: aiohttp.ClientSession) -> str:
+    """
+    Asynchronously fetches the page ID of a random Wikipedia page.
+
+    Args:
+        session (aiohttp.ClientSession): The session used to make HTTP requests.
+
+    Returns:
+        str: The page ID of a randomly selected Wikipedia page.
+
+    Raises:
+        aiohttp.ClientError: If there's an HTTP related error during the request.
+    """
     url = "https://en.wikipedia.org/w/api.php"
     params = {
         "action": "query",
@@ -53,6 +78,19 @@ async def fetch_random_page(session: aiohttp.ClientSession) -> str:
 async def fetch_page_details(
     session: aiohttp.ClientSession, pageid: str
 ) -> Dict[str, any]:
+    """
+    Asynchronously fetches detailed information about a Wikipedia page, including sections, links, categories, and external links.
+
+    Args:
+        session (aiohttp.ClientSession): The session used to make HTTP requests.
+        pageid (str): The Wikipedia page ID from which to fetch details.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing detailed information about the Wikipedia page.
+
+    Raises:
+        aiohttp.ClientError: If there's an HTTP related error during the request.
+    """
     url = "https://en.wikipedia.org/w/api.php"
     params = {
         "action": "parse",
@@ -70,6 +108,20 @@ async def fetch_page_details(
 async def fetch_random_section_context(
     session: aiohttp.ClientSession, progress: tqdm
 ) -> Context:
+    """
+    Asynchronously fetches the context of a random section from a random Wikipedia page, including title, topic, subtopic, content, and links.
+
+    Args:
+        session (aiohttp.ClientSession): The session used to make HTTP requests.
+        progress (tqdm): A tqdm progress bar instance to update progress.
+
+    Returns:
+        Any: A context object containing various details about the section.
+
+    Raises:
+        SectionNotFoundException: If no valid section is found after filtering.
+        MaxRetriesReachedException: If the maximum number of retry attempts is reached.
+    """
     max_attempts = 10
     for attempt in range(1, max_attempts + 1):
         try:
@@ -131,6 +183,23 @@ async def fetch_random_section_context(
 
 
 async def get_batch_random_sections(batch_size: int = 16) -> List[Context]:
+    """
+    Asynchronously fetches a batch of random sections from Wikipedia pages. This function utilizes concurrency to fetch multiple sections in parallel.
+
+    Args:
+        batch_size (int, optional): The number of random sections to fetch. Defaults to 16.
+
+    Returns:
+        List[Context]: A list of context objects, each containing details about a random section of a Wikipedia page.
+
+    Details:
+        The function creates an asynchronous session and a number of tasks equal to the batch size. Each task fetches a random section context from a Wikipedia page. All tasks are run concurrently, and the function waits for all tasks to complete before returning the results. A progress bar is displayed to track the progress of fetching the sections.
+
+    Raises:
+        aiohttp.ClientError: If there's an HTTP related error during any request in the tasks.
+        SectionNotFoundException: If no valid section is found after filtering in any task.
+        MaxRetriesReachedException: If the maximum number of retry attempts is reached in any task.
+    """
     async with aiohttp.ClientSession() as session:
         tasks: List[asyncio.Task] = []
         progress = tqdm(
