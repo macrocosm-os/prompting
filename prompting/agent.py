@@ -18,7 +18,8 @@ import textwrap
 import time
 import bittensor as bt
 from dataclasses import asdict
-from prompting.tasks import Task
+from typing import Union
+from prompting.tasks import Task, ParaphraseTask
 from prompting.llms import HuggingFaceLLM, vLLM_LLM
 from prompting.cleaners.cleaner import CleanerPipeline
 
@@ -47,7 +48,7 @@ class HumanAgent(vLLM_LLM):
 
     def __init__(
         self,
-        task: Task,
+        task: Union[Task, ParaphraseTask],
         llm_pipeline: Pipeline,
         system_template: str = None,
         persona: Persona = None,
@@ -83,15 +84,19 @@ class HumanAgent(vLLM_LLM):
     def create_challenge(self) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
         t0 = time.time()
+        
+        if type(self.task) == ParaphraseTask:
+            self.challenge = self.task.paraphrase()
+        else:
+            cleaner = None
+            if hasattr(self.task, "cleaning_pipeline"):
+                cleaner = CleanerPipeline(cleaning_pipeline=self.task.cleaning_pipeline)
 
-        cleaner = None
-        if hasattr(self.task, "cleaning_pipeline"):
-            cleaner = CleanerPipeline(cleaning_pipeline=self.task.cleaning_pipeline)
-
-        self.challenge = super().query(
-            message="Ask a question related to your goal", cleaner=cleaner
-        )
-        self.challenge = self.task.format_challenge(self.challenge)
+            self.challenge = super().query(
+                message="Ask a question related to your goal", cleaner=cleaner
+            )
+            self.challenge = self.task.format_challenge(self.challenge)
+            
         self.challenge_time = time.time() - t0
 
         return self.challenge
