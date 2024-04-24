@@ -1,4 +1,4 @@
-from .task import Task
+from .task import Task, ParaphraseTask
 from .debugging import DebuggingTask
 from .summarization import SummarizationTask
 from .qa import QuestionAnsweringTask
