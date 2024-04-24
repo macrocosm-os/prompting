@@ -60,7 +60,11 @@ async def process_response(uid: int, async_generator: Awaitable):
     """Process a single response asynchronously."""
     try:
         chunk = None  # Initialize chunk with a default value
-        async for chunk in async_generator:  # most important loop, as this is where we acquire the final synapse.
+        async for (
+            chunk
+        ) in (
+            async_generator
+        ):  # most important loop, as this is where we acquire the final synapse.
             bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
 
         if chunk is not None:

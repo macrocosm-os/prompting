@@ -34,16 +34,13 @@ class Dataset(ABC):
     max_tries: int = 10
 
     @abstractmethod
-    def search(self, name):
-        ...
+    def search(self, name): ...
 
     @abstractmethod
-    def random(self, name):
-        ...
+    def random(self, name): ...
 
     @abstractmethod
-    def get(self, name):
-        ...
+    def get(self, name): ...
 
     def next(
         self, method: str = "random", selector: Selector = Selector(), **kwargs
@@ -93,8 +90,7 @@ class BatchDataset(ABC):
     batch_size: int = 16  # ensure that child classes contain batch_size attrib
 
     @abstractmethod
-    async def random(self, name):
-        ...
+    async def random(self, name): ...
 
     async def next(
         self, method: str = "random", selector: Selector = Selector(), **kwargs

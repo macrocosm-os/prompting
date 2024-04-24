@@ -6,8 +6,7 @@ from typing import Any, Dict, List
 
 class BasePipeline(ABC):
     @abstractmethod
-    def __call__(self, composed_prompt: str, **kwargs: dict) -> Any:
-        ...
+    def __call__(self, composed_prompt: str, **kwargs: dict) -> Any: ...
 
 
 class BaseLLM(ABC):
@@ -29,11 +28,9 @@ class BaseLLM(ABC):
         role: str = "user",
         disregard_system_prompt: bool = False,
         cleaner: CleanerPipeline = None,
-    ) -> str:
-        ...
+    ) -> str: ...
 
-    def forward(self, messages: List[Dict[str, str]]):
-        ...
+    def forward(self, messages: List[Dict[str, str]]): ...
 
     def clean_response(self, cleaner: CleanerPipeline, response: str) -> str:
         if cleaner is not None:
