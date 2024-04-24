@@ -87,7 +87,7 @@ class Dataset(ABC):
 
 
 class BatchDataset(ABC):
-    """Base class for datasets."""
+    """Base class for batch datasets."""
 
     max_tries: int = 10
 
