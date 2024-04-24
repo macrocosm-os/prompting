@@ -1,7 +1,7 @@
 import random
 import bittensor as bt
 from dataclasses import dataclass
-from prompting.tasks import Task
+from prompting.tasks import ParaphraseTask
 import difflib
 
 
@@ -102,9 +102,22 @@ def diff(query, reference):
     """Get the diff between two strings."""
     return "\n".join(difflib.unified_diff(query.splitlines(), reference.splitlines()))
 
-
+    
+DEBUGGING_QUERY_PHRASES = [
+    "Here's a snippet I'm struggling with:\n\n{code}\n\nCan you spot what might be wrong here?",
+    "Can you help me figure out what's wrong with this {lang} code?\n\n{code}",
+    "I'm stuck with a bug in this {lang} script. Any ideas on how to debug it?\n\n{code}",
+    "I need some help debugging this piece of {lang} code. Can you take a look?\n\n{code}",
+    "Running into issues with this {lang} code. How do I fix it?\n\n{code}",
+    "This {lang} code isn't working as expected. How should I go about debugging it?\n\n{code}",
+    "Got a minute to help me debug this {lang} code snippet?\n\n{code}",
+    "Could you guide me through debugging this {lang} code?\n\n{code}",
+    "Struggling to debug this {lang} code. Any advice?\n\n{code}",
+    "How would you tackle debugging this {lang} code?\n\n{code}",        
+]
+    
 @dataclass
-class DebuggingTask(Task):
+class DebuggingTask(ParaphraseTask):
     name = "debugging"
     desc = "get help with debugging"
     goal = "ask for help fixing broken code."
@@ -115,6 +128,8 @@ class DebuggingTask(Task):
 
     static_reference = True
     static_query = True
+    
+    phrases = DEBUGGING_QUERY_PHRASES
 
     def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
