@@ -14,8 +14,7 @@ class BatchWikiDataset(BatchDataset):
     ):
         """
         Args:
-            min_length_words (int, optional): Minimum section length. Defaults to 50.
-            max_links (int, optional): _description_. Defaults to 10.
+            max_links (int, optional): _description_. Defaults to 16.
         """
         self.batch_size = batch_size
 
