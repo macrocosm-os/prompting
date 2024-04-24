@@ -30,7 +30,7 @@ from ..selector import Selector
 
 
 class MathDataset(Dataset):
-    name = 'math'
+    name = "math"
     topics_list = mathgenerator.getGenList()
 
     def __init__(self, seed=None):
@@ -60,7 +60,7 @@ class MathDataset(Dataset):
         max_tries = 10
         for _ in range(max_tries):
             info = mathgenerator.generate_context(name, **kwargs)
-            if info["reward_type"] != "float" or info["topic"] == "computer_science":       
+            if info["reward_type"] != "float" or info["topic"] == "computer_science":
                 pass
             else:
                 math_words = [
@@ -83,10 +83,16 @@ class MathDataset(Dataset):
                     "topic": info["topic"],  # title of problem topic
                     "subtopic": info["subtopic"],  # title of problem subtopic
                     "content": info["problem"],  # problem statement
-                    "internal_links": [info["topic"], info["subtopic"]],  # internal links
+                    "internal_links": [
+                        info["topic"],
+                        info["subtopic"],
+                    ],  # internal links
                     "external_links": external_links,
                     "tags": info["forward_words"],
-                    "extra": {"reward_type": info["reward_type"], "solution": info["solution"]},
+                    "extra": {
+                        "reward_type": info["reward_type"],
+                        "solution": info["solution"],
+                    },
                 }
 
     def search(

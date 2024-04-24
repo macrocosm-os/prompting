@@ -13,11 +13,13 @@ EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
 
 class SectionNotFoundException(Exception):
     """Exception raised when no valid section is found."""
+
     pass
 
 
 class MaxRetriesReachedException(Exception):
     """Exception raised when maximum retry attempts are reached."""
+
     pass
 
 
@@ -164,11 +166,11 @@ async def fetch_random_section_context(
                 tags=tags,
                 source="Wikipedia",
                 extra={},
-                stats = {
+                stats={
                     "creator": fetch_random_section_context.__name__,
                     "fetch_time": time.time() - request_time_start,
                     "num_tries": attempt,
-                }
+                },
             )
             progress.update(1)
             return context

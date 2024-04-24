@@ -8,7 +8,13 @@ from prompting.tasks import (
     DateQuestionAnsweringTask,
 )
 from prompting.tools import Context
-from .dataset import WIKI_CONTEXT, CODING_CONTEXT, MATH_CONTEXT, DATEQA_CONTEXT, MOCK_CONTEXT
+from .dataset import (
+    WIKI_CONTEXT,
+    CODING_CONTEXT,
+    MATH_CONTEXT,
+    DATEQA_CONTEXT,
+    MOCK_CONTEXT,
+)
 
 TASKS = [
     MockTask,

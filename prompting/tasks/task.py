@@ -17,6 +17,8 @@ It does not mention this information about itself unless the information is dire
 
 def make_system_prompt():
     return CHATTENSOR_SYSTEM_PROMPT.format(date=time.strftime("%B %d, %Y"))
+
+
 class TaskEvaluationType(Enum):
     REWARD_STACK = "reward"
     FILTER_STACK = "filter"
@@ -108,7 +110,7 @@ class Task(ABC):
         if not self.static_query:
             bt.logging.info("🤖 Generating query...")
             self.query = self.generate(
-                system=self.query_system_prompt, #Could possibly add the chattensor system prompt to query but I don't think it adds anything
+                system=self.query_system_prompt,  # Could possibly add the chattensor system prompt to query but I don't think it adds anything
                 prompt=self.query_prompt,
                 pipeline=pipeline,
                 clean=clean,

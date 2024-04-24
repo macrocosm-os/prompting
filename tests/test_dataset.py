@@ -76,7 +76,7 @@ async def test_batch_size_parameter(dataset, batch_size):
     # Check if results match expected batch size
     assert len(results) == batch_size
     assert type(results) == list
-    assert all(type(result)==Context for result in results)
+    assert all(type(result) == Context for result in results)
 
 
 @pytest.mark.asyncio
@@ -88,10 +88,10 @@ async def test_random_batch_retrieval(dataset):
 
     # Check that batches have different elements
     assert batch1_results != batch2_results
-    
+
     # Check that results are of expected type
     assert type(batch1_results) == list
-    assert all(type(result)==Context for result in batch1_results)
-    
+    assert all(type(result) == Context for result in batch1_results)
+
     assert type(batch2_results) == list
-    assert all(type(result)==Context for result in batch2_results)
+    assert all(type(result) == Context for result in batch2_results)

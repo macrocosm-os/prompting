@@ -28,6 +28,7 @@ from ..selector import Selector
 
 class WikiDataset(Dataset):
     """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
+
     name = "wiki"
     EXCLUDE_HEADERS = ("See also", "References", "Further reading", "External links")
     EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")

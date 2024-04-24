@@ -12,13 +12,10 @@ from .datasets import (
 from .selector import Selector
 
 DATASETS = {
-    #HFCodingDataset.name: HFCodingDataset,
+    # HFCodingDataset.name: HFCodingDataset,
     WikiDataset.name: WikiDataset,
-    #StackOverflowDataset.name: StackOverflowDataset,
+    # StackOverflowDataset.name: StackOverflowDataset,
     MathDataset.name: MathDataset,
     WikiDateDataset.name: WikiDateDataset,
-    GenericInstructionDataset.name: GenericInstructionDataset, 
+    GenericInstructionDataset.name: GenericInstructionDataset,
 }
- 
-
-  

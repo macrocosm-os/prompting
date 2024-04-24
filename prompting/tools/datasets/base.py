@@ -90,7 +90,8 @@ class BatchDataset(ABC):
     """Base class for batch datasets."""
 
     max_tries: int = 10
-    batch_size: int = 16 # ensure that child classes contain batch_size attrib
+    batch_size: int = 16  # ensure that child classes contain batch_size attrib
+
     @abstractmethod
     async def random(self, name):
         ...

@@ -40,7 +40,7 @@ class Validator(BaseValidatorNeuron):
             mock=self.config.mock,
         )
 
-        if abs(1-sum(self.config.neuron.task_p)) > 0.001:
+        if abs(1 - sum(self.config.neuron.task_p)) > 0.001:
             raise ValueError("Task probabilities do not sum to 1.")
 
         # Filter out tasks with 0 probability

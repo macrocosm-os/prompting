@@ -22,7 +22,7 @@ class DateQuestionAnsweringTask(Task):
     static_reference = True
     static_query = True
 
-    def __init__(self, llm_pipeline, context, create_reference =True):
+    def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
 
         self.query = (
