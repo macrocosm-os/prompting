@@ -39,8 +39,6 @@ jobs:
       with:
         options: "--check --verbose"
         src: "."
-        jupyter: true
-        version: "21.5b1"        
 
     - name: Test with pytest
       run: |
