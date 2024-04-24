@@ -1,10 +1,13 @@
+import re
 import time
+import random
 import bittensor as bt
 from abc import ABC
 from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import List, Union, Dict
 from prompting.llms import HuggingFaceLLM, vLLM_LLM, BasePipeline
+from prompting.tools import TemplateDataset
 from prompting.cleaners.cleaner import CleanerPipeline
 
 CHATTENSOR_SYSTEM_PROMPT = """
@@ -120,3 +123,21 @@ class Task(ABC):
     def format_challenge(self, challenge) -> str:
         """Formats the challenge to be used for the conversation"""
         return challenge
+
+
+class ParaphraseTask(Task):
+    
+    phrases: List[str]
+    
+    def paraphrase(self, **kwargs) -> str:
+        """Paraphrases the query using the phrases defined in the task
+        1. Selects a random template from a list of templates
+        2. Finds all the fields in the template
+        3. Ensures that the fields are present in the task
+        4. Creates a template dataset from the template
+        5. Fill
+        """
+        template = random.choice(self.phrases)
+        expected_fields = re.findall(r'\{(\w+)\}', template)
+        fields = {field: getattr(self, field) for field in expected_fields}
+        return TemplateDataset(template).get(fields, selector=random.choice)
