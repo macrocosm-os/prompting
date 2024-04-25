@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import bittensor as bt
 import re
+from typing import Union
 
 
 class BaseCleaner(ABC):
