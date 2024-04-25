@@ -77,6 +77,7 @@ class QuestionAnsweringTask(Task):
         dict(name="remove_quotes"),
         dict(name="prune_ending"),
         dict(name="remove_roles"),
+        dict(name="remove_post_question_text"),
     ]
 
     def __init__(self, llm_pipeline, context, create_reference=True, history=None):
