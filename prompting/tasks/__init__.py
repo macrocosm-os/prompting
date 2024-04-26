@@ -6,6 +6,7 @@ from .date_qa import DateQuestionAnsweringTask
 from .generic_instruction import GenericInstructionTask
 from .math import MathTask
 from .mock import MockTask
+from .translate import TranslationTask
 
 
 TASKS = {
