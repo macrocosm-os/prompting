@@ -36,6 +36,7 @@ from . import forward
 from . import agent
 from . import conversation
 from . import dendrite
+from . import shared
 
 from .llms import hf
 

@@ -1,5 +1,4 @@
 from .datasets import (
-    Context,
     Dataset,
     MockDataset,
     HFCodingDataset,

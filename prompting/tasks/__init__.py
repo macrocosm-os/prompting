@@ -8,7 +8,6 @@ from .math import MathTask
 from .mock import MockTask
 from .translate import TranslationTask
 
-
 TASKS = {
     QuestionAnsweringTask.name: QuestionAnsweringTask,
     DateQuestionAnsweringTask.name: DateQuestionAnsweringTask,

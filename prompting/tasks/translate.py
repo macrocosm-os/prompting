@@ -6,6 +6,7 @@ from typing import List
 from prompting.tasks import Task
 from dataclasses import dataclass
 from argostranslate.package import AvailablePackage
+from prompting.shared import Context
 
 
 def load_translation_packages() -> List[AvailablePackage]:
@@ -52,8 +53,6 @@ class TranslationTask(Task):
     desc = "get translation help"
     goal = "to get the translation for the given piece of text"
 
-    
-
     # TODO: TEST BLEU SCORE
     reward_definition = [
         dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),        
@@ -62,12 +61,18 @@ class TranslationTask(Task):
         dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
     ]
     
-    
-    def __init__(self, context: str):
+    def __init__(self, context: Context):
         # Load necessary packages if not already installed
-        self.available_packages = load_translation_packages()
+        self.available_packages = load_translation_packages()        
         
-        from_code = SUPPORTED_LANGUAGES[0].from_code
-        to_code = SUPPORTED_LANGUAGES[1].to_code
+        # TODO: CORRECTLY SET THE QUERY
+        self.query = context.content
+                
+        from_code = SUPPORTED_LANGUAGES[0]
+        to_code = SUPPORTED_LANGUAGES[1]
+                
+        self.reference = argostranslate.translate.translate(context.content, from_code, to_code)
         
-        self.reference = argostranslate.translate.translate("Test", from_code, to_code)
+        self.topic = context.title
+        self.subtopic = context.topic
+        self.tags = context.tags
