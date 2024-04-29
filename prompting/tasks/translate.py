@@ -61,8 +61,14 @@ class TranslationTask(Task):
         dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
     ]
     
-    def __init__(self, context: Context):
-        # Load necessary packages if not already installed
+    def __init__(self, context: Context):                
+        # Set task internal variables
+        self.context = context
+        self.topic = context.title
+        self.subtopic = context.topic
+        self.tags = context.tags
+        
+        # Load necessary packages if not already installed                
         self.available_packages = load_translation_packages()        
         
         # TODO: CORRECTLY SET THE QUERY
@@ -73,6 +79,4 @@ class TranslationTask(Task):
                 
         self.reference = argostranslate.translate.translate(context.content, from_code, to_code)
         
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
+        
