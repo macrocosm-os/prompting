@@ -16,28 +16,30 @@
 # DEALINGS IN
 #  THE SOFTWARE.
 
-import time
 import sys
+import time
+import random
 import asyncio
+import traceback
 import numpy as np
 import bittensor as bt
-import traceback
 from typing import List, Dict, Awaitable
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
 from prompting.conversation import create_task
 from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
+from prompting.tasks import QuestionAnsweringTask
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from dataclasses import dataclass
 
 @async_log
-async def generate_reference(agent):    
+async def generate_reference(agent):
     loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
-    return result    
+    return result
 
 @async_log
 async def execute_dendrite_call(dendrite_call):
@@ -167,7 +169,7 @@ def log_stream_results(stream_results: List[StreamResult]):
 
 
 async def run_step(
-    self, agent: HumanAgent, k: int, timeout: float, exclude: list = None
+    self, agent: HumanAgent, roles: List[str], messages: List[str], k: int, timeout: float, exclude: list = None
 ):
     """Executes a single step of the agent, which consists of:
     - Getting a list of uids to query
@@ -178,6 +180,8 @@ async def run_step(
 
     Args:
         agent (HumanAgent): The agent to run the step for.
+        roles (List[str]): The roles for the synapse.
+        messages (List[str]): The messages for the synapse.
         k (int): The number of uids to query.
         timeout (float): The timeout for the queries.
         exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
@@ -196,7 +200,7 @@ async def run_step(
     # Directly call dendrite and process responses in parallel
     streams_responses = await self.dendrite(
         axons=axons,
-        synapse=StreamPromptingSynapse(roles=["user"], messages=[agent.challenge]),
+        synapse=StreamPromptingSynapse(roles=roles, messages=messages),
         timeout=timeout,
         deserialize=False,
         streaming=True,
@@ -217,8 +221,8 @@ async def run_step(
 
     log_stream_results(stream_results)
 
-    all_synapses_results = [stream_result.synapse for stream_result in stream_results]   
-            
+    all_synapses_results = [stream_result.synapse for stream_result in stream_results]
+
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(
         responses=all_synapses_results, uids=uids, timeout=timeout
@@ -235,10 +239,12 @@ async def run_step(
     )
     bt.logging.info(f"Created RewardResult:\n {reward_result}")
 
+    best_response = response_event.completions[reward_result.rewards.argmax()]
+
     # The original idea was that the agent is 'satisfied' when it gets a good enough response (e.g. reward critera is met, such as ROUGE>threshold)
     agent.update_progress(
         top_reward=reward_result.rewards.max(),
-        top_response=response_event.completions[reward_result.rewards.argmax()],
+        top_response=best_response,
     )
 
     self.update_scores(reward_result.rewards, uids)
@@ -250,7 +256,9 @@ async def run_step(
     ]
     # Log the step event.
     event = {
+        "best": best_response,
         "block": self.block,
+        "step": self.step,
         "step_time": time.time() - start_time,
         "stream_results_uids": stream_results_uids,
         "stream_results_exceptions": stream_results_exceptions,
@@ -263,6 +271,10 @@ async def run_step(
 
 
 async def forward(self):
+    """
+    Encapsulates a full conversation between the validator and miners. Contains one or more rounds of request-response.
+
+    """
     bt.logging.info("🚀 Starting forward loop...")
     forward_start_time = time.time()
 
@@ -294,9 +306,11 @@ async def forward(self):
         task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True
     )
 
-    rounds = 0
+    turn = 0
     exclude_uids = []
-    while not agent.finished:
+    roles = ['user']
+    messages = [agent.challenge]
+    while True:
         # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step.
         # To be reconsidered in the next version.
         try:
@@ -304,6 +318,8 @@ async def forward(self):
             event = await run_step(
                 self,
                 agent,
+                roles=roles,
+                messages=messages,
                 k=self.config.neuron.sample_size,
                 timeout=self.config.neuron.timeout,
                 exclude=exclude_uids,
@@ -311,12 +327,32 @@ async def forward(self):
 
             # Adds forward time to event and logs it to wandb
             event["forward_time"] = time.time() - forward_start_time
+            event["turn"] = turn
             log_event(self, event)
 
             exclude_uids += event["uids"]
             task.complete = True
+            
+            accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
+            roles.append("assistant")
+            messages.append(accepted_answer)
 
-            rounds += 1
+            # 50% chance of single turn conversation, 25% of two turns, 12.5% chance of 3 turns, 6.25% chance of 4 turns, 3.63% chance of 5...
+            if random.random()<0.5 or turn>=2:
+                break
+
+            history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])
+
+            # Use PREVIOUS task context
+            agent.task = QuestionAnsweringTask(self.llm_pipeline, context=task.context, create_reference=False, history=history)
+
+            # overwrite the challenge with the followup query, which *should* continue the persona
+            agent.challenge = agent.task.query
+
+            roles.append("user")
+            messages.append(agent.challenge)
+            turn += 1
+
         except BaseException as e:
             unexpected_errors = serialize_exception_to_string(e)
             bt.logging.error(
