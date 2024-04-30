@@ -7,6 +7,7 @@ from .generic_instruction import GenericInstructionTask
 from .math import MathTask
 from .translate import TranslationTask, TranslationPipeline
 from .mock import MockTask
+from .sentiment import SentimentAnalysisTask
 
 TASKS = {
     QuestionAnsweringTask.name: QuestionAnsweringTask,
@@ -16,4 +17,5 @@ TASKS = {
     GenericInstructionTask.name: GenericInstructionTask,
     MathTask.name: MathTask,
     TranslationTask.name: TranslationTask,
+    SentimentAnalysisTask.name: SentimentAnalysisTask,
 }
