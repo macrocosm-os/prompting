@@ -100,10 +100,10 @@ class TranslationTask(Task):
 
     # TODO: TEST BLEU SCORE
     reward_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),        
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=1),        
     ]
     penalty_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=1),
     ]
     
     def __init__(self, pipeline: TranslationPipeline, context: Context):

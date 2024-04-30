@@ -17,6 +17,7 @@ TASKS = [
     DebuggingTask,
     MathTask,
     DateQuestionAnsweringTask,
+    # TODO: ADD TRANSLATION TASK
 ]
 
 CONTEXTS = {
