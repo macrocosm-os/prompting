@@ -28,7 +28,8 @@ class OrdinalRewardModel(BaseRewardModel):
             
             # Check if exactly one answer can be found in the completion
             if sum(option in completion for option in classes) == 1:
-                reward = abs(classes.index(reference) - classes.index(completion))
+                answer = [option for option in classes if option in completion][0]
+                reward = abs(classes.index(reference) - classes.index(answer))
             else:
                 reward = 0 
             timings.append(time.time() - t0)
