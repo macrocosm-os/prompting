@@ -47,8 +47,7 @@ def create_task(
     if task_name == TranslationTask.name:
         return task(            
             translation_pipeline=translation_pipeline,
-            context=dataset.next(),
-            create_reference=True,
+            context=dataset.next()
         )
 
     return task(
