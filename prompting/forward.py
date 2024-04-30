@@ -290,6 +290,7 @@ async def forward(self):
         try:
             task = create_task(
                 llm_pipeline=self.llm_pipeline,
+                translation_pipeline=self.translation_pipeline,
                 task_name=task_name,
                 create_reference=False,
             )

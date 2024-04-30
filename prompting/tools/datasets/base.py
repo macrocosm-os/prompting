@@ -24,7 +24,7 @@ from typing import Dict
 import bittensor as bt
 
 from ..selector import Selector
-from .context import Context
+from prompting.shared.context import Context
 from prompting.utils.exceptions import MaxRetryError
 
 

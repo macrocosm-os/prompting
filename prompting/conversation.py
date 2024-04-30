@@ -1,12 +1,13 @@
 import random
 from transformers import Pipeline
-from prompting.tasks import Task, TASKS
+from prompting.tasks import Task, TASKS, TranslationPipeline, TranslationTask
 from prompting.tools import Selector, DATASETS
 from prompting.task_registry import TASK_REGISTRY
 
 
 def create_task(
     llm_pipeline: Pipeline,
+    translation_pipeline: TranslationPipeline,
     task_name: str,
     create_reference: bool = True,
     selector: Selector = random.choice,
@@ -42,6 +43,12 @@ def create_task(
         raise ValueError(f"Dataset {dataset_name} not found")
     else:
         dataset = dataset()
+        
+    if task_name == TranslationTask.name:
+        return task(            
+            translation_pipeline=translation_pipeline,
+            context=dataset.next()
+        )
 
     return task(
         llm_pipeline=llm_pipeline,

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Union
 import bittensor as bt
 import re
 from typing import Union
