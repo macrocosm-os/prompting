@@ -93,6 +93,10 @@ class HumanAgent(vLLM_LLM):
             )
         elif self.task.challenge_type == 'paraphrase':
             self.challenge = self.task.challenge_template.next(self.task.query)
+        elif self.task.challenge_type == 'query':
+            self.challenge = self.task.query
+        else:
+            bt.logging.error(f"Task {self.task.name} has challenge type of: {self.task.challenge_type} which is not supported.")
         self.challenge = self.task.format_challenge(self.challenge)
         self.challenge_time = time.time() - t0
 

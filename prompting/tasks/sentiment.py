@@ -1,4 +1,5 @@
 from prompting.tasks import Task
+from .challenge_templates import SentimentChallengeTemplate
 
 QUERY_PROMPT_TEMPLATE = """\
 You are a review-generating expert, focusing on making highly reaslistic revies. Your response contains only the review, nothing more, nothing less. You will adhere to a word limit of 250 words. Ask a specific question about the following context:
@@ -12,8 +13,8 @@ class SentimentAnalysisTask(Task):
     desc = "get help analyzing the sentiment of a review"
     goal = "to get the sentiment to the following review"
     challenge_type = 'paraphrase'
-    challenge_template = "What is the sentiment of the following review: {context}"
-
+    challenge_type = 'paraphrase'
+    challenge_template = SentimentChallengeTemplate()
 
     reward_definition = [
         dict(name="ordinal", weight=1.0),
