@@ -19,8 +19,8 @@ class GenericInstructionTask(Task):
     challenge_type = 'query'
 
     reward_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.75),
-        dict(name="relevance", weight=0.25),
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.25),
+        dict(name="relevance", weight=0.75),
     ]
     penalty_definition = [
         dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
