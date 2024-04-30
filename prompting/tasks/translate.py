@@ -71,6 +71,7 @@ class TranslationPipeline:
 
 @dataclass
 class TranslationTask(Task):
+    challenge_type = 'query'
     name = "translation"
     desc = "get translation help"
     goal = "to get the translation for the given piece of text"
@@ -119,12 +120,12 @@ class TranslationTask(Task):
         content_translation_obj, translated_content = translation_pipeline.translate_to_random_language(context.content)
         
         # Translates the translation to another random language
-        reference_translation_obj, reference_translation_content = translation_pipeline.translate_to_random_language(content=translated_content, from_code=content_translation_obj.to_code)        
-        self.reference = reference_translation_content
+        #reference_translation_obj, reference_translation_content = translation_pipeline.translate_to_random_language(content=translated_content, from_code=content_translation_obj.to_code)        
+        self.reference = context.content #reference_translation_content
                                                          
         # Composes the query
         # TODO: Implement template translation
         template = random.choice(self.templates)        
-        self.query = template.format(another_language=reference_translation_obj.to_name, text=translated_content)        
+        self.query = template.format(another_language='English', text=translated_content)        
         
         
