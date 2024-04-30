@@ -123,7 +123,7 @@ class TranslationTask(Task):
         self.reference = reference_translation_content
                                                          
         # Composes the query
-        # TODO: Manage a way to also translate the template
+        # TODO: Implement template translation
         template = random.choice(self.templates)        
         self.query = template.format(another_language=reference_translation_obj.to_name, text=translated_content)        
         
