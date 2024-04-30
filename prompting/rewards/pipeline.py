@@ -8,6 +8,7 @@ from prompting.rewards import (
     RelevanceRewardModel,
     FloatDiffModel,
     DateRewardModel,
+    OrdinalRewardModel,
 )
 
 REWARD_MODELS = {
@@ -16,6 +17,7 @@ REWARD_MODELS = {
     "diff": DiffRewardModel,
     "float_diff": FloatDiffModel,
     "date": DateRewardModel,
+    "ordinal": OrdinalRewardModel,
 }
 
 
