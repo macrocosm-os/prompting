@@ -8,7 +8,6 @@ You are a review-generating expert, focusing on making highly reaslistic revies.
 
 
 class SentimentAnalysisTask(Task):
-    important_field = ["{context"]
     name = "sentiment"
     desc = "get help analyzing the sentiment of a review"
     goal = "to get the sentiment to the following review"
