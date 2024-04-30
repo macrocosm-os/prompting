@@ -58,7 +58,7 @@ class RemoveRoles(BaseCleaner):
         return result_string
 
     def apply(self, generation: str) -> str:
-        generation = re.replace(r'\n*\w+\s*:','',generation)
+        generation = re.sub(r'\n*\w+\s*:','',generation)
         roles = [
             "User: ",
             "System: ",
