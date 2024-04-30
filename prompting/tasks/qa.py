@@ -1,8 +1,8 @@
+import bittensor as bt
 from dataclasses import dataclass
 from prompting.tasks import Task
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
-# TODO
 
 # Used to instruct the LLM to provide a good query when given a context
 QUERY_SYSTEM_PROMPT = """\
@@ -19,6 +19,20 @@ Ask a specific question about the following context:
 {context}
 """
 
+# Used to obtain the query (which is a followup question about the context)
+# TODO: we may not need the entire conversation history - we can sample a subset of it (first k messages, last k messages, etc.)
+FOLLOWUP_PROMPT_TEMPLATE = """
+Compose a single, specific question to continue the dialogue below. Adopt the persona of the original user, including their communication style and objectives. The question should be based on the previous exchanges and must not be answerable with a simple yes or no.
+
+The question should require detailed knowledge of the conversation history for a correct response, emphasizing requests for clarification or additional details (e.g., 'What specific steps did you take?' or 'How did that situation resolve?'). Avoid referring to the subject by name and instead use indirect pronouns or descriptions (e.g., 'he,' 'she,' 'it'). Avoid answering the question yourself and refrain from providing new information not already discussed.
+
+# Context:
+{context}
+
+# Conversation History:
+{history}
+"""
+
 # Used to obtain reference answer
 REFERENCE_PROMPT_TEMPLATE = """\
 Answer the question you will receive in detail, utilizing the following context.
@@ -30,6 +44,20 @@ Answer the question you will receive in detail, utilizing the following context.
 {question}
 """
 
+# TODO: We also need a special followup reference prompt (or just merge both)
+# Used to obtain reference answer
+FOLLOWUP_REFERENCE_PROMPT_TEMPLATE = """\
+Answer the question you will receive in detail, utilizing the following context and conversation history as required. 
+
+#Context:
+{context}
+
+# Conversation History:
+{history}
+
+# Question:
+{question}
+"""
 
 @dataclass
 class QuestionAnsweringTask(Task):
@@ -49,21 +77,32 @@ class QuestionAnsweringTask(Task):
         dict(name="remove_quotes"),
         dict(name="prune_ending"),
         dict(name="remove_roles"),
+        dict(name="remove_post_question_text"),
     ]
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
+    def __init__(self, llm_pipeline, context, create_reference=True, history=None):
         self.context = context
 
         self.query_system_prompt = QUERY_SYSTEM_PROMPT
-        self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
+        if history:
+            self.query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(context=context.content, history=history)
+            bt.logging.warning(f'Using history!!\n{history=}\n\n{context=}\n\n{self.query_prompt=}')
+        else:
+            self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)            
+            
         self.query = self.generate_query(llm_pipeline)
 
-        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
-            context=context.content, question=self.query
-        )
+        if history:
+            self.reference_prompt = FOLLOWUP_REFERENCE_PROMPT_TEMPLATE.format(
+                context=context.content, question=self.query, history=history
+            )
+        else:
+            self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
+                context=context.content, question=self.query
+            )            
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
-
+        
         self.topic = context.title
         self.subtopic = context.topic
         self.tags = context.tags

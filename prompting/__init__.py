@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 # Define the version of the template module.
-__version__ = "2.1.1"
+__version__ = "2.2.0"
 version_split = __version__.split(".")
 __spec_version__ = (
     (10000 * int(version_split[0]))
@@ -36,6 +36,7 @@ from . import forward
 from . import agent
 from . import conversation
 from . import dendrite
+from . import shared
 from . import validator
 
 from .llms import hf

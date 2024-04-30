@@ -3,6 +3,7 @@ from prompting.forward import forward
 from prompting.llms import vLLMPipeline
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.rewards import RewardPipeline
+from prompting.tasks.translate import TranslationPipeline
 
 
 class Validator(BaseValidatorNeuron):
@@ -20,7 +21,8 @@ class Validator(BaseValidatorNeuron):
             model_id=self.config.neuron.model_id,
             device=self.device,
             mock=self.config.mock,
-        )
+        )        
+        self.translation_pipeline = TranslationPipeline()
 
         if abs(1-sum(self.config.neuron.task_p)) > 0.001:
             raise ValueError("Task probabilities do not sum to 1.")
@@ -75,4 +77,3 @@ class Validator(BaseValidatorNeuron):
             self.thread.join(5)
             self.is_running = False
             bt.logging.debug("Stopped")
-

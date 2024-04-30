@@ -13,10 +13,10 @@ Answer the following question.
 
 
 class GenericInstructionTask(Task):
-    challenge_type = 'query'
     name = "generic"
     desc = "get help on answering a general instruction"
     goal = "to get the answer to the following instruction"
+    challenge_type = 'query'
 
     reward_definition = [
         dict(name="rouge", ngram="rouge-1", metric="f", weight=0.25),

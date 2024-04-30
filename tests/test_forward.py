@@ -47,7 +47,7 @@ def test_generate_reference_parallel_to_dendrite(
 
     mock_neuron.dendrite = partial(mock_dendrite_call, delay=dendrite_time)
 
-    event = asyncio.run(run_step(mock_neuron, mock_agent, k=4, timeout=0.1))
+    event = asyncio.run(run_step(self=mock_neuron, agent=mock_agent, roles=[], messages=[], k=4, timeout=0.1))
 
     step_time = event["step_time"]
     reward_pipeline_time = sum(

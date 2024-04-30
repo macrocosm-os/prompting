@@ -1,5 +1,4 @@
 from .datasets import (
-    Context,
     Dataset,
     MockDataset,
     HFCodingDataset,
@@ -8,6 +7,7 @@ from .datasets import (
     WikiDateDataset,
     MathDataset,
     GenericInstructionDataset,
+    ReviewDataset,
 )
 from .selector import Selector
 
@@ -18,6 +18,7 @@ DATASETS = {
     MathDataset.name: MathDataset,
     WikiDateDataset.name: WikiDateDataset,
     GenericInstructionDataset.name: GenericInstructionDataset, 
+    ReviewDataset.name: ReviewDataset
 }
  
 
