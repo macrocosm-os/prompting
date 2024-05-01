@@ -2,7 +2,7 @@ import pytest
 
 from .fixtures.dataset import DATASETS, CONTEXTS, CONTEXT_FIELDS
 from prompting.tools.datasets import Dataset
-from prompting.tools import Context
+from prompting.shared import Context
 
 
 @pytest.mark.parametrize("dataset", DATASETS)

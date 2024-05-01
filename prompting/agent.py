@@ -87,10 +87,16 @@ class HumanAgent(vLLM_LLM):
         cleaner = None
         if hasattr(self.task, "cleaning_pipeline"):
             cleaner = CleanerPipeline(cleaning_pipeline=self.task.cleaning_pipeline)
-
-        self.challenge = super().query(
-            message="Ask a question related to your goal", cleaner=cleaner
-        )
+        if self.task.challenge_type == "inference":
+            self.challenge = super().query(
+                message="Ask a question related to your goal", cleaner=cleaner
+            )
+        elif self.task.challenge_type == 'paraphrase':
+            self.challenge = self.task.challenge_template.next(self.task.query)
+        elif self.task.challenge_type == 'query':
+            self.challenge = self.task.query
+        else:
+            bt.logging.error(f"Task {self.task.name} has challenge type of: {self.task.challenge_type} which is not supported.")
         self.challenge = self.task.format_challenge(self.challenge)
         self.challenge_time = time.time() - t0
 

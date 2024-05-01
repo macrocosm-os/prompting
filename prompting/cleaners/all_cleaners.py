@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+from typing import Union
 import bittensor as bt
 import re
+from typing import Union
 
 
 class BaseCleaner(ABC):
@@ -57,6 +59,7 @@ class RemoveRoles(BaseCleaner):
         return result_string
 
     def apply(self, generation: str) -> str:
+        generation = re.sub(r'\n*\w+\s*:','',generation)
         roles = [
             "User: ",
             "System: ",
@@ -77,3 +80,25 @@ class RemoveRoles(BaseCleaner):
         return self.capitalize_sentences(
             input_string=generation
         )  # LLMs are good at being formal. Do the same if we remove a prefix.
+
+class PrunePostQuestionText(BaseCleaner):
+    def __init__(self, **kwargs):
+        pass
+
+    def apply(self, generation: str, min_pos: Union[int,float] = 5, max_pos: Union[int,float]= 0.5, max_questions: int = None) -> str:
+        
+        if min_pos < 1:
+            min_pos = int(min_pos * len(generation))
+        if max_pos < 1:
+            max_pos = int(max_pos * len(generation))
+            
+        # question mark occurs in first half of the query
+        if not min_pos <= generation.rfind("?") <= max_pos:
+            return generation
+        elif max_questions is not None:
+            generation = '?'.join(generation.split("?",max_questions)[:-1]) + '?'
+        else:
+            # drop everything after the last question mark. Alternatively, we can just extract the first question.
+            generation = generation.rsplit("?",1) + '?'
+
+        return generation 
