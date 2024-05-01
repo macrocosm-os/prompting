@@ -6,10 +6,10 @@ class MathChallengeTemplate(ChallengeTemplate):
     def __init__(self):
         super().__init__()
         self.templates = [
-            "{greeting}{greeting_punctuation}{query}{request}<end>",
-            "{query}<end>{greeting}{greeting_punctuation}{request}",
-            "{greeting}{greeting_punctuation}{query}<end>{request}",
-            "{query}{request}<end>{greeting}{greeting_punctuation}",
+            "{greeting}{greeting_punctuation}{query}{whitespace}{request}<end>",
+            "{query}<end>{greeting}{greeting_punctuation}{request}{whitespace}",
+            "{greeting}{greeting_punctuation}{query}<end>{request}{whitespace}",
+            "{query}{whitespace}{request}<end>{greeting}{greeting_punctuation}",
         ]
         self.fields = {
             "greeting": [
@@ -181,4 +181,11 @@ class MathChallengeTemplate(ChallengeTemplate):
                 "Can you help me understand this, please?",
                 "I could use your help figuring this out.",
             ],
+            "whitespace": [
+                "",
+                " ",
+                " ",
+                "\n",
+                "\n\n",
+            ]
         }
