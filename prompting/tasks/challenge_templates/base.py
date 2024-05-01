@@ -11,7 +11,7 @@ class ChallengeTemplate(ABC):
         self.fields["query"] = [query]
         return self.get_template().format(
             **{field: random.choice(entries) for field, entries in self.fields.items()}
-        )
+        ).split("<end>")[0]
 
     def get_template(self):
         return random.choice(self.templates)

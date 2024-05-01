@@ -6,8 +6,8 @@ class SentimentChallengeTemplate(ChallengeTemplate):
     def __init__(self):
         super().__init__()
         self.templates = [
-            "{greeting}{greeting_punctuation}{request}{query}<end>",
-            "{request}{query}<end>{greeting}{greeting_punctuation}",
+            "{greeting}{greeting_punctuation}{request}{whitespace}{query}<end>",
+            "{request}{whitespace}{query}<end>{greeting}{greeting_punctuation}",
         ]
         self.fields = {
             "greeting": [
@@ -176,4 +176,11 @@ class SentimentChallengeTemplate(ChallengeTemplate):
                 "Can you evaluate the sentiment of this text?",
                 "I'm interested in the sentiment analysis of this text.",
             ],
+            "whitespace": [
+                "",
+                " ",
+                " ",
+                "\n",
+                "\n\n",
+            ]
         }

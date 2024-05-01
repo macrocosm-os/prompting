@@ -100,10 +100,7 @@ class RewardResult:
         """Combines the rewards from all the reward models into a single reward tensor"""
 
         # TODO: How would using the Agent as a reward model fit into this flow?
-        # Compute the rewards for the responses given the prompt
-        rewards = torch.zeros_like(
-            self.response_event.uids, dtype=torch.float32, device=self.device
-        )
+        # Compute the rewards for the responses given the prompt        
         rewards = torch.zeros_like(
             self.response_event.uids, dtype=torch.float32, device=self.device
         )
