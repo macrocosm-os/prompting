@@ -12,7 +12,6 @@ class SentimentAnalysisTask(Task):
     desc = "get help analyzing the sentiment of a review"
     goal = "to get the sentiment to the following review"
     challenge_type = 'paraphrase'
-    challenge_type = 'paraphrase'
     challenge_template = SentimentChallengeTemplate()
 
     reward_definition = [

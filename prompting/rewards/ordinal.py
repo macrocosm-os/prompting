@@ -7,7 +7,7 @@ from prompting.rewards import BaseRewardModel, BatchRewardOutput
 class OrdinalRewardModel(BaseRewardModel):
     @property
     def name(self) -> str:
-        return "category_distance"
+        return "ordinal"
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -29,7 +29,7 @@ class OrdinalRewardModel(BaseRewardModel):
             # Check if exactly one answer can be found in the completion
             if sum(option in completion for option in classes) == 1:
                 answer = [option for option in classes if option in completion][0]
-                reward = 1-abs(classes.index(reference) - classes.index(answer))/len(classes)
+                reward = 1-abs(classes.index(reference) - classes.index(answer))/(len(classes)-1)
             else:
                 reward = 0 
             timings.append(time.time() - t0)
@@ -39,7 +39,7 @@ class OrdinalRewardModel(BaseRewardModel):
             rewards=torch.FloatTensor(rewards),
             timings=torch.FloatTensor(timings),
             extra_info={
-                "type": "math",
+                "type": "ordinal",
             },
         )
         return output
