@@ -228,7 +228,7 @@ class WikiDataset(Dataset):
             },
         }
         try:
-            CACHED_ARTICLES.put(page, block=False)
+            CACHED_ARTICLES.put(context, block=False)
         except Full:
             bt.logging.debug("Cache is full. Skipping article until cache is emptied.")
         return context
@@ -349,7 +349,7 @@ class WikiDateDataset(Dataset):
     #             "section_title": section_title,
     #         },
     #     }
-    def extract_dates_and_sentences(text) -> Tuple[str, str]:
+    def extract_dates_and_sentences(self, text: str) -> Tuple[str, str]:
         # Regular expression to find dates in various formats
         date_pattern = r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b'
 
@@ -369,25 +369,34 @@ class WikiDateDataset(Dataset):
             if dates:
                 for date in dates:
                     # Return the first date found
-                    return tuple(str(date), sentence.replace(str(date), '<date>').strip())
+                    return (str(date), sentence.replace(str(date), '<date>').strip())
         return None
     
     def _random_date(self) -> str:
         for _ in range(self.max_tries):
             try:
-                page = CACHED_ARTICLES.get(block=False)
-                page['content'] = self.extract_dates_and_sentences(page['content'])
-                if page['content'] is None:
+                context = CACHED_ARTICLES.get(block=False)
+                date_sentence = self.extract_dates_and_sentences(context['content'])
+                context['content'] = date_sentence[1]
+                context['extra']['date'] = date_sentence[0]
+                if context['content'] is None:
                     continue
                 else:
-                    return page
+                    return context
 
             except Empty:
                 bt.logging.debug("Cache is empty. Skipping date until cache is filled.")
                 return None
 
-    def get(self) -> Dict:
-        # Currently not a way to specify which context to fetch with Queue
+    def get(
+        self,
+        name,
+        pageid=None,
+        auto_suggest=False,
+        redirect=False,
+        selector: Selector = None,
+    ) -> Dict:
+        #TODO: Implement deterministic get method
         return self.random()
 
     def search(self, name, results=5, selector: Selector = None) -> Dict:
@@ -396,5 +405,4 @@ class WikiDateDataset(Dataset):
         )
 
     def random(self, selector: Selector = None, **kwargs) -> Dict:
-        date = self._random_date()
-        return self.get(date, selector=selector)
+        return self._random_date()

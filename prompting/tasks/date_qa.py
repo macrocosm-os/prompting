@@ -23,15 +23,13 @@ class DateQuestionAnsweringTask(Task):
         dict(name="remove_roles"),
     ]
     static_reference = True
-    static_query = True
 
     def __init__(self, llm_pipeline, context, create_reference =True):
         self.context = context
         self.query_system_prompt = QUERY_SYSTEM_PROMPT
-        self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content[1])
+        self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
         self.query = self.generate_query(llm_pipeline)
-        self.reference = self.context['content'][0]
-
+        self.reference = self.context.extra.get('date', None)
         self.topic = context.title
         self.subtopic = context.topic
         self.tags = context.tags
