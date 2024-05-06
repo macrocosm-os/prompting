@@ -386,6 +386,10 @@ class WikiDateDataset(Dataset):
                 bt.logging.debug("Cache is empty. Skipping date until cache is filled.")
                 return None
 
+    def get(self) -> Dict:
+        # Currently not a way to specify which context to fetch with Queue
+        return self.random()
+
     def search(self, name, results=5, selector: Selector = None) -> Dict:
         raise NotImplementedError(
             f"Search is not implemented for {self.__class__.__name__}"
