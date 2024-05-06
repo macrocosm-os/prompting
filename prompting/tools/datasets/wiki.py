@@ -23,7 +23,7 @@ import datetime
 import bittensor as bt
 import wikipedia as wiki
 from typing import Dict, Union, List, Tuple
-from queue import Queue
+from queue import Queue, Full, Empty
 from functools import lru_cache
 from .base import Dataset
 from ..selector import Selector
@@ -229,7 +229,7 @@ class WikiDataset(Dataset):
         }
         try:
             CACHED_ARTICLES.put(page, block=False)
-        except CACHED_ARTICLES.Full:
+        except Full:
             bt.logging.debug("Cache is full. Skipping article until cache is emptied.")
         return context
 
@@ -382,7 +382,7 @@ class WikiDateDataset(Dataset):
                 else:
                     return page
 
-            except CACHED_ARTICLES.Empty:
+            except Empty:
                 bt.logging.debug("Cache is empty. Skipping date until cache is filled.")
                 return None
 
