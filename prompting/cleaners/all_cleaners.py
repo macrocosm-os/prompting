@@ -102,3 +102,23 @@ class PrunePostQuestionText(BaseCleaner):
             generation = generation.rsplit("?",1) + '?'
 
         return generation 
+
+class RemoveTags(BaseCleaner):
+    def __init__(self, **kwargs):
+        pass
+
+    def apply(self, generation: str) -> str:
+        tags = [
+            "<date>",]
+        for tag in tags:
+            if tag in generation:
+                generation = generation.replace(tag, "")
+        return generation
+
+class FirstQuestion(BaseCleaner):
+    def __init__(self, **kwargs):
+        pass
+
+    def apply(self, generation: str) -> str:
+        generation = generation.split("?")[0] + "?"
+        return generation

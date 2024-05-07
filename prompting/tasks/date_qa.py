@@ -19,8 +19,10 @@ class DateQuestionAnsweringTask(Task):
     ]
     penalty_definition = []
     cleaning_pipeline = [
-        dict(name="remove_quotes"),
-        dict(name="remove_roles"),
+        #dict(name="remove_quotes"),
+        #dict(name="remove_roles"),
+        dict(name="remove_tags"), 
+        dict(name="first_question"),
     ]
     static_reference = True
 
