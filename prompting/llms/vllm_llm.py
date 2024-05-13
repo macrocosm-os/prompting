@@ -44,15 +44,15 @@ def load_vllm_pipeline(model_id: str, device: str, mock=False):
         return MockPipeline(model_id)
 
     # Calculates the gpu memory utilization required to run the model within 20GB of GPU
-    max_allowed_memory_in_gb = 160
-    # max_allowed_memory_allocation_in_bytes = max_allowed_memory_in_gb * 1e9
-    # gpu_mem_utilization = calculate_gpu_requirements(
-    #     device, max_allowed_memory_allocation_in_bytes
-    # )
+    max_allowed_memory_in_gb = 60
+    max_allowed_memory_allocation_in_bytes = max_allowed_memory_in_gb * 1e9
+    gpu_mem_utilization = calculate_gpu_requirements(
+        device, max_allowed_memory_allocation_in_bytes
+    )
 
     try:
         # Attempt to initialize the LLM
-        _ = LLM(model=model_id, gpu_memory_utilization = 1, tensor_parallel_size = 4, )
+        _ = LLM(model=model_id, gpu_memory_utilization = gpu_mem_utilization, quantization="AWQ")
         _.llm_engine.tokenizer.eos_token_id = 128009
         return _
     except ValueError as e:
@@ -69,7 +69,7 @@ def load_vllm_pipeline(model_id: str, device: str, mock=False):
         clean_gpu_cache()
 
         # Increase the memory allocation for the second attempt
-        max_allowed_memory_in_gb_second_attempt = 24
+        max_allowed_memory_in_gb_second_attempt = 70
         max_allowed_memory_allocation_in_bytes = (
             max_allowed_memory_in_gb_second_attempt * 1e9
         )
