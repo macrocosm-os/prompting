@@ -52,14 +52,17 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
 
     try:
         # Attempt to initialize the LLM
-        llm = LLM(model=model_id, gpu_memory_utilization = gpu_mem_utilization, quantization="AWQ", tensor_parallel_size=gpus)
+        llm = LLM(model=model_id, gpu_memory_utilization = gpu_mem_utilization, quantization="AWQ", tensor_parallel_size=gpus)        
+        # This solution implemented by @bkb2135 sets the eos_token_id directly for efficiency in vLLM usage.
+        # This approach avoids the overhead of loading a tokenizer each time the custom eos token is needed.
+        # Using the Hugging Face pipeline, the eos token specific to llama models was fetched and saved (128009).
+        # This method provides a straightforward solution, though there may be more optimal ways to manage custom tokens.
         llm.llm_engine.tokenizer.eos_token_id = 128009
         return llm
     except Exception as e:
         bt.logging.error(
             f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}"
-        )
-        
+        )        
         raise e
         
 
