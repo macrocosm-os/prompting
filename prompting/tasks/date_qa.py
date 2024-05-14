@@ -22,7 +22,8 @@ class DateQuestionAnsweringTask(Task):
     desc = "get help answering a specific date-based question"
     goal = "to get the answer to the following date-based question"
     reward_definition = [
-        dict(name="date", weight=1.0),
+        dict(name="date", weight=0.7),
+        dict(name="rouge", weight=0.3),
     ]
     penalty_definition = []
     cleaning_pipeline = [
@@ -41,6 +42,6 @@ class DateQuestionAnsweringTask(Task):
         date = self.context.extra.get('date', None)
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date = date, query = self.query, context = context.content)
         self.reference = self.generate_reference(llm_pipeline)
-        self.topic = date
-        self.subtopic = context.title
+        self.topic = context.title
+        self.subtopic = date
         self.tags = context.tags

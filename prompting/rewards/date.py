@@ -74,7 +74,7 @@ class DateRewardModel(BaseRewardModel):
         score = 0
         if not completion:
             return score
-        ref_date = reference
+        ref_date = self.parse_dates_from_text(reference)
         comp_date = self.parse_dates_from_text(completion)
         score = np.exp(-(self.date_diff(ref_date, comp_date) ** 2 / 1000))
         # Clip any very small scores
