@@ -19,7 +19,8 @@ class Validator(BaseValidatorNeuron):
 
         self.llm_pipeline = vLLMPipeline(
             model_id=self.config.neuron.model_id,
-            gpus=self.config.gpus,
+            gpus=self.config.neuron.gpus,
+            llm_max_allowed_memory_in_gb=self.config.neuron.llm_max_allowed_memory_in_gb,
             device=self.device,
             mock=self.config.mock,
         )        

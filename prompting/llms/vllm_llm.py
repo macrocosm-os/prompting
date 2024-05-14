@@ -31,20 +31,20 @@ def clean_gpu_cache():
     destroy_model_parallel()
     gc.collect()
     torch.cuda.empty_cache()
-    torch.distributed.destroy_process_group()
+    if torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
 
     # Wait for the GPU to clean up
     time.sleep(10)
     torch.cuda.synchronize()
 
 
-def load_vllm_pipeline(model_id: str, device: str, gpus: int, mock=False):
+def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory_in_gb: int, mock=False):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
     if mock or model_id == "mock":
         return MockPipeline(model_id)
 
-    # Calculates the gpu memory utilization required to run the model within 20GB of GPU
-    max_allowed_memory_in_gb = 60
+    # Calculates the gpu memory utilization required to run the model within 20GB of GPU    
     max_allowed_memory_allocation_in_bytes = max_allowed_memory_in_gb * 1e9
     gpu_mem_utilization = calculate_gpu_requirements(
         device, gpus, max_allowed_memory_allocation_in_bytes
@@ -55,44 +55,19 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, mock=False):
         llm = LLM(model=model_id, gpu_memory_utilization = gpu_mem_utilization, quantization="AWQ", tensor_parallel_size=gpus)
         llm.llm_engine.tokenizer.eos_token_id = 128009
         return llm
-    except ValueError as e:
+    except Exception as e:
         bt.logging.error(
             f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}"
         )
-
-    # If the first attempt fails, retry with increased memory allocation
-    try:
-        bt.logging.info(
-            "Trying to cleanup GPU and retrying to load the model with extra allocation..."
-        )
-        # Clean the GPU from memory before retrying
-        clean_gpu_cache()
-
-        # Increase the memory allocation for the second attempt
-        max_allowed_memory_in_gb_second_attempt = 70
-        max_allowed_memory_allocation_in_bytes = (
-            max_allowed_memory_in_gb_second_attempt * 1e9
-        )
-        bt.logging.warning(
-            f"Retrying to load with {max_allowed_memory_in_gb_second_attempt}GB..."
-        )
-        gpu_mem_utilization = calculate_gpu_requirements(
-            device, gpus, max_allowed_memory_allocation_in_bytes, gpus
-        )
-
-        # Attempt to initialize the LLM again with increased memory allocation
-        return LLM(model=model_id, gpu_memory_utilization=gpu_mem_utilization, tensor_parallel_size=gpus)
-    except Exception as e:
-        bt.logging.error(
-            f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb_second_attempt}GB: {e}"
-        )
+        
         raise e
+        
 
 
 class vLLMPipeline(BasePipeline):
-    def __init__(self, model_id: str, device: str = None, gpus: int = 1, mock=False):
+    def __init__(self, model_id: str, llm_max_allowed_memory_in_gb:int, device: str = None, gpus: int = 1, mock=False):
         super().__init__()
-        self.llm = load_vllm_pipeline(model_id, device, gpus, mock)
+        self.llm = load_vllm_pipeline(model_id, device, gpus, llm_max_allowed_memory_in_gb, mock)
         self.mock = mock
         self.gpus = gpus
 

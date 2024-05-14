@@ -75,8 +75,15 @@ def add_args(cls, parser):
     parser.add_argument(
         "--neuron.gpus",
         type=int,
-        help="The number of visible GPUs to be considered in the llm initialization",
+        help="The number of visible GPUs to be considered in the llm initialization. This parameter currently reflects on the property `tensor_parallel_size` of vllm",
         default=1,
+    )
+    
+    parser.add_argument(
+        "--neuron.llm_max_allowed_memory_in_gb",
+        type=int,
+        help="The max gpu memory utilization set for initializing the model. This parameter currently reflects on the property `gpu_memory_utilization` of vllm",
+        default=60,
     )
 
     parser.add_argument(
