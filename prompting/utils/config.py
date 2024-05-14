@@ -71,6 +71,13 @@ def add_args(cls, parser):
         help="Device to run on.",
         default="cuda" if torch.cuda.is_available() else "cpu",
     )
+    
+    parser.add_argument(
+        "--neuron.gpus",
+        type=int,
+        help="The number of visible GPUs to be considered in the llm initialization",
+        default=1,
+    )
 
     parser.add_argument(
         "--neuron.epoch_length",

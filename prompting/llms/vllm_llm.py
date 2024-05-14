@@ -38,7 +38,7 @@ def clean_gpu_cache():
     torch.cuda.synchronize()
 
 
-def load_vllm_pipeline(model_id: str, device: str, mock=False):
+def load_vllm_pipeline(model_id: str, device: str, gpus: int, mock=False):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
     if mock or model_id == "mock":
         return MockPipeline(model_id)
@@ -47,14 +47,14 @@ def load_vllm_pipeline(model_id: str, device: str, mock=False):
     max_allowed_memory_in_gb = 60
     max_allowed_memory_allocation_in_bytes = max_allowed_memory_in_gb * 1e9
     gpu_mem_utilization = calculate_gpu_requirements(
-        device, max_allowed_memory_allocation_in_bytes
+        device, gpus, max_allowed_memory_allocation_in_bytes
     )
 
     try:
         # Attempt to initialize the LLM
-        _ = LLM(model=model_id, gpu_memory_utilization = gpu_mem_utilization, quantization="AWQ")
-        _.llm_engine.tokenizer.eos_token_id = 128009
-        return _
+        llm = LLM(model=model_id, gpu_memory_utilization = gpu_mem_utilization, quantization="AWQ", tensor_parallel_size=gpus)
+        llm.llm_engine.tokenizer.eos_token_id = 128009
+        return llm
     except ValueError as e:
         bt.logging.error(
             f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}"
@@ -77,11 +77,11 @@ def load_vllm_pipeline(model_id: str, device: str, mock=False):
             f"Retrying to load with {max_allowed_memory_in_gb_second_attempt}GB..."
         )
         gpu_mem_utilization = calculate_gpu_requirements(
-            device, max_allowed_memory_allocation_in_bytes
+            device, gpus, max_allowed_memory_allocation_in_bytes, gpus
         )
 
         # Attempt to initialize the LLM again with increased memory allocation
-        return LLM(model=model_id, gpu_memory_utilization=gpu_mem_utilization)
+        return LLM(model=model_id, gpu_memory_utilization=gpu_mem_utilization, tensor_parallel_size=gpus)
     except Exception as e:
         bt.logging.error(
             f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb_second_attempt}GB: {e}"
@@ -90,10 +90,11 @@ def load_vllm_pipeline(model_id: str, device: str, mock=False):
 
 
 class vLLMPipeline(BasePipeline):
-    def __init__(self, model_id: str, device: str = None, mock=False):
+    def __init__(self, model_id: str, device: str = None, gpus: int = 1, mock=False):
         super().__init__()
-        self.llm = load_vllm_pipeline(model_id, device, mock)
+        self.llm = load_vllm_pipeline(model_id, device, gpus, mock)
         self.mock = mock
+        self.gpus = gpus
 
     def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:
         if self.mock:
