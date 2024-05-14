@@ -61,7 +61,7 @@ def calculate_multiple_gpu_requirements(device: str, gpus: int, max_allowed_memo
 
 
 def calculate_gpu_requirements(
-    device: str, gpus: int, max_allowed_memory_allocation_in_bytes: int = 60e9,
+    device: str, gpus: int, max_allowed_memory_allocation_in_bytes: float,
 ) -> float:
     """Calculates the memory utilization requirements for the model to be loaded on the device.
     Args:
