@@ -56,6 +56,8 @@ class RemoveRoles(BaseCleaner):
         sentences = re.split(r"(?<=[.!?])\s+", input_string)
         capitalized_sentences = [sentence.capitalize() for sentence in sentences]
         result_string = " ".join(capitalized_sentences)
+        # Capitalize the first letter in result_string
+        result_string.capitalize()
         return result_string
 
     def apply(self, generation: str) -> str:
