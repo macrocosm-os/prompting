@@ -41,7 +41,7 @@ class DateQuestionAnsweringTask(Task):
         self.query = self.generate_query(llm_pipeline)
         date = self.context.extra.get('date', None)
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date = date, query = self.query, context = context.content)
-        self.reference = self.generate_reference(llm_pipeline)
+        self.reference = self.generate_reference(llm_pipeline, clean = False)
         self.topic = context.title
         self.subtopic = date
         self.tags = context.tags
