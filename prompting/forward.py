@@ -25,7 +25,7 @@ import numpy as np
 import bittensor as bt
 from typing import List, Dict, Awaitable
 from prompting.agent import HumanAgent
-from prompting.dendrite import DendriteResponseEvent
+from prompting.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.conversation import create_task
 from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
@@ -46,19 +46,8 @@ async def execute_dendrite_call(dendrite_call):
     responses = await dendrite_call
     return responses
 
- 
-@dataclass
-class StreamResult:
-    exception: BaseException = None
-    uid: int = None
-    accumulated_chunks: List[str] = None
-    accumulated_chunks_timings: List[float] = None
-    synapse: StreamPromptingSynapse = None
 
- 
-
-
-async def process_stream(uid: int, async_iterator: Awaitable) -> StreamResult:
+async def process_stream(uid: int, async_iterator: Awaitable) -> SynapseStreamResult:
     """Process a single response asynchronously."""
     synapse = None  # Initialize chunk with a default value
     exception = None
@@ -96,7 +85,7 @@ async def process_stream(uid: int, async_iterator: Awaitable) -> StreamResult:
 
         synapse = failed_synapse
     finally:
-        return StreamResult(
+        return SynapseStreamResult(
             accumulated_chunks=accumulated_chunks,
             accumulated_chunks_timings=accumulated_chunks_timings,
             synapse=synapse,
@@ -106,7 +95,7 @@ async def process_stream(uid: int, async_iterator: Awaitable) -> StreamResult:
 
 
 @async_log
-async def handle_response(stream_results: Dict[int, Awaitable]) -> List[StreamResult]:
+async def handle_response(stream_results: Dict[int, Awaitable]) -> List[SynapseStreamResult]:
     """The handle_response function is responsible for creating asyncio tasks around acquiring streamed miner chunks
     and processing them asynchronously. It then pairs the results with their original UIDs and returns a list of StreamResults.
 
@@ -139,7 +128,7 @@ async def generate_reference(agent: HumanAgent):
     return result
 
 
-def log_stream_results(stream_results: List[StreamResult]):
+def log_stream_results(stream_results: List[SynapseStreamResult]):
     failed_responses = [
         response for response in stream_results if response.exception is not None
     ]
@@ -220,11 +209,9 @@ async def run_step(
 
     log_stream_results(stream_results)
 
-    all_synapses_results = [stream_result.synapse for stream_result in stream_results]
-
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(
-        responses=all_synapses_results, uids=uids, timeout=timeout
+        stream_results=stream_results, uids=uids, timeout=timeout
     )
 
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
@@ -247,25 +234,13 @@ async def run_step(
     )
 
     self.update_scores(reward_result.rewards, uids)
-
-    stream_results_uids = [stream_result.uid for stream_result in stream_results]
-    stream_results_exceptions = [
-        serialize_exception_to_string(stream_result.exception)
-        for stream_result in stream_results
-    ]
-    stream_results_all_chunks = [stream_result.accumulated_chunks for stream_result in stream_results]
-    stream_results_all_chunks_timings = [stream_result.accumulated_chunks_timings for stream_result in stream_results]
     
     # Log the step event.
     event = {
         "best": best_response,
         "block": self.block,
         "step": self.step,
-        "step_time": time.time() - start_time,
-        "stream_results_uids": stream_results_uids,
-        "stream_results_exceptions": stream_results_exceptions,
-        "stream_results_all_chunks": stream_results_all_chunks,
-        "stream_results_all_chunks_timings": stream_results_all_chunks_timings,        
+        "step_time": time.time() - start_time,        
         **agent.__state_dict__(full=self.config.neuron.log_full),
         **reward_result.__state_dict__(full=self.config.neuron.log_full),
         **response_event.__state_dict__(),

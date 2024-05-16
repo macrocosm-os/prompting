@@ -1,19 +1,32 @@
 import torch
-import bittensor as bt
 from typing import List
+from dataclasses import dataclass
+from prompting.protocol import StreamPromptingSynapse
+from prompting.utils.misc import serialize_exception_to_string
+ 
+ 
+@dataclass
+class SynapseStreamResult:
+    exception: BaseException = None
+    uid: int = None
+    accumulated_chunks: List[str] = None
+    accumulated_chunks_timings: List[float] = None
+    synapse: StreamPromptingSynapse = None
 
 
 class DendriteResponseEvent:
     def __init__(
-        self, responses: List[bt.Synapse], uids: torch.LongTensor, timeout: float
+        self, stream_results: SynapseStreamResult, uids: torch.LongTensor, timeout: float
     ):
         self.uids = uids
         self.completions = []
         self.status_messages = []
         self.status_codes = []
         self.timings = []
+        
+        synapses = [stream_result.synapse for stream_result in stream_results]
 
-        for synapse in responses:
+        for synapse in synapses:
             self.completions.append(synapse.completion)
             self.status_messages.append(synapse.dendrite.status_message)
 
@@ -32,14 +45,22 @@ class DendriteResponseEvent:
             else:
                 self.timings.append(0)  # situation where miner is not alive
 
-        self.completions = [synapse.completion for synapse in responses]
+        self.completions = [synapse.completion for synapse in synapses]
         self.timings = [
-            synapse.dendrite.process_time or timeout for synapse in responses
+            synapse.dendrite.process_time or timeout for synapse in synapses
         ]
         self.status_messages = [
-            synapse.dendrite.status_message for synapse in responses
+            synapse.dendrite.status_message for synapse in synapses
         ]
-        self.status_codes = [synapse.dendrite.status_code for synapse in responses]
+        self.status_codes = [synapse.dendrite.status_code for synapse in synapses]
+        
+        self.stream_results_uids = [stream_result.uid for stream_result in stream_results]
+        self.stream_results_exceptions = [
+            serialize_exception_to_string(stream_result.exception)
+            for stream_result in stream_results
+        ]
+        self.stream_results_all_chunks = [stream_result.accumulated_chunks for stream_result in stream_results]
+        self.stream_results_all_chunks_timings = [stream_result.accumulated_chunks_timings for stream_result in stream_results]
 
     def __state_dict__(self):
         return {
@@ -48,6 +69,10 @@ class DendriteResponseEvent:
             "timings": self.timings,
             "status_messages": self.status_messages,
             "status_codes": self.status_codes,
+            "stream_results_uids": self.stream_results_uids,
+            "stream_results_exceptions": self.stream_results_exceptions,
+            "stream_results_all_chunks": self.stream_results_all_chunks,
+            "stream_results_all_chunks_timings": self.stream_results_all_chunks_timings,
         }
 
     def __repr__(self):
