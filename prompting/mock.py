@@ -3,7 +3,7 @@ import torch
 import asyncio
 import random
 import bittensor as bt
-from prompting.protocol import StreamPromptingSynapse, PromptingSynapse
+from prompting.protocol import StreamPromptingSynapse
 
 from functools import partial
 from typing import Dict, List, Union, AsyncGenerator, Any, Iterator

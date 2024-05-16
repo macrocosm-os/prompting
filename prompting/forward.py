@@ -51,9 +51,9 @@ async def execute_dendrite_call(dendrite_call):
 class StreamResult:
     exception: BaseException = None
     uid: int = None
-    accumulated_chunks: List[str]
-    accumulated_chunks_timings: List[float]
-    synapse: StreamPromptingSynapse
+    accumulated_chunks: List[str] = None
+    accumulated_chunks_timings: List[float] = None
+    synapse: StreamPromptingSynapse = None
 
  
 
@@ -67,11 +67,12 @@ async def process_stream(uid: int, async_iterator: Awaitable) -> StreamResult:
     start_time = time.time()    
     
     try:                
-        async for chunk in async_iterator:  # most important loop, as this is where we acquire the final synapse.                        
-            accumulated_chunks.append(chunk)
-            accumulated_chunks_timings.append(time.time() - start_time)
-            
-            bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
+        async for chunk in async_iterator:  # most important loop, as this is where we acquire the final synapse.
+            if isinstance(chunk, str):
+                accumulated_chunks.append(chunk)
+                accumulated_chunks_timings.append(time.time() - start_time)
+                
+                bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
 
         # Assuming last chunk of async_iterator holds the last value yielded as a StreamingSynapse
         synapse = chunk
