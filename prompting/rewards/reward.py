@@ -5,7 +5,7 @@ from typing import List
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-
+from prompting.dendrite import DendriteResponseEvent
 
 class RewardModelTypeEnum(Enum):
     WEIGHTED_REWARD = "reward"
@@ -151,12 +151,12 @@ class BaseRewardModel(ABC):
         pass
 
     @abstractmethod
-    def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         pass
 
-    def apply(self, reference: str, response_event, reward_type) -> RewardEvent:
+    def apply(self, reference: str, response_event: DendriteResponseEvent, reward_type: RewardModelTypeEnum) -> RewardEvent:
         t0 = time.time()
-        batch_rewards_output = self.reward(reference, response_event.completions)
+        batch_rewards_output = self.reward(reference, response_event)
         batch_rewards_time = time.time() - t0
 
         return RewardEvent(

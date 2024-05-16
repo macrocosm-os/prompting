@@ -6,6 +6,7 @@ from prompting.rewards import (
     BatchRewardOutput,
     RewardModelTypeEnum,
 )
+from prompting.dendrite import DendriteResponseEvent
 import time
 
 
@@ -27,13 +28,13 @@ class DiffRewardModel(BaseRewardModel):
     def seq_match(self, reference, completion):
         return difflib.SequenceMatcher(None, reference, completion).ratio()
 
-    def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         """Get the score between two strings.
         lines: If True, return a unified diff. If False, return a ratio.
         """
-
         rewards = []
         timings = []
+        completions: List[str] = response_event.completions
 
         if self.lines:
             for completion in completions:

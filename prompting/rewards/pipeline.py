@@ -9,6 +9,7 @@ from prompting.rewards import (
     FloatDiffModel,
     DateRewardModel,
     OrdinalRewardModel,
+    StreamingRewardModel
 )
 
 REWARD_MODELS = {
@@ -18,6 +19,7 @@ REWARD_MODELS = {
     "float_diff": FloatDiffModel,
     "date": DateRewardModel,
     "ordinal": OrdinalRewardModel,
+    "streaming": StreamingRewardModel,
 }
 
 
