@@ -71,6 +71,9 @@ class TranslationPipeline:
 
 @dataclass
 class TranslationTask(Task):
+    challenge_type = 'query'
+    static_reference = True
+    static_query = True
     name = "translation"
     desc = "get translation help"
     goal = "to get the translation for the given piece of text"
