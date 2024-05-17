@@ -52,16 +52,23 @@ class RewardResult:
         self.device = device
         self.task_rewards = agent.task.reward_definition
         self.task_penalties = agent.task.penalty_definition
+        self.global_task_penalties = agent.task.global_penalty_definition
         self.reward_events = self.reward_responses(
             reference=agent.task.reference,
             models=self.task_rewards,
             reward_type=RewardModelTypeEnum.WEIGHTED_REWARD,
         )
-        self.penalty_events = self.reward_responses(
+        task_penalties= self.reward_responses(
             reference=agent.challenge,
             models=self.task_penalties,
             reward_type=RewardModelTypeEnum.PENALTY,
         )
+        global_task_penalties = self.reward_responses(
+            reference=agent.challenge,
+            models=self.global_task_penalties,
+            reward_type=RewardModelTypeEnum.PENALTY,
+        )
+        self.penalty_events = task_penalties + global_task_penalties
         self.rewards = self.total_reward()
 
     def __state_dict__(self, full=False):

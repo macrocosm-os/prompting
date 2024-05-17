@@ -74,7 +74,9 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
             )
             
         accumulated_chunks.append(synapse.completion)
-        accumulated_chunks_timings.append(time.time() - start_time)                
+        accumulated_chunks_timings.append(time.time() - start_time)
+        tokens_in_completion = len(tokenizer.tokenize(synapse.completion))
+        accumulated_tokens_per_chunk.append(tokens_in_completion)
     except Exception as e:        
         exception = e
         traceback_details = traceback.format_exc()
@@ -91,6 +93,7 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
         return SynapseStreamResult(
             accumulated_chunks=accumulated_chunks,
             accumulated_chunks_timings=accumulated_chunks_timings,
+            tokens_per_chunk=accumulated_tokens_per_chunk,
             synapse=synapse,
             uid=uid,
             exception=exception

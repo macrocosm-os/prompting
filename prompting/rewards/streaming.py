@@ -15,13 +15,13 @@ class StreamingRewardModel(BaseRewardModel):
     def __init__(self, max_tokens_per_chunk:int, **kwargs):
         super().__init__()
         self.max_tokens_per_chunk = max_tokens_per_chunk
-        self.max_penalty = 0.2
+
 
     def reward(self, _: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""       
         rewards = []
         timings = []
-        penalty_per_exceeding_chunk = 0.01
+        penalty_per_exceeding_chunk = 0.25
                 
         # Iterate through each chunk of response tokens
         for response_tokens_per_chunks in response_event.stream_results_all_tokens_per_chunk:            
@@ -36,8 +36,8 @@ class StreamingRewardModel(BaseRewardModel):
             # Record the timing for this computation
             timings.append(time.time() - start_time)
             
-            # Calculate the reward and ensure it does not go below max_penalty
-            rewards.append(max(1 - accumulated_penalty, self.max_penalty))
+            # Calculate the reward and ensure it does not go above 1
+            rewards.append(min(accumulated_penalty, 1))
         
         # Create the output object with rewards, timings, and extra information
         output = BatchRewardOutput(

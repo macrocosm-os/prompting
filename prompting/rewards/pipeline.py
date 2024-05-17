@@ -92,6 +92,7 @@ class RewardPipeline:
         for task in self.selected_tasks:
             active_reward_models += TASKS[task].reward_definition
             active_reward_models += TASKS[task].penalty_definition
+            active_reward_models += TASKS[task].global_penalty_definition
 
         # Instantiate only the required reward models
         reward_models = {}

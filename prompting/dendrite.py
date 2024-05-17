@@ -66,6 +66,7 @@ class DendriteResponseEvent:
             "stream_results_exceptions": self.stream_results_exceptions,
             "stream_results_all_chunks": self.stream_results_all_chunks,
             "stream_results_all_chunks_timings": self.stream_results_all_chunks_timings,
+            "stream_results_all_tokens_per_chunk": self.stream_results_all_tokens_per_chunk,
         }
 
     def __repr__(self):
