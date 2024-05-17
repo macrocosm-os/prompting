@@ -20,8 +20,9 @@ class DateRewardModel(BaseRewardModel):
         """
         Calculates the absolute difference in days between two dates.
         """
+        DATE_NOT_FOUND_CODE = 9999
         if not comp_date:
-            return 9999
+            return DATE_NOT_FOUND_CODE
         # Check if ref date is just a year
         if ref_date.isdigit():
             # Extract the last 3-4 digits from the completion date using a regex pattern that would detect 3 or 4 digit years 
@@ -29,7 +30,7 @@ class DateRewardModel(BaseRewardModel):
             if comp_year:
                 return abs(int(ref_date) - int(comp_year[0])*365)
             else:
-                return 9999
+                return DATE_NOT_FOUND_CODE
         # If the reference date is not only a year, take the difference between the two dates
         try:
             ref_date = pd.to_datetime(ref_date)
@@ -39,7 +40,7 @@ class DateRewardModel(BaseRewardModel):
             if ref_date == comp_date:
                 return 0
             else:
-                return 9999
+                return DATE_NOT_FOUND_CODE
 
     def parse_dates_from_text(self, text: str) -> tuple:
         # Regular expression to find dates in various formats
