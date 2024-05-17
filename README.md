@@ -27,7 +27,7 @@ Validators and miners are based on large language models (LLM). The validation p
 </div>
 
 # Installation
-This repository requires python3.8 or higher. To install it, simply clone this repository and run the [install.sh](./install.sh) script.
+This repository requires python3.9 or higher. To install it, simply clone this repository and run the [install.sh](./install.sh) script.
 ```bash
 git clone https://github.com/opentensor/prompting.git
 cd prompting
@@ -54,7 +54,7 @@ python <SCRIPT_PATH>
     --wallet.name <your wallet> # Must be created using the bittensor-cli
     --wallet.hotkey <your hotkey> # Must be created using the bittensor-cli
     --logging.debug # Run in debug mode, alternatively --logging.trace for trace mode
-    --axon.port #VERY IMPORTANT: set the port to be one of the open TCP ports on your machine
+    --axon.port # VERY IMPORTANT: set the port to be one of the open TCP ports on your machine
 ```
 
 where `SCRIPT_PATH` is either: 
@@ -70,7 +70,7 @@ sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm insta
 
 Example of running a SOLAR miner: 
 ```bash
-pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name solar_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey m1 --neuron.model_id NousResearch/Nous-Hermes-2-SOLAR-10.7B --axon.port 21988 --logging.debug 
+pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name solar_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --axon.port 21988 --logging.debug 
 ``` 
 
 # Testnet 
@@ -81,7 +81,7 @@ In order to run on testnet, you will need to go through the same hotkey registra
 To run:
 
 ```bash
-pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name solar_miner -- --netuid 61  --subtensor.network test --wallet.name my_test_wallet --wallet.hotkey m1 --neuron.model_id NousResearch/Nous-Hermes-2-SOLAR-10.7B --axon.port 21988 --logging.debug 
+pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name solar_miner -- --netuid 61  --subtensor.network test --wallet.name my_test_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --axon.port 21988 --logging.debug 
 ```
 
 # Limitations
