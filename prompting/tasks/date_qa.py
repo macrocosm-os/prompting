@@ -19,6 +19,7 @@ Context: {context}
 class DateQuestionAnsweringTask(Task):
     name = "date_qa"
     challenge_type = 'query'
+    clean_reference = False
     desc = "get help answering a specific date-based question"
     goal = "to get the answer to the following date-based question"
     reward_definition = [
@@ -28,7 +29,7 @@ class DateQuestionAnsweringTask(Task):
     penalty_definition = []
     cleaning_pipeline = [
         #dict(name="remove_quotes"),
-        dict(name="remove_roles"),
+        #dict(name="remove_roles"),
         dict(name="remove_tags"), 
         dict(name="first_question"),
     ]
@@ -41,7 +42,8 @@ class DateQuestionAnsweringTask(Task):
         self.query = self.generate_query(llm_pipeline)
         date = self.context.extra.get('date', None)
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date = date, query = self.query, context = context.content)
-        self.reference = self.generate_reference(llm_pipeline, clean = False).replace('?',"")
+        if create_reference:
+            self.reference = self.generate_reference(llm_pipeline)
         self.topic = context.title
         self.subtopic = date
         self.tags = context.tags

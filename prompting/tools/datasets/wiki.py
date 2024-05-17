@@ -282,8 +282,6 @@ class WikiDateDataset(Dataset):
         # Split text into sentences
         sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
 
-        # Initialize dictionary to store results
-
         # Iterate through sentences and find dates
         for sentence in sentences:
             # Find all dates in the sentence

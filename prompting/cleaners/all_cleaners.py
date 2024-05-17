@@ -122,5 +122,8 @@ class FirstQuestion(BaseCleaner):
         pass
 
     def apply(self, generation: str) -> str:
-        generation = generation.split("?")[0] + "?"
+        if "?" in generation:
+            if ':' in generation:
+                generation = generation.split(':')[1]
+            generation = generation.split("?")[0] + "?"
         return generation
