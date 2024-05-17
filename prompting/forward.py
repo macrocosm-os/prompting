@@ -13,8 +13,7 @@
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN
-#  THE SOFTWARE.
+# DEALINGS IN THE SOFTWARE.
 
 import sys
 import time
@@ -33,7 +32,7 @@ from prompting.tasks import QuestionAnsweringTask
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
-from dataclasses import dataclass
+from transformers import PreTrainedTokenizerFast as Tokenizer
 
 @async_log
 async def generate_reference(agent):
@@ -47,19 +46,23 @@ async def execute_dendrite_call(dendrite_call):
     return responses
 
 
-async def process_stream(uid: int, async_iterator: Awaitable) -> SynapseStreamResult:
+async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokenizer) -> SynapseStreamResult:
     """Process a single response asynchronously."""
     synapse = None  # Initialize chunk with a default value
     exception = None
     accumulated_chunks = []
-    accumulated_chunks_timings = []        
-    start_time = time.time()    
+    accumulated_chunks_timings = []
+    accumulated_tokens_per_chunk = []
+    start_time = time.time()
     
     try:                
         async for chunk in async_iterator:  # most important loop, as this is where we acquire the final synapse.
             if isinstance(chunk, str):
                 accumulated_chunks.append(chunk)
                 accumulated_chunks_timings.append(time.time() - start_time)
+                
+                tokens_in_chunk = len(tokenizer.tokenize(chunk))
+                accumulated_tokens_per_chunk.append(tokens_in_chunk)
                 
                 bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
 
@@ -95,7 +98,7 @@ async def process_stream(uid: int, async_iterator: Awaitable) -> SynapseStreamRe
 
 
 @async_log
-async def handle_response(stream_results: Dict[int, Awaitable]) -> List[SynapseStreamResult]:
+async def handle_response(stream_results_dict: Dict[int, Awaitable], tokenizer: Tokenizer) -> List[SynapseStreamResult]:
     """The handle_response function is responsible for creating asyncio tasks around acquiring streamed miner chunks
     and processing them asynchronously. It then pairs the results with their original UIDs and returns a list of StreamResults.
 
@@ -109,14 +112,14 @@ async def handle_response(stream_results: Dict[int, Awaitable]) -> List[SynapseS
         List[StreamResult]: DataClass containing the synapse, exception, and uid
     """
     tasks_with_uid = [
-        (uid, stream_results[uid]) for uid, _ in stream_results.items()
+        (uid, stream_results_dict[uid]) for uid, _ in stream_results_dict.items()
     ]  # Pair UIDs with their tasks
 
     # Start tasks, preserving order and their associated UIDs
-    process_stream_tasks = [process_stream(uid, resp) for uid, resp in tasks_with_uid]
-    stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True) 
+    process_stream_tasks = [process_stream(uid, resp, tokenizer) for uid, resp in tasks_with_uid]
+    processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True) 
     
-    return stream_results
+    return processed_stream_results
 
 
 @async_log
@@ -174,7 +177,6 @@ async def run_step(
         timeout (float): The timeout for the queries.
         exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
     """
-
     bt.logging.debug("run_step", agent.task.name)
 
     # Record event start time.
@@ -195,9 +197,9 @@ async def run_step(
     )
 
     # Prepare the task for handling stream responses
-    handle_stream_responses_task = asyncio.create_task(
-        handle_response(stream_results=dict(zip(uids_cpu, streams_responses)))
-    )
+    stream_results_dict = dict(zip(uids_cpu, streams_responses))
+    tokenizer = self.llm_pipeline.tokenizer
+    handle_stream_responses_task = asyncio.create_task(handle_response(stream_results_dict, tokenizer))
 
     if not agent.task.static_reference:
         reference_generation_task = generate_reference(agent)
