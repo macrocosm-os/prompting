@@ -22,6 +22,7 @@ class BaseLLM(ABC):
         self.model_kwargs = model_kwargs
         self.messages = []
         self.times = []
+        self.tokenizer = None
 
     def query(
         self,

@@ -73,6 +73,7 @@ class vLLMPipeline(BasePipeline):
         self.llm = load_vllm_pipeline(model_id, device, gpus, llm_max_allowed_memory_in_gb, mock)
         self.mock = mock
         self.gpus = gpus
+        self.tokenizer = self.llm.llm_engine.tokenizer
 
     def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:
         if self.mock:
