@@ -83,7 +83,7 @@ def add_args(cls, parser):
         "--neuron.llm_max_allowed_memory_in_gb",
         type=int,
         help="The max gpu memory utilization set for initializing the model. This parameter currently reflects on the property `gpu_memory_utilization` of vllm",
-        default=60,
+        default=80,
     )
 
     parser.add_argument(
