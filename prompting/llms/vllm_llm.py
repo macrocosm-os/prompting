@@ -180,7 +180,7 @@ if __name__ == "__main__":
         model_id="casperhansen/llama-3-70b-instruct-awq",
         device="cuda",
         llm_max_allowed_memory_in_gb=80,
-        gpus=2,
+        gpus=1,
     )
     llm = vLLM_LLM(llm_pipeline, system_prompt="You are a helpful AI assistant")
 
