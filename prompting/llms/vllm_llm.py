@@ -24,12 +24,18 @@ from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.llms import BasePipeline, BaseLLM
 from prompting.mock import MockPipeline
 from prompting.llms.utils import calculate_gpu_requirements
+from vllm.model_executor.parallel_utils.parallel_state import destroy_model_parallel
 
 
-def _clear_cache():
-    """Explicitly run Python and Torch garbage collection"""
+def clean_gpu_cache():
+    destroy_model_parallel()
     gc.collect()
     torch.cuda.empty_cache()
+    if torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
+
+    # Wait for the GPU to clean up
+    time.sleep(10)
     torch.cuda.synchronize()
 
 
@@ -38,7 +44,7 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
     if mock or model_id == "mock":
         return MockPipeline(model_id)
 
-    # Calculates the gpu memory utilization required to run the model
+    # Calculates the gpu memory utilization required to run the model within 20GB of GPU    
     max_allowed_memory_allocation_in_bytes = max_allowed_memory_in_gb * 1e9
     gpu_mem_utilization = calculate_gpu_requirements(
         device, gpus, max_allowed_memory_allocation_in_bytes
@@ -46,7 +52,7 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
 
     try:
         # Attempt to initialize the LLM
-        llm = LLM(model=model_id, gpu_memory_utilization = gpu_mem_utilization, quantization="AWQ", tensor_parallel_size=gpus)
+        llm = LLM(model=model_id, gpu_memory_utilization = gpu_mem_utilization, quantization="AWQ", tensor_parallel_size=gpus)        
         # This solution implemented by @bkb2135 sets the eos_token_id directly for efficiency in vLLM usage.
         # This approach avoids the overhead of loading a tokenizer each time the custom eos token is needed.
         # Using the Hugging Face pipeline, the eos token specific to llama models was fetched and saved (128009).
@@ -62,20 +68,11 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
 
 
 class vLLMPipeline(BasePipeline):
-    def __init__(
-        self,
-        model_id: str,
-        llm_max_allowed_memory_in_gb: int,
-        device: str = None,
-        gpus: int = 1,
-        mock: bool = False
-    ):
+    def __init__(self, model_id: str, llm_max_allowed_memory_in_gb: int, device: str = None, gpus: int = 1, mock: bool = False):
         super().__init__()
         self.llm = load_vllm_pipeline(model_id, device, gpus, llm_max_allowed_memory_in_gb, mock)
         self.mock = mock
         self.gpus = gpus
-        self._inference_counter = 15
-        self._clean_frequency = 1
 
     def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:
         if self.mock:
@@ -91,16 +88,6 @@ class vLLMPipeline(BasePipeline):
         )
         output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
         response = output[0].outputs[0].text
-        
-        # vLLM cuda memory leak workaround
-        self._inference_counter += 1
-        if self._inference_counter % self._clean_frequency == 0:
-            bt.logging.info(f"Cleaning cache after {self._inference_counter} inferences")
-            print(f"Memory allocated before: {torch.cuda.memory_allocated()}")
-            _clear_cache()
-            print(f"Memory allocated after: {torch.cuda.memory_allocated()}")
-            self._inference_counter = 0
-
         return response
 
 
@@ -122,13 +109,7 @@ class vLLM_LLM(BaseLLM):
 
         # Keep track of generation data using messages and times
         self.messages = [{"content": self.system_prompt, "role": "system"}]
-        self.times: List[float] = [0]
-        self._role_template = {
-            "system": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{{{{ {} }}}}<|eot_id|>",
-            "user": "<|start_header_id|>user<|end_header_id|>\n{{{{ {} }}}}<|eot_id|>",
-            "assistant": "<|start_header_id|>assistant<|end_header_id|>\n{{{{ {} }}}}<|eot_id|>",
-            "end": "<|start_header_id|>assistant<|end_header_id|>",
-        }
+        self.times = [0]
 
     def query(
         self,
@@ -144,25 +125,29 @@ class vLLM_LLM(BaseLLM):
         response = self.forward(messages=messages)
         response = self.clean_response(cleaner, response)
 
-        self.messages = messages
-        self.messages.append({"content": response, "role": "assistant"})
-        self.times.extend((0, time.time() - t0))
+        self.messages = messages + [{"content": response, "role": "assistant"}]
+        self.times = self.times + [0, time.time() - t0]
 
         return response
 
-    def _make_prompt(self, messages: List[Dict[str, str]]) -> str:
-        composed_prompt: List[str] = []
+    def _make_prompt(self, messages: List[Dict[str, str]]):
+        composed_prompt = ""
 
         for message in messages:
-            role = message["role"]
-            if role not in self._role_template:
-                continue
-            content = message["content"]
-            composed_prompt.append(self._role_template[role].format(content))
+            if message["role"] == "system":
+                composed_prompt += (
+                    f'<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{{{{ {message["content"]} }}}}<|eot_id|>'
+                )
+            elif message["role"] == "user":
+                composed_prompt += f'<|start_header_id|>user<|end_header_id|>\n{{{{ {message["content"]} }}}}<|eot_id|>'
+            elif message["role"] == "assistant":
+                composed_prompt += (
+                    f'<|start_header_id|>assistant<|end_header_id|>\n{{{{ {message["content"]} }}}}<|eot_id|>'
+                )
 
         # Adds final tag indicating the assistant's turn
-        composed_prompt.append(self._role_template["end"])
-        return "".join(composed_prompt)
+        composed_prompt += "<|start_header_id|>assistant<|end_header_id|>"
+        return composed_prompt
 
     def forward(self, messages: List[Dict[str, str]]):
         # make composed prompt from messages
@@ -179,10 +164,7 @@ class vLLM_LLM(BaseLLM):
 if __name__ == "__main__":
     # Example usage
     llm_pipeline = vLLMPipeline(
-        model_id="casperhansen/llama-3-70b-instruct-awq",
-        device="cuda",
-        llm_max_allowed_memory_in_gb=80,
-        gpus=1,
+        model_id="HuggingFaceH4/zephyr-7b-beta", device="cuda", mock=False
     )
     llm = vLLM_LLM(llm_pipeline, system_prompt="You are a helpful AI assistant")
 
