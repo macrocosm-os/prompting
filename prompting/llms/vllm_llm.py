@@ -31,7 +31,7 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
     if mock or model_id == "mock":
         return MockPipeline(model_id)
 
-    # Calculates the gpu memory utilization required to run the model
+    # Calculates the gpu memory utilization required to run the model.
     max_allowed_memory_allocation_in_bytes = max_allowed_memory_in_gb * 1e9
     gpu_mem_utilization = calculate_gpu_requirements(
         device, gpus, max_allowed_memory_allocation_in_bytes
