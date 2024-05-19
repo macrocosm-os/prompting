@@ -307,10 +307,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # If so, we need to add new hotkeys and moving averages.
         if len(self.hotkeys) != len(self.metagraph.hotkeys):
             # Update the size of the moving average scores.
-            new_moving_average = torch.zeros((self.metagraph.n)).to(self.device)
-            min_len = min(len(self.hotkeys), len(self.scores))
-            new_moving_average[:min_len] = self.scores[:min_len]
-            self.scores = new_moving_average
+            self.scores = self.scores[:min_len]
 
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
