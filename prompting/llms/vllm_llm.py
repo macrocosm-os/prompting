@@ -26,13 +26,6 @@ from prompting.mock import MockPipeline
 from prompting.llms.utils import calculate_gpu_requirements
 
 
-def _clear_cache():
-    """Explicitly run Python and Torch garbage collection"""
-    gc.collect()
-    torch.cuda.empty_cache()
-    torch.cuda.synchronize()
-
-
 def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory_in_gb: int, mock=False):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
     if mock or model_id == "mock":
@@ -74,8 +67,6 @@ class vLLMPipeline(BasePipeline):
         self.llm = load_vllm_pipeline(model_id, device, gpus, llm_max_allowed_memory_in_gb, mock)
         self.mock = mock
         self.gpus = gpus
-        self._inference_counter = 15
-        self._clean_frequency = 1
 
     def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:
         if self.mock:
@@ -91,16 +82,6 @@ class vLLMPipeline(BasePipeline):
         )
         output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
         response = output[0].outputs[0].text
-        
-        # vLLM cuda memory leak workaround
-        self._inference_counter += 1
-        if self._inference_counter % self._clean_frequency == 0:
-            bt.logging.info(f"Cleaning cache after {self._inference_counter} inferences")
-            print(f"Memory allocated before: {torch.cuda.memory_allocated()}")
-            _clear_cache()
-            print(f"Memory allocated after: {torch.cuda.memory_allocated()}")
-            self._inference_counter = 0
-
         return response
 
 
