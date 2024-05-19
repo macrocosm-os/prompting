@@ -300,7 +300,7 @@ class BaseValidatorNeuron(BaseNeuron):
         min_len = min(len(self.hotkeys), len(self.metagraph.hotkeys))
         for uid in range(min_len):
             if self.hotkeys[uid] != self.metagraph.hotkeys[uid]:
-                 # hotkey has been replaced
+                 # Hotkey has been replaced.
                 self.scores[uid] = 0
 
         # Check to see if the metagraph has changed size.
