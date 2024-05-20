@@ -72,11 +72,6 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
             raise ValueError(
                 f"Something went wrong with miner uid {uid}, Synapse is not StreamPromptingSynapse."
             )
-            
-        accumulated_chunks.append(synapse.completion)
-        accumulated_chunks_timings.append(time.time() - start_time)
-        tokens_in_completion = len(tokenizer.tokenize(synapse.completion))
-        accumulated_tokens_per_chunk.append(tokens_in_completion)
     except Exception as e:        
         exception = e
         traceback_details = traceback.format_exc()
