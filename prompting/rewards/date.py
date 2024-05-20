@@ -20,50 +20,48 @@ class DateRewardModel(BaseRewardModel):
         """
         Calculates the absolute difference in days between two dates.
         """
+        DATE_NOT_FOUND_CODE = 9999
+        if not comp_date:
+            return DATE_NOT_FOUND_CODE
+        # Check if ref date is just a year
+        if ref_date.isdigit():
+            # Extract the last 3-4 digits from the completion date using a regex pattern that would detect 3 or 4 digit years 
+            comp_year = re.findall(r'\b\d{3,4}\b', comp_date)
+            if comp_year:
+                return abs(int(ref_date) - int(comp_year[0])*365)
+            else:
+                return DATE_NOT_FOUND_CODE
+        # If the reference date is not only a year, take the difference between the two dates
         try:
-            return abs(ref_date[0] - comp_date[0]).days + 365 * abs(
-                int(ref_date[1]) - int(comp_date[1])
-            )
-        except Exception as e:
-            return 500
+            ref_date = pd.to_datetime(ref_date)
+            comp_date = pd.to_datetime(comp_date)
+            return abs((ref_date - comp_date).days)
+        except:
+            if ref_date == comp_date:
+                return 0
+            else:
+                return DATE_NOT_FOUND_CODE
 
     def parse_dates_from_text(self, text: str) -> tuple:
-        """
-        Parses dates from a body of text, handling various formats, and returns pandas datetime objects.
+        # Regular expression to find dates in various formats
+        date_pattern = r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b'
 
-        Args:
-            text (str): The text to parse.
+        # Compile the regex pattern
+        date_regex = re.compile(date_pattern)
 
-        Returns:
-            tuple: A tuple containing a datemtime object with they year set at 2000 and the actual year.
-        """
+        # Split text into sentences
+        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
 
-        date_patterns = [
-            r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{3,4})\b",  # MM/DD/YYYY or DD/MM/YYYY
-            r"\b(\d{1,2})[-/](\d{1,2})[-/](\d{2})\b",  # MM/DD/YY or DD/MM/YY
-            r"\b(\d{1,2}) (January|February|March|April|May|June|July|August|September|October|November|December) (\d{3,4})\b",  # DD Month, YYYY
-            r"\b(January|February|March|April|May|June|July|August|September|October|November|December) (\d{1,2})(,\s*)?(\d{3,4})\b",  # Month DD, YYYY
-        ]
+        # Initialize dictionary to store results
 
-        for pattern in date_patterns:
-            matches = re.findall(pattern, text)
-            for match in matches:
-                try:
-                    # Attempt to create a datetime object with year 2000 (datetime objects cannot take dates more than 200 years in the past)
-                    parsed_date = pd.to_datetime(
-                        match[0] + "/" + match[1] + "/" + "2000"
-                    )
-                    year = match[-1]
-                    # Check if the year is a number
-                    if year.isdigit():
-                        # If the year is a digit, return the parsed date and the year in a tuple
-                        return (parsed_date, year)
-                    else:
-                        raise ValueError
-                except ValueError:
-                    pass
-
-        return
+        # Iterate through sentences and find dates
+        for sentence in sentences:
+            # Find all dates in the sentence
+            dates = date_regex.findall(sentence)
+            # If dates are found, add them to the result dictionary with the corresponding sentence
+            if dates:
+                return dates[0]
+        return None
 
     def date_score(self, reference: str, completion: str) -> float:
         """Assign a score based on the difference between two dates using a negative exponential function.

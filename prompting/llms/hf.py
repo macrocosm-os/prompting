@@ -106,6 +106,8 @@ class HuggingFacePipeline(BasePipeline):
         mock=False,
         model_kwargs: dict = None,
         return_streamer: bool = False,
+        gpus: int = 1,
+        llm_max_allowed_memory_in_gb: int = 0
     ):
         super().__init__()
         self.model = model_id
