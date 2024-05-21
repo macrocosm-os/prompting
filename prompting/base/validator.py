@@ -301,7 +301,7 @@ class BaseValidatorNeuron(BaseNeuron):
         hotkey_to_index = {hotkey: idx for idx, hotkey in enumerate(self.hotkeys)}
 
         # Initialize a tensor for the updated scores.
-        new_scores = torch.zeros(len(self.metagraph.hotkeys), dtype=self.scores.dtype)
+        new_scores = torch.zeros(len(self.metagraph.hotkeys), dtype=self.scores.dtype).to(self.scores.device)
 
         # Identify the hotkeys that have been deleted or replaced.
         for idx, hotkey in enumerate(self.metagraph.hotkeys):
