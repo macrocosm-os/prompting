@@ -49,6 +49,7 @@ class Task(ABC):
     query_system_prompt = ""
     query_prompt = ""
     cleaner = None
+    clean_reference = True
     challenge_type = 'inference'
     
     global_penalty_definition = [
@@ -95,8 +96,9 @@ class Task(ABC):
         """Generates a reference answer to be used for scoring miner completions"""
         t0 = time.time()
         if not self.static_reference:
+            if not self.clean_reference:
+                clean = False
             bt.logging.info("🤖 Generating reference...")
-
             self.reference = self.generate(
                 system=make_system_prompt(),
                 prompt=self.reference_prompt,
