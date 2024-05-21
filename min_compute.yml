@@ -22,7 +22,7 @@ compute_spec:
 
     gpu:
       required: True                       # Does the application require a GPU?
-      min_vram: 80                         # Minimum GPU VRAM (GB)
+      min_vram: 62                         # Minimum GPU VRAM (GB)
       recommended_vram: 80                 # Recommended GPU VRAM (GB)
       cuda_cores: 1024                     # Minimum number of CUDA cores (if applicable)
       min_compute_capability: 6.0          # Minimum CUDA compute capability
@@ -57,7 +57,7 @@ compute_spec:
 
     gpu:
       required: True                       # Does the application require a GPU?
-      min_vram: 80                         # Minimum GPU VRAM (GB)
+      min_vram: 62                         # Minimum GPU VRAM (GB)
       recommended_vram: 80                 # Recommended GPU VRAM (GB)
       cuda_cores: 1024                     # Minimum number of CUDA cores (if applicable)
       min_compute_capability: 6.0          # Minimum CUDA compute capability
