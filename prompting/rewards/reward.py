@@ -28,12 +28,16 @@ class RewardEvent:
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
         return {
-            f"{self.model_name}_raw_{self.model_type.value}": self.rewards.tolist(),
-            f"{self.model_name}_{self.model_type.value}": self.rewards_normalized.tolist(),
-            f"{self.model_name}_{self.model_type.value}_timings": self.timings.tolist(),
+            f"{self.model_name}_raw_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards),
+            f"{self.model_name}_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards_normalized, 4),
+            f"{self.model_name}_{self.model_type.value}_timings": self.tensor_to_rounded_list(self.timings),
             f"{self.model_name}_{self.model_type.value}_batch_time": self.batch_time,
             f"{self.model_name}_{self.model_type.value}_extra_info": self.extra_info,
         }
+            
+    def tensor_to_rounded_list(self, tensor, decimals=6):
+        # Convert the tensor elements to floats and round them to 6 decimal places
+        return [round(float(element), decimals) for element in tensor]
 
 
 class RewardResult:
@@ -51,24 +55,17 @@ class RewardResult:
         self.response_event = response_event
         self.device = device
         self.task_rewards = agent.task.reward_definition
-        self.task_penalties = agent.task.penalty_definition
-        self.global_task_penalties = agent.task.global_penalty_definition
+        self.task_penalties = agent.task.penalty_definition + agent.task.global_penalty_definition
         self.reward_events = self.reward_responses(
             reference=agent.task.reference,
             models=self.task_rewards,
             reward_type=RewardModelTypeEnum.WEIGHTED_REWARD,
         )
-        task_penalties= self.reward_responses(
+        self.penalty_events = self.reward_responses(
             reference=agent.challenge,
             models=self.task_penalties,
             reward_type=RewardModelTypeEnum.PENALTY,
         )
-        global_task_penalties = self.reward_responses(
-            reference=agent.challenge,
-            models=self.global_task_penalties,
-            reward_type=RewardModelTypeEnum.PENALTY,
-        )
-        self.penalty_events = task_penalties + global_task_penalties
         self.rewards = self.total_reward()
 
     def __state_dict__(self, full=False):
