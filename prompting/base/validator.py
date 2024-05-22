@@ -296,18 +296,19 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.info(
             "Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages"
         )
+        # Zero out all hotkeys that have been replaced.
+        for uid, hotkey in enumerate(self.hotkeys):
+            if hotkey != self.metagraph.hotkeys[uid]:
+                self.scores[uid] = 0  # hotkey has been replaced
 
-        # Create a dictionary for quick lookup of hotkey indices.
-        hotkey_to_index = {hotkey: idx for idx, hotkey in enumerate(self.hotkeys)}
-
-        # Initialize a tensor for the updated scores.
-        new_scores = torch.zeros(len(self.metagraph.hotkeys), dtype=self.scores.dtype, device=self.scores.device)
-
-        # Identify the hotkeys that have been deleted or replaced.
-        for idx, hotkey in enumerate(self.metagraph.hotkeys):
-            if hotkey in hotkey_to_index:
-                new_scores[idx] = self.scores[hotkey_to_index[hotkey]]
-        self.scores = new_scores
+        # Check to see if the metagraph has changed size.
+        # If so, we need to add new hotkeys and moving averages.
+        if len(self.hotkeys) < len(self.metagraph.hotkeys):
+            # Update the size of the moving average scores.
+            new_moving_average = torch.zeros((self.metagraph.n)).to(self.device)
+            min_len = min(len(self.hotkeys), len(self.scores))
+            new_moving_average[:min_len] = self.scores[:min_len]
+            self.scores = new_moving_average
 
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
