@@ -27,24 +27,12 @@ from prompting.llms.utils import calculate_gpu_requirements
 from vllm.model_executor.parallel_utils.parallel_state import destroy_model_parallel
 
 
-def clean_gpu_cache():
-    destroy_model_parallel()
-    gc.collect()
-    torch.cuda.empty_cache()
-    if torch.distributed.is_initialized():
-        torch.distributed.destroy_process_group()
-
-    # Wait for the GPU to clean up
-    time.sleep(10)
-    torch.cuda.synchronize()
-
-
 def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory_in_gb: int, mock=False):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
     if mock or model_id == "mock":
         return MockPipeline(model_id)
 
-    # Calculates the gpu memory utilization required to run the model within 20GB of GPU    
+    # Calculates the gpu memory utilization required to run the model.
     max_allowed_memory_allocation_in_bytes = max_allowed_memory_in_gb * 1e9
     gpu_mem_utilization = calculate_gpu_requirements(
         device, gpus, max_allowed_memory_allocation_in_bytes
