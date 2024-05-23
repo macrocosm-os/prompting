@@ -80,7 +80,7 @@ sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm insta
 Example of running a Llama3 miner:
 
 ```bash
-pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name llama3_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --axon.port 21988 --logging.debug 
+pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name llama3_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --neuron.load_in_4bit True --axon.port 21988 --logging.debug
 ```
 
 # Testnet 
@@ -91,7 +91,7 @@ In order to run on testnet, you will need to go through the same hotkey registra
 To run:
 
 ```bash
-pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name llama3_miner -- --netuid 61 --subtensor.network test --wallet.name my_test_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --axon.port 21988 --logging.debug
+pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name llama3_miner -- --netuid 61 --subtensor.network test --wallet.name my_test_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --neuron.load_in_4bit True --axon.port 21988 --logging.debug
 ```
 
 # Limitations
