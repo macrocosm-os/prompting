@@ -287,15 +287,10 @@ class MockDendrite(bt.dendrite):
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ):
-        if streaming:
-            assert isinstance(
-                synapse, StreamPromptingSynapse
-            ), "Synapse must be a StreamPromptingSynapse object when is_stream is True."
-        else:
-            assert isinstance(
-                synapse, PromptingSynapse
-            ), "Synapse must be a PromptingSynapse object when is_stream is False."
+    ):        
+        assert isinstance(
+            synapse, StreamPromptingSynapse
+        ), "Synapse must be a StreamPromptingSynapse object when is_stream is True."        
 
         async def query_all_axons(is_stream: bool):
             """Queries all axons for responses."""
