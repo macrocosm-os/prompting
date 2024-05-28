@@ -7,6 +7,7 @@ from prompting.protocol import StreamPromptingSynapse
 
 from functools import partial
 from typing import Dict, List, Union, AsyncGenerator, Any, Iterator
+from types import SimpleNamespace
 
 
 class MockTokenizer:
@@ -44,6 +45,12 @@ class MockPipeline:
     @property
     def tokenizer(self):
         return self.model.tokenizer
+    
+    @property
+    def llm_engine(self):
+        return SimpleNamespace(
+            tokenizer=self.model.tokenizer
+        )
 
     def __init__(
         self,
