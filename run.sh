@@ -229,7 +229,7 @@ if [ "$?" -eq 1 ]; then
         if [ -d "./.git" ]; then
 
             # check value on github remotely
-            latest_version=$(check_variable_value_on_github "opentensor/prompting" "prompting/__init__.py" "__version__ ")
+            latest_version=$(check_variable_value_on_github "macrocosm-os/prompting" "prompting/__init__.py" "__version__ ")
 
             # If the file has been updated
             if version_less_than $current_version $latest_version; then
@@ -276,7 +276,7 @@ if [ "$?" -eq 1 ]; then
                 echo "$current_version is the same as or more than $latest_version. You are likely running locally."
             fi
         else
-            echo "The installation does not appear to be done through Git. Please install from source at https://github.com/opentensor/validators and rerun this script."
+            echo "The installation does not appear to be done through Git. Please install from source at https://github.com/macrocosm-os/validators and rerun this script."
         fi
         
         # Wait about 30 minutes

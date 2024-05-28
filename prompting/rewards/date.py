@@ -28,7 +28,7 @@ class DateRewardModel(BaseRewardModel):
             # Extract the last 3-4 digits from the completion date using a regex pattern that would detect 3 or 4 digit years 
             comp_year = re.findall(r'\b\d{3,4}\b', comp_date)
             if comp_year:
-                return abs(int(ref_date) - int(comp_year[0])*365)
+                return abs(int(ref_date) - int(comp_year[0]))*365
             else:
                 return DATE_NOT_FOUND_CODE
         # If the reference date is not only a year, take the difference between the two dates
