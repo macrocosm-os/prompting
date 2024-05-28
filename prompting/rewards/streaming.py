@@ -6,7 +6,6 @@ from prompting.rewards import (
     BatchRewardOutput,
 )
 
-## TODO: Create unit tests
 class StreamingRewardModel(BaseRewardModel):
     @property
     def name(self) -> str:
