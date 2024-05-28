@@ -16,30 +16,28 @@
 # DEALINGS IN
 #  THE SOFTWARE.
 
+import asyncio
+import random
 import sys
 import time
-import random
-import asyncio
 import traceback
-import numpy as np
+from dataclasses import dataclass
+from typing import Awaitable, Dict, List
+
 import bittensor as bt
-from typing import List, Dict, Awaitable
+import numpy as np
+import torch
+
 from prompting.agent import HumanAgent
-from prompting.dendrite import DendriteResponseEvent
 from prompting.conversation import create_task
+from prompting.dendrite import DendriteResponseEvent
 from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.tasks import QuestionAnsweringTask
-from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
-from dataclasses import dataclass
+from prompting.utils.uids import get_random_uids
 
-@async_log
-async def generate_reference(agent):
-    loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
-    return result
 
 @async_log
 async def execute_dendrite_call(dendrite_call):
@@ -166,7 +164,6 @@ def log_stream_results(stream_results: List[StreamResult]):
         bt.logging.error(
             f"Failed response for uid {failed_response.uid}: {formatted_exception}"
         )
-
 
 async def run_step(
     self, agent: HumanAgent, roles: List[str], messages: List[str], k: int, timeout: float, exclude: list = None
@@ -353,6 +350,11 @@ async def forward(self):
             roles.append("user")
             messages.append(agent.challenge)
             turn += 1
+
+        except torch.cuda.OutOfMemoryError as err:
+            bt.logging.error("Out of memory during validation", str(err))
+            bt.logging.debug(traceback.print_exception(type(err), err, err.__traceback__))
+            return
 
         except BaseException as e:
             unexpected_errors = serialize_exception_to_string(e)
