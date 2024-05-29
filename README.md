@@ -47,8 +47,11 @@ bash install.sh
 
 # Compute Requirements
 
-1. To run a **validator**, you will need at least 24GB of VRAM. 
-2. To run the default huggingface **miner**, you will need at least 18GB of VRAM. 
+1. To run a **validator**, you will need at least 62GB of VRAM. 
+2. To run the default huggingface **miner**, you will need at least 62GB of VRAM.
+
+   
+**It is important to note that the baseminers are not recommended for main, and exist purely as an example. Running a base miner on main will result in no emissions and a loss in your registration fee.**
 
 </div>
 
