@@ -353,8 +353,7 @@ async def forward(self):
 
         except torch.cuda.OutOfMemoryError as err:
             bt.logging.error("Out of memory during validation", str(err))
-            bt.logging.debug(traceback.print_exception(type(err), err, err.__traceback__))
-            return
+            raise err
 
         except BaseException as e:
             unexpected_errors = serialize_exception_to_string(e)
