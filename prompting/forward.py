@@ -271,6 +271,8 @@ async def forward(self):
     """
     Encapsulates a full conversation between the validator and miners. Contains one or more rounds of request-response.
 
+    Raises:
+        torch.cuda.OutOfMemoryError: CUDA out of memory error.
     """
     bt.logging.info("🚀 Starting forward loop...")
     forward_start_time = time.time()
@@ -352,7 +354,7 @@ async def forward(self):
             turn += 1
 
         except torch.cuda.OutOfMemoryError as err:
-            bt.logging.error("Out of memory during validation", str(err))
+            bt.logging.error("CUDA out of memory", str(err))
             raise err
 
         except BaseException as e:
