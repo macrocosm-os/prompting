@@ -71,6 +71,20 @@ def add_args(cls, parser):
         help="Device to run on.",
         default="cuda" if torch.cuda.is_available() else "cpu",
     )
+    
+    parser.add_argument(
+        "--neuron.gpus",
+        type=int,
+        help="The number of visible GPUs to be considered in the llm initialization. This parameter currently reflects on the property `tensor_parallel_size` of vllm",
+        default=1,
+    )
+    
+    parser.add_argument(
+        "--neuron.llm_max_allowed_memory_in_gb",
+        type=int,
+        help="The max gpu memory utilization set for initializing the model. This parameter currently reflects on the property `gpu_memory_utilization` of vllm",
+        default=60,
+    )
 
     parser.add_argument(
         "--neuron.epoch_length",
@@ -270,7 +284,7 @@ def add_validator_args(cls, parser):
         "--neuron.model_id",
         type=str,
         help="The model to use for the validator.",
-        default="NousResearch/Nous-Hermes-2-SOLAR-10.7B",
+        default="casperhansen/llama-3-70b-instruct-awq",
     )
 
     parser.add_argument(

@@ -56,6 +56,8 @@ class RemoveRoles(BaseCleaner):
         sentences = re.split(r"(?<=[.!?])\s+", input_string)
         capitalized_sentences = [sentence.capitalize() for sentence in sentences]
         result_string = " ".join(capitalized_sentences)
+        # Capitalize the first letter in result_string
+        result_string.capitalize()
         return result_string
 
     def apply(self, generation: str) -> str:
@@ -102,3 +104,26 @@ class PrunePostQuestionText(BaseCleaner):
             generation = generation.rsplit("?",1) + '?'
 
         return generation 
+
+class RemoveTags(BaseCleaner):
+    def __init__(self, **kwargs):
+        pass
+
+    def apply(self, generation: str) -> str:
+        tags = [
+            "<date>",]
+        for tag in tags:
+            if tag in generation:
+                generation = generation.replace(tag, "")
+        return generation
+
+class FirstQuestion(BaseCleaner):
+    def __init__(self, **kwargs):
+        pass
+
+    def apply(self, generation: str) -> str:
+        if "?" in generation:
+            if ':' in generation:
+                generation = generation.split(':')[1]
+            generation = generation.split("?")[0] + "?"
+        return generation

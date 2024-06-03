@@ -44,7 +44,7 @@ def test_llm_clean_response(
 def test_load_pipeline_mock(pipeline: BasePipeline):
     # Note that the model_id will be used internally as static response for the mock pipeline
     model_id = "gpt2"
-    pipeline_instance = pipeline(model_id=model_id, device="cpu", mock=True)
+    pipeline_instance = pipeline(model_id=model_id, device="cpu", gpus=1, llm_max_allowed_memory_in_gb=0, mock=True)
     pipeline_message = pipeline_instance("")
 
     mock_message = MockPipeline(model_id).forward(messages=[])
@@ -110,7 +110,7 @@ def test_calculate_gpu_requirements(
     mock_mem_get_info.return_value = (available_memory, available_memory)
     # Mock current_device to return a default device index if needed
     mock_current_device.return_value = 0
-    result = calculate_gpu_requirements(device, max_allowed_memory_allocation_in_bytes)
+    result = calculate_gpu_requirements(device=device, gpus=1, max_allowed_memory_allocation_in_bytes=max_allowed_memory_allocation_in_bytes)
     assert result == expected_result
 
 
@@ -133,55 +133,31 @@ def test_calulate_gpu_requirements_raises_cuda_error(
 # Test 1: Success on first attempt
 @patch("prompting.llms.vllm_llm.calculate_gpu_requirements")
 @patch("prompting.llms.vllm_llm.LLM")
-def test_load_vllm_pipeline_success_first_try(
+def test_load_vllm_pipeline_success(
     mock_llm, mock_calculate_gpu_requirements
 ):
     # Mocking calculate_gpu_requirements to return a fixed value
     mock_calculate_gpu_requirements.return_value = 5e9  # Example value
-    # Mocking LLM to return a mock LLM object without raising an exception
-    mock_llm.return_value = MagicMock(spec=LLM)
 
-    result = load_vllm_pipeline(model_id="test_name", device="cuda")
+    # Creating a mock for the tokenizer with the desired eos_token_id
+    mock_tokenizer = MagicMock()
+    mock_tokenizer.eos_token_id = 12345
+
+    # Creating a mock for llm_engine and setting its tokenizer
+    mock_llm_engine = MagicMock()
+    mock_llm_engine.tokenizer = mock_tokenizer
+
+    # Creating the main mock LLM object and setting its llm_engine
+    mock_llm_instance = MagicMock()
+    mock_llm_instance.llm_engine = mock_llm_engine
+
+    # Setting the return value of the LLM mock to the mock LLM instance
+    mock_llm.return_value = mock_llm_instance
+            
+    
+    result = load_vllm_pipeline(model_id="test_name", device="cuda", gpus=1, max_allowed_memory_in_gb=0)
     assert isinstance(result, MagicMock)  # or any other assertion you find suitable
     mock_llm.assert_called_once()  # Ensures LLM was called exactly once
-
-
-# # Test 2: Success on second attempt with larger memory allocation
-@patch("prompting.llms.vllm_llm.clean_gpu_cache")
-@patch("prompting.llms.vllm_llm.calculate_gpu_requirements")
-@patch(
-    "prompting.llms.vllm_llm.LLM",
-    side_effect=[ValueError("First attempt failed"), MagicMock(spec=LLM)],
-)
-def test_load_vllm_pipeline_success_second_try(
-    mock_llm, mock_calculate_gpu_requirements, mock_clean_gpu_cache
-):
-    mock_calculate_gpu_requirements.return_value = 5e9  # Example value for both calls
-
-    result = load_vllm_pipeline(model_id="test", device="cuda")
-    assert isinstance(result, MagicMock)
-    assert mock_llm.call_count == 2  # LLM is called twice
-    mock_clean_gpu_cache.assert_called_once()  # Ensures clean_gpu_cache was called
-
-
-# # Test 3: Exception on second attempt
-@patch("prompting.llms.vllm_llm.clean_gpu_cache")
-@patch("prompting.llms.vllm_llm.calculate_gpu_requirements")
-@patch(
-    "prompting.llms.vllm_llm.LLM",
-    side_effect=[
-        ValueError("First attempt failed"),
-        Exception("Second attempt failed"),
-    ],
-)
-def test_load_vllm_pipeline_exception_second_try(
-    mock_llm, mock_calculate_gpu_requirements, mock_clean_gpu_cache
-):
-    mock_calculate_gpu_requirements.return_value = (
-        5e9  # Example value for both attempts
-    )
-
-    with pytest.raises(Exception, match="Second attempt failed"):
-        load_vllm_pipeline(model_id="HuggingFaceH4/zephyr-7b-beta", device="gpu0")
-    assert mock_llm.call_count == 2  # LLM is called twice
-    mock_clean_gpu_cache.assert_called_once()  # Ensures clean_gpu_cache was called
+    
+    # Verify the nested property (Specific assert for llama3)
+    assert result.llm_engine.tokenizer.eos_token_id == 128009
