@@ -52,7 +52,7 @@ bash install.sh
 
    
 **It is important to note that the baseminers are not recommended for main, and exist purely as an example. Running a base miner on main will result in no emissions and a loss in your registration fee.**
-
+If you have any questions please reach out in the SN1 Discord.
 </div>
 
 # How to Run
