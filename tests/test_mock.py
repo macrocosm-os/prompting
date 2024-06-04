@@ -74,6 +74,7 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
                 roles=["user"], messages=["What is the capital of France?"]
             ),
             timeout=timeout,
+            deserialize=False,
         )
 
     eps = 0.2
