@@ -330,8 +330,6 @@ async def forward(self):
             event["forward_time"] = time.time() - forward_start_time
             event["turn"] = turn
             log_event(self, event)
-
-            exclude_uids += event["uids"]
             task.complete = True
             
             accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
