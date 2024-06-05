@@ -142,9 +142,6 @@ class BaseValidatorNeuron(BaseNeuron):
                     self.loop.run_until_complete(
                         asyncio.wait_for(task, timeout=forward_timeout)
                     )
-                except torch.cuda.OutOfMemoryError as e:
-                    bt.logging.error(f"Out of memory error: {e}")
-                    continue
                 except MaxRetryError as e:
                     bt.logging.error(f"MaxRetryError: {e}")
                     continue
