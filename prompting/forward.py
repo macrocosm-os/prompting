@@ -339,7 +339,7 @@ async def forward(self):
             messages.append(accepted_answer)
 
             # 50% chance of single turn conversation, 25% of two turns, 12.5% chance of 3 turns, 6.25% chance of 4 turns, 3.63% chance of 5...
-            if random.random()<0.5 or turn>=2:
+            if random.random()<0.5 or turn>=1:
                 break
 
             history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])
