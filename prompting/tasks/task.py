@@ -51,6 +51,10 @@ class Task(ABC):
     cleaner = None
     clean_reference = True
     challenge_type = 'inference'
+    
+    global_penalty_definition = [
+        dict(name="streaming", max_tokens_per_chunk=200, weight=0.2)
+    ]
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"

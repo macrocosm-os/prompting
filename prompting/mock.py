@@ -3,10 +3,11 @@ import torch
 import asyncio
 import random
 import bittensor as bt
-from prompting.protocol import StreamPromptingSynapse, PromptingSynapse
+from prompting.protocol import StreamPromptingSynapse
 
 from functools import partial
 from typing import Dict, List, Union, AsyncGenerator, Any, Iterator
+from types import SimpleNamespace
 
 
 class MockTokenizer:
@@ -44,6 +45,12 @@ class MockPipeline:
     @property
     def tokenizer(self):
         return self.model.tokenizer
+    
+    @property
+    def llm_engine(self):
+        return SimpleNamespace(
+            tokenizer=self.model.tokenizer
+        )
 
     def __init__(
         self,
@@ -287,15 +294,10 @@ class MockDendrite(bt.dendrite):
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ):
-        if streaming:
-            assert isinstance(
-                synapse, StreamPromptingSynapse
-            ), "Synapse must be a StreamPromptingSynapse object when is_stream is True."
-        else:
-            assert isinstance(
-                synapse, PromptingSynapse
-            ), "Synapse must be a PromptingSynapse object when is_stream is False."
+    ):        
+        assert isinstance(
+            synapse, StreamPromptingSynapse
+        ), "Synapse must be a StreamPromptingSynapse object when is_stream is True."        
 
         async def query_all_axons(is_stream: bool):
             """Queries all axons for responses."""
