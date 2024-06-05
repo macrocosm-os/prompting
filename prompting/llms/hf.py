@@ -207,7 +207,11 @@ class HuggingFaceLLM(BaseLLM):
         return self.forward(messages=messages)
 
     def _make_prompt(self, messages: List[Dict[str, str]]):
-        return self.llm_pipeline.tokenizer.apply_chat_template(
+        # The tokenizer.tokenizer is used for a integration with vllm and the mock pipeline, for real hf application, use:
+        # return self.llm_pipeline.tokenizer.apply_chat_template(
+        #     messages, tokenize=False, add_generation_prompt=True
+        # )
+        return self.llm_pipeline.tokenizer.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
 
