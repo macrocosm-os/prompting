@@ -51,7 +51,6 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
             f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}"
         )
         raise e
-        
 
 
 class vLLMPipeline(BasePipeline):
