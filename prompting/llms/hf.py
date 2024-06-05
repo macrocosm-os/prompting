@@ -19,7 +19,7 @@ import time
 from typing import List, Dict
 import bittensor as bt
 
-from transformers import Pipeline, pipeline, AutoTokenizer, TextIteratorStreamer
+from transformers import BitsAndBytesConfig, pipeline, AutoTokenizer, TextIteratorStreamer
 from prompting.mock import MockPipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 from transformers import pipeline, TextIteratorStreamer, AutoTokenizer
@@ -83,12 +83,15 @@ def load_hf_pipeline(
             streamer=streamer,
         )
     else:
+        kwargs = model_kwargs.copy()
+        kwargs["bnb_4bit_compute_dtype"] = kwargs.pop("torch_dtype")
+        quant_config = BitsAndBytesConfig(**kwargs)
         llm_pipeline = pipeline(
             "text-generation",
             model=model_id,
             tokenizer=tokenizer,
             device_map=device,
-            model_kwargs=model_kwargs,
+            quant_config=quant_config,
             streamer=streamer,
         )
 
