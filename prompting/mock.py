@@ -30,14 +30,16 @@ class MockModel(torch.nn.Module):
     def __init__(self, phrase):
         super().__init__()
 
-        self.tokenizer = MockTokenizer()
+        self.tokenizer = SimpleNamespace(
+            tokenizer=MockTokenizer()
+        )
         self.phrase = phrase
 
     def __call__(self, messages):
         return self.forward(messages)
 
     def forward(self, messages):
-        role_tag = self.tokenizer.role_expr.format(role="assistant")
+        role_tag = self.tokenizer.tokenizer.role_expr.format(role="assistant")
         return f"{role_tag} {self.phrase}"
 
 
@@ -73,7 +75,7 @@ class MockPipeline:
         return self.postprocess(output)
 
     def postprocess(self, output, **kwargs):
-        output = output.split(self.model.tokenizer.role_expr.format(role="assistant"))[
+        output = output.split(self.model.tokenizer.tokenizer.role_expr.format(role="assistant"))[
             -1
         ].strip()
         return output
