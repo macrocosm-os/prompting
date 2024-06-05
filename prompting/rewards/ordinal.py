@@ -2,7 +2,7 @@ import time
 import torch
 from typing import List
 from prompting.rewards import BaseRewardModel, BatchRewardOutput
-
+from prompting.dendrite import DendriteResponseEvent
 
 class OrdinalRewardModel(BaseRewardModel):
     @property
@@ -18,11 +18,13 @@ class OrdinalRewardModel(BaseRewardModel):
             "negative",
         ]
 
-    def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
         rewards = []
         timings = []
         classes = self.sentiments
+        completions: List[str] = response_event.completions
+        
         for completion in completions:
             t0 = time.time()
             completion = completion.lower()

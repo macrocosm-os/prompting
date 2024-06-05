@@ -47,9 +47,12 @@ bash install.sh
 
 # Compute Requirements
 
-1. To run a **validator**, you will need at least 24GB of VRAM. 
-2. To run the default huggingface **miner**, you will need at least 18GB of VRAM. 
+1. To run a **validator**, you will need at least 62GB of VRAM. 
+2. To run the default huggingface **miner**, you will need at least 62GB of VRAM.
 
+   
+**It is important to note that the baseminers are not recommended for main, and exist purely as an example. Running a base miner on main will result in no emissions and a loss in your registration fee.**
+If you have any questions please reach out in the SN1 channel in the Bittensor Discord.
 </div>
 
 # How to Run
@@ -77,10 +80,11 @@ For ease of use, you can run the scripts as well with PM2. Installation of PM2 i
 sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm install pm2 -g && pm2 update
 ``` 
 
-Example of running a SOLAR miner: 
+Example of running a Llama3 miner:
+
 ```bash
-pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name solar_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --axon.port 21988 --logging.debug 
-``` 
+pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name llama3_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --neuron.load_in_4bit True --axon.port 21988 --logging.debug
+```
 
 # Testnet 
 We highly recommend that you run your miners on testnet before deploying on main. This is give you an opportunity to debug your systems, and ensure that you will not lose valuable immunity time. The SN1 testnet is **netuid 61**. 
@@ -90,7 +94,7 @@ In order to run on testnet, you will need to go through the same hotkey registra
 To run:
 
 ```bash
-pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name solar_miner -- --netuid 61  --subtensor.network test --wallet.name my_test_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --axon.port 21988 --logging.debug 
+pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name llama3_miner -- --netuid 61 --subtensor.network test --wallet.name my_test_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --neuron.load_in_4bit True --axon.port 21988 --logging.debug
 ```
 
 # Limitations

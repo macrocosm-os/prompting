@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from typing import List
 from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
+from prompting.dendrite import DendriteResponseEvent
 import bittensor as bt
 
 
@@ -83,7 +84,7 @@ class DateRewardModel(BaseRewardModel):
             score = 0
         return score
 
-    def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair.
 
         Args:
@@ -93,6 +94,7 @@ class DateRewardModel(BaseRewardModel):
         Returns:
             BatchRewardOutput: A BatchRewardOutput object containing the rewards and timings.
         """
+        completions: List[str] = response_event.completions
         rewards = []
         timings = []
 

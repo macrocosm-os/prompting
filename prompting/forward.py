@@ -13,8 +13,7 @@
 # THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN
-#  THE SOFTWARE.
+# DEALINGS IN THE SOFTWARE.
 
 import sys
 import time
@@ -25,7 +24,7 @@ import numpy as np
 import bittensor as bt
 from typing import List, Dict, Awaitable
 from prompting.agent import HumanAgent
-from prompting.dendrite import DendriteResponseEvent
+from prompting.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.conversation import create_task
 from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
@@ -33,6 +32,8 @@ from prompting.tasks import QuestionAnsweringTask
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
+from transformers import PreTrainedTokenizerFast as Tokenizer
+from prompting.utils.uids import get_random_uids
 from dataclasses import dataclass
 
 @async_log
@@ -46,32 +47,35 @@ async def execute_dendrite_call(dendrite_call):
     responses = await dendrite_call
     return responses
 
-@dataclass
-class StreamResult:
-    synapse: StreamPromptingSynapse = None
-    exception: BaseException = None
-    uid: int = None
 
-
-async def process_response(uid: int, async_generator: Awaitable):
+async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokenizer) -> SynapseStreamResult:
     """Process a single response asynchronously."""
-    try:
-        chunk = None  # Initialize chunk with a default value
-        async for chunk in async_generator:  # most important loop, as this is where we acquire the final synapse.
-            bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
+    synapse = None  # Initialize chunk with a default value
+    exception = None
+    accumulated_chunks = []
+    accumulated_chunks_timings = []
+    accumulated_tokens_per_chunk = []
+    start_time = time.time()
+    
+    try:                
+        async for chunk in async_iterator:  # most important loop, as this is where we acquire the final synapse.
+            if isinstance(chunk, str):
+                accumulated_chunks.append(chunk)
+                accumulated_chunks_timings.append(time.time() - start_time)
+                
+                tokens_in_chunk = len(tokenizer.tokenize(chunk))
+                accumulated_tokens_per_chunk.append(tokens_in_chunk)
+                
+                bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
 
-        if chunk is not None:
-            synapse = chunk  # last object yielded is the synapse itself with completion filled
-
-            # Assuming chunk holds the last value yielded which should be a synapse
-            if isinstance(synapse, StreamPromptingSynapse):
-                return synapse
-
-        bt.logging.debug(
-            f"Synapse is not StreamPromptingSynapse. Miner uid {uid} completion set to '' "
-        )
-    except Exception as e:
-        # bt.logging.error(f"Error in generating reference or handling responses: {e}", exc_info=True)
+        # Assuming last chunk of async_iterator holds the last value yielded as a StreamingSynapse
+        synapse = chunk
+        if synapse is None or not isinstance(synapse, StreamPromptingSynapse):
+            raise ValueError(
+                f"Something went wrong with miner uid {uid}, Synapse is not StreamPromptingSynapse."
+            )
+    except Exception as e:        
+        exception = e
         traceback_details = traceback.format_exc()
         bt.logging.error(
             f"Error in generating reference or handling responses for uid {uid}: {e}\n{traceback_details}"
@@ -81,11 +85,20 @@ async def process_response(uid: int, async_generator: Awaitable):
             roles=["user"], messages=["failure"], completion=""
         )
 
-        return failed_synapse
+        synapse = failed_synapse
+    finally:
+        return SynapseStreamResult(
+            accumulated_chunks=accumulated_chunks,
+            accumulated_chunks_timings=accumulated_chunks_timings,
+            tokens_per_chunk=accumulated_tokens_per_chunk,
+            synapse=synapse,
+            uid=uid,
+            exception=exception
+        )
 
 
 @async_log
-async def handle_response(responses: Dict[int, Awaitable]) -> List[StreamResult]:
+async def handle_response(stream_results_dict: Dict[int, Awaitable], tokenizer: Tokenizer) -> List[SynapseStreamResult]:
     """The handle_response function is responsible for creating asyncio tasks around acquiring streamed miner chunks
     and processing them asynchronously. It then pairs the results with their original UIDs and returns a list of StreamResults.
 
@@ -99,36 +112,14 @@ async def handle_response(responses: Dict[int, Awaitable]) -> List[StreamResult]
         List[StreamResult]: DataClass containing the synapse, exception, and uid
     """
     tasks_with_uid = [
-        (uid, responses[uid]) for uid, _ in responses.items()
+        (uid, stream_results_dict[uid]) for uid, _ in stream_results_dict.items()
     ]  # Pair UIDs with their tasks
 
     # Start tasks, preserving order and their associated UIDs
-    tasks = [process_response(uid, resp) for uid, resp in tasks_with_uid]
-
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    mapped_results = []
-    # Pair each result with its original uid
-    for (uid, _), result in zip(tasks_with_uid, results):
-        # If the result is a StreamPromptingSynapse, the response was successful and the stream result is added without exceptions
-        if isinstance(result, StreamPromptingSynapse):
-            mapped_results.append(StreamResult(synapse=result, uid=uid))
-
-        # If the result is an exception, the response was unsuccessful and the stream result is added with the exception and an empty synapse
-        elif isinstance(result, BaseException):
-            failed_synapse = StreamPromptingSynapse(
-                roles=["user"], messages=["failure"], completion=""
-            )
-            mapped_results.append(
-                StreamResult(synapse=failed_synapse, exception=result, uid=uid)
-            )
-
-        # If the result is neither an error or a StreamSynapse, log the error and raise a ValueError
-        else:
-            bt.logging.error(f"Unexpected result type for UID {uid}: {result}")
-            raise ValueError(f"Unexpected result type for UID {uid}: {result}")
-
-    return mapped_results
+    process_stream_tasks = [process_stream(uid, resp, tokenizer) for uid, resp in tasks_with_uid]
+    processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True) 
+    
+    return processed_stream_results
 
 
 @async_log
@@ -140,7 +131,7 @@ async def generate_reference(agent: HumanAgent):
     return result
 
 
-def log_stream_results(stream_results: List[StreamResult]):
+def log_stream_results(stream_results: List[SynapseStreamResult]):
     failed_responses = [
         response for response in stream_results if response.exception is not None
     ]
@@ -186,7 +177,6 @@ async def run_step(
         timeout (float): The timeout for the queries.
         exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
     """
-
     bt.logging.debug("run_step", agent.task.name)
 
     # Record event start time.
@@ -207,9 +197,9 @@ async def run_step(
     )
 
     # Prepare the task for handling stream responses
-    handle_stream_responses_task = asyncio.create_task(
-        handle_response(responses=dict(zip(uids_cpu, streams_responses)))
-    )
+    stream_results_dict = dict(zip(uids_cpu, streams_responses))
+    tokenizer = self.llm_pipeline.tokenizer
+    handle_stream_responses_task = asyncio.create_task(handle_response(stream_results_dict, tokenizer))
 
     if not agent.task.static_reference:
         reference_generation_task = generate_reference(agent)
@@ -221,11 +211,9 @@ async def run_step(
 
     log_stream_results(stream_results)
 
-    all_synapses_results = [stream_result.synapse for stream_result in stream_results]
-
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(
-        responses=all_synapses_results, uids=uids, timeout=timeout
+        stream_results=stream_results, uids=uids, timeout=timeout
     )
 
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
@@ -248,20 +236,13 @@ async def run_step(
     )
 
     self.update_scores(reward_result.rewards, uids)
-
-    stream_results_uids = [stream_result.uid for stream_result in stream_results]
-    stream_results_exceptions = [
-        serialize_exception_to_string(stream_result.exception)
-        for stream_result in stream_results
-    ]
+    
     # Log the step event.
     event = {
         "best": best_response,
         "block": self.block,
         "step": self.step,
-        "step_time": time.time() - start_time,
-        "stream_results_uids": stream_results_uids,
-        "stream_results_exceptions": stream_results_exceptions,
+        "step_time": time.time() - start_time,        
         **agent.__state_dict__(full=self.config.neuron.log_full),
         **reward_result.__state_dict__(full=self.config.neuron.log_full),
         **response_event.__state_dict__(),
@@ -330,8 +311,6 @@ async def forward(self):
             event["forward_time"] = time.time() - forward_start_time
             event["turn"] = turn
             log_event(self, event)
-
-            exclude_uids += event["uids"]
             task.complete = True
             
             accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
@@ -339,7 +318,7 @@ async def forward(self):
             messages.append(accepted_answer)
 
             # 50% chance of single turn conversation, 25% of two turns, 12.5% chance of 3 turns, 6.25% chance of 4 turns, 3.63% chance of 5...
-            if random.random()<0.5 or turn>=2:
+            if random.random()<0.5 or turn>=1:
                 break
 
             history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])

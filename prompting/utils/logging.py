@@ -92,10 +92,7 @@ def init_wandb(self, reinit=False):
         tags=tags,
         notes=self.config.wandb.notes,
     )
-    bt.logging.success(
-        prefix="Started a new wandb run",
-        sufix=f"<blue> {self.wandb.name} </blue>",
-    )
+    bt.logging.success(f"Started a new wandb run <blue> {self.wandb.name} </blue>")
 
 
 def reinit_wandb(self):

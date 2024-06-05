@@ -5,8 +5,8 @@ from rouge import Rouge
 from prompting.rewards import (
     BaseRewardModel,
     BatchRewardOutput,
-    RewardModelTypeEnum,
 )
+from prompting.dendrite import DendriteResponseEvent
 
 
 class RougeRewardModel(BaseRewardModel):
@@ -28,10 +28,11 @@ class RougeRewardModel(BaseRewardModel):
             self.ngram
         ][self.metric]
 
-    def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         """Compute ROUGE scores given a completion and reference pair."""
         rewards = []
         timings = []
+        completions: List[str] = response_event.completions
 
         for completion in completions:
             t0 = time.time()
