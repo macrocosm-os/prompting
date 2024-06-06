@@ -33,6 +33,7 @@ from prompting.miners.utils import OpenAIUtils
 from dotenv import load_dotenv, find_dotenv
 from openai import OpenAI
 from typing import List, Dict
+from traceback import print_exception
 
 # Define the type for a list of dictionaries
 
@@ -81,14 +82,16 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             buffer = []
             accumulated_chunks = []
             accumulated_chunks_timings = []
+            messages = []
             temp_completion = ""  # for wandb logging
             timeout_reached = False
+            
 
             try:                
-                system_prompt_message = { 'role': 'system', 'content': self.system_prompt }
-                synapse_messages = {message.role: message.content for message in synapse.messages}
+                system_prompt_message = [{ 'role': 'system', 'content': self.system_prompt }]
+                synapse_messages = [{'role': role, 'content': message} for role, message in zip(synapse.roles, synapse.messages)]
                 
-                messages = [system_prompt_message, synapse_messages]
+                messages = system_prompt_message + synapse_messages
                 
                 start_time = time.time()
                 stream_response = self.model.chat.completions.create(
@@ -101,9 +104,15 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                                 
                 for chunk in stream_response:
                     chunk_content = chunk.choices[0].delta.content
+                    
+                    if chunk_content is None:
+                        bt.logging.info("OpenAI returned chunk content with None")
+                        continue
+                    
                     accumulated_chunks.append(chunk_content)
-                    accumulated_chunks_timings.append(time.time() - start_time)
-                    buffer.append(chunk_content)
+                    accumulated_chunks_timings.append(time.time() - start_time)                          
+                    
+                    buffer.append(chunk_content)                                        
 
                     if time.time() - init_time > timeout_threshold:
                         bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
@@ -138,6 +147,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
             except Exception as e:
                 bt.logging.error(f"Error in forward: {e}")
+                bt.logging.error(print_exception(type(e), e, e.__traceback__))
                 if self.config.neuron.stop_on_forward_exception:
                     self.should_exit = True
 
@@ -145,13 +155,14 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                 synapse_latency = time.time() - init_time
                 if self.config.wandb.on:
                     self.log_event(
+                        synapse=synapse,
                         timing=synapse_latency,
                         messages=messages,
                         accumulated_chunks=accumulated_chunks,
                         accumulated_chunks_timings = accumulated_chunks_timings,
                     )
 
-        bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
+        bt.logging.debug(f"📧 Message received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}; \nForwarding synapse: {synapse}")
         
         init_time = time.time()
         timeout_threshold = synapse.timeout
