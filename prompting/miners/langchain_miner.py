@@ -30,14 +30,15 @@ from prompting.protocol import StreamPromptingSynapse
 # import base miner class which takes care of most of the boilerplate
 
 from prompting.miners.utils import OpenAIUtils
+
+from langchain.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain.chat_models import ChatOpenAI
 from dotenv import load_dotenv, find_dotenv
-from openai import OpenAI
-from typing import List, Dict
-
-# Define the type for a list of dictionaries
+from langchain_core.runnables.base import RunnableSequence
 
 
-class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
+class LangchainMiner(BaseStreamPromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.
     This miner does not use any tools or external APIs when processing requests - it relies entirely on the models' own representation and world model. In some cases, this can produce lower quality results.
         You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
@@ -62,8 +63,13 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
         api_key = os.environ.get("OPENAI_API_KEY")
 
         # Set openai key and other args
-        self.model = OpenAI(api_key=api_key)
-                        
+        self.model = ChatOpenAI(
+            api_key=api_key,
+            model_name=self.config.neuron.model_id,
+            max_tokens=self.config.neuron.max_tokens,
+            temperature=self.config.neuron.temperature,
+        )
+
         self.system_prompt = self.config.neuron.system_prompt
         self.accumulated_total_tokens = 0
         self.accumulated_prompt_tokens = 0
@@ -73,37 +79,21 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
     def forward(self, synapse: StreamPromptingSynapse) -> Awaitable:
         async def _forward(
             self,
-            synapse: StreamPromptingSynapse,
+            message: str,
             init_time: float,
             timeout_threshold: float,
+            chain: RunnableSequence,
+            chain_formatter: Dict[str, str],
             send: Send,
         ):
             buffer = []
-            accumulated_chunks = []
-            accumulated_chunks_timings = []
             temp_completion = ""  # for wandb logging
             timeout_reached = False
 
-            try:                
-                system_prompt_message = { 'role': 'system', 'content': self.system_prompt }
-                synapse_messages = {message.role: message.content for message in synapse.messages}
-                
-                messages = [system_prompt_message, synapse_messages]
-                
-                start_time = time.time()
-                stream_response = self.model.chat.completions.create(
-                    model=self.config.neuron.model_id,
-                    messages=messages,
-                    temperature=self.config.neuron.temperature,
-                    max_tokens=self.config.neuron.max_tokens,
-                    stream=True
-                )
-                                
-                for chunk in stream_response:
-                    chunk_content = chunk.choices[0].delta.content
-                    accumulated_chunks.append(chunk_content)
-                    accumulated_chunks_timings.append(time.time() - start_time)
-                    buffer.append(chunk_content)
+            try:
+                # Langchain built in streaming. 'astream' also available for async
+                for token in chain.stream(chain_formatter):
+                    buffer.append(token)
 
                     if time.time() - init_time > timeout_threshold:
                         bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
@@ -146,21 +136,33 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                 if self.config.wandb.on:
                     self.log_event(
                         timing=synapse_latency,
-                        messages=messages,
-                        accumulated_chunks=accumulated_chunks,
-                        accumulated_chunks_timings = accumulated_chunks_timings,
+                        prompt=message,
+                        completion=temp_completion,
+                        system_prompt=self.system_prompt,
                     )
 
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
-        
+
+        prompt = ChatPromptTemplate.from_messages(
+            [("system", self.system_prompt), ("user", "{input}")]
+        )
+        chain = prompt | self.model | StrOutputParser()
+
+        role = synapse.roles[-1]
+        message = synapse.messages[-1]
+
+        chain_formatter = {"role": role, "input": message}
+
         init_time = time.time()
         timeout_threshold = synapse.timeout
 
         token_streamer = partial(
             _forward,
             self,
-            synapse,
+            message,
             init_time,
-            timeout_threshold,            
+            timeout_threshold,
+            chain,
+            chain_formatter,
         )
         return synapse.create_streaming_response(token_streamer)

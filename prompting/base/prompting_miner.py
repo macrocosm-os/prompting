@@ -23,7 +23,10 @@ import prompting
 from prompting.protocol import StreamPromptingSynapse
 from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
+from typing import List, Dict
 
+# Define the type for a list of dictionaries
+ListOfDicts = List[Dict[str, str]]
 
 class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     """
@@ -160,21 +163,25 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     def log_event(
         self,
         timing: float,
-        prompt: str,
-        completion: str,
-        system_prompt: str,
+        messages: ListOfDicts,
+        accumulated_chunks: List[str] = [],
+        accumulated_chunks_timings: List[float] = [],
         extra_info: dict = {},
     ):
         if not getattr(self, "wandb_run", None):
             self.init_wandb()
+        
+        uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
 
         step_log = {
             "epoch_time": timing,
             # "block": self.last_epoch_block,
-            "prompt": prompt,
-            "completion": completion,
-            "system_prompt": system_prompt,
-            "uid": self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address),
+            "messages": messages,
+            "accumulated_chunks": accumulated_chunks,
+            "accumulated_chunks_timings": accumulated_chunks_timings,
+            "uid": uid,
+            "coldkey": self.metagraph.coldkeys[uid],
+            "hotkey": self.metagraph.hotkeys[uid],
             "stake": self.metagraph.S[self.uid].item(),
             "trust": self.metagraph.T[self.uid].item(),
             "incentive": self.metagraph.I[self.uid].item(),
