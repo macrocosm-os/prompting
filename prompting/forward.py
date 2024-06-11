@@ -321,6 +321,10 @@ async def forward(self):
             if random.random()<0.5 or turn>=1:
                 break
 
+            single_turn_tasks = ['sentiment', 'translation']
+            if task.name in single_turn_tasks:
+                break
+
             history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])
 
             # Use PREVIOUS task context
