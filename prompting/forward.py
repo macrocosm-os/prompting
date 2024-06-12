@@ -36,6 +36,8 @@ from transformers import PreTrainedTokenizerFast as Tokenizer
 from prompting.utils.uids import get_random_uids
 from dataclasses import dataclass
 
+SINGLE_TURN_TASKS = ['sentiment', 'translation']
+
 @async_log
 async def generate_reference(agent):
     loop = asyncio.get_running_loop()
@@ -321,8 +323,7 @@ async def forward(self):
             if random.random()<0.5 or turn>=1:
                 break
 
-            single_turn_tasks = ['sentiment', 'translation']
-            if task.name in single_turn_tasks:
+            if task.name in SINGLE_TURN_TASKS:
                 break
 
             history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])
