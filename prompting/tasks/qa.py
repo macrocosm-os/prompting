@@ -24,8 +24,9 @@ Ask a specific question about the following context:
 FOLLOWUP_PROMPT_TEMPLATE = """
 Compose a single, specific question to continue the dialogue below. Adopt the persona of the original user, reflecting their communication style and objectives. The question should be rooted in the previous exchanges and should not be answerable with a simple yes or no.
 
-Ensure the question requires detailed knowledge of the conversation history for a correct response, focusing on requests for clarification or additional details (e.g., 'What specific steps did you take?', 'Are you sure?', 'How do you know that is true', or 'How did that situation resolve?'). Use indirect pronouns or descriptions to refer to subjects (e.g., 'he,' 'she,' 'it') instead of their names. Avoid answering the question yourself and do not introduce new information not already discussed.
+Ensure the question requires detailed knowledge of the conversation history for a correct response, focusing on requests for clarification or additional details (e.g., 'What specific steps did you take?', 'Are you sure?', 'How do you know that is true', or 'How did that situation resolve?'). Use indirect pronouns or descriptions to refer to subjects instead of their names. Avoid answering the question yourself and do not introduce new information not already discussed.
 
+When asking a followup question, you should use pronouns or descriptions to refer to subjects instead of their names. 
 # Context:
 {context}
 
