@@ -2,7 +2,7 @@ import pytest
 import asyncio
 import bittensor as bt
 from prompting.mock import MockDendrite, MockMetagraph, MockSubtensor
-from prompting.protocol import PromptingSynapse
+from prompting.protocol import StreamPromptingSynapse
 
 wallet = bt.MockWallet()
 wallet.create(coldkey_use_password=False)
@@ -70,10 +70,11 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
     async def run():
         return await mock_dendrite(
             axons,
-            synapse=PromptingSynapse(
+            synapse=StreamPromptingSynapse(
                 roles=["user"], messages=["What is the capital of France?"]
             ),
             timeout=timeout,
+            deserialize=False,
         )
 
     eps = 0.2

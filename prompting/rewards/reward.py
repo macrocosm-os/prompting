@@ -5,7 +5,7 @@ from typing import List
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-
+from prompting.dendrite import DendriteResponseEvent
 
 class RewardModelTypeEnum(Enum):
     WEIGHTED_REWARD = "reward"
@@ -28,12 +28,16 @@ class RewardEvent:
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
         return {
-            f"{self.model_name}_raw_{self.model_type.value}": self.rewards.tolist(),
-            f"{self.model_name}_{self.model_type.value}": self.rewards_normalized.tolist(),
-            f"{self.model_name}_{self.model_type.value}_timings": self.timings.tolist(),
+            f"{self.model_name}_raw_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards),
+            f"{self.model_name}_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards_normalized, 4),
+            f"{self.model_name}_{self.model_type.value}_timings": self.tensor_to_rounded_list(self.timings),
             f"{self.model_name}_{self.model_type.value}_batch_time": self.batch_time,
             f"{self.model_name}_{self.model_type.value}_extra_info": self.extra_info,
         }
+            
+    def tensor_to_rounded_list(self, tensor, decimals=6):
+        # Convert the tensor elements to floats and round them to 6 decimal places
+        return [round(float(element), decimals) for element in tensor]
 
 
 class RewardResult:
@@ -51,7 +55,7 @@ class RewardResult:
         self.response_event = response_event
         self.device = device
         self.task_rewards = agent.task.reward_definition
-        self.task_penalties = agent.task.penalty_definition
+        self.task_penalties = agent.task.penalty_definition + agent.task.global_penalty_definition
         self.reward_events = self.reward_responses(
             reference=agent.task.reference,
             models=self.task_rewards,
@@ -151,12 +155,12 @@ class BaseRewardModel(ABC):
         pass
 
     @abstractmethod
-    def reward(self, reference: str, completions: List[str]) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         pass
 
-    def apply(self, reference: str, response_event, reward_type) -> RewardEvent:
+    def apply(self, reference: str, response_event: DendriteResponseEvent, reward_type: RewardModelTypeEnum) -> RewardEvent:
         t0 = time.time()
-        batch_rewards_output = self.reward(reference, response_event.completions)
+        batch_rewards_output = self.reward(reference, response_event)
         batch_rewards_time = time.time() - t0
 
         return RewardEvent(

@@ -9,6 +9,7 @@ from prompting.rewards import (
     FloatDiffModel,
     DateRewardModel,
     OrdinalRewardModel,
+    StreamingRewardModel
 )
 
 REWARD_MODELS = {
@@ -18,6 +19,7 @@ REWARD_MODELS = {
     "float_diff": FloatDiffModel,
     "date": DateRewardModel,
     "ordinal": OrdinalRewardModel,
+    "streaming": StreamingRewardModel,
 }
 
 
@@ -90,6 +92,7 @@ class RewardPipeline:
         for task in self.selected_tasks:
             active_reward_models += TASKS[task].reward_definition
             active_reward_models += TASKS[task].penalty_definition
+            active_reward_models += TASKS[task].global_penalty_definition
 
         # Instantiate only the required reward models
         reward_models = {}
