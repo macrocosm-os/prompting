@@ -28,8 +28,9 @@ from prompting.llms import HuggingFaceLLM, HuggingFacePipeline, load_hf_pipeline
 
 # import base miner class which takes care of most of the boilerplate
 from prompting.base.prompting_miner import BaseStreamPromptingMiner
+from deprecated import deprecated
 
-
+@deprecated(version="2.4.1+", reason="Class is deprecated, use openai miner for reference on example miner.")
 class HuggingFaceMiner(BaseStreamPromptingMiner):
     """
     Base miner which runs zephyr (https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)

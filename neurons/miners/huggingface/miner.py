@@ -17,10 +17,11 @@
 import time
 import bittensor as bt
 from prompting.miners import HuggingFaceMiner
+from deprecated import deprecated
 
 
-# This is the main function, which runs the miner.
-if __name__ == "__main__":
+@deprecated(version="2.4.1+", reason="Class is deprecated, use openai miner for reference on example miner.")
+def main():
     with HuggingFaceMiner() as miner:
         while True:
             miner.log_status()
@@ -29,3 +30,7 @@ if __name__ == "__main__":
             if miner.should_exit:
                 bt.logging.warning("Ending miner...")
                 break
+
+
+if __name__ == "__main__":
+    main()
