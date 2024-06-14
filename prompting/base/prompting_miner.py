@@ -172,7 +172,8 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         dendrite_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)        
         step_log = {
             "epoch_time": timing,
-            "block": self.last_epoch_block,
+            # TODO: add block to logs in the future in a way that doesn't impact performance
+            # "block": self.block,
             "messages": messages,
             "accumulated_chunks": accumulated_chunks,
             "accumulated_chunks_timings": accumulated_chunks_timings,
