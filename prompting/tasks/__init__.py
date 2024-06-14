@@ -8,8 +8,10 @@ from .math import MathTask
 from .translate import TranslationTask, TranslationPipeline
 from .mock import MockTask
 from .sentiment import SentimentAnalysisTask
+from .organic import OrganicTask
 
 TASKS = {
+    OrganicTask.name: OrganicTask,
     QuestionAnsweringTask.name: QuestionAnsweringTask,
     DateQuestionAnsweringTask.name: DateQuestionAnsweringTask,
     SummarizationTask.name: SummarizationTask,

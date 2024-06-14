@@ -58,6 +58,7 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
     start_time = time.time()
     
     try:                
+        chunk = None
         async for chunk in async_iterator:  # most important loop, as this is where we acquire the final synapse.
             if isinstance(chunk, str):
                 accumulated_chunks.append(chunk)

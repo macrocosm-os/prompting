@@ -1,6 +1,7 @@
 from .datasets import (
     Dataset,
     MockDataset,
+    OrganicDataset,
     HFCodingDataset,
     WikiDataset,
     StackOverflowDataset,
@@ -13,6 +14,7 @@ from .selector import Selector
 
 DATASETS = {
     #HFCodingDataset.name: HFCodingDataset,
+    OrganicDataset.name: OrganicDataset,
     WikiDataset.name: WikiDataset,
     #StackOverflowDataset.name: StackOverflowDataset,
     MathDataset.name: MathDataset,
@@ -20,6 +22,3 @@ DATASETS = {
     GenericInstructionDataset.name: GenericInstructionDataset, 
     ReviewDataset.name: ReviewDataset
 }
- 
-
-  

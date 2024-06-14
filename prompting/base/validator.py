@@ -28,6 +28,7 @@ from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
+from prompting.protocol import StreamPromptingSynapse
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
 
@@ -64,11 +65,6 @@ class BaseValidatorNeuron(BaseNeuron):
         # Init sync with the network. Updates the metagraph.
         self.sync()
 
-        # Serve axon to enable external connections.
-        if not self.config.neuron.axon_off:
-            self.serve_axon()
-        else:
-            bt.logging.warning("axon off, not serving ip to chain.")
 
         # Create asyncio event loop to manage async tasks.
         self.loop = asyncio.get_event_loop()
@@ -78,24 +74,45 @@ class BaseValidatorNeuron(BaseNeuron):
         self.is_running: bool = False
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
+        # Serve axon to enable external connections.
+        # if not self.config.neuron.axon_off:
+        # self.serve_axon()
+        # else:
+        #     bt.logging.warning("axon off, not serving ip to chain.")
+
+    # def blacklist_prompt(self, synapse: StreamPromptingSynapse) -> Tuple[bool, str]:
+    #     blacklist = self.base_blacklist(synapse, PROMPT_BLACKLIST_STAKE)
+    #     bt.logging.info(blacklist[1])
+    #     return blacklist
+
+    async def _handle_organic(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        # TODO: Wrap into OrganicTask.
+        with self.lock:
+            bt.logging.info(f"Organic handle: {synapse}")
+        return synapse
 
     def serve_axon(self):
         """Serve axon to enable external connections."""
-
-        bt.logging.info("serving ip to chain...")
-        try:
-            self.axon = bt.axon(wallet=self.wallet, config=self.config)
-
-            try:
-                self.subtensor.serve_axon(
-                    netuid=self.config.netuid,
-                    axon=self.axon,
-                )
-            except Exception as e:
-                bt.logging.error(f"Failed to serve Axon with exception: {e}")
-
-        except Exception as e:
-            bt.logging.error(f"Failed to create Axon initialize with exception: {e}")
+        bt.logging.info("Serving IP to chain...")
+        # try:
+        self.axon = bt.axon(wallet=self.wallet, config=self.config)
+        self.axon.attach(
+            forward_fn=self._handle_organic,
+            blacklist_fn=None,
+            priority_fn=None,
+        )
+        # self.subtensor.serve_axon(
+        #     netuid=self.config.netuid,
+        #     axon=self.axon,
+        # )
+        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
+        self.axon.start()
+        validator_uid = self.metagraph.hotkeys.index(
+            self.wallet.hotkey.ss58_address
+        )
+        bt.logging.info(f"Running validator on uid: {validator_uid}")
+        # except Exception as e:
+        #     bt.logging.error(f"Failed to create Axon initialize with exception: {e}")
 
     def run(self):
         """
@@ -120,6 +137,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Check that validator is registered on the network.
         self.sync()
 
+        self.serve_axon()
         if not self.config.neuron.axon_off:
             bt.logging.info(
                 f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"

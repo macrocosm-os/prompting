@@ -1,7 +1,30 @@
-from .tasks import Task, MockTask, SummarizationTask, QuestionAnsweringTask, DebuggingTask, MathTask, DateQuestionAnsweringTask, GenericInstructionTask, SentimentAnalysisTask, TranslationTask
-from .tools import MockDataset, WikiDataset, HFCodingDataset, StackOverflowDataset, MathDataset, WikiDateDataset, GenericInstructionDataset, ReviewDataset
+from .tasks import (
+    Task,
+    MockTask,
+    OrganicTask,
+    SummarizationTask,
+    QuestionAnsweringTask,
+    DebuggingTask,
+    MathTask,
+    DateQuestionAnsweringTask,
+    GenericInstructionTask,
+    SentimentAnalysisTask,
+    TranslationTask
+)
+from .tools import (
+    MockDataset,
+    OrganicDataset,
+    WikiDataset,
+    HFCodingDataset,
+    StackOverflowDataset,
+    MathDataset,
+    WikiDateDataset,
+    GenericInstructionDataset,
+    ReviewDataset
+)
 
 # TODO: Expand this to include extra information beyond just the task and dataset names
+organic_task, organic_dataset = OrganicTask.name, [OrganicDataset.name]
 summarization_task, summarization_dataset = SummarizationTask.name, [WikiDataset.name]
 qa_task, qa_dataset = QuestionAnsweringTask.name, [WikiDataset.name]
 #debugging_task, debugging_dataset = DebuggingTask.name, [HFCodingDataset.name]
@@ -12,6 +35,7 @@ translation_task, translation_dataset = TranslationTask.name, [WikiDataset.name]
 sentiment_analysis_task, sentiment_analysis_dataset = SentimentAnalysisTask.name, [ReviewDataset.name]
 
 TASK_REGISTRY = {
+    organic_task: organic_dataset,
     summarization_task: summarization_dataset,
     qa_task: qa_dataset,
     #debugging_task: debugging_dataset,
