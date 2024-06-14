@@ -86,6 +86,15 @@ Example of running a Llama3 miner:
 pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name llama3_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --neuron.load_in_4bit True --axon.port 21988 --logging.debug
 ```
 
+## Running with autoupdate
+
+You can run the validator in auto-update mode by using pm2 along with the `run.sh` bash script. This command will initiate two pm2 processes: one for auto-update monitoring, named **s1_validator_update**, and another for running the validator itself, named **s1_validator_main_process**.
+```bash
+pm2 start run.sh --name s1_validator_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key>
+```
+
+> Note: this is not an end solution, major releases or changes in requirements will still require you to manually restart the processes. Regularly monitor the health of your validator to ensure optimal performance.
+
 # Testnet 
 We highly recommend that you run your miners on testnet before deploying on main. This is give you an opportunity to debug your systems, and ensure that you will not lose valuable immunity time. The SN1 testnet is **netuid 61**. 
 
