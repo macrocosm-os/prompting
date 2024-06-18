@@ -2,12 +2,13 @@ import pytest
 import asyncio
 import sys
 from functools import partial
-from prompting.forward import run_step
+from prompting.forward import run_step, SINGLE_TURN_TASKS
 from neurons.validator import Validator
 from prompting.tasks import QuestionAnsweringTask
 from .fixtures.task import WIKI_CONTEXT
 from prompting.agent import HumanAgent
 from prompting.protocol import StreamPromptingSynapse
+from prompting.tasks import TASKS
 
 sys.argv = [__file__, "--mock", "--wandb.off", "--neuron.tasks", "qa"]
 mock_neuron = Validator()
@@ -59,3 +60,7 @@ def test_generate_reference_parallel_to_dendrite(
     assert network_and_reference_gen_time == pytest.approx(
         expected_forward_time, abs=1#0.1
     )
+
+def test_single_turn_tasks_in_tasks():
+    # Test that SINGLE_TURN_TASKS is a subset of TASKS.keys()
+    assert set(SINGLE_TURN_TASKS).issubset(set(TASKS.keys()))
