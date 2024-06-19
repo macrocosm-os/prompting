@@ -42,6 +42,10 @@ git clone https://github.com/opentensor/prompting.git
 cd prompting
 bash install.sh
 ```
+If you are running a miner, you will also need to uninstall uvloop.
+```bash
+pip uninstall uvloop -y
+```
 
 </div>
 
@@ -70,9 +74,8 @@ python <SCRIPT_PATH>
 ```
 
 where `SCRIPT_PATH` is either: 
-1. neurons/miners/huggingface/miner.py
-2. neurons/miners/openai/miner.py
-3. neurons/validator.py
+1. neurons/miners/openai/miner.py
+2. neurons/validator.py
 
 For ease of use, you can run the scripts as well with PM2. Installation of PM2 is: 
 **On Linux**:
@@ -80,11 +83,20 @@ For ease of use, you can run the scripts as well with PM2. Installation of PM2 i
 sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm install pm2 -g && pm2 update
 ``` 
 
-Example of running a Llama3 miner:
+Example of running an Openai miner on Main:
 
 ```bash
-pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name llama3_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --neuron.load_in_4bit True --axon.port 21988 --logging.debug
+pm2 start neurons/miners/openai/miner.py --interpreter python --name openai_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey my_hotkey --neuron.model_id gpt-3.5-turbo-1106 --axon.port 8091 
 ```
+
+## Running with autoupdate
+
+You can run the validator in auto-update mode by using pm2 along with the `run.sh` bash script. This command will initiate two pm2 processes: one for auto-update monitoring, named **s1_validator_update**, and another for running the validator itself, named **s1_validator_main_process**.
+```bash
+pm2 start run.sh --name s1_validator_autoupdate -- --wallet.name <your-wallet-name> --wallet.hotkey <your-wallet-hot-key>
+```
+
+> Note: this is not an end solution, major releases or changes in requirements will still require you to manually restart the processes. Regularly monitor the health of your validator to ensure optimal performance.
 
 # Testnet 
 We highly recommend that you run your miners on testnet before deploying on main. This is give you an opportunity to debug your systems, and ensure that you will not lose valuable immunity time. The SN1 testnet is **netuid 61**. 
@@ -94,7 +106,7 @@ In order to run on testnet, you will need to go through the same hotkey registra
 To run:
 
 ```bash
-pm2 start neurons/miners/huggingface/miner.py --interpreter python3 --name llama3_miner -- --netuid 61 --subtensor.network test --wallet.name my_test_wallet --wallet.hotkey m1 --neuron.model_id casperhansen/llama-3-70b-instruct-awq --neuron.load_in_4bit True --axon.port 21988 --logging.debug
+pm2 start neurons/miners/openai/miner.py --interpreter python3 --name openai_miner -- --netuid 61 --subtensor.network test --wallet.name my_test_wallet --wallet.hotkey my_test_hotkey --neuron.model_id gpt-3.5-turbo-1106 --axon.port 8091
 ```
 
 # Limitations

@@ -23,7 +23,7 @@ import prompting
 from prompting.protocol import StreamPromptingSynapse
 from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
-
+from typing import List, Dict
 
 class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     """
@@ -159,27 +159,38 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
 
     def log_event(
         self,
+        synapse: StreamPromptingSynapse,
         timing: float,
-        prompt: str,
-        completion: str,
-        system_prompt: str,
+        messages,
+        accumulated_chunks: List[str] = [],
+        accumulated_chunks_timings: List[float] = [],
         extra_info: dict = {},
     ):
         if not getattr(self, "wandb_run", None):
             self.init_wandb()
-
+                
+        dendrite_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)        
         step_log = {
             "epoch_time": timing,
-            # "block": self.last_epoch_block,
-            "prompt": prompt,
-            "completion": completion,
-            "system_prompt": system_prompt,
-            "uid": self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address),
-            "stake": self.metagraph.S[self.uid].item(),
-            "trust": self.metagraph.T[self.uid].item(),
-            "incentive": self.metagraph.I[self.uid].item(),
-            "consensus": self.metagraph.C[self.uid].item(),
-            "dividends": self.metagraph.D[self.uid].item(),
+            # TODO: add block to logs in the future in a way that doesn't impact performance
+            # "block": self.block,
+            "messages": messages,
+            "accumulated_chunks": accumulated_chunks,
+            "accumulated_chunks_timings": accumulated_chunks_timings,
+            "validator_uid": dendrite_uid,
+            "validator_ip": synapse.dendrite.ip,
+            "validator_coldkey": self.metagraph.coldkeys[dendrite_uid],
+            "validator_hotkey": self.metagraph.hotkeys[dendrite_uid],
+            "validator_stake": self.metagraph.S[dendrite_uid].item(),
+            "validator_trust": self.metagraph.T[dendrite_uid].item(),
+            "validator_incentive": self.metagraph.I[dendrite_uid].item(),
+            "validator_consensus": self.metagraph.C[dendrite_uid].item(),
+            "validator_dividends": self.metagraph.D[dendrite_uid].item(),
+            "miner_stake": self.metagraph.S[self.uid].item(),
+            "miner_trust": self.metagraph.T[self.uid].item(),
+            "miner_incentive": self.metagraph.I[self.uid].item(),
+            "miner_consensus": self.metagraph.C[self.uid].item(),
+            "miner_dividends": self.metagraph.D[self.uid].item(),
             **extra_info,
         }
 

@@ -36,6 +36,8 @@ from transformers import PreTrainedTokenizerFast as Tokenizer
 from prompting.utils.uids import get_random_uids
 from dataclasses import dataclass
 
+SINGLE_TURN_TASKS = ['sentiment', 'translation']
+
 
 @async_log
 async def execute_dendrite_call(dendrite_call):
@@ -321,6 +323,9 @@ async def forward(self):
 
             # 50% chance of single turn conversation, 25% of two turns.
             if random.random() < 0.5 or turn >= 1 or task_name == organic_task.TASK_NAME:
+                break
+
+            if task.name in SINGLE_TURN_TASKS:
                 break
 
             history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])
