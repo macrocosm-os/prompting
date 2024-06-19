@@ -51,11 +51,9 @@ class OrganicDataset(Dataset):
         }
 
     def get(self, name: str, **kwargs) -> dict[str, Any]:
-        """"""
         raise NotImplementedError
 
     def search(self, name) -> dict[str, Any]:
-        """"""
         raise NotImplementedError
 
 

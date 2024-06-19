@@ -23,6 +23,8 @@ import traceback
 import numpy as np
 import bittensor as bt
 from typing import List, Dict, Awaitable
+
+import torch
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.conversation import create_task
@@ -36,7 +38,7 @@ from transformers import PreTrainedTokenizerFast as Tokenizer
 from prompting.utils.uids import get_random_uids
 from dataclasses import dataclass
 
-SINGLE_TURN_TASKS = ['sentiment', 'translation']
+SINGLE_TURN_TASKS = ('sentiment', 'translation', organic_task.TASK_NAME)
 
 
 @async_log
@@ -156,6 +158,16 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
             f"Failed response for uid {failed_response.uid}: {formatted_exception}"
         )
 
+async def query_miners(self, roles: List[str], messages: List[str], uids: torch.LongTensor, timeout: float):
+    axons = [self.metagraph.axons[uid] for uid in uids]
+    # Directly call dendrite and process responses in parallel
+    return await self.dendrite(
+        axons=axons,
+        synapse=StreamPromptingSynapse(roles=roles, messages=messages),
+        timeout=timeout,
+        deserialize=False,
+        streaming=True,
+    )
 
 async def run_step(
     self, agent: HumanAgent, roles: List[str], messages: List[str], k: int, timeout: float, exclude: list = None
@@ -182,17 +194,20 @@ async def run_step(
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
     uids_cpu = uids.cpu().tolist()
+    streams_responses = query_miners(self, roles, messages, uids, timeout)
+    # uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
+    # uids_cpu = uids.cpu().tolist()
 
-    axons = [self.metagraph.axons[uid] for uid in uids]
+    # axons = [self.metagraph.axons[uid] for uid in uids]
 
-    # Directly call dendrite and process responses in parallel
-    streams_responses = await self.dendrite(
-        axons=axons,
-        synapse=StreamPromptingSynapse(roles=roles, messages=messages),
-        timeout=timeout,
-        deserialize=False,
-        streaming=True,
-    )
+    # # Directly call dendrite and process responses in parallel
+    # streams_responses = await self.dendrite(
+    #     axons=axons,
+    #     synapse=StreamPromptingSynapse(roles=roles, messages=messages),
+    #     timeout=timeout,
+    #     deserialize=False,
+    #     streaming=True,
+    # )
 
     # Prepare the task for handling stream responses
     stream_results_dict = dict(zip(uids_cpu, streams_responses))
@@ -240,7 +255,7 @@ async def run_step(
         "best": best_response,
         "block": self.block,
         "step": self.step,
-        "step_time": time.time() - start_time,        
+        "step_time": time.time() - start_time,
         **agent.__state_dict__(full=self.config.neuron.log_full),
         **reward_result.__state_dict__(full=self.config.neuron.log_full),
         **response_event.__state_dict__(),
@@ -322,7 +337,7 @@ async def forward(self):
             messages.append(accepted_answer)
 
             # 50% chance of single turn conversation, 25% of two turns.
-            if random.random() < 0.5 or turn >= 1 or task_name == organic_task.TASK_NAME:
+            if random.random() < 0.5 or turn >= 1:
                 break
 
             if task.name in SINGLE_TURN_TASKS:

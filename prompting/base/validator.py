@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 
 from functools import partial
+import random
 import sys
 import copy
 import torch
@@ -28,11 +29,14 @@ from typing import List
 from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
+from prompting.forward import query_miners
 from prompting.mock import MockDendrite
 from prompting.protocol import StreamPromptingSynapse
 from prompting.tools.datasets.organic_dataset import OrganicDataset
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
+from prompting.utils.uids import get_random_uids, get_uids
+from prompting.utils.uids import check_uid_availability
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -88,47 +92,28 @@ class BaseValidatorNeuron(BaseNeuron):
     #     bt.logging.info(blacklist[1])
     #     return blacklist
 
-    # async def _handle_organic(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-    #     bt.logging.info(f"Received {synapse}")
-
-    #     from starlette.types import Send
-    #     async def _prompt(synapse, send: Send):
-    #         bt.logging.info(
-    #             f"Sending {synapse} request to uid: {synapse.uid}, "
-    #         )
-    #         async def handle_response(responses):
-    #             for resp in responses:
-    #                 async for chunk in resp:
-    #                     if isinstance(chunk, str):
-    #                         await send(
-    #                             {
-    #                                 "type": "http.response.body",
-    #                                 "body": chunk.encode("utf-8"),
-    #                                 "more_body": True,
-    #                             }
-    #                         )
-    #                         bt.logging.info(f"Streamed text: {chunk}")
-    #                 await send({"type": "http.response.body", "body": b'', "more_body": False})
-
-    #         axon = self.metagraph.axons[synapse.uid]
-    #         responses = self.dendrite.query(
-    #             axons=[axon],
-    #             synapse=synapse,
-    #             deserialize=False,
-    #             timeout=synapse.timeout,
-    #             streaming=True,
-    #         )
-    #         return await handle_response(responses)
-    #
-    #     token_streamer = partial(_prompt, synapse)
-    #     response = synapse.create_streaming_response(token_streamer)
-    #     OrganicDataset().add(response)
-    #     return response
+    async def _miners_organic_query(
+        self,
+        synapse: StreamPromptingSynapse,
+        sampling_mode: str,
+        exclude: List[int] = []
+    ) -> StreamPromptingSynapse:
+        # Get the list of uids to query for this step.
+        uids = get_uids(sampling_mode=sampling_mode, k=self.config.neuron.sample_size, exclude=exclude)
+        streams_responses = query_miners(self, synapse.roles, synapse.messages, uids, self.config.neuron.timeout)
+        uid_stream_dict = dict(zip(uids, streams_responses))
+        random_uid, random_stream = random.choice(list(uid_stream_dict.items()))
+        return random_stream
+        # Creates a streamer from the selected stream
+        # streamer = AsyncResponseDataStreamer(async_iterator=random_stream, selected_uid=random_uid)
+        # response = await streamer.stream(params.request)
+        # return response
 
     async def _handle_organic(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         self._organic_dataset.add(synapse)
         bt.logging.info(f"Organic handle: {synapse}")
-        return synapse
+        response = await _miners_organic_query(self, synapse, "random", [])
+        return response
 
     def serve_axon(self):
         """Serve axon to enable external connections"""

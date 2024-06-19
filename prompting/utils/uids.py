@@ -1,7 +1,7 @@
 import torch
 import random
 import bittensor as bt
-from typing import List
+from typing import List, Union
 
 
 def check_uid_availability(
@@ -89,3 +89,36 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
         return torch.tensor(random.sample(candidate_uids, k))
     else:
         raise ValueError(f"No eligible uids were found. Cannot return {k} uids")
+
+
+def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> List[int]:
+    metagraph = self.validator.metagraph
+    miners_uids = list(map(int, filter(lambda uid: check_uid_availability(metagraph, uid, vpermit_tao_limit),
+        metagraph.uids)))
+    
+    # Builds a dictionary of uids and their corresponding incentives.
+    all_miners_incentives = {
+        "miners_uids": miners_uids,
+        "incentives": list(map(lambda uid: metagraph.I[uid], miners_uids))
+    }
+    
+    # Zip the uids and their corresponding incentives into a list of tuples.
+    uid_incentive_pairs = list(zip(all_miners_incentives["miners_uids"], all_miners_incentives["incentives"]))
+
+    # Sort the list of tuples by the incentive value in descending order.
+    uid_incentive_pairs_sorted = sorted(uid_incentive_pairs, key=lambda x: x[1], reverse=True)
+
+    # Extract the top uids.
+    top_k_uids = [uid for uid, incentive in uid_incentive_pairs_sorted[:k]]
+    
+    return top_k_uids
+
+
+def get_uids(self, sampling_mode: str, k: int, exclude: List[int] = []) -> Union[list[int], torch.LongTensor]:
+    if sampling_mode == "random":
+        uids = get_random_uids(self.validator, k=k, exclude=exclude or []).tolist()
+        return uids
+    if sampling_mode == "top_incentive":
+        vpermit_tao_limit = self.validator.config.neuron.vpermit_tao_limit
+        top_uids = get_top_incentive_uids(self, k=k, vpermit_tao_limit=vpermit_tao_limit)
+        return top_uids
