@@ -28,7 +28,7 @@ from prompting.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.conversation import create_task
 from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
-from prompting.tasks import QuestionAnsweringTask
+from prompting.tasks import QuestionAnsweringTask, organic_task
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
@@ -36,11 +36,6 @@ from transformers import PreTrainedTokenizerFast as Tokenizer
 from prompting.utils.uids import get_random_uids
 from dataclasses import dataclass
 
-@async_log
-async def generate_reference(agent):
-    loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
-    return result
 
 @async_log
 async def execute_dendrite_call(dendrite_call):
@@ -285,14 +280,20 @@ async def forward(self):
 
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
-    agent = HumanAgent(
-        task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True
-    )
 
     turn = 0
     exclude_uids = []
-    roles = ['user']
-    messages = [agent.challenge]
+    agent = HumanAgent(
+        task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True
+    )
+    if task_name == organic_task.TASK_NAME:
+        # Organic prompts with conversational history.
+        roles = task.roles
+        messages = task.messages
+    else:
+        # Benchmarking tasks.
+        roles = ['user']
+        messages = [agent.challenge]
     while True:
         # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step.
         # To be reconsidered in the next version.
@@ -318,8 +319,8 @@ async def forward(self):
             roles.append("assistant")
             messages.append(accepted_answer)
 
-            # 50% chance of single turn conversation, 25% of two turns, 12.5% chance of 3 turns, 6.25% chance of 4 turns, 3.63% chance of 5...
-            if random.random()<0.5 or turn>=1:
+            # 50% chance of single turn conversation, 25% of two turns.
+            if random.random() < 0.5 or turn >= 1 or task_name == organic_task.TASK_NAME:
                 break
 
             history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])

@@ -29,6 +29,7 @@ from traceback import print_exception
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
 from prompting.protocol import StreamPromptingSynapse
+from prompting.tools.datasets.organic_dataset import OrganicDataset
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
 
@@ -86,33 +87,22 @@ class BaseValidatorNeuron(BaseNeuron):
     #     return blacklist
 
     async def _handle_organic(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        # TODO: Wrap into OrganicTask.
-        with self.lock:
-            bt.logging.info(f"Organic handle: {synapse}")
+        OrganicDataset().add(synapse)
+        bt.logging.info(f"Organic handle: {synapse}")
         return synapse
 
     def serve_axon(self):
-        """Serve axon to enable external connections."""
-        bt.logging.info("Serving IP to chain...")
-        # try:
+        """Serve axon to enable external connections"""
+        validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+        bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
         self.axon = bt.axon(wallet=self.wallet, config=self.config)
         self.axon.attach(
             forward_fn=self._handle_organic,
             blacklist_fn=None,
             priority_fn=None,
         )
-        # self.subtensor.serve_axon(
-        #     netuid=self.config.netuid,
-        #     axon=self.axon,
-        # )
         self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
         self.axon.start()
-        validator_uid = self.metagraph.hotkeys.index(
-            self.wallet.hotkey.ss58_address
-        )
-        bt.logging.info(f"Running validator on uid: {validator_uid}")
-        # except Exception as e:
-        #     bt.logging.error(f"Failed to create Axon initialize with exception: {e}")
 
     def run(self):
         """

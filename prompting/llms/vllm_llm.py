@@ -18,7 +18,7 @@ import gc
 import time
 import torch
 import bittensor as bt
-from typing import List, Dict
+from typing import List, Dict, Optional, Any
 from vllm import LLM, SamplingParams
 from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.llms import BasePipeline, BaseLLM
@@ -111,6 +111,24 @@ class vLLM_LLM(BaseLLM):
             "assistant": "<|start_header_id|>assistant<|end_header_id|>\n{{{{ {} }}}}<|eot_id|>",
             "end": "<|start_header_id|>assistant<|end_header_id|>",
         }
+
+    def query_conversation(
+        self,
+        messages: list[str],
+        roles: list[str],
+        cleaner: Optional[CleanerPipeline] = None,
+    ):
+        """Query LLM with the given lists of conversation history and roles."""
+        assert len(messages) == len(roles), "Length of messages and roles must be the same"
+        inputs: list[dict[str, Any]] = [{"content": self.system_prompt, "role": "system"}]
+        for role, message in zip(roles, messages):
+            inputs.append({"content": message, "role": role})
+
+        t0 = time.perf_counter()
+        response = self.forward(messages=inputs)
+        response = self.clean_response(cleaner, response)
+        self.times.extend((0, time.perf_counter() - t0))
+        return response
 
     def query(
         self,

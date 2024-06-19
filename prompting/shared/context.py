@@ -15,3 +15,5 @@ class Context:
     tags: List[str] = None
     extra: dict = None  # additional non-essential information
     stats: dict = None  # retrieval stats such as fetch time, number of tries, etc.
+    messages: list[str] = None
+    roles: list[str] = None

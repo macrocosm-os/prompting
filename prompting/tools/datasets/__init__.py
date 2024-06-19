@@ -5,4 +5,4 @@ from .mock import MockDataset
 from .wiki import WikiDataset, WikiDateDataset
 from .generic_instruction import GenericInstructionDataset
 from .review import ReviewDataset
-from .organic import OrganicDataset
+from .organic_dataset import OrganicDataset

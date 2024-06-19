@@ -8,7 +8,7 @@ from .math import MathTask
 from .translate import TranslationTask, TranslationPipeline
 from .mock import MockTask
 from .sentiment import SentimentAnalysisTask
-from .organic import OrganicTask
+from .organic_task import OrganicTask
 
 TASKS = {
     OrganicTask.name: OrganicTask,
