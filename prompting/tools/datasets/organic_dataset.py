@@ -5,7 +5,6 @@ from prompting.tools.datasets.base import Dataset
 import threading
 
 from prompting.tools.selector import Selector
-# import sqlite3
 
 
 class OrganicDataset(Dataset):
@@ -35,8 +34,8 @@ class OrganicDataset(Dataset):
                 synapse = cls._queue.pop(0)
                 organic_source = "organic"
             else:
-                # TODO: Pop synthetic data.
-                synapse = StreamPromptingSynapse(messages=["Capital of Australia?"], roles=["user"])
+                # TODO: Get synthetic data.
+                synapse = StreamPromptingSynapse(messages=["Synthetic organic: Capital of Australia?"], roles=["user"])
                 organic_source = "synthetic"
         return {
             "title": "Prompt",

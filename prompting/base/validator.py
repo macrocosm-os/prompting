@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from functools import partial
 import sys
 import copy
 import torch
@@ -75,9 +76,10 @@ class BaseValidatorNeuron(BaseNeuron):
         self.is_running: bool = False
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
+        self._organic_dataset = OrganicDataset()
         # Serve axon to enable external connections.
         # if not self.config.neuron.axon_off:
-        # self.serve_axon()
+        #     self.serve_axon()
         # else:
         #     bt.logging.warning("axon off, not serving ip to chain.")
 
@@ -86,8 +88,45 @@ class BaseValidatorNeuron(BaseNeuron):
     #     bt.logging.info(blacklist[1])
     #     return blacklist
 
+    # async def _handle_organic(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+    #     bt.logging.info(f"Received {synapse}")
+
+    #     from starlette.types import Send
+    #     async def _prompt(synapse, send: Send):
+    #         bt.logging.info(
+    #             f"Sending {synapse} request to uid: {synapse.uid}, "
+    #         )
+    #         async def handle_response(responses):
+    #             for resp in responses:
+    #                 async for chunk in resp:
+    #                     if isinstance(chunk, str):
+    #                         await send(
+    #                             {
+    #                                 "type": "http.response.body",
+    #                                 "body": chunk.encode("utf-8"),
+    #                                 "more_body": True,
+    #                             }
+    #                         )
+    #                         bt.logging.info(f"Streamed text: {chunk}")
+    #                 await send({"type": "http.response.body", "body": b'', "more_body": False})
+
+    #         axon = self.metagraph.axons[synapse.uid]
+    #         responses = self.dendrite.query(
+    #             axons=[axon],
+    #             synapse=synapse,
+    #             deserialize=False,
+    #             timeout=synapse.timeout,
+    #             streaming=True,
+    #         )
+    #         return await handle_response(responses)
+    #
+    #     token_streamer = partial(_prompt, synapse)
+    #     response = synapse.create_streaming_response(token_streamer)
+    #     OrganicDataset().add(response)
+    #     return response
+
     async def _handle_organic(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        OrganicDataset().add(synapse)
+        self._organic_dataset.add(synapse)
         bt.logging.info(f"Organic handle: {synapse}")
         return synapse
 
