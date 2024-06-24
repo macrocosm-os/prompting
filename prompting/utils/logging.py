@@ -106,7 +106,7 @@ def reinit_wandb(self):
 
 def log_event(self, event):
     if not self.config.neuron.dont_save_events:
-        logger.log(38, "events", **event)
+        logger.log(38, event)
 
     if self.config.wandb.off:
         return
