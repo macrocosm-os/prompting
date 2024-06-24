@@ -28,7 +28,6 @@ argostranslate==1.9.6
 python-dotenv
 wikipedia_sections
 vllm
-loguru
 argostranslate
 transformers==4.41.2
 autoawq==0.2.5
