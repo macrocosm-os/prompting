@@ -6,8 +6,11 @@ import bittensor as bt
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import List
-from loguru import logger
+import logging
 import prompting
+from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
+
+logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 
 @dataclass
@@ -103,7 +106,7 @@ def reinit_wandb(self):
 
 def log_event(self, event):
     if not self.config.neuron.dont_save_events:
-        logger.log("EVENTS", "events", **event)
+        logger.log(38, "events", **event)
 
     if self.config.wandb.off:
         return
