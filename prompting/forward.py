@@ -30,6 +30,7 @@ from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.tasks import QuestionAnsweringTask
 from prompting.utils.uids import get_random_uids
+from prompting.utils.exceptions import BittensorError
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from transformers import PreTrainedTokenizerFast as Tokenizer
