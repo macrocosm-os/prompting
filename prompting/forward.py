@@ -337,7 +337,12 @@ async def forward(self):
             roles.append("user")
             messages.append(agent.challenge)
             turn += 1
-
+        except BittensorError as e:
+            bittensor_error = serialize_exception_to_string(e)
+            bt.logging.error(
+                f"An error was raised from the Bittensor package. Ending validator. \n {bittensor_error}"
+            )
+            sys.exit(1)
         except BaseException as e:
             unexpected_errors = serialize_exception_to_string(e)
             bt.logging.error(
