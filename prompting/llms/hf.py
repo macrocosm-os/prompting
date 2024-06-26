@@ -211,7 +211,7 @@ class HuggingFaceLLM(BaseLLM):
         # return self.llm_pipeline.tokenizer.apply_chat_template(
         #     messages, tokenize=False, add_generation_prompt=True
         # )
-        return self.llm_pipeline.tokenizer.tokenizer.apply_chat_template(
+        return self.llm_pipeline.tokenizer.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
 

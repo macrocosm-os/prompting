@@ -31,7 +31,8 @@ class OrganicDataset(Dataset):
     def random(cls, selector: Optional[Selector]) -> dict[str, Any]:
         with cls._lock:
             if cls._queue:
-                synapse = cls._queue.pop(0)
+                response = cls._queue.pop(0)
+                synapse = response["synapse"]
                 organic_source = "organic"
             else:
                 # TODO: Get synthetic data.

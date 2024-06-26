@@ -3,6 +3,8 @@ import random
 import bittensor as bt
 from typing import List, Union
 
+from prompting.base.neuron import BaseNeuron
+
 
 def check_uid_availability(
     metagraph: "bt.metagraph.Metagraph",
@@ -43,7 +45,7 @@ def check_uid_availability(
     return True
 
 
-def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor:
+def get_random_uids(self: BaseNeuron, k: int, exclude: List[int] = None) -> torch.LongTensor:
     """Returns k available random uids from the metagraph.
     Args:
         k (int): Number of uids to return.
@@ -92,7 +94,7 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
 
 
 def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> List[int]:
-    metagraph = self.validator.metagraph
+    metagraph = self.metagraph
     miners_uids = list(map(int, filter(lambda uid: check_uid_availability(metagraph, uid, vpermit_tao_limit),
         metagraph.uids)))
     
@@ -114,11 +116,11 @@ def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> List[int]:
     return top_k_uids
 
 
-def get_uids(self, sampling_mode: str, k: int, exclude: List[int] = []) -> Union[list[int], torch.LongTensor]:
+def get_uids(self: BaseNeuron, sampling_mode: str, k: int, exclude: List[int] = []) -> Union[list[int], torch.LongTensor]:
     if sampling_mode == "random":
-        uids = get_random_uids(self.validator, k=k, exclude=exclude or []).tolist()
+        uids = get_random_uids(self, k=k, exclude=exclude or []).tolist()
         return uids
     if sampling_mode == "top_incentive":
-        vpermit_tao_limit = self.validator.config.neuron.vpermit_tao_limit
+        vpermit_tao_limit = self.config.neuron.vpermit_tao_limit
         top_uids = get_top_incentive_uids(self, k=k, vpermit_tao_limit=vpermit_tao_limit)
         return top_uids

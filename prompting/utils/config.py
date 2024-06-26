@@ -332,6 +332,13 @@ def add_validator_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.organic_size",
+        type=int,
+        help="The number of miners to organic query in a single step.",
+        default=5,
+    )
+
+    parser.add_argument(
         "--neuron.disable_set_weights",
         action="store_true",
         help="Disables setting weights.",

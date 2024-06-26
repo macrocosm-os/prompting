@@ -16,7 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import time
 import bittensor as bt
-from prompting.miners import HuggingFaceMiner
+from prompting.miners.hf_miner import HuggingFaceMiner
 from deprecated import deprecated
 
 

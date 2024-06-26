@@ -169,6 +169,7 @@ async def query_miners(self, roles: List[str], messages: List[str], uids: torch.
         streaming=True,
     )
 
+
 async def run_step(
     self, agent: HumanAgent, roles: List[str], messages: List[str], k: int, timeout: float, exclude: list = None
 ):
@@ -194,7 +195,8 @@ async def run_step(
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
     uids_cpu = uids.cpu().tolist()
-    streams_responses = query_miners(self, roles, messages, uids, timeout)
+    # TODO: if organic and response is ready
+    streams_responses = await query_miners(self, roles, messages, uids, timeout)
     # uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
     # uids_cpu = uids.cpu().tolist()
 
@@ -224,6 +226,7 @@ async def run_step(
 
     log_stream_results(stream_results)
 
+    # TODO: Create separate thread for consuming organic prompts, and return reward.
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(
         stream_results=stream_results, uids=uids, timeout=timeout
@@ -232,6 +235,7 @@ async def run_step(
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
+    bt.logging.info(f"Response from miners: {stream_results}")
     reward_result = RewardResult(
         self.reward_pipeline,
         agent=agent,

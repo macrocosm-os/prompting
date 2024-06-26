@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from functools import partial
 import random
 import sys
 import copy
@@ -23,9 +22,12 @@ import torch
 import asyncio
 import argparse
 import threading
+from starlette.types import Send
+from functools import partial
+
 import bittensor as bt
 
-from typing import List
+from typing import AsyncGenerator, List
 from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
@@ -36,7 +38,6 @@ from prompting.tools.datasets.organic_dataset import OrganicDataset
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
 from prompting.utils.uids import get_random_uids, get_uids
-from prompting.utils.uids import check_uid_availability
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -71,7 +72,6 @@ class BaseValidatorNeuron(BaseNeuron):
         # Init sync with the network. Updates the metagraph.
         self.sync()
 
-
         # Create asyncio event loop to manage async tasks.
         self.loop = asyncio.get_event_loop()
 
@@ -81,39 +81,34 @@ class BaseValidatorNeuron(BaseNeuron):
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
         self._organic_dataset = OrganicDataset()
-        # Serve axon to enable external connections.
-        # if not self.config.neuron.axon_off:
-        #     self.serve_axon()
-        # else:
-        #     bt.logging.warning("axon off, not serving ip to chain.")
-
-    # def blacklist_prompt(self, synapse: StreamPromptingSynapse) -> Tuple[bool, str]:
-    #     blacklist = self.base_blacklist(synapse, PROMPT_BLACKLIST_STAKE)
-    #     bt.logging.info(blacklist[1])
-    #     return blacklist
-
-    async def _miners_organic_query(
-        self,
-        synapse: StreamPromptingSynapse,
-        sampling_mode: str,
-        exclude: List[int] = []
-    ) -> StreamPromptingSynapse:
-        # Get the list of uids to query for this step.
-        uids = get_uids(sampling_mode=sampling_mode, k=self.config.neuron.sample_size, exclude=exclude)
-        streams_responses = query_miners(self, synapse.roles, synapse.messages, uids, self.config.neuron.timeout)
-        uid_stream_dict = dict(zip(uids, streams_responses))
-        random_uid, random_stream = random.choice(list(uid_stream_dict.items()))
-        return random_stream
-        # Creates a streamer from the selected stream
-        # streamer = AsyncResponseDataStreamer(async_iterator=random_stream, selected_uid=random_uid)
-        # response = await streamer.stream(params.request)
-        # return response
 
     async def _handle_organic(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        self._organic_dataset.add(synapse)
         bt.logging.info(f"Organic handle: {synapse}")
-        response = await _miners_organic_query(self, synapse, "random", [])
-        return response
+
+        async def _handle_response(responses, send: Send):
+            for resp in responses:
+                async for chunk in resp:
+                    if isinstance(chunk, str):
+                        await send(
+                            {
+                                "type": "http.response.body",
+                                "body": chunk.encode("utf-8"),
+                                "more_body": True,
+                            }
+                        )
+                        bt.logging.info(f"Streamed text: {chunk}")
+                await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+        async def _prompt(synapse, send: Send):
+            uids = get_uids(self, sampling_mode="random", k=self.config.neuron.organic_size, exclude=[])
+            bt.logging.info(f"Sending {synapse} request to UIDs: {uids}")
+            responses = await query_miners(self, synapse.roles, synapse.messages, uids, self.config.neuron.timeout)
+            return await _handle_response(responses, send)
+
+        token_streamer = partial(_prompt, synapse)
+        streaming_response = synapse.create_streaming_response(token_streamer)
+        self._organic_dataset.add({"synapse": synapse, "response": streaming_response})
+        return streaming_response
 
     def serve_axon(self):
         """Serve axon to enable external connections"""
@@ -170,10 +165,11 @@ class BaseValidatorNeuron(BaseNeuron):
 
                 forward_timeout = self.config.neuron.forward_max_time
                 try:
-                    task = self.loop.create_task(self.forward())
-                    self.loop.run_until_complete(
-                        asyncio.wait_for(task, timeout=forward_timeout)
-                    )
+                    pass
+                    # task = self.loop.create_task(self.forward())
+                    # self.loop.run_until_complete(
+                    #     asyncio.wait_for(task, timeout=forward_timeout)
+                    # )
                 except torch.cuda.OutOfMemoryError as e:
                     bt.logging.error(f"Out of memory error: {e}")
                     continue
