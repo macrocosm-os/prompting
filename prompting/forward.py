@@ -56,7 +56,7 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
     accumulated_tokens_per_chunk = []
     start_time = time.time()
     
-    try:                
+    try:
         chunk = None
         async for chunk in async_iterator:  # most important loop, as this is where we acquire the final synapse.
             if isinstance(chunk, str):
@@ -197,19 +197,6 @@ async def run_step(
     uids_cpu = uids.cpu().tolist()
     # TODO: if organic and response is ready
     streams_responses = await query_miners(self, roles, messages, uids, timeout)
-    # uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
-    # uids_cpu = uids.cpu().tolist()
-
-    # axons = [self.metagraph.axons[uid] for uid in uids]
-
-    # # Directly call dendrite and process responses in parallel
-    # streams_responses = await self.dendrite(
-    #     axons=axons,
-    #     synapse=StreamPromptingSynapse(roles=roles, messages=messages),
-    #     timeout=timeout,
-    #     deserialize=False,
-    #     streaming=True,
-    # )
 
     # Prepare the task for handling stream responses
     stream_results_dict = dict(zip(uids_cpu, streams_responses))
