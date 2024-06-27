@@ -14,3 +14,14 @@ from .ordinal import OrdinalRewardModel
 from .multiple_choice import MultipleChoiceModel
 from .streaming import StreamingRewardModel
 from .pipeline import RewardPipeline, REWARD_MODELS
+
+REWARD_MODELS = {
+    "rouge": RougeRewardModel,
+    "relevance": RelevanceRewardModel,
+    "diff": DiffRewardModel,
+    "float_diff": FloatDiffModel,
+    "date": DateRewardModel,
+    "ordinal": OrdinalRewardModel,
+    "streaming": StreamingRewardModel,
+    "multiple_choice": MultipleChoiceModel,
+}
