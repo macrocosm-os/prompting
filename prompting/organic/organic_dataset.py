@@ -1,3 +1,6 @@
+"""
+TODO (dbobrenko): Decouple code from prompting module.
+"""
 from typing import Any, Optional
 
 from prompting.protocol import StreamPromptingSynapse

@@ -28,15 +28,15 @@ import torch
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.conversation import create_task
+from prompting.organic import organic_task
 from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
-from prompting.tasks import QuestionAnsweringTask, organic_task
+from prompting.tasks import QuestionAnsweringTask
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from transformers import PreTrainedTokenizerFast as Tokenizer
 from prompting.utils.uids import get_random_uids
-from dataclasses import dataclass
 
 SINGLE_TURN_TASKS = ('sentiment', 'translation', organic_task.TASK_NAME)
 
@@ -74,7 +74,7 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
             raise ValueError(
                 f"Something went wrong with miner uid {uid}, Synapse is not StreamPromptingSynapse."
             )
-    except Exception as e:        
+    except Exception as e:
         exception = e
         traceback_details = traceback.format_exc()
         bt.logging.error(

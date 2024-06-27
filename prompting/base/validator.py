@@ -22,8 +22,6 @@ import torch
 import asyncio
 import argparse
 import threading
-from starlette.types import Send
-from functools import partial
 
 import bittensor as bt
 
@@ -31,13 +29,11 @@ from typing import AsyncGenerator, List
 from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
-from prompting.forward import query_miners
 from prompting.mock import MockDendrite
-from prompting.protocol import StreamPromptingSynapse
-from prompting.tools.datasets.organic_dataset import OrganicDataset
+from prompting.organic.organic_dataset import OrganicDataset
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
-from prompting.utils.uids import get_random_uids, get_uids
+from prompting.organic.organic_weight_setter import OrganicWeightSetter
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -80,48 +76,16 @@ class BaseValidatorNeuron(BaseNeuron):
         self.is_running: bool = False
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
-        self._organic_dataset = OrganicDataset()
-
-    async def _handle_organic(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        bt.logging.info(f"Organic handle: {synapse}")
-
-        async def _handle_response(responses, send: Send):
-            for resp in responses:
-                async for chunk in resp:
-                    if isinstance(chunk, str):
-                        await send(
-                            {
-                                "type": "http.response.body",
-                                "body": chunk.encode("utf-8"),
-                                "more_body": True,
-                            }
-                        )
-                        bt.logging.info(f"Streamed text: {chunk}")
-                await send({"type": "http.response.body", "body": b"", "more_body": False})
-
-        async def _prompt(synapse, send: Send):
-            uids = get_uids(self, sampling_mode="random", k=self.config.neuron.organic_size, exclude=[])
-            bt.logging.info(f"Sending {synapse} request to UIDs: {uids}")
-            responses = await query_miners(self, synapse.roles, synapse.messages, uids, self.config.neuron.timeout)
-            return await _handle_response(responses, send)
-
-        token_streamer = partial(_prompt, synapse)
-        streaming_response = synapse.create_streaming_response(token_streamer)
-        self._organic_dataset.add({"synapse": synapse, "response": streaming_response})
-        return streaming_response
-
-    def serve_axon(self):
+        self._serve_axon()
+        self._organic_weight_setter = OrganicWeightSetter(validator=self, axon=self._axon, loop=self.loop)
+    
+    def _serve_axon(self):
         """Serve axon to enable external connections"""
-        validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+        validator_uid = self._val.metagraph.hotkeys.index(self._val.wallet.hotkey.ss58_address)
         bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
-        self.axon = bt.axon(wallet=self.wallet, config=self.config)
-        self.axon.attach(
-            forward_fn=self._handle_organic,
-            blacklist_fn=None,
-            priority_fn=None,
-        )
-        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
-        self.axon.start()
+        self._axon = bt.axon(wallet=self._val.wallet, config=self._val.config)
+        self._axon.serve(netuid=self._val.config.netuid, subtensor=self._val.subtensor)
+        self._axon.start()
 
     def run(self):
         """
@@ -146,7 +110,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Check that validator is registered on the network.
         self.sync()
 
-        self.serve_axon()
+        self._organic_weight_setter.start_task()
         if not self.config.neuron.axon_off:
             bt.logging.info(
                 f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"

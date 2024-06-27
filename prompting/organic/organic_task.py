@@ -1,3 +1,6 @@
+"""
+TODO (dbobrenko): Decouple code from prompting module.
+"""
 import time
 from typing import Any
 import bittensor as bt
