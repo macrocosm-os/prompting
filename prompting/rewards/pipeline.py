@@ -1,7 +1,7 @@
 from typing import List
 
 from prompting.tasks import TASKS
-from prompting.rewards import BaseRewardModel, REWARD_MODELS
+from ..rewards import BaseRewardModel, REWARD_MODELS
 
 class RewardPipeline:
     def __init__(self, selected_tasks: List[str], device):

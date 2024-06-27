@@ -13,7 +13,6 @@ from .date import DateRewardModel
 from .ordinal import OrdinalRewardModel
 from .multiple_choice import MultipleChoiceModel
 from .streaming import StreamingRewardModel
-from .pipeline import RewardPipeline, REWARD_MODELS
 
 REWARD_MODELS = {
     "rouge": RougeRewardModel,
