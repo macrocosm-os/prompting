@@ -9,7 +9,7 @@ from prompting.dendrite import DendriteResponseEvent
 class MultipleChoiceModel(BaseRewardModel):
     @property
     def name(self) -> str:
-        return "ordinal"
+        return "multiple_choice"
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -46,7 +46,7 @@ class MultipleChoiceModel(BaseRewardModel):
             rewards=torch.FloatTensor(rewards),
             timings=torch.FloatTensor(timings),
             extra_info={
-                "type": "ordinal",
+                "type": self.name,
             },
         )
         return output
