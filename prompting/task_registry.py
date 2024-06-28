@@ -35,7 +35,7 @@ translation_task, translation_dataset = TranslationTask.name, [WikiDataset.name]
 sentiment_analysis_task, sentiment_analysis_dataset = SentimentAnalysisTask.name, [ReviewDataset.name]
 
 TASK_REGISTRY = {
-    organic_task: organic_dataset,
+    # organic_task: organic_dataset,
     summarization_task: summarization_dataset,
     qa_task: qa_dataset,
     #debugging_task: debugging_dataset,

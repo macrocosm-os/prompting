@@ -11,7 +11,7 @@ from .sentiment import SentimentAnalysisTask
 from ..organic.organic_task import OrganicTask
 
 TASKS = {
-    OrganicTask.name: OrganicTask,
+    # OrganicTask.name: OrganicTask,
     QuestionAnsweringTask.name: QuestionAnsweringTask,
     DateQuestionAnsweringTask.name: DateQuestionAnsweringTask,
     SummarizationTask.name: SummarizationTask,

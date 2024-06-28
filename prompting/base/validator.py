@@ -22,6 +22,7 @@ import torch
 import asyncio
 import argparse
 import threading
+import concurrent.futures
 
 import bittensor as bt
 
@@ -70,22 +71,33 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Create asyncio event loop to manage async tasks.
         self.loop = asyncio.get_event_loop()
+        self._executor = concurrent.futures.ThreadPoolExecutor()
+        self._executor.submit(self.start_asyncio_loop, self.loop)
 
         # Instantiate runners
         self.should_exit: bool = False
         self.is_running: bool = False
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
-        self._serve_axon()
-        self._organic_weight_setter = OrganicWeightSetter(validator=self, axon=self._axon, loop=self.loop)
-    
+        # self._serve_axon()
+        # self._organic_weight_setter = OrganicWeightSetter(validator=self, axon=self.axon, loop=self.loop)
+        self._organic_weight_setter = OrganicWeightSetter(validator=self, axon=None, loop=self.loop)
+        self.axon = self._organic_weight_setter._axon
+
+    @staticmethod
+    def start_asyncio_loop(loop):
+        try:
+            loop.run_forever()
+        except RuntimeError:
+            pass
+
     def _serve_axon(self):
         """Serve axon to enable external connections"""
-        validator_uid = self._val.metagraph.hotkeys.index(self._val.wallet.hotkey.ss58_address)
+        validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
-        self._axon = bt.axon(wallet=self._val.wallet, config=self._val.config)
-        self._axon.serve(netuid=self._val.config.netuid, subtensor=self._val.subtensor)
-        self._axon.start()
+        self.axon = bt.axon(wallet=self.wallet, config=self.config)
+        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
+        self.axon.start()
 
     def run(self):
         """
@@ -129,7 +141,13 @@ class BaseValidatorNeuron(BaseNeuron):
 
                 forward_timeout = self.config.neuron.forward_max_time
                 try:
-                    pass
+                    # pass
+                    forward_future = asyncio.run_coroutine_threadsafe(self.forward(), self.loop)
+                    try:
+                        forward_future.result(timeout=forward_timeout)
+                    except concurrent.futures.TimeoutError:
+                        print("Forward task timed out")
+
                     # task = self.loop.create_task(self.forward())
                     # self.loop.run_until_complete(
                     #     asyncio.wait_for(task, timeout=forward_timeout)

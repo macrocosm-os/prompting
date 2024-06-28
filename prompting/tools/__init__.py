@@ -14,7 +14,7 @@ from .selector import Selector
 
 DATASETS = {
     #HFCodingDataset.name: HFCodingDataset,
-    OrganicDataset.name: OrganicDataset,
+    # OrganicDataset.name: OrganicDataset,
     WikiDataset.name: WikiDataset,
     #StackOverflowDataset.name: StackOverflowDataset,
     MathDataset.name: MathDataset,

@@ -158,6 +158,7 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
             f"Failed response for uid {failed_response.uid}: {formatted_exception}"
         )
 
+
 async def query_miners(self, roles: List[str], messages: List[str], uids: torch.LongTensor, timeout: float):
     axons = [self.metagraph.axons[uid] for uid in uids]
     # Directly call dendrite and process responses in parallel
