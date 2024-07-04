@@ -70,8 +70,11 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
         self.accumulated_prompt_tokens = 0
         self.accumulated_completion_tokens = 0
         self.accumulated_total_cost = 0
+        bt.logging.info("STARTING MINER")
 
     def forward(self, synapse: StreamPromptingSynapse) -> Awaitable:
+        bt.logging.info(f"Received request with {synapse.messages}")
+
         async def _forward(
             self,
             synapse: StreamPromptingSynapse,
@@ -87,7 +90,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             timeout_reached = False
             
 
-            try:                
+            try:
                 system_prompt_message = [{ 'role': 'system', 'content': self.system_prompt }]
                 synapse_messages = [{'role': role, 'content': message} for role, message in zip(synapse.roles, synapse.messages)]
                 
@@ -106,7 +109,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                     chunk_content = chunk.choices[0].delta.content
                     
                     if chunk_content is None:
-                        bt.logging.info("OpenAI returned chunk content with None")
+                        # bt.logging.info("OpenAI returned chunk content with None")
                         continue
                     
                     accumulated_chunks.append(chunk_content)
@@ -119,8 +122,10 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                         timeout_reached = True
                         break
 
+                    # bt.logging.info(f"Streaming back request {synapse.messages} -- {buffer} / {self.config.neuron.streaming_batch_size}")
                     if len(buffer) == self.config.neuron.streaming_batch_size:
                         joined_buffer = "".join(buffer)
+                        bt.logging.info(f"Streaming back request {synapse.messages} -- {joined_buffer}")
                         temp_completion += joined_buffer
                         bt.logging.debug(f"Streamed tokens: {joined_buffer}")
 
@@ -137,6 +142,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                     buffer and not timeout_reached
                 ):  # Don't send the last buffer of data if timeout.
                     joined_buffer = "".join(buffer)
+                    bt.logging.info(f"On buffer end {synapse.messages} -- {joined_buffer}")
                     await send(
                         {
                             "type": "http.response.body",

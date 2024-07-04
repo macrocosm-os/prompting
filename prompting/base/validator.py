@@ -79,10 +79,8 @@ class BaseValidatorNeuron(BaseNeuron):
         self.is_running: bool = False
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
-        # self._serve_axon()
-        # self._organic_weight_setter = OrganicWeightSetter(validator=self, axon=self.axon, loop=self.loop)
-        self._organic_weight_setter = OrganicWeightSetter(validator=self, axon=None, loop=self.loop)
-        self.axon = self._organic_weight_setter._axon
+        self._serve_axon()
+        self._organic_weight_setter = OrganicWeightSetter(validator=self, axon=self.axon, loop=self.loop)
 
     @staticmethod
     def start_asyncio_loop(loop):
@@ -101,7 +99,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def run(self):
         """
-        Initiates and manages the main loop for the miner on the Bittensor network. The main loop handles graceful shutdown on keyboard interrupts and logs unforeseen errors.
+        Initiates and manages the main lop for the miner on the Bittensor network. The main loop handles graceful shutdown on keyboard interrupts and logs unforeseen errors.
 
         This function performs the following primary tasks:
         1. Check for registration on the Bittensor network.
@@ -141,17 +139,12 @@ class BaseValidatorNeuron(BaseNeuron):
 
                 forward_timeout = self.config.neuron.forward_max_time
                 try:
-                    # pass
                     forward_future = asyncio.run_coroutine_threadsafe(self.forward(), self.loop)
                     try:
                         forward_future.result(timeout=forward_timeout)
                     except concurrent.futures.TimeoutError:
                         print("Forward task timed out")
 
-                    # task = self.loop.create_task(self.forward())
-                    # self.loop.run_until_complete(
-                    #     asyncio.wait_for(task, timeout=forward_timeout)
-                    # )
                 except torch.cuda.OutOfMemoryError as e:
                     bt.logging.error(f"Out of memory error: {e}")
                     continue

@@ -13,8 +13,7 @@ from prompting.base.neuron import BaseNeuron
 from prompting.dendrite import DendriteResponseEvent
 from prompting.organic import organic_task
 from prompting.protocol import StreamPromptingSynapse
-from prompting.forward import handle_response, log_stream_results, query_miners
-from prompting.protocol import StreamPromptingSynapse
+from prompting.forward import QueryMinersManager, handle_response, log_stream_results, query_miners
 from prompting.organic.organic_dataset import OrganicDataset
 from prompting.rewards.reward import RewardResult
 from prompting.utils.logging import log_event
@@ -45,27 +44,21 @@ class OrganicWeightSetter:
         self._organic_dataset = OrganicDataset()
 
     def start_task(self):
-        validator_uid = self._val.metagraph.hotkeys.index(self._val.wallet.hotkey.ss58_address)
-        bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
-        self._axon = bt.axon(wallet=self._val.wallet, config=self._val.config)
+        # validator_uid = self._val.metagraph.hotkeys.index(self._val.wallet.hotkey.ss58_address)
+        # bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
+        # self._axon = bt.axon(wallet=self._val.wallet, config=self._val.config)
         self._axon.attach(
             forward_fn=self._handle_organic,
             blacklist_fn=None,
             priority_fn=None,
         )
-        self._axon.serve(netuid=self._val.config.netuid, subtensor=self._val.subtensor)
-        self._axon.start()
-        # try:
-        #     asyncio.run_coroutine_threadsafe(self._weight_setter(), self._loop)
-        #     bt.logging.info("Weight setter task started successfully.")
-        # except Exception as e:
-        #     bt.logging.error(f"Failed to start weight setter task: {e}")
-
-    # async def _weight_setter(self):
-    #     bt.logging.info("Entered _weight_setter")
-    #     while True:
-    #         bt.logging.info("Weight setter loop iteration")
-    #         await asyncio.sleep(1)  # Simplified for testing
+        # self._axon.serve(netuid=self._val.config.netuid, subtensor=self._val.subtensor)
+        # self._axon.start()
+        try:
+            asyncio.run_coroutine_threadsafe(self._weight_setter(), self._loop)
+            bt.logging.info("Weight setter task started successfully.")
+        except Exception as e:
+            bt.logging.error(f"Failed to start weight setter task: {e}")
 
     async def _weight_setter(self):
         while True:
@@ -125,7 +118,14 @@ class OrganicWeightSetter:
         uids = get_random_uids(self._val, k=k, exclude=exclude or []).to(self._val.device)
         uids_cpu = uids.cpu().tolist()
         # TODO: if organic and response is ready
-        streams_responses = await query_miners(self._val, roles, messages, uids, timeout)
+        # streams_responses = await query_miners(self._val, roles, messages, uids, timeout)
+        streams_responses = await QueryMinersManager(validator=self._val).query_miners(
+            0,
+            roles,
+            messages,
+            uids,
+            self._val.config.neuron.timeout
+        )
 
         # Prepare the task for handling stream responses
         stream_results_dict = dict(zip(uids_cpu, streams_responses))
@@ -134,7 +134,6 @@ class OrganicWeightSetter:
 
         log_stream_results(stream_results)
 
-        # TODO: Create separate thread for consuming organic prompts, and return reward.
         # Encapsulate the responses in a response event (dataclass)
         response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
 
@@ -171,41 +170,9 @@ class OrganicWeightSetter:
             **reward_result.__state_dict__(full=self._val.config.neuron.log_full),
             **response_event.__state_dict__(),
         }
-
         return event
 
     async def _handle_organic(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        async def token_streamer(send: Send) -> Awaitable[None]:
-            return await self._query_miner_uids(synapse, uids, send)
-
-        # token_streamer = partial(self._query_miner_uids, synapse, uids)
-
-        bt.logging.info(f"Organic handle: {synapse}")
-        uids = get_uids(self._val, sampling_mode="random", k=self._val.config.neuron.organic_size, exclude=[])
-        streaming_response = synapse.create_streaming_response(token_streamer)
-        self._organic_dataset.add({"synapse": synapse, "response": streaming_response, "uids": uids})
-        return streaming_response
-
-    async def _query_miner_uids(self, synapse: StreamPromptingSynapse, uids, send: Send):
-        bt.logging.info(f"Sending {synapse} request to UIDs: {uids}")
-        responses = await query_miners(self._val, synapse.roles, synapse.messages, uids, self._val.config.neuron.timeout)
-        return await self._stream_miner_responses(responses, send)
-
-    async def _stream_miner_responses(self, responses: AsyncIterator, send: Send):
-        for resp in responses:
-            async for chunk in resp:
-                if isinstance(chunk, str):
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": chunk.encode("utf-8"),
-                            "more_body": True,
-                        }
-                    )
-                    bt.logging.info(f"Streamed text: {chunk}")
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
-
-    async def _handle_organic1(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         async def _forward(
             self,
             synapse: StreamPromptingSynapse,
@@ -214,107 +181,59 @@ class OrganicWeightSetter:
             timeout_threshold: float,
             send: Send,
         ):
-            buffer = []
             accumulated_chunks = []
-            accumulated_chunks_timings = []
-            messages = []
-            temp_completion = ""  # for wandb logging
-            timeout_reached = False
+            # accumulated_chunks_timings = []
+            # messages = []
+            # temp_completion = ""  # for wandb logging
+            # timeout_reached = False
 
             try:
-                start_time = time.time()
-
-                responses = await query_miners(
-                    self._val,
+                # timer_start = time.perf_counter()
+                responses = await QueryMinersManager(validator=self._val).query_miners(
+                    1,
                     synapse.roles,
                     synapse.messages,
                     uids,
                     self._val.config.neuron.timeout
                 )
-                # system_prompt_message = [{"role": "system", "content": self.system_prompt}]
-                # synapse_messages = [{"role": role, "content": message}
-                #                     for role, message in zip(synapse.roles, synapse.messages)]
-                
-                # messages = system_prompt_message + synapse_messages
-                
-                # stream_response = self.model.chat.completions.create(
-                #     model=self.config.neuron.model_id,
-                #     messages=messages,
-                #     temperature=self.config.neuron.temperature,
-                #     max_tokens=self.config.neuron.max_tokens,
-                #     stream=True
-                # )
 
-                async for chunk in responses:
-                    if isinstance(chunk, list):
-                        concatenated_chunks = "".join(chunk)
-                        await send(
-                            {
-                                "type": "http.response.body",
-                                "body": concatenated_chunks.encode("utf-8"),
-                                "more_body": True,
-                            }
-                        )
-                        bt.logging.info(f"Streamed text: {chunk}")
-                    if isinstance(chunk, str):
-                        await send(
-                            {
-                                "type": "http.response.body",
-                                "body": chunk.encode("utf-8"),
-                                "more_body": True,
-                            }
-                        )
-                        bt.logging.info(f"Streamed text: {chunk}")
-                    if chunk is not None and isinstance(chunk, StreamPromptingSynapse):
-                        if len(self.accumulated_chunks) == 0:
-                            self.accumulated_chunks.append(chunk.completion)
-                            self.accumulated_chunks_timings.append(time.time() - start_time)
-                        
-                        self.finish_reason = "completed"
-                        self.sequence_number += 1
-                        # Assuming the last chunk holds the last value yielded which should be a synapse with the completion filled
-                        synapse = chunk 
-                        
-                        await send(
-                            {
-                                "type": "http.response.body",
-                                "body": synapse.completion.encode("utf-8"),
-                                "more_body": True,
-                            }
-                        )
-
-            #         chunk_content = chunk.choices[0].delta.content
-            #         if chunk_content is None:
-            #             bt.logging.info("OpenAI returned chunk content with None")
-            #             continue
+                for chunks in responses:
+                    # await asyncio.sleep(1)
+                    async for chunk in chunks:
+                        if isinstance(chunk, str):
+                            accumulated_chunks.append(chunk)
+                            await send(
+                                {
+                                    "type": "http.response.body",
+                                    "body": chunk.encode("utf-8"),
+                                    "more_body": True,
+                                }
+                            )
+                            bt.logging.info(f"Streamed text: {chunk}")
+                        if chunk is not None and isinstance(chunk, StreamPromptingSynapse):
+                            accumulated_chunks.append(chunk.completion)
+                            # self.finish_reason = "completed"
+                            # self.sequence_number += 1
+                            # Assuming the last chunk holds the last value yielded which should be a synapse with the completion filled
+                            synapse = chunk
+                            
+                            if len(accumulated_chunks) == 0:
+                                await send(
+                                    {
+                                        "type": "http.response.body",
+                                        "body": synapse.completion.encode("utf-8"),
+                                        "more_body": True,
+                                    }
+                                )
 
             #         accumulated_chunks.append(chunk_content)
-            #         accumulated_chunks_timings.append(time.time() - start_time)
-
+            #         accumulated_chunks_timings.append(time.perf_counter() - timer_start)
             #         buffer.append(chunk_content)
-
             #         if time.time() - init_time > timeout_threshold:
             #             bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
             #             timeout_reached = True
             #             break
-
-            #         if len(buffer) == self._val.config.neuron.streaming_batch_size:
-            #             joined_buffer = "".join(buffer)
-            #             temp_completion += joined_buffer
-            #             bt.logging.debug(f"Streamed tokens: {joined_buffer}")
-
-            #             await send(
-            #                 {
-            #                     "type": "http.response.body",
-            #                     "body": joined_buffer.encode("utf-8"),
-            #                     "more_body": True,
-            #                 }
-            #             )
-            #             buffer = []
-
-            #     if (
-            #         buffer and not timeout_reached
-            #     ):  # Don't send the last buffer of data if timeout.
+            #     if (buffer and not timeout_reached):  # Don't send the last buffer of data if timeout.
             #         joined_buffer = "".join(buffer)
             #         await send(
             #             {
@@ -332,14 +251,16 @@ class OrganicWeightSetter:
 
             finally:
                 synapse_latency = time.time() - init_time
-            #     # if self.config.wandb.on:
-            #     #     self.log_event(
-            #     #         synapse=synapse,
-            #     #         timing=synapse_latency,
-            #     #         messages=messages,
-            #     #         accumulated_chunks=accumulated_chunks,
-            #     #         accumulated_chunks_timings = accumulated_chunks_timings,
-            #     #     )
+                print(synapse)
+                print("".join(accumulated_chunks))
+                # if self.config.wandb.on:
+                #     self.log_event(
+                #         synapse=synapse,
+                #         timing=synapse_latency,
+                #         messages=messages,
+                #         accumulated_chunks=accumulated_chunks,
+                #         accumulated_chunks_timings = accumulated_chunks_timings,
+                #     )
 
         bt.logging.debug(f"📧 Message received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}; \nForwarding synapse: {synapse}")
 

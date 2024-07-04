@@ -328,14 +328,15 @@ def add_validator_args(cls, parser):
         "--neuron.sample_size",
         type=int,
         help="The number of miners to query in a single step.",
-        default=100,
+        # default=100,
+        default=1,
     )
 
     parser.add_argument(
         "--neuron.organic_size",
         type=int,
         help="The number of miners to organic query in a single step.",
-        default=5,
+        default=1,
     )
 
     parser.add_argument(
