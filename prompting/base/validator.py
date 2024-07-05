@@ -18,11 +18,11 @@
 import random
 import sys
 import copy
+import time
 import torch
 import asyncio
 import argparse
 import threading
-import concurrent.futures
 
 import bittensor as bt
 
@@ -31,7 +31,6 @@ from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
-from prompting.organic.organic_dataset import OrganicDataset
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
 from prompting.organic.organic_weight_setter import OrganicWeightSetter
@@ -70,32 +69,33 @@ class BaseValidatorNeuron(BaseNeuron):
         self.sync()
 
         # Create asyncio event loop to manage async tasks.
-        self.loop = asyncio.get_event_loop()
-        self._executor = concurrent.futures.ThreadPoolExecutor()
-        self._executor.submit(self.start_asyncio_loop, self.loop)
+        # self.loop = asyncio.get_event_loop()
+        # self._executor = concurrent.futures.ThreadPoolExecutor()
+        # self._executor.submit(self.start_asyncio_loop, self.loop)
 
         # Instantiate runners
         self.should_exit: bool = False
         self.is_running: bool = False
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
-        self._serve_axon()
-        self._organic_weight_setter = OrganicWeightSetter(validator=self, axon=self.axon, loop=self.loop)
+        self.axon = None
+        # self._serve_axon()
+        # self.axon = bt.axon(wallet=self.wallet, config=self.config)
+        # self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
+        # self.axon.start()
 
-    @staticmethod
-    def start_asyncio_loop(loop):
-        try:
-            loop.run_forever()
-        except RuntimeError:
-            pass
+    # @staticmethod
+    # def start_asyncio_loop(loop):
+    #     try:
+    #         loop.run_forever()
+    #     except RuntimeError:
+    #         pass
 
     def _serve_axon(self):
         """Serve axon to enable external connections"""
         validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
         self.axon = bt.axon(wallet=self.wallet, config=self.config)
-        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
-        self.axon.start()
 
     def run(self):
         """
@@ -120,7 +120,6 @@ class BaseValidatorNeuron(BaseNeuron):
         # Check that validator is registered on the network.
         self.sync()
 
-        self._organic_weight_setter.start_task()
         if not self.config.neuron.axon_off:
             bt.logging.info(
                 f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
@@ -132,6 +131,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
         bt.logging.info(f"Validator starting at block: {self.block}")
 
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
         # This loop maintains the validator's operations until intentionally stopped.
         try:
             while True:
@@ -139,12 +141,18 @@ class BaseValidatorNeuron(BaseNeuron):
 
                 forward_timeout = self.config.neuron.forward_max_time
                 try:
-                    forward_future = asyncio.run_coroutine_threadsafe(self.forward(), self.loop)
-                    try:
-                        forward_future.result(timeout=forward_timeout)
-                    except concurrent.futures.TimeoutError:
-                        print("Forward task timed out")
+                    task = self.loop.create_task(self.forward())
+                    self.loop.run_until_complete(
+                        asyncio.wait_for(task, timeout=forward_timeout)
+                    )
 
+                    # forward_future = asyncio.run_coroutine_threadsafe(self.forward(), self.loop)
+                    # try:
+                    #     forward_future.result(timeout=forward_timeout)
+                    # except concurrent.futures.TimeoutError:
+                    #     print("Forward task timed out")
+
+                    time.sleep(5)
                 except torch.cuda.OutOfMemoryError as e:
                     bt.logging.error(f"Out of memory error: {e}")
                     continue

@@ -125,7 +125,7 @@ def add_args(cls, parser):
         "--no_background_thread",
         action="store_true",
         help="If set, we dont run the neuron in a background thread.",
-        default=True,
+        default=False,
     )
 
     parser.add_argument(

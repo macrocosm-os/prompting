@@ -2,6 +2,7 @@ import bittensor as bt
 from prompting.forward import forward
 from prompting.llms import vLLMPipeline
 from prompting.base.validator import BaseValidatorNeuron
+from prompting.organic.organic_weight_setter import OrganicWeightSetter
 from prompting.rewards import RewardPipeline
 from prompting.tasks.translate import TranslationPipeline
 
@@ -39,6 +40,8 @@ class Validator(BaseValidatorNeuron):
         self.reward_pipeline = RewardPipeline(
             selected_tasks=self.active_tasks, device=self.device
         )
+        self._organic_weight_setter = OrganicWeightSetter(validator=self, axon=self.axon)
+        self._organic_weight_setter.start_task()
 
     async def forward(self):
         """
@@ -56,7 +59,8 @@ class Validator(BaseValidatorNeuron):
             bt.logging.warning("Running validator in main thread.")
             self.run()
         else:
-            self.run_in_background_thread()
+            pass
+            # self.run_in_background_thread()
 
         return self
 

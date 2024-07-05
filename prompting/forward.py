@@ -199,10 +199,8 @@ class QueryMinersManager:
 
 
 async def query_miners(self, roles: List[str], messages: List[str], uids: torch.LongTensor, timeout: float):
-    axons = [self.metagraph.axons[uid] for uid in uids]
-    # Directly call dendrite and process responses in parallel
     return await self.dendrite(
-        axons=axons,
+        axons=[self.metagraph.axons[uid] for uid in uids],
         synapse=StreamPromptingSynapse(roles=roles, messages=messages),
         timeout=timeout,
         deserialize=False,
@@ -347,7 +345,6 @@ async def forward(self):
         # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step.
         # To be reconsidered in the next version.
         try:
-            continue
             # when run_step is called, the agent updates its progress
             event = await run_step(
                 self,
@@ -400,8 +397,8 @@ async def forward(self):
 
             log_event(self, event)
 
-            await asyncio.sleep(1)
+            await asyncio.sleep(5)
             continue
-    await asyncio.sleep(1)
+    await asyncio.sleep(5)
     del agent
     del task
