@@ -21,7 +21,6 @@ import torch
 import argparse
 import bittensor as bt
 import logging
-from prompting.tasks import TASKS
 
 from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
 
@@ -281,36 +280,6 @@ def add_validator_args(cls, parser):
     )
 
     parser.add_argument(
-        "--neuron.model_id",
-        type=str,
-        help="The model to use for the validator.",
-        default="casperhansen/llama-3-70b-instruct-awq",
-    )
-
-    parser.add_argument(
-        "--neuron.tasks",
-        type=str,
-        nargs="+",
-        help="The tasks to use for the validator.",
-        default=list(TASKS.keys()),
-    )
-
-    parser.add_argument(
-        "--neuron.task_p",
-        type=float,
-        nargs="+",
-        help="The probability of sampling each task.",
-        default=[1.0 / len(TASKS)] * len(TASKS),
-    )
-
-    parser.add_argument(
-        "--neuron.timeout",
-        type=float,
-        help="The timeout for each forward call in seconds.",
-        default=15,
-    )
-
-    parser.add_argument(
         "--neuron.max_tokens",
         type=int,
         help="The maximum number of tokens in generated responses.",
@@ -325,31 +294,10 @@ def add_validator_args(cls, parser):
     )
 
     parser.add_argument(
-        "--neuron.sample_size",
-        type=int,
-        help="The number of miners to query in a single step.",
-        default=100,
-    )
-
-    parser.add_argument(
         "--neuron.disable_set_weights",
         action="store_true",
         help="Disables setting weights.",
         default=False,
-    )
-
-    parser.add_argument(
-        "--neuron.moving_average_alpha",
-        type=float,
-        help="Moving average alpha parameter, how much to add of the new observation.",
-        default=0.1,
-    )
-
-    parser.add_argument(
-        "--neuron.decay_alpha",
-        type=float,
-        help="Constant decay rate for the moving average score.",
-        default=0.001,
     )
 
     parser.add_argument(
@@ -381,20 +329,6 @@ def add_validator_args(cls, parser):
         type=str,
         help="The name of the project where you are sending the new run.",
         default="opentensor-dev",
-    )
-
-    parser.add_argument(
-        "--neuron.query_unique_coldkeys",
-        action="store_true",
-        help="Only query a single hotkey per coldkey.",
-        default=False,
-    )
-
-    parser.add_argument(
-        "--neuron.query_unique_ips",
-        action="store_true",
-        help="Only query a single hotkey per ip.",
-        default=False,
     )
 
     parser.add_argument(

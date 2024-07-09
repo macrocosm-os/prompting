@@ -30,6 +30,7 @@ from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
+from prompting.utils.consts import MOVING_AVERAGE_ALPHA, DECAY_ALPHA
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -331,9 +332,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
-        alpha = self.config.neuron.moving_average_alpha
+        alpha = MOVING_AVERAGE_ALPHA
         self.scores = alpha * step_rewards + (1 - alpha) * self.scores
-        self.scores = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)
+        self.scores = (self.scores - DECAY_ALPHA).clamp(min=0)
         bt.logging.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):

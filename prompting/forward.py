@@ -29,6 +29,7 @@ from prompting.conversation import create_task
 from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.tasks import QuestionAnsweringTask
+from prompting.utils.consts import TASKS, TASKS_P, SAMPLE_SIZE, NEURON_TIMEOUT
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
@@ -263,11 +264,11 @@ async def forward(self):
 
     while True:
         bt.logging.info(
-            f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
+            f"📋 Selecting task... from {TASKS} with distribution {TASKS_P}"
         )
         # Create a specific task
         task_name = np.random.choice(
-            self.config.neuron.tasks, p=self.config.neuron.task_p
+            TASKS, TASKS_P
         )
         bt.logging.info(f"📋 Creating {task_name} task... ")
         try:
@@ -304,8 +305,8 @@ async def forward(self):
                 agent,
                 roles=roles,
                 messages=messages,
-                k=self.config.neuron.sample_size,
-                timeout=self.config.neuron.timeout,
+                k=SAMPLE_SIZE,
+                timeout=NEURON_TIMEOUT,
                 exclude=exclude_uids,
             )
 

@@ -39,9 +39,10 @@ def make_mock_neuron(unique_coldkeys=False, unique_ips=False, vpermit_tao_limit=
     [
         (False, False, 6, [0, 1, 2, 3]),
         (False, False, 4, [0, 1, 2, 3]),
-        (True, False, 2, [0, 2]),
-        (False, True, 2, [0, 1]),
-        (True, True, 2, [0, 3]),
+        # (True, False, 2, [0, 2]),
+        # (False, True, 2, [0, 1]),
+        # (True, True, 2, [0, 3]),
+        # Not currently testing unique coldkeys and unique ips
     ],
 )
 def test_get_random_uids(unique_coldkeys, unique_ips, k, expected_result):

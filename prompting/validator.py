@@ -1,9 +1,11 @@
 import bittensor as bt
+from prompting.utils.consts import VALIDATOR_MODEL_ID, TASKS, TASKS_P
 from prompting.forward import forward
 from prompting.llms import vLLMPipeline
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.rewards import RewardPipeline
 from prompting.tasks.translate import TranslationPipeline
+
 
 
 class Validator(BaseValidatorNeuron):
@@ -18,7 +20,7 @@ class Validator(BaseValidatorNeuron):
         self.load_state()
 
         self.llm_pipeline = vLLMPipeline(
-            model_id=self.config.neuron.model_id,
+            model_id=VALIDATOR_MODEL_ID,
             gpus=self.config.neuron.gpus,
             llm_max_allowed_memory_in_gb=self.config.neuron.llm_max_allowed_memory_in_gb,
             device=self.device,
@@ -26,13 +28,13 @@ class Validator(BaseValidatorNeuron):
         )        
         self.translation_pipeline = TranslationPipeline()
 
-        if abs(1-sum(self.config.neuron.task_p)) > 0.001:
+        if abs(1-sum(TASKS_P)) > 0.001:
             raise ValueError("Task probabilities do not sum to 1.")
 
         # Filter out tasks with 0 probability
         self.active_tasks = [
             task
-            for task, p in zip(self.config.neuron.tasks, self.config.neuron.task_p)
+            for task, p in zip(TASKS, TASKS_P)
             if p > 0
         ]
         # Load the reward pipeline

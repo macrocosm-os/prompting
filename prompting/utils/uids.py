@@ -2,6 +2,7 @@ import torch
 import random
 import bittensor as bt
 from typing import List
+from prompting.utils.consts import QUERY_UNIQUE_COLDKEYS, QUERY_UNIQUE_IPS
 
 
 def check_uid_availability(
@@ -70,10 +71,10 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
         if not uid_is_available:
             continue
 
-        if self.config.neuron.query_unique_coldkeys:
+        if QUERY_UNIQUE_COLDKEYS:
             coldkeys.add(self.metagraph.axons[uid].coldkey)
 
-        if self.config.neuron.query_unique_ips:
+        if QUERY_UNIQUE_IPS:
             ips.add(self.metagraph.axons[uid].ip)
 
         if exclude is None or uid not in exclude:
@@ -82,7 +83,7 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
     # Check if candidate_uids contain enough for querying, if not grab all avaliable uids
     if 0 < len(candidate_uids) < k:
         bt.logging.warning(
-            f"Requested {k} uids but only {len(candidate_uids)} were available. To disable this warning reduce the sample size (--neuron.sample_size)"
+            f"Requested {k} uids but only {len(candidate_uids)} were available."
         )
         return torch.tensor(candidate_uids)
     elif len(candidate_uids) >= k:
