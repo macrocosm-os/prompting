@@ -1,6 +1,3 @@
-"""
-TODO (dbobrenko): Decouple code from prompting module.
-"""
 from typing import Any, Optional
 
 from prompting.protocol import StreamPromptingSynapse
@@ -16,7 +13,7 @@ class OrganicDataset(Dataset):
     
     _instance = None
     _lock = threading.Lock()
-    _queue: list[StreamPromptingSynapse] = []
+    _queue: list[dict] = []
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
@@ -68,5 +65,3 @@ if __name__ == "__main__":
     dataset1.add(StreamPromptingSynapse(messages=["Capital of South Korea?"], roles=["user"]))
     print(dataset2.random()["synapse"].messages)
     print(dataset2.random()["synapse"].messages)
-    # This will raise an IndexError as the queue is empty
-    # print(dataset2.random().messages) 

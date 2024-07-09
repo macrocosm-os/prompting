@@ -159,55 +159,6 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
         )
 
 
-class QueryMinersManager:
-    _instance = None
-
-    def __new__(cls, validator):
-        if cls._instance is None:
-            cls._instance = super(QueryMinersManager, cls).__new__(cls)
-            # Initialize attributes only once
-            cls._instance.current_priority = 0  # 0 for low, 1 for high
-            cls._instance.event = asyncio.Event()
-            cls._instance.metagraph = validator.metagraph
-            cls._instance.dendrite = validator.dendrite
-            cls._val = validator
-            cls._instance.lock = asyncio.Lock()
-        return cls._instance
-
-    async def query_miners(self, priority, roles, messages, uids, timeout):
-        async with self.lock:
-            if priority > self.current_priority:
-                self.current_priority = priority
-                self.event.set()  # Signal that a higher-priority task is starting
-
-            # Prepare the axons and call the dendrite
-            axons = [self.metagraph.axons[uid] for uid in uids]
-            streams_responses = await self._val.dendrite(
-                axons=axons,
-                synapse=StreamPromptingSynapse(roles=roles, messages=messages),
-                timeout=timeout,
-                deserialize=False,
-                streaming=True,
-            )
-            bt.logging.info(f"Querying miners with priority={priority}")
-
-            if self.event.is_set() and priority == self.current_priority:
-                # Clear the event after processing the higher-priority task
-                self.event.clear()
-
-            return streams_responses
-
-
-async def query_miners(self, roles: List[str], messages: List[str], uids: torch.LongTensor, timeout: float):
-    return await self.dendrite(
-        axons=[self.metagraph.axons[uid] for uid in uids],
-        synapse=StreamPromptingSynapse(roles=roles, messages=messages),
-        timeout=timeout,
-        deserialize=False,
-        streaming=True,
-    )
-
-
 async def run_step(
     self, agent: HumanAgent, roles: List[str], messages: List[str], k: int, timeout: float, exclude: list = None
 ):
@@ -233,9 +184,13 @@ async def run_step(
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
     uids_cpu = uids.cpu().tolist()
-    # TODO: if organic and response is ready
-    streams_responses = await QueryMinersManager(validator=self).query_miners(0, roles, messages, uids, timeout)
-    # streams_responses = await query_miners(self, roles, messages, uids, timeout)
+    streams_responses = await self.dendrite(
+        axons=[self.metagraph.axons[uid] for uid in uids],
+        synapse=StreamPromptingSynapse(roles=roles, messages=messages),
+        timeout=timeout,
+        deserialize=False,
+        streaming=True,
+    )
 
     # Prepare the task for handling stream responses
     stream_results_dict = dict(zip(uids_cpu, streams_responses))

@@ -16,7 +16,7 @@ from prompting.base.neuron import BaseNeuron
 from prompting.dendrite import DendriteResponseEvent
 from prompting.organic import organic_task
 from prompting.protocol import StreamPromptingSynapse
-from prompting.forward import QueryMinersManager, handle_response, log_stream_results, query_miners
+from prompting.forward import handle_response, log_stream_results
 from prompting.organic.organic_dataset import OrganicDataset
 from prompting.rewards.reward import RewardResult
 from prompting.utils.logging import log_event
@@ -48,7 +48,6 @@ class OrganicWeightSetter:
         self._organic_dataset = OrganicDataset()
 
     def start_task(self):
-
         try:
             # asyncio.run_coroutine_threadsafe(self._weight_setter(), self._loop)
             self.run_in_background_thread()
@@ -80,77 +79,61 @@ class OrganicWeightSetter:
             self.is_running = False
             bt.logging.debug("Stopped")
 
-    async def simple_coroutine(self):
-        bt.logging.debug("Entered simple_coroutine")
-        await asyncio.sleep(1)
-        return "simple result"
+    async def _priority_fn(self, synapse: StreamPromptingSynapse) -> float:
+        # High priority for organic traffic.
+        return 1000000.0
 
     def _weight_setter(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        ###
-        self._axon = bt.axon(wallet=self._val.wallet, config=self._val.config)
         self._axon.attach(
-            forward_fn=self._handle_organic,
+            forward_fn=self.on_organic_entry,
             blacklist_fn=None,
-            priority_fn=None,
+            priority_fn=self._priority_fn,
         )
-        self._axon.serve(netuid=self._val.config.netuid, subtensor=self._val.subtensor)
-        self._axon.start()
-
-        async def stop_event_loop():
-            while not self.should_exit:
-                await asyncio.sleep(0.1)
-            loop.stop()
-            bt.logging.debug("Event loop stopped.")
-
-        loop.create_task(stop_event_loop())
-
-        async def run_tasks_forever():
-            while not self.should_exit:
-                timer_start = time.perf_counter()
-                task_name = organic_task.TASK_NAME
-                try:
-                    task = organic_task.OrganicTask(
-                        llm_pipeline=self._val.llm_pipeline,
-                        context=self._organic_dataset.next(),
-                        create_reference=True,
-                    )
-                except Exception as e:
-                    bt.logging.error(f"Failed to create {task_name} task. {sys.exc_info()}.")
-                    continue
-                agent = HumanAgent(task=task, llm_pipeline=self._val.llm_pipeline, begin_conversation=True)
-                roles = task.roles
-                messages = task.messages
-                try:
-                    # Schedule the async task in the new event loop
-                    # event = await self.simple_coroutine()
-                    event = await asyncio.wait_for(
-                        self._run_step(
-                            agent=agent,
-                            roles=roles,
-                            messages=messages,
-                            k=self._val.config.neuron.organic_size,
-                            timeout=self._val.config.neuron.timeout,
-                            exclude=None,
-                        ),
-                        timeout=30
-                    )
-
-                    # Adds forward time to event and logs it to wandb.
-                    event["forward_time"] = time.perf_counter() - timer_start
-                    log_event(self._val, event)
-                except asyncio.TimeoutError:
-                    bt.logging.error(f"Failed to run {task_name} task. {sys.exc_info()}.")
-                except TimeoutError:
-                    bt.logging.error("Task timed out.")
 
         try:
-            loop.run_until_complete(run_tasks_forever())
+            loop.run_until_complete(self._run_tasks_loop())
         finally:
             loop.close()
 
+    async def _run_tasks_loop(self):
+        while not self.should_exit:
+            timer_start = time.perf_counter()
+            task_name = organic_task.TASK_NAME
+            try:
+                task = organic_task.OrganicTask(
+                    llm_pipeline=self._val.llm_pipeline,
+                    context=self._organic_dataset.next(),
+                    create_reference=True,
+                )
+            except Exception as e:
+                bt.logging.error(f"Failed to create {task_name} task. {sys.exc_info()}.")
+                continue
+            agent = HumanAgent(task=task, llm_pipeline=self._val.llm_pipeline, begin_conversation=True)
+            roles = task.roles
+            messages = task.messages
+            try:
+                event = await asyncio.wait_for(
+                    self._run_step(
+                        agent=agent,
+                        roles=roles,
+                        messages=messages,
+                        k=self._val.config.neuron.organic_size,
+                        timeout=self._val.config.neuron.timeout,
+                        exclude=None,
+                    ),
+                    timeout=30
+                )
+
+                # Adds forward time to event and logs it to wandb.
+                event["forward_time"] = time.perf_counter() - timer_start
+                log_event(self._val, event)
+            except asyncio.TimeoutError:
+                bt.logging.error(f"Failed to run {task_name} task. {sys.exc_info()}.")
+            except TimeoutError:
+                bt.logging.error("Task timed out.")
 
     async def _run_step(
         self, agent: HumanAgent, roles: list[str], messages: list[str], k: int, timeout: float, exclude: list = None
@@ -177,16 +160,14 @@ class OrganicWeightSetter:
         # Get the list of uids to query for this step.
         uids = get_random_uids(self._val, k=k, exclude=exclude or []).to(self._val.device)
         uids_cpu = uids.cpu().tolist()
-        # TODO: if organic and response is ready
-        # streams_responses = await query_miners(self._val, roles, messages, uids, timeout)
+
         bt.logging.info(f"Querying miners with organic reward prompts: {uids_cpu}")
-        # streams_responses = await QueryMinersManager(validator=self._val).query_miners(
-        streams_responses = await query_miners(
-            self._val,
-            roles,
-            messages,
-            uids,
-            self._val.config.neuron.timeout
+        streams_responses = self._val.dendrite.query(
+            axons=[self._val.metagraph.axons[uid] for uid in uids],
+            synapse=StreamPromptingSynapse(roles=roles, messages=messages),
+            timeout=self._val.config.neuron.timeout,
+            deserialize=False,
+            # streaming=True,
         )
 
         # Prepare the task for handling stream responses
@@ -234,140 +215,73 @@ class OrganicWeightSetter:
         }
         return event
 
-    async def _handle_organic(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-        from transformers import AutoTokenizer
-        model_name = "casperhansen/llama-3-8b-instruct-awq"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        async def _forward(
-            self,
-            synapse: StreamPromptingSynapse,
-            uids,
-            init_time: float,
-            timeout_threshold: float,
-            send: Send,
-        ):
-            accumulated_chunks = []
-            # accumulated_chunks_timings = []
-            # messages = []
-            # temp_completion = ""  # for wandb logging
-            # timeout_reached = False
-            try:
-                # timer_start = time.perf_counter()
-                bt.logging.info(f"Querying miners with organic prompts: {uids}")
-                # uids_cpu = uids.cpu().tolist()
-
-                responses = self._val.dendrite.query(
-                    axons=[self._val.metagraph.axons[uid] for uid in uids],
-                    # synapse=StreamPromptingSynapse(roles=synapse.roles, messages=synapse.messages),
-                    synapse=synapse,
-                    timeout=30,
-                    deserialize=False,
-                    streaming=False,
-                    # Doesn't work
-                    # streaming=True,
-                )
-                # responses = await query_miners(
-                #     self._val,
-                #     synapse.roles,
-                #     synapse.messages,
-                #     torch.tensor(uids).to(self._val.device),
-                #     self._val.config.neuron.timeout
-                # )
-
-                # Prepare the task for handling stream responses
-                stream_results_dict = dict(zip(uids, responses))
-                # tokenizer = self._val.llm_pipeline.tokenizer
-                # stream_results = await handle_response(stream_results_dict, tokenizer)
-                # bt.logging.info(f"ORGANIC Response:\n {stream_results[0].synapse.completion}")
-                # return await send(
-                #     {
-                #         "type": "http.response.body",
-                #         "body": stream_results[0].synapse.completion.encode("utf-8"),
-                #         "more_body": True,
-                #     }
-                # )
-
-                bt.logging.info(f"Awaiting miners with organic prompts: {uids}")
-                for chunks in responses:
-                    # await asyncio.sleep(1)
-                    async for chunk in chunks:
-                        if isinstance(chunk, str):
-                            accumulated_chunks.append(chunk)
-                            await send(
-                                {
-                                    "type": "http.response.body",
-                                    "body": chunk.encode("utf-8"),
-                                    "more_body": True,
-                                }
-                            )
-                            bt.logging.info(f"Streamed text: {chunk}")
-                        # if chunk is not None and isinstance(chunk, StreamPromptingSynapse):
-                        #     accumulated_chunks.append(chunk.completion)
-                        #     # self.finish_reason = "completed"
-                        #     # self.sequence_number += 1
-                        #     # Assuming the last chunk holds the last value yielded which should be a synapse with the completion filled
-                        #     synapse = chunk
-                            
-                        #     if len(accumulated_chunks) == 0:
-                        #         await send(
-                        #             {
-                        #                 "type": "http.response.body",
-                        #                 "body": synapse.completion.encode("utf-8"),
-                        #                 "more_body": False,
-                        #             }
-                        #         )
-
-            #         accumulated_chunks.append(chunk_content)
-            #         accumulated_chunks_timings.append(time.perf_counter() - timer_start)
-            #         buffer.append(chunk_content)
-            #         if time.time() - init_time > timeout_threshold:
-            #             bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
-            #             timeout_reached = True
-            #             break
-            #     if (buffer and not timeout_reached):  # Don't send the last buffer of data if timeout.
-            #         joined_buffer = "".join(buffer)
-            #         await send(
-            #             {
-            #                 "type": "http.response.body",
-            #                 "body": joined_buffer.encode("utf-8"),
-            #                 "more_body": False,
-            #             }
-            #         )
-
-            except Exception as e:
-                bt.logging.error(f"Error in forward: {e}")
-            #     # bt.logging.error(print_exception(type(e), e, e.__traceback__))
-            #     if self._val.config.neuron.stop_on_forward_exception:
-            #         self.should_exit = True
-
-            finally:
-                synapse_latency = time.time() - init_time
-                print(f"Organic response: {synapse}")
-                print("".join(accumulated_chunks))
-                # if self.config.wandb.on:
-                #     self.log_event(
-                #         synapse=synapse,
-                #         timing=synapse_latency,
-                #         messages=messages,
-                #         accumulated_chunks=accumulated_chunks,
-                #         accumulated_chunks_timings = accumulated_chunks_timings,
-                #     )
-
-        bt.logging.debug(f"📧 Message received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}; \nForwarding synapse: {synapse}")
+    async def on_organic_entry(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        bt.logging.debug(f"📧 Message received from {synapse.dendrite.hotkey}, "
+                         f"IP: {synapse.dendrite.ip};\nForwarding synapse: {synapse}")
 
         init_time = time.time()
         timeout_threshold = synapse.timeout
 
         uids = get_uids(self._val, sampling_mode="random", k=self._val.config.neuron.organic_size, exclude=[])
+        completions: dict[int, dict] = {}
         token_streamer = partial(
-            _forward,
-            self,
+            self._stream_miner_response,
             synapse,
             uids,
             init_time,
             timeout_threshold,
+            completions,
         )
 
-        # response = synapse.create_streaming_response(token_streamer)
-        # self._organic_dataset.add({"synapse": synapse, "response": response, "uids": uids})
-        return synapse.create_streaming_response(token_streamer)
+        response = synapse.create_streaming_response(token_streamer)
+        self._organic_dataset.add({"synapse": synapse, "response": response, "uids": uids, "completions": completions})
+        return response
+
+    async def _stream_miner_response(
+        self,
+        synapse: StreamPromptingSynapse,
+        uids: list[int],
+        init_time: float,
+        timeout_threshold: float,
+        completions: dict[int, dict],
+        send: Send,
+    ):
+        accumulated_chunks = []
+        try:
+            # timer_start = time.perf_counter()
+            bt.logging.info(f"Querying miners with organic prompts: {uids}")
+
+            responses = self._val.dendrite.query(
+                axons=[self._val.metagraph.axons[uid] for uid in uids],
+                synapse=synapse,
+                timeout=30,
+                deserialize=False,
+                streaming=True,
+            )
+
+            bt.logging.info(f"Awaiting miners with organic prompts: {uids}")
+            for uid, chunks in zip(uids, responses):
+                completions[uid] = {"chunks": [], "completed": False}
+                async for chunk in chunks:
+                    if isinstance(chunk, str):
+                        completions[uid]["chunks"].append(chunk)
+                        accumulated_chunks.append(chunk)
+                        await send(
+                            {
+                                "type": "http.response.body",
+                                "body": chunk.encode("utf-8"),
+                                "more_body": True,
+                            }
+                        )
+                completions[uid]["completed"] = True
+
+
+        # except Exception as e:
+        #     bt.logging.error(f"Error in forward: {e}")
+        #     # bt.logging.error(print_exception(type(e), e, e.__traceback__))
+        #     if self._val.config.neuron.stop_on_forward_exception:
+        #         self.should_exit = True
+
+        finally:
+            synapse_latency = time.time() - init_time
+            bt.logging.info(f"Organic response: {''.join(accumulated_chunks)}")

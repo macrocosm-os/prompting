@@ -78,11 +78,10 @@ class BaseValidatorNeuron(BaseNeuron):
         self.is_running: bool = False
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
-        self.axon = None
         # self._serve_axon()
-        # self.axon = bt.axon(wallet=self.wallet, config=self.config)
-        # self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
-        # self.axon.start()
+        self.axon = bt.axon(wallet=self.wallet, config=self.config)
+        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
+        self.axon.start()
 
     # @staticmethod
     # def start_asyncio_loop(loop):
