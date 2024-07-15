@@ -2,7 +2,7 @@
 
 # Uninstalling mathgenerator
 pip uninstall mathgenerator -y
-
+pip install poetry
 # Installing package from the current directory
 # pip install -e .
 poetry install
