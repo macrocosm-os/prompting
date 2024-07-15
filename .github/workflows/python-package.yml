@@ -5,10 +5,8 @@ name: Prompting CI/CD
 
 on:
   push:
-
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -26,6 +24,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest black
         bash install.sh
+        poetry shell
 
     - name: Lint with flake8
       run: |
