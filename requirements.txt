@@ -30,4 +30,3 @@ wikipedia_sections
 vllm
 argostranslate
 transformers==4.41.2
-autoawq==0.2.5

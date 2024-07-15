@@ -14,3 +14,6 @@ npm install pm2 -g
 
 # Updating PM2
 pm2 update
+
+# installing uvloop as it causes issues with threading (it's part of the requirements for bt but never used)
+pip uninstall uvloop -y

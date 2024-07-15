@@ -1,0 +1,1 @@
+python neurons/miners/test/echo.py --netuid 61 --subtensor.network test --neuron.device cuda --wallet.name miner --wallet.hotkey miner_hotkey --logging.debug --axon.port 22121

@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "subnetwork-1"
+version = "2.5"
+description = "Subnetwork 1 runs on Bittensor and is maintained by Macrocosmos. It's an effort to create decentralised AI"
+authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9 <3.11"
+transformers = "^4.42.4"
+mathgenerator = {git = "https://github.com/synapse-alpha/mathgenerator.git", rev = "main"}
+sympy = "^1.13.0"
+tqdm = "^4.66.4"
+requests = "^2.32.3"
+numpy = "1.26.4"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
