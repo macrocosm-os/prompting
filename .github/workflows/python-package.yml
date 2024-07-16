@@ -24,7 +24,6 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest black
         bash install.sh
-        source $(poetry env info --path)/bin/activate
 
     - name: Lint with flake8
       run: |
