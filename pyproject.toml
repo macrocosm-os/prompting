@@ -6,7 +6,7 @@ authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz"]
 readme = "README.md"
 
 [tool.black]
-line-length = 130
+line-length = 120
 target-version = ['py310']
 include = '\.pyi?$'
 exclude = '''
@@ -23,7 +23,7 @@ exclude = '''
 '''
 
 [tool.flake8]
-max-line-length = 130
+max-line-length = 120
 extend-ignore = ["D203", "E203", "E251", "E266", "E302", "E305", "E401", "E402", "E501", "F401", "F403", "W503"]
 exclude = [".git", "__pycache__", "dist"]
 max-complexity = 10
@@ -31,7 +31,7 @@ max-complexity = 10
 [tool.isort]
 atomic = true
 profile = "black"
-line_length = 130
+line_length = 120
 skip_gitignore = true
 
 [tool.ruff]
@@ -66,7 +66,7 @@ exclude = [
 ]
 
 # Same as Black.
-line-length = 130
+line-length = 120
 indent-width = 4
 target-version = "py310"
 
