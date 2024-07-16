@@ -208,13 +208,18 @@ class WikiDataset(Dataset):
         )
         if not sections:
             return None
-
-        key = header, section_title = selector(list(sections.keys()))
-        content = "\n".join(sections[key])
-        section_length = len(content.split())
+        if selector == 'all':
+            content = "\n".join(["\n".join(section) for section in sections.values()])
+            section_length = len(content.split())
+            topic = "All Sections"
+        else:
+            key = header, section_title = selector(list(sections.keys()))
+            content = "\n".join(sections[key])
+            section_length = len(content.split())
+            topic = header or section_title
         context = {
             "title": name,  # title of wiki article
-            "topic": header or section_title,  # title of wiki section
+            "topic": topic,  # title of wiki section
             "subtopic": section_title,
             "content": content,
             "internal_links": list(filter(lambda x: x not in exclude, page.sections)),
