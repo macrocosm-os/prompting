@@ -1,6 +1,6 @@
 import random
 from transformers import Pipeline
-from prompting.tasks import Task, TASKS, TranslationPipeline, TranslationTask
+from prompting.tasks import Task, TASKS, TranslationPipeline, TranslationTask, SummarizationTask
 from prompting.tools import Selector, DATASETS
 from prompting.task_registry import TASK_REGISTRY
 
@@ -42,7 +42,10 @@ def create_task(
     if dataset is None:
         raise ValueError(f"Dataset {dataset_name} not found")
     else:
-        dataset = dataset()
+        if task_name == SummarizationTask.name:
+            dataset = dataset(selector='all')
+        else:
+            dataset = dataset()
         
     if task_name == TranslationTask.name:
         return task(            
