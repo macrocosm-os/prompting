@@ -332,42 +332,6 @@ def add_validator_args(cls, parser):
     )
 
     parser.add_argument(
-        "--neuron.organic_size",
-        type=int,
-        help="The number of miners to organic query in a single step.",
-        default=5,
-    )
-
-    parser.add_argument(
-        "--neuron.organic_sampling_mode",
-        type=str,
-        help="The mode for sampling miners using organic queries. Options include 'random' for random selection, "
-            "'top_incentive' for selecting based on highest incentives.",
-        default="random",
-    )
-
-    parser.add_argument(
-        "--neuron.organic_timeout",
-        type=int,
-        help="Organic query timeout for each call in seconds.",
-        default=30,
-    )
-
-    parser.add_argument(
-        "--neuron.trigger_frequency",
-        type=int,
-        help="Organic query validation frequency (seconds or steps value).",
-        default=15,
-    )
-
-    parser.add_argument(
-        "--neuron.trigger",
-        type=str,
-        help="Organic query validation trigger mode (seconds or steps).",
-        default="seconds",
-    )
-
-    parser.add_argument(
         "--neuron.disable_set_weights",
         action="store_true",
         help="Disables setting weights.",
@@ -439,6 +403,50 @@ def add_validator_args(cls, parser):
         help="Max time to wait for a forward call to complete in seconds.",
         default=120,
     )
+
+    parser.add_argument(
+        "--organic.sample_size",
+        type=int,
+        help="The number of miners to organic query in a single step.",
+        default=5,
+    )
+
+    parser.add_argument(
+        "--organic.sampling_mode",
+        type=str,
+        help="The mode for sampling miners using organic queries. Options include 'random' for random selection, "
+            "'top_incentive' for selecting based on highest incentives.",
+        default="random",
+    )
+
+    parser.add_argument(
+        "--organic.timeout",
+        type=int,
+        help="Organic query timeout for each call in seconds.",
+        default=30,
+    )
+
+    parser.add_argument(
+        "--organic.trigger_frequency",
+        type=float,
+        help="Organic query sampling frequency (seconds or steps value).",
+        default=15.0,
+    )
+
+    parser.add_argument(
+        "--organic.trigger_frequency_min",
+        type=float,
+        help="Minimum organic query sampling frequency (seconds or steps value).",
+        default=2.0,
+    )
+
+    parser.add_argument(
+        "--organic.trigger",
+        type=str,
+        help="Organic query validation trigger mode (seconds or steps).",
+        default="seconds",
+    )
+
 
 
 def config(cls):

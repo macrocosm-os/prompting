@@ -30,8 +30,17 @@ class OrganicScoringPrompting(OrganicScoringBase):
         trigger_frequency: float | int,
         trigger: Literal["seconds", "steps"],
         validator: BaseNeuron,
+        trigger_frequency_min: float | int = 2,
+        trigger_scaling_factor: float | int = 50,
     ):
-        super().__init__(axon=axon, synth_dataset=synth_dataset, trigger_frequency=trigger_frequency, trigger=trigger)
+        super().__init__(
+            axon=axon,
+            synth_dataset=synth_dataset,
+            trigger_frequency=trigger_frequency,
+            trigger=trigger,
+            trigger_frequency_min=trigger_frequency_min,
+            trigger_scaling_factor=trigger_scaling_factor,
+        )
         self._val = validator
 
     async def _priority_fn(self, synapse: StreamPromptingSynapse) -> float:
@@ -48,8 +57,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
         uids = get_uids(
             self._val,
-            sampling_mode=self._val.config.neuron.organic_sampling_mode,
-            k=self._val.config.neuron.organic_size,
+            sampling_mode=self._val.config.organic.sampling_mode,
+            k=self._val.config.organic.sample_size,
             exclude=[])
         uids_list = uids.cpu().tolist()
         completions: dict[int, dict] = {}
@@ -83,7 +92,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         responses = self._val.dendrite.query(
             axons=[self._val.metagraph.axons[uid] for uid in uids],
             synapse=synapse,
-            timeout=self._val.config.neuron.organic_timeout,
+            timeout=self._val.config.organic.timeout,
             deserialize=False,
             streaming=True,
         )
@@ -141,13 +150,13 @@ class OrganicScoringPrompting(OrganicScoringBase):
             return responses
 
         # Get the list of uids to query.
-        uids = get_random_uids(self._val, k=self._val.config.neuron.organic_size, exclude=None).to(self._val.device)
+        uids = get_random_uids(self._val, k=self._val.config.organic.sample_size, exclude=None).to(self._val.device)
         uids_cpu = uids.cpu().tolist()
         bt.logging.info(f"[Organic] Querying miners with synthetic data, UIDs: {uids_cpu}")
         streams_responses = self._val.dendrite.query(
             axons=[self._val.metagraph.axons[uid] for uid in uids_cpu],
             synapse=StreamPromptingSynapse(roles=sample["roles"], messages=sample["messages"]),
-            timeout=self._val.config.neuron.timeout,
+            timeout=self._val.organic.timeout,
             deserialize=False,
             streaming=True,
         )
@@ -170,7 +179,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         stream_results = list(responses.values())
         uids_list = list(responses.keys())
         uids = torch.tensor(uids_list)
-        timeout = self._val.config.neuron.timeout
+        timeout = self._val.config.organic.timeout
         response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
 
         bt.logging.debug(f"[Organic] Miner stream results: {stream_results}")
