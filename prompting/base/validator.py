@@ -17,7 +17,6 @@
 
 import sys
 import copy
-import time
 import torch
 import asyncio
 import argparse
@@ -66,19 +65,16 @@ class BaseValidatorNeuron(BaseNeuron):
         # Init sync with the network. Updates the metagraph.
         self.sync()
 
+        self.axon: Optional[bt.axon] = None
+        self._serve_axon()
+
         # Create asyncio event loop to manage async tasks.
-        # self.loop = asyncio.get_event_loop()
-        # self._executor = concurrent.futures.ThreadPoolExecutor()
-        # self._executor.submit(self.start_asyncio_loop, self.loop)
+        self.loop = asyncio.get_event_loop()
 
         # Instantiate runners
         self.should_exit: bool = False
         self.is_running: bool = False
         self.thread: threading.Thread = None
-        self.axon: Optional[bt.axon] = None
-        self.loop = asyncio.get_event_loop()
-        # threading.Thread(target=self._start_loop, daemon=True).start()
-        self._serve_axon()
 
     def _start_loop(self):
         asyncio.set_event_loop(self.loop)
@@ -129,32 +125,18 @@ class BaseValidatorNeuron(BaseNeuron):
             )
 
         bt.logging.info(f"Validator starting at block: {self.block}")
-        # self.loop = asyncio.new_event_loop()
-        # asyncio.set_event_loop(self.loop)
 
         # This loop maintains the validator's operations until intentionally stopped.
         try:
-            # self.loop = asyncio.get_event_loop()
-            # self.loop = asyncio.new_event_loop()
-            # asyncio.set_event_loop(self.loop)
-            # threading.Thread(target=self._start_loop, daemon=True).start()
             while True:
                 bt.logging.info(f"step({self.step}) block({self.block})")
 
                 forward_timeout = self.config.neuron.forward_max_time
                 try:
                     task = self.loop.create_task(self.forward())
-                    self.loop.run_until_complete(asyncio.wait_for(task, timeout=forward_timeout))
-                    # task = self.loop.create_task(self.forward())
-                    # task = self.loop.create_task(self.forward())
-                    # self.loop.run_until_complete(
-                    #     asyncio.wait_for(task, timeout=forward_timeout)
-                    # )
-
-                    # forward_future = asyncio.run_coroutine_threadsafe(self.forward(), self.loop)
-                    # forward_future.result(timeout=forward_timeout)
-
-                    # time.sleep(5)
+                    self.loop.run_until_complete(
+                        asyncio.wait_for(task, timeout=forward_timeout)
+                    )
                 except torch.cuda.OutOfMemoryError as e:
                     bt.logging.error(f"Out of memory error: {e}")
                     continue
@@ -187,9 +169,6 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
             self.should_exit = True
-
-        # finally:
-        #     self.loop.close()
 
     def run_in_background_thread(self):
         """

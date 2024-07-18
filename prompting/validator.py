@@ -1,9 +1,9 @@
 import bittensor as bt
 from organic_scoring.synth_dataset import SynthDatasetLmSysChat
 
+from prompting.base.validator import BaseValidatorNeuron
 from prompting.forward import forward
 from prompting.llms import vLLMPipeline
-from prompting.base.validator import BaseValidatorNeuron
 from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
 from prompting.rewards import RewardPipeline
 from prompting.tasks.translate import TranslationPipeline
@@ -49,7 +49,6 @@ class Validator(BaseValidatorNeuron):
             trigger=self.config.neuron.trigger,
             validator=self,
         )
-        # self._organic_scoring.start_thread()
         self.loop.create_task(self._organic_scoring.start_loop())
 
     async def forward(self):

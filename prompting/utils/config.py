@@ -300,14 +300,14 @@ def add_validator_args(cls, parser):
         type=float,
         nargs="+",
         help="The probability of sampling each task.",
-        default=[1 / len(TASKS)] * len(TASKS),
+        default=[1.0 / len(TASKS)] * len(TASKS),
     )
 
     parser.add_argument(
         "--neuron.timeout",
         type=float,
         help="The timeout for each forward call in seconds.",
-        default=15,
+        default=17,
     )
 
     parser.add_argument(

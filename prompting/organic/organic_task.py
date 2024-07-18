@@ -5,6 +5,7 @@ from prompting.tasks import Task
 
 @dataclass
 class OrganicTask(Task):
+    """Task with defined reward and penalty mechanisms for organic prompts."""
     name = "organic"
     # Use challenge as a query.
     challenge_type = "query"
@@ -22,7 +23,6 @@ class OrganicTask(Task):
 
     def __init__(self, context: dict, reference: str):
         self.context = context
-        self.messages = context["messages"]
         self.roles = context["roles"]
         self.query = context["messages"][-1]
         self.reference = reference

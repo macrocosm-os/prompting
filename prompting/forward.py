@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-from concurrent.futures import ThreadPoolExecutor
 import sys
 import time
 import random
@@ -28,7 +27,6 @@ from typing import List, Dict, Awaitable
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.conversation import create_task
-from prompting.organic import organic_task
 from prompting.protocol import StreamPromptingSynapse
 from prompting.rewards import RewardResult
 from prompting.tasks import QuestionAnsweringTask
@@ -157,10 +155,6 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
             f"Failed response for uid {failed_response.uid}: {formatted_exception}"
         )
 
-async def async_generate_reference(loop, llm_pipeline):
-    with ThreadPoolExecutor() as pool:
-        result = await loop.run_in_executor(pool, generate_reference, llm_pipeline)
-    return result
 
 async def run_step(
     self, agent: HumanAgent, roles: List[str], messages: List[str], k: int, timeout: float, exclude: list = None
@@ -187,8 +181,12 @@ async def run_step(
     # Get the list of uids to query for this step.
     uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
     uids_cpu = uids.cpu().tolist()
+
+    axons = [self.metagraph.axons[uid] for uid in uids]
+
+    # Directly call dendrite and process responses in parallel
     streams_responses = await self.dendrite(
-        axons=[self.metagraph.axons[uid] for uid in uids],
+        axons=axons,
         synapse=StreamPromptingSynapse(roles=roles, messages=messages),
         timeout=timeout,
         deserialize=False,
@@ -198,11 +196,10 @@ async def run_step(
     # Prepare the task for handling stream responses
     stream_results_dict = dict(zip(uids_cpu, streams_responses))
     tokenizer = self.llm_pipeline.tokenizer
-    handle_stream_responses_task = handle_response(stream_results_dict, tokenizer)
+    handle_stream_responses_task = asyncio.create_task(handle_response(stream_results_dict, tokenizer))
 
     if not agent.task.static_reference:
         reference_generation_task = generate_reference(agent)
-        # reference_generation_task = async_generate_reference(self.loop, agent.llm_pipeline)
         _, stream_results = await asyncio.gather(
             reference_generation_task, handle_stream_responses_task
         )
@@ -211,7 +208,6 @@ async def run_step(
 
     log_stream_results(stream_results)
 
-    # TODO: Create separate thread for consuming organic prompts, and return reward.
     # Encapsulate the responses in a response event (dataclass)
     response_event = DendriteResponseEvent(
         stream_results=stream_results, uids=uids, timeout=timeout
@@ -220,7 +216,6 @@ async def run_step(
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
     # Reward the responses and get the reward result (dataclass)
     # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
-    bt.logging.info(f"Response from miners: {stream_results}")
     reward_result = RewardResult(
         self.reward_pipeline,
         agent=agent,
@@ -286,12 +281,12 @@ async def forward(self):
 
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
-
-    turn = 0
-    exclude_uids = []
     agent = HumanAgent(
         task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True
     )
+
+    turn = 0
+    exclude_uids = []
     roles = ["user"]
     messages = [agent.challenge]
     while True:
@@ -350,8 +345,7 @@ async def forward(self):
 
             log_event(self, event)
 
-            await asyncio.sleep(5)
+            await asyncio.sleep(1)
             continue
-    await asyncio.sleep(5)
     del agent
     del task

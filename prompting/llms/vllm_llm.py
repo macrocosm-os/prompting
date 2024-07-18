@@ -14,10 +14,8 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-import gc
 import threading
 import time
-import torch
 import bittensor as bt
 from typing import List, Dict, Optional, Any
 from vllm import LLM, SamplingParams
@@ -120,7 +118,13 @@ class vLLM_LLM(BaseLLM):
         roles: list[str],
         cleaner: Optional[CleanerPipeline] = None,
     ):
-        """Query LLM with the given lists of conversation history and roles."""
+        """Query LLM with the given lists of conversation history and roles
+        
+        Args:
+            messages (list[str]): List of messages in the conversation.
+            roles (list[str]): List of roles for each message.
+            cleaner (Optional[CleanerPipeline], optional): Cleaner pipeline to use, if any.
+        """
         assert len(messages) == len(roles), "Length of messages and roles must be the same"
         inputs: list[dict[str, Any]] = [{"content": self.system_prompt, "role": "system"}]
         for role, message in zip(roles, messages):
