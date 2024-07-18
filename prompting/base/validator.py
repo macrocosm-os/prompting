@@ -15,17 +15,15 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
-import copy
-import torch
-import asyncio
 import argparse
+import asyncio
+import copy
+import sys
 import threading
+from traceback import print_exception
 
 import bittensor as bt
-
-from typing import List, Optional
-from traceback import print_exception
+import torch
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
@@ -65,7 +63,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Init sync with the network. Updates the metagraph.
         self.sync()
 
-        self.axon: Optional[bt.axon] = None
+        self.axon: bt.axon | None = None
         if not self.config.neuron.axon_off:
             self._serve_axon()
         else:
@@ -311,7 +309,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
-    def update_scores(self, rewards: torch.FloatTensor, uids: List[int]):
+    def update_scores(self, rewards: torch.FloatTensor, uids: list[int]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
 
         # Check if rewards contains NaN values.
