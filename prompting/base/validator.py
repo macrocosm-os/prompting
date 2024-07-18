@@ -66,7 +66,10 @@ class BaseValidatorNeuron(BaseNeuron):
         self.sync()
 
         self.axon: Optional[bt.axon] = None
-        self._serve_axon()
+        if not self.config.neuron.axon_off:
+            self._serve_axon()
+        else:
+            bt.logging.warning("axon off, not serving ip to chain.")
 
         # Create asyncio event loop to manage async tasks.
         self.loop = asyncio.get_event_loop()
