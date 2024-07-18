@@ -1,6 +1,7 @@
 import re
 import numpy as np
 import bittensor as bt
+from typing import List, Tuple
 from dataclasses import dataclass
 from prompting.tasks import Task
 from prompting.utils.exceptions import TaskCreationError
