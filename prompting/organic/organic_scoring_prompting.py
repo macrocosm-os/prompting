@@ -46,7 +46,11 @@ class OrganicScoringPrompting(OrganicScoringBase):
     async def _on_organic_entry(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         bt.logging.info(f"[Organic] Received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}")
 
-        uids = get_uids(self._val, sampling_mode="random", k=self._val.config.neuron.organic_size, exclude=[])
+        uids = get_uids(
+            self._val,
+            sampling_mode=self._val.config.neuron.organic_sampling_mode,
+            k=self._val.config.neuron.organic_size,
+            exclude=[])
         uids_list = uids.cpu().tolist()
         completions: dict[int, dict] = {}
         token_streamer = partial(

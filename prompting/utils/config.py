@@ -339,6 +339,14 @@ def add_validator_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.organic_sampling_mode",
+        type=str,
+        help="The mode for sampling miners using organic queries. Options include 'random' for random selection, "
+            "'top_incentive' for selecting based on highest incentives.",
+        default="random",
+    )
+
+    parser.add_argument(
         "--neuron.organic_timeout",
         type=int,
         help="Organic query timeout for each call in seconds.",
