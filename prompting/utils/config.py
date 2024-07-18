@@ -125,7 +125,7 @@ def add_args(cls, parser):
         "--no_background_thread",
         action="store_true",
         help="If set, we dont run the neuron in a background thread.",
-        default=False,
+        default=True,
     )
 
     parser.add_argument(
@@ -307,7 +307,7 @@ def add_validator_args(cls, parser):
         "--neuron.timeout",
         type=float,
         help="The timeout for each forward call in seconds.",
-        default=120,
+        default=15,
     )
 
     parser.add_argument(
@@ -328,15 +328,35 @@ def add_validator_args(cls, parser):
         "--neuron.sample_size",
         type=int,
         help="The number of miners to query in a single step.",
-        # default=100,
-        default=1,
+        default=100,
     )
 
     parser.add_argument(
         "--neuron.organic_size",
         type=int,
         help="The number of miners to organic query in a single step.",
-        default=1,
+        default=5,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_timeout",
+        type=int,
+        help="Organic query timeout for each call in seconds.",
+        default=30,
+    )
+
+    parser.add_argument(
+        "--neuron.trigger_frequency",
+        type=int,
+        help="Organic query validation frequency (seconds or steps value).",
+        default=15,
+    )
+
+    parser.add_argument(
+        "--neuron.trigger",
+        type=str,
+        help="Organic query validation trigger mode (seconds or steps).",
+        default="seconds",
     )
 
     parser.add_argument(
@@ -381,14 +401,14 @@ def add_validator_args(cls, parser):
         "--wandb.project_name",
         type=str,
         help="The name of the project where you are sending the new run.",
-        default="alpha-validators",
+        default="prompting-validators",
     )
 
     parser.add_argument(
         "--wandb.entity",
         type=str,
         help="The name of the project where you are sending the new run.",
-        default="opentensor-dev",
+        default="macrocosmos"
     )
 
     parser.add_argument(

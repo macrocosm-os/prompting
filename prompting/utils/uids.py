@@ -93,7 +93,7 @@ def get_random_uids(self: BaseNeuron, k: int, exclude: List[int] = None) -> torc
         raise ValueError(f"No eligible uids were found. Cannot return {k} uids")
 
 
-def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> List[int]:
+def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> torch.LongTensor:
     metagraph = self.metagraph
     miners_uids = list(map(int, filter(lambda uid: check_uid_availability(metagraph, uid, vpermit_tao_limit),
         metagraph.uids)))
@@ -113,14 +113,12 @@ def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> List[int]:
     # Extract the top uids.
     top_k_uids = [uid for uid, incentive in uid_incentive_pairs_sorted[:k]]
     
-    return top_k_uids
+    return torch.tensor(top_k_uids)
 
 
-def get_uids(self: BaseNeuron, sampling_mode: str, k: int, exclude: List[int] = []) -> Union[list[int], torch.LongTensor]:
+def get_uids(self: BaseNeuron, sampling_mode: str, k: int, exclude: List[int] = []) -> torch.LongTensor:
     if sampling_mode == "random":
-        uids = get_random_uids(self, k=k, exclude=exclude or []).tolist()
-        return uids
+        return get_random_uids(self, k=k, exclude=exclude or [])
     if sampling_mode == "top_incentive":
         vpermit_tao_limit = self.config.neuron.vpermit_tao_limit
-        top_uids = get_top_incentive_uids(self, k=k, vpermit_tao_limit=vpermit_tao_limit)
-        return top_uids
+        return get_top_incentive_uids(self, k=k, vpermit_tao_limit=vpermit_tao_limit)

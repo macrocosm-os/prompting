@@ -1,7 +1,7 @@
 from .tasks import (
     Task,
     MockTask,
-    OrganicTask,
+    # OrganicTask,
     SummarizationTask,
     QuestionAnsweringTask,
     DebuggingTask,
@@ -13,7 +13,7 @@ from .tasks import (
 )
 from .tools import (
     MockDataset,
-    OrganicDataset,
+    # OrganicDataset,
     WikiDataset,
     HFCodingDataset,
     StackOverflowDataset,
@@ -24,7 +24,7 @@ from .tools import (
 )
 
 # TODO: Expand this to include extra information beyond just the task and dataset names
-organic_task, organic_dataset = OrganicTask.name, [OrganicDataset.name]
+# organic_task, organic_dataset = OrganicTask.name, [OrganicDataset.name]
 summarization_task, summarization_dataset = SummarizationTask.name, [WikiDataset.name]
 qa_task, qa_dataset = QuestionAnsweringTask.name, [WikiDataset.name]
 #debugging_task, debugging_dataset = DebuggingTask.name, [HFCodingDataset.name]

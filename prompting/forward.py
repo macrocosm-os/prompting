@@ -15,6 +15,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+from concurrent.futures import ThreadPoolExecutor
 import sys
 import time
 import random
@@ -24,7 +25,6 @@ import numpy as np
 import bittensor as bt
 from typing import List, Dict, Awaitable
 
-import torch
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.conversation import create_task
@@ -36,9 +36,8 @@ from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from transformers import PreTrainedTokenizerFast as Tokenizer
-from prompting.utils.uids import get_random_uids
 
-SINGLE_TURN_TASKS = ('sentiment', 'translation', organic_task.TASK_NAME)
+SINGLE_TURN_TASKS = ('sentiment', 'translation')
 
 
 @async_log
@@ -158,6 +157,10 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
             f"Failed response for uid {failed_response.uid}: {formatted_exception}"
         )
 
+async def async_generate_reference(loop, llm_pipeline):
+    with ThreadPoolExecutor() as pool:
+        result = await loop.run_in_executor(pool, generate_reference, llm_pipeline)
+    return result
 
 async def run_step(
     self, agent: HumanAgent, roles: List[str], messages: List[str], k: int, timeout: float, exclude: list = None
@@ -195,10 +198,11 @@ async def run_step(
     # Prepare the task for handling stream responses
     stream_results_dict = dict(zip(uids_cpu, streams_responses))
     tokenizer = self.llm_pipeline.tokenizer
-    handle_stream_responses_task = asyncio.create_task(handle_response(stream_results_dict, tokenizer))
+    handle_stream_responses_task = handle_response(stream_results_dict, tokenizer)
 
     if not agent.task.static_reference:
         reference_generation_task = generate_reference(agent)
+        # reference_generation_task = async_generate_reference(self.loop, agent.llm_pipeline)
         _, stream_results = await asyncio.gather(
             reference_generation_task, handle_stream_responses_task
         )
@@ -288,14 +292,8 @@ async def forward(self):
     agent = HumanAgent(
         task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True
     )
-    if task_name == organic_task.TASK_NAME:
-        # Organic prompts with conversational history.
-        roles = task.roles
-        messages = task.messages
-    else:
-        # Benchmarking tasks.
-        roles = ["user"]
-        messages = [agent.challenge]
+    roles = ["user"]
+    messages = [agent.challenge]
     while True:
         # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step.
         # To be reconsidered in the next version.

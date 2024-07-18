@@ -1,7 +1,7 @@
 from .datasets import (
     Dataset,
     MockDataset,
-    OrganicDataset,
+    # OrganicDataset,
     HFCodingDataset,
     WikiDataset,
     StackOverflowDataset,
