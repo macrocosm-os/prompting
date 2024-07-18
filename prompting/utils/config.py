@@ -20,8 +20,12 @@ import os
 import torch
 import argparse
 import bittensor as bt
-from loguru import logger
+import logging
 from prompting.tasks import TASKS
+
+from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
+
+logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
 
 
 def check_config(cls, config: "bt.Config"):
@@ -42,20 +46,16 @@ def check_config(cls, config: "bt.Config"):
     if not os.path.exists(config.neuron.full_path):
         os.makedirs(config.neuron.full_path, exist_ok=True)
 
-    log_level_exists = "EVENTS" in logger._core.levels
-    if not config.neuron.dont_save_events and not log_level_exists:
+    if not config.neuron.dont_save_events:
         # Add custom event logger for the events.
-        logger.level("EVENTS", no=38, icon="📝")
-        logger.add(
-            os.path.join(config.neuron.full_path, "events.log"),
-            rotation=config.neuron.events_retention_size,
-            serialize=True,
-            enqueue=True,
-            backtrace=False,
-            diagnose=False,
-            level="EVENTS",
-            format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+        event_handler = logging.FileHandler(
+            os.path.join(config.neuron.full_path, "events.log")
         )
+        event_handler.setLevel(38)  # Custom level
+        formatter = logging.Formatter("{asctime} | {levelname} | {message}", style="{")
+        event_handler.setFormatter(formatter)
+        logger.addHandler(event_handler)
+        logging.addLevelName(38, "EVENTS")
 
 
 def add_args(cls, parser):
@@ -71,14 +71,14 @@ def add_args(cls, parser):
         help="Device to run on.",
         default="cuda" if torch.cuda.is_available() else "cpu",
     )
-    
+
     parser.add_argument(
         "--neuron.gpus",
         type=int,
         help="The number of visible GPUs to be considered in the llm initialization. This parameter currently reflects on the property `tensor_parallel_size` of vllm",
         default=1,
     )
-    
+
     parser.add_argument(
         "--neuron.llm_max_allowed_memory_in_gb",
         type=int,
@@ -307,7 +307,7 @@ def add_validator_args(cls, parser):
         "--neuron.timeout",
         type=float,
         help="The timeout for each forward call in seconds.",
-        default=17,
+        default=15,
     )
 
     parser.add_argument(
@@ -416,7 +416,7 @@ def add_validator_args(cls, parser):
         "--wandb.entity",
         type=str,
         help="The name of the project where you are sending the new run.",
-        default="macrocosmos"
+        default="macrocosmos",
     )
 
     parser.add_argument(
@@ -432,7 +432,7 @@ def add_validator_args(cls, parser):
         help="Only query a single hotkey per ip.",
         default=False,
     )
-    
+
     parser.add_argument(
         "--neuron.forward_max_time",
         type=int,
