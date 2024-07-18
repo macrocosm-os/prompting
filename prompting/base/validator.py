@@ -321,6 +321,8 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
+        # TODO: if miner's organics are empty then apply additional penalty:
+        # scores = scores * self.config.organic_empty_penalty
         alpha = self.config.neuron.moving_average_alpha
         self.scores = alpha * step_rewards + (1 - alpha) * self.scores
         self.scores = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)

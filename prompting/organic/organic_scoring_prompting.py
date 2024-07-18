@@ -1,6 +1,6 @@
 import time
 from functools import partial
-from typing import Any, Literal, Sequence
+from typing import Any, Literal, Sequence, Tuple
 
 import bittensor as bt
 import torch
@@ -54,13 +54,17 @@ class OrganicScoringPrompting(OrganicScoringBase):
             }
         )
 
+    @override
     async def _priority_fn(self, synapse: StreamPromptingSynapse) -> float:
         """Priority function for the axon"""
         return 1000000.0
 
-    async def _blacklist_fn(self, synapse: StreamPromptingSynapse) -> tuple[bool, str]:
+    @override
+    async def _blacklist_fn(self, synapse: StreamPromptingSynapse) -> Tuple[bool, str]:
         """Blacklist function for the axon"""
-        return False, ""
+        # ! DO NOT CHANGE `Tuple` return type to `tuple`, it will break the code (bittensor internal signature checks).
+        # We expect the API to be run with one specific hotkey (e.g. OTF).
+        return synapse.dendrite.hotkey != self._val.config.neuron.organic_whitelist_hotkey, ""
 
     @override
     async def _on_organic_entry(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
@@ -219,8 +223,10 @@ class OrganicScoringPrompting(OrganicScoringBase):
     async def _set_weights(self, reward: dict[str, Any]):
         uids = reward["uids"]
         reward_result = reward["reward"]
+        bt.logging.info(f"[Organic] Rewards for miner's UIDs: {dict(zip(uids, reward_result.rewards))}")
         self._val.update_scores(reward_result.rewards, uids)
-        self._val.sync()
+        # Sync is not needed as it's done in the benchmarks loop.
+        # self._val.sync()
 
     @override
     async def _log_results(

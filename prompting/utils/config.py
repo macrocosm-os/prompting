@@ -447,6 +447,14 @@ def add_validator_args(cls, parser):
         default="seconds",
     )
 
+    parser.add_argument(
+        "--neuron.organic_whitelist_hotkey",
+        type=str,
+        help="Allow request from specific hotkey. Defaults to OTF hotkey.",
+        # OTF hotkey.
+        default="5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+    )
+
 
 
 def config(cls):
