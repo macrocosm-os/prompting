@@ -46,9 +46,9 @@ class Validator(BaseValidatorNeuron):
             self._organic_scoring = OrganicScoringPrompting(
                 axon=self.axon,
                 synth_dataset=SynthDatasetLmSysChat(),
-                trigger_frequency=self.config.organic.trigger_frequency,
-                trigger_frequency_min=self.config.organic.trigger_frequency_min,
-                trigger=self.config.organic.trigger,
+                trigger_frequency=self.config.neuron.organic_trigger_frequency,
+                trigger_frequency_min=self.config.neuron.organic_trigger_frequency_min,
+                trigger=self.config.neuron.organic_trigger,
                 validator=self,
             )
             self.loop.create_task(self._organic_scoring.start_loop())

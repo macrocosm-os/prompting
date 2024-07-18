@@ -10,22 +10,21 @@ class OrganicTask(Task):
     # Use challenge as a query.
     challenge_type = "query"
 
-    reward_definition = [
-        # dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
-        dict(name="relevance", weight=2.0),
-    ]
+    reward_definition = [dict(name="relevance", weight=1.0)]
 
-    penalty_definition = [
-        dict(name="relevance", weight=2.0),
-    ]
+    penalty_definition = [dict(name="relevance", weight=1.0)]
 
     cleaning_pipeline = []
 
     def __init__(self, context: dict, reference: str):
         self.context = context
+        self.messages = context["messages"]
         self.roles = context["roles"]
         self.query = context["messages"][-1]
+        self.topic = "Organic"
         self.reference = reference
+        self.subtopic = ""
+        self.tags = [""]
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, query={self.query!r}, reference={self.reference!r})"

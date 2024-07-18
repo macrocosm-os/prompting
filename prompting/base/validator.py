@@ -15,15 +15,16 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import argparse
-import asyncio
-import copy
 import sys
+import copy
+import torch
+import asyncio
+import argparse
 import threading
-from traceback import print_exception
 
 import bittensor as bt
-import torch
+
+from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
@@ -76,10 +77,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.should_exit: bool = False
         self.is_running: bool = False
         self.thread: threading.Thread = None
-
-    def _start_loop(self):
-        asyncio.set_event_loop(self.loop)
-        self.loop.run_forever()
+        self.lock = asyncio.Lock()
 
     def _serve_axon(self):
         """Serve axon to enable external connections"""
@@ -88,10 +86,6 @@ class BaseValidatorNeuron(BaseNeuron):
         self.axon = bt.axon(wallet=self.wallet, config=self.config)
         self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
         self.axon.start()
-
-    def _start_loop(self):
-        asyncio.set_event_loop(self.loop)
-        self.loop.run_forever()
 
     def run(self):
         """

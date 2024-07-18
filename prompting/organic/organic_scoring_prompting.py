@@ -12,8 +12,10 @@ from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.forward import handle_response
 from prompting.llms.vllm_llm import vLLM_LLM
-from prompting.organic import organic_task
+from prompting.organic.organic_task import OrganicTask
+from prompting.organic.synth_organic_task import SynthOrganicTask
 from prompting.protocol import StreamPromptingSynapse
+from prompting.rewards.pipeline import RewardPipeline
 from prompting.rewards.reward import RewardResult
 from prompting.tasks.task import make_system_prompt
 from prompting.utils.logging import log_event
@@ -42,6 +44,15 @@ class OrganicScoringPrompting(OrganicScoringBase):
             trigger_scaling_factor=trigger_scaling_factor,
         )
         self._val = validator
+        # Organic scoring reward pipeline.
+        self._reward_pipeline = RewardPipeline(
+            selected_tasks=[OrganicTask.name, SynthOrganicTask.name],
+            device=self._val.device,
+            available_tasks={
+                OrganicTask.name: OrganicTask,
+                SynthOrganicTask.name: SynthOrganicTask,
+            }
+        )
 
     async def _priority_fn(self, synapse: StreamPromptingSynapse) -> float:
         """Priority function for the axon"""
@@ -57,8 +68,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
         uids = get_uids(
             self._val,
-            sampling_mode=self._val.config.organic.sampling_mode,
-            k=self._val.config.organic.sample_size,
+            sampling_mode=self._val.config.neuron.organic_sampling_mode,
+            k=self._val.config.neuron.organic_sample_size,
             exclude=[])
         uids_list = uids.cpu().tolist()
         completions: dict[int, dict] = {}
@@ -92,7 +103,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         responses = self._val.dendrite.query(
             axons=[self._val.metagraph.axons[uid] for uid in uids],
             synapse=synapse,
-            timeout=self._val.config.organic.timeout,
+            timeout=self._val.config.neuron.organic_timeout,
             deserialize=False,
             streaming=True,
         )
@@ -150,13 +161,13 @@ class OrganicScoringPrompting(OrganicScoringBase):
             return responses
 
         # Get the list of uids to query.
-        uids = get_random_uids(self._val, k=self._val.config.organic.sample_size, exclude=None).to(self._val.device)
+        uids = get_random_uids(self._val, k=self._val.config.neuron.organic_sample_size, exclude=None).to(self._val.device)
         uids_cpu = uids.cpu().tolist()
         bt.logging.info(f"[Organic] Querying miners with synthetic data, UIDs: {uids_cpu}")
         streams_responses = self._val.dendrite.query(
             axons=[self._val.metagraph.axons[uid] for uid in uids_cpu],
             synapse=StreamPromptingSynapse(roles=sample["roles"], messages=sample["messages"]),
-            timeout=self._val.organic.timeout,
+            timeout=self._val.config.neuron.organic_timeout,
             deserialize=False,
             streaming=True,
         )
@@ -173,13 +184,13 @@ class OrganicScoringPrompting(OrganicScoringBase):
     ) -> dict[str, Any]:
         assert reference is not None
         if sample.get("organic", False):
-            task = organic_task.OrganicTask(context=sample, reference=reference)
+            task = OrganicTask(context=sample, reference=reference)
         else:
-            task = organic_task.SynthOrganicTask(context=sample, reference=reference)
+            task = SynthOrganicTask(context=sample, reference=reference)
         stream_results = list(responses.values())
         uids_list = list(responses.keys())
         uids = torch.tensor(uids_list)
-        timeout = self._val.config.organic.timeout
+        timeout = self._val.config.neuron.organic_timeout
         response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
 
         bt.logging.debug(f"[Organic] Miner stream results: {stream_results}")
@@ -192,7 +203,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
             system_prompt=make_system_prompt(),
         )
         reward_result = RewardResult(
-            self._val.reward_pipeline,
+            self._reward_pipeline,
             agent=agent,
             response_event=response_event,
             device=self._val.device,

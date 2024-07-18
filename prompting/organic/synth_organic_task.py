@@ -9,9 +9,18 @@ class SynthOrganicTask(OrganicTask):
     name = "synthetic-organic"
 
     reward_definition = [
-        # dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
         dict(name="relevance", weight=1.0),
     ]
     penalty_definition = [
         dict(name="relevance", weight=1.0),
     ]
+
+    def __init__(self, context: dict, reference: str):
+        self.context = context
+        self.messages = context["messages"]
+        self.roles = context["roles"]
+        self.query = context["messages"][-1]
+        self.topic = "Organic"
+        self.reference = reference
+        self.subtopic = ""
+        self.tags = [""]
