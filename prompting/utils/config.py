@@ -443,6 +443,13 @@ def add_validator_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.organic_reference_max_tokens",
+        type=int,
+        help="Organic query timeout for each call in seconds.",
+        default=1024,
+    )
+
+    parser.add_argument(
         "--neuron.organic_trigger_frequency",
         type=float,
         help="Organic query sampling frequency (seconds or steps value).",

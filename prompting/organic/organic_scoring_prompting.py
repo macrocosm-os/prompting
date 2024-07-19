@@ -272,7 +272,11 @@ class OrganicScoringPrompting(OrganicScoringBase):
     @override
     async def _generate_reference(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Generate reference for the given organic or synthetic sample"""
-        reference = vLLM_LLM(self._val.llm_pipeline, system_prompt=make_system_prompt()).query_conversation(
+        reference = vLLM_LLM(
+            self._val.llm_pipeline,
+            system_prompt=make_system_prompt(),
+            max_new_tokens=self._val.config.neuron.organic_reference_max_tokens,
+        ).query_conversation(
             messages=sample["messages"],
             roles=sample["roles"],
             cleaner=CleanerPipeline(cleaning_pipeline=[])
