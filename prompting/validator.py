@@ -42,7 +42,7 @@ class Validator(BaseValidatorNeuron):
         self.reward_pipeline = RewardPipeline(
             selected_tasks=self.active_tasks, device=self.device
         )
-        if self.axon is not None:
+        if self.axon is not None and not self.config.neuron.organic_disabled:
             self._organic_scoring = OrganicScoringPrompting(
                 axon=self.axon,
                 synth_dataset=SynthDatasetLmSysChat(),
@@ -53,7 +53,9 @@ class Validator(BaseValidatorNeuron):
             )
             self.loop.create_task(self._organic_scoring.start_loop())
         else:
-            bt.logging.warning("Axon is disabled. Organic scoring will not be enabled.")
+            bt.logging.warning(
+                "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
+            )
 
     async def forward(self):
         """

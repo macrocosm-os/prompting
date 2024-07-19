@@ -6,6 +6,9 @@ import bittensor as bt
 import torch
 from organic_scoring import OrganicScoringBase
 from organic_scoring.synth_dataset import SynthDatasetBase
+from starlette.types import Send
+from typing_extensions import override
+
 from prompting.agent import HumanAgent
 from prompting.base.neuron import BaseNeuron
 from prompting.cleaners.cleaner import CleanerPipeline
@@ -20,8 +23,6 @@ from prompting.rewards.reward import RewardResult
 from prompting.tasks.task import make_system_prompt
 from prompting.utils.logging import log_event
 from prompting.utils.uids import get_random_uids, get_uids
-from starlette.types import Send
-from typing_extensions import override
 
 
 class OrganicScoringPrompting(OrganicScoringBase):
@@ -35,6 +36,22 @@ class OrganicScoringPrompting(OrganicScoringBase):
         trigger_frequency_min: float | int = 2,
         trigger_scaling_factor: float | int = 50,
     ):
+        """Organic Scoring implementation
+
+        Organic scoring runs in a separate `asyncio` task and is triggered by a timer or a step counter.
+
+        Process Workflow:
+        1. Trigger Check: Upon triggering the rewarding process, the system checks if the organic queue is empty.
+            If the queue is empty, synthetic datasets are used to bootstrap the organic scoring mechanism.
+            Otherwise, samples from the organic queue are utilized.
+        2. Data Processing: The sampled data is concurrently passed to the `_query_miners` and `_generate_reference`
+            methods.
+        3. Reward Generation: After receiving responses from miners and any reference data, the information
+            is processed by the `_generate_rewards` method.
+        4. Weight Setting: The generated rewards are then applied through the `_set_weights` method.
+        5. Logging: Finally, the results can be logged using the `_log_results` method, along with all relevant data
+            provided as arguments, and default time elapsed on each step of rewarding process.
+        """
         super().__init__(
             axon=axon,
             synth_dataset=synth_dataset,
@@ -68,6 +85,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
     @override
     async def _on_organic_entry(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        """Organic query handle"""
         bt.logging.info(f"[Organic] Received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}")
 
         uids = get_uids(
@@ -103,6 +121,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         completions: dict[int, dict],
         send: Send,
     ):
+        """Stream back miner's responses"""
         bt.logging.info(f"[Organic] Querying miner UIDs: {uids}")
         responses = self._val.dendrite.query(
             axons=[self._val.metagraph.axons[uid] for uid in uids],
@@ -140,7 +159,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
             completions[uid]["synapse"] = synapse
     
     async def _reuse_organic_response(self, sample: dict[str, Any]) -> dict[int, SynapseStreamResult]:
-        """Returns a dict where the keys are miner UIDs and the values are their corresponding streaming responses"""
+        """Return a dict where the keys are miner UIDs and the values are their corresponding streaming responses"""
         if not sample.get("organic", False):
             return None
         uids_cpu = sample["uids"]
@@ -160,6 +179,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
     @override
     async def _query_miners(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Query miners with the given synthetic or organic sample"""
         if sample.get("organic", False):
             responses = await self._reuse_organic_response(sample)
             return responses
@@ -186,6 +206,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         responses: dict[str, Any],
         reference: dict[str, Any],
     ) -> dict[str, Any]:
+        """Generate rewards for the given sample, responses, and reference"""
         assert reference is not None
         if sample.get("organic", False):
             task = OrganicTask(context=sample, reference=reference)
@@ -221,12 +242,15 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
     @override
     async def _set_weights(self, reward: dict[str, Any]):
+        """Set weights based on the given reward"""
         uids = reward["uids"]
         reward_result = reward["reward"]
         bt.logging.info(f"[Organic] Rewards for miner's UIDs: {dict(zip(uids, reward_result.rewards))}")
-        self._val.update_scores(reward_result.rewards, uids)
-        # Sync is not needed as it's done in the benchmarks loop.
-        # self._val.sync()
+        bt.logging.info(f"[Organic] Weight setting enabled: {self._val.config.neuron.organic_weight_setting_enabled}")
+        if self._val.config.neuron.organic_weight_setting_enabled:
+            self._val.update_scores(reward_result.rewards, uids)
+            # Sync is not needed as it's done in the benchmarks loop.
+            # self._val.sync()
 
     @override
     async def _log_results(
@@ -247,6 +271,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
     @override
     async def _generate_reference(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Generate reference for the given organic or synthetic sample"""
         reference = vLLM_LLM(self._val.llm_pipeline, system_prompt=make_system_prompt()).query_conversation(
             messages=sample["messages"],
             roles=sample["roles"],

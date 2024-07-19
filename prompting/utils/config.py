@@ -420,6 +420,22 @@ def add_validator_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.organic_disabled",
+        action="store_true",
+        help="Set this flag to disable organic scoring.",
+        default=False,
+    )
+
+
+    # TODO: Ser organic weight setting enabled by default after Aug 1, 2024.
+    parser.add_argument(
+        "--neuron.organic_weight_setting_enabled",
+        action="store_true",
+        help="Set this flag to enable organic scoring weight setting.",
+        default=False,
+    )
+
+    parser.add_argument(
         "--neuron.organic_timeout",
         type=int,
         help="Organic query timeout for each call in seconds.",
@@ -430,14 +446,14 @@ def add_validator_args(cls, parser):
         "--neuron.organic_trigger_frequency",
         type=float,
         help="Organic query sampling frequency (seconds or steps value).",
-        default=15.0,
+        default=30.0,
     )
 
     parser.add_argument(
         "--neuron.organic_trigger_frequency_min",
         type=float,
         help="Minimum organic query sampling frequency (seconds or steps value).",
-        default=2.0,
+        default=5.0,
     )
 
     parser.add_argument(
