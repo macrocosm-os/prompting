@@ -658,7 +658,7 @@ class StackOverflowDataset:
 
     def get_stack_answer(self, question):
         question_id = question["question_id"]
-        url_answers = (
+        url_answers : str = (
             f"https://api.stackexchange.com/2.3/questions/{question_id}/answers"
         )
         params_answers = {
