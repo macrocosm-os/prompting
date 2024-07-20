@@ -642,7 +642,7 @@ class StackOverflowDataset:
     def __init__(self):
         # Stack Overflow API endpoint for a random article
         self.url: str = "https://api.stackexchange.com/2.3/questions"
-        self.questions: List = []
+        self.questions: list[dict[str, Any]] = []
 
     def get_stack_questions(self, min_upvotes: int = 10):
         params = {
