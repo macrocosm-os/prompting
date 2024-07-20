@@ -84,8 +84,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         """Blacklist function for the axon."""
         # ! DO NOT CHANGE `Tuple` return type to `tuple`, it will break the code (bittensor internal signature checks).
         # We expect the API to be run with one specific hotkey (e.g. OTF).
-        # return synapse.dendrite.hotkey != self._val.config.neuron.organic_whitelist_hotkey, ""
-        return synapse.dendrite.hotkey != "5Fk35HgrTqqUffK7WN8FG4euZ8MpKx35mUYz9kgwj3UDnNHr", ""
+        return synapse.dendrite.hotkey != self._val.config.neuron.organic_whitelist_hotkey, ""
 
     @override
     async def _on_organic_entry(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
