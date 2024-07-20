@@ -280,8 +280,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
         uids = reward["uids"]
         reward_result = reward["reward"]
         bt.logging.info(f"[Organic] Rewards for miner's UIDs: {dict(zip(uids, reward_result.rewards))}")
-        bt.logging.info(f"[Organic] Weight setting enabled: {self._val.config.neuron.organic_weight_setting_enabled}")
-        if self._val.config.neuron.organic_weight_setting_enabled:
+        bt.logging.info(f"[Organic] Weight setting enabled: {self._val.config.neuron.organic_set_weights_enabled}")
+        if self._val.config.neuron.organic_set_weights_enabled:
             self._val.update_scores(reward_result.rewards, uids)
             # Sync is not needed as it's done in the benchmarks loop.
             # self._val.sync()

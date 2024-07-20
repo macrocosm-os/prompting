@@ -428,7 +428,7 @@ def add_validator_args(cls, parser):
 
     # TODO: Set organic weight setting enabled by default after Aug 1, 2024.
     parser.add_argument(
-        "--neuron.organic_weight_setting_enabled",
+        "--neuron.organic_set_weights_enabled",
         action="store_true",
         help="Set this flag to enable organic scoring weight setting.",
         default=False,
