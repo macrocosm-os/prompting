@@ -71,7 +71,7 @@ class MathDataset(Dataset):
                     "math problem",
                     "math technique",
                 ]
-                external_links : List = []
+                external_links: list[str] = []
                 # construct external links from randomly shuffled trigrams containing 2 words from the problem and 1 random math word
                 # binary_to_decimal -> ['binary to', 'to decimal']
                 for bigram in itertools.combinations(info["forward_words"], 2):
