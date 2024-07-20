@@ -19,6 +19,7 @@ import time
 import argparse
 import asyncio
 import threading
+from typing import Optional
 import bittensor as bt
 from prompting.protocol import StreamPromptingSynapse
 from prompting.base.neuron import BaseNeuron
@@ -36,7 +37,7 @@ class BaseStreamMinerNeuron(BaseNeuron):
         super().add_args(parser)
         add_miner_args(cls, parser)
 
-    def __init__(self, config=None):
+    def __init__(self, config: Optional[bt.config] =None):
         super().__init__(config=config)
 
         # Warn if allowing incoming requests from anyone.
@@ -50,7 +51,7 @@ class BaseStreamMinerNeuron(BaseNeuron):
             )
 
         # The axon handles request processing, allowing validators to send this miner requests.
-        self.axon = bt.axon(wallet=self.wallet, config=self.config)
+        self.axon: bt.axon = bt.axon(wallet=self.wallet, config=self.config)
 
         # Attach determiners which functions are called when servicing a request.
         bt.logging.info(f"Attaching forward function to miner axon.")
@@ -134,7 +135,7 @@ class BaseStreamMinerNeuron(BaseNeuron):
         except Exception as err:
             bt.logging.error("Error during mining", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
-            self.should_exit = True
+            self.should_exit: bool = True
 
     def run_in_background_thread(self):
         """
@@ -143,10 +144,10 @@ class BaseStreamMinerNeuron(BaseNeuron):
         """
         if not self.is_running:
             bt.logging.debug("Starting miner in background thread.")
-            self.should_exit = False
-            self.thread = threading.Thread(target=self.run, daemon=True)
+            self.should_exit: bool = False
+            self.thread: threading.Thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
-            self.is_running = True
+            self.is_running: bool = True
             bt.logging.debug("Started")
 
     def stop_run_thread(self):
@@ -155,9 +156,9 @@ class BaseStreamMinerNeuron(BaseNeuron):
         """
         if self.is_running:
             bt.logging.debug("Stopping miner in background thread.")
-            self.should_exit = True
+            self.should_exit: bool = True
             self.thread.join(5)
-            self.is_running = False
+            self.is_running: bool = False
             bt.logging.debug("Stopped")
 
     def __enter__(self):

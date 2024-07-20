@@ -17,6 +17,7 @@
 
 import copy
 import sys
+from typing import Optional
 
 import bittensor as bt
 
@@ -46,7 +47,7 @@ class BaseNeuron(ABC):
         add_args(cls, parser)
 
     @classmethod
-    def _config(cls):
+    def _config(cls) -> bt.config:
         return config(cls)
 
     subtensor: "bt.subtensor"
@@ -58,15 +59,15 @@ class BaseNeuron(ABC):
     def block(self):
         return ttl_get_block(self)
 
-    def __init__(self, config=None):
-        base_config = copy.deepcopy(config or BaseNeuron._config())
-        self.config = self._config()
+    def __init__(self, config: Optional[bt.config] =None):
+        base_config: bt.config = copy.deepcopy(config or BaseNeuron._config())
+        self.config: bt.config = self._config()
         self.config.merge(base_config)
         self.check_config(self.config)
 
         # Set up logging with the provided configuration and directory.
         bt.logging(config=self.config, logging_dir=self.config.full_path)
-
+    
         # If a gpu is required, set the device to cuda:N (e.g. cuda:0)
         self.device = self.config.neuron.device
 
@@ -95,7 +96,7 @@ class BaseNeuron(ABC):
         self.check_registered()
 
         # Each miner gets a unique identity (UID) in the network for differentiation.
-        self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+        self.uid: int = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         bt.logging.info(
             f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
         )
@@ -137,7 +138,7 @@ class BaseNeuron(ABC):
             )
             sys.exit()
 
-    def should_sync_metagraph(self):
+    def should_sync_metagraph(self) -> bool:
         """
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
