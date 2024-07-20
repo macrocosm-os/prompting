@@ -34,9 +34,9 @@ class MathDataset(Dataset):
     name: str = 'math'
     topics_list: list[tuple[str, str]] = mathgenerator.getGenList()
 
-    def __init__(self, seed : Optional[int]=None):
-        self.seed : Optional[int] = seed
-        self.rng : Random = random.Random(seed)
+    def __init__(self, seed: Optional[int] = None):
+        self.seed: Optional[int] = seed
+        self.rng: Random = random.Random(seed)
 
     def get(
         self,
