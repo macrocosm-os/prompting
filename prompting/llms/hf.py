@@ -16,14 +16,22 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-from typing import List, Dict
+from typing import List, Dict, Optional, Union
 import bittensor as bt
 
-from transformers import BitsAndBytesConfig, pipeline, AutoTokenizer, TextIteratorStreamer
+from transformers import (
+    BitsAndBytesConfig,
+    pipeline,
+    AutoTokenizer,
+    TextIteratorStreamer,
+    Pipeline,
+)
 from prompting.mock import MockPipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 from transformers import pipeline, TextIteratorStreamer, AutoTokenizer
 from prompting.llms import BasePipeline, BaseLLM
+from transformers.tokenization_utils import PreTrainedTokenizer
+from transformers.tokenization_utils_fast import PreTrainedTokenizerFast
 
 
 class CustomTextIteratorStreamer(TextIteratorStreamer):
@@ -36,7 +44,7 @@ class CustomTextIteratorStreamer(TextIteratorStreamer):
     Therefore, we add methods to check and clean the queue manually.
     """
 
-    def has_data(self):
+    def has_data(self) -> bool:
         """Check if the queue has data."""
         return not self.text_queue.empty()
 
@@ -51,9 +59,9 @@ def load_hf_pipeline(
     device=None,
     torch_dtype=None,
     mock=False,
-    model_kwargs: dict = None,
+    model_kwargs: Optional[dict] = None,
     return_streamer: bool = False,
-):
+) -> Union[MockPipeline, tuple[Pipeline, CustomTextIteratorStreamer], Pipeline]:
     """Loads the HuggingFace pipeline for the LLM, or a mock pipeline if mock=True"""
 
     if mock or model_id == "mock":
@@ -63,18 +71,22 @@ def load_hf_pipeline(
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
     try:
-        tokenizer = AutoTokenizer.from_pretrained(
+        tokenizer: Union[
+            PreTrainedTokenizer, PreTrainedTokenizerFast
+        ] = AutoTokenizer.from_pretrained(
             model_id
         )  # model_id is usually the name of the tokenizer.
     except Exception as e:
         bt.logging.error(f"Failed to load tokenizer from model_id: {model_id}.")
         raise e
 
-    streamer = CustomTextIteratorStreamer(tokenizer=tokenizer)
+    streamer: CustomTextIteratorStreamer = CustomTextIteratorStreamer(
+        tokenizer=tokenizer
+    )
 
     # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
     if model_kwargs is None:
-        llm_pipeline = pipeline(
+        llm_pipeline: Pipeline = pipeline(
             "text-generation",
             model=model_id,
             tokenizer=tokenizer,
@@ -103,14 +115,14 @@ def load_hf_pipeline(
 class HuggingFacePipeline(BasePipeline):
     def __init__(
         self,
-        model_id,
-        device=None,
-        torch_dtype=None,
-        mock=False,
-        model_kwargs: dict = None,
+        model_id: str,
+        device: Optional[str] = None,
+        torch_dtype: Optional[str] = None,
+        mock: bool = False,
+        model_kwargs: Optional[dict] = None,
         return_streamer: bool = False,
         gpus: int = 1,
-        llm_max_allowed_memory_in_gb: int = 0
+        llm_max_allowed_memory_in_gb: int = 0,
     ):
         super().__init__()
         self.model = model_id
@@ -118,7 +130,9 @@ class HuggingFacePipeline(BasePipeline):
         self.torch_dtype = torch_dtype
         self.mock = mock
 
-        package = load_hf_pipeline(
+        package: Union[
+            MockPipeline, tuple[Pipeline, CustomTextIteratorStreamer], Pipeline
+        ] = load_hf_pipeline(
             model_id=model_id,
             device=device,
             torch_dtype=torch_dtype,
@@ -131,10 +145,17 @@ class HuggingFacePipeline(BasePipeline):
             self.pipeline, self.streamer = package
         else:
             self.pipeline = package
+            self.streamer = None
 
-        self.tokenizer = self.pipeline.tokenizer
+        self.tokenizer: Union[
+            PreTrainedTokenizer, PreTrainedTokenizerFast
+        ] = self.pipeline.tokenizer
 
-    def __call__(self, composed_prompt: str, **kwargs: dict) -> str:
+    def __call__(
+        self, composed_prompt: str, **kwargs: dict
+    ) -> Union[
+        str, MockPipeline, tuple[Pipeline, CustomTextIteratorStreamer], Pipeline
+    ]:
         if self.mock:
             return self.pipeline(composed_prompt, **kwargs)
 
@@ -147,7 +168,7 @@ class HuggingFaceLLM(BaseLLM):
     def __init__(
         self,
         llm_pipeline: BasePipeline,
-        system_prompt,
+        system_prompt: str,
         max_new_tokens=256,
         do_sample=True,
         temperature=0.7,
@@ -165,8 +186,10 @@ class HuggingFaceLLM(BaseLLM):
 
         super().__init__(llm_pipeline, system_prompt, model_kwargs)
 
-        self.messages = [{"content": self.system_prompt, "role": "system"}]
-        self.times = [0]
+        self.messages: list[dict[str, str]] = [
+            {"content": self.system_prompt, "role": "system"}
+        ]
+        self.times: list[Union[int, float]] = [0]
 
     def query(
         self,
@@ -174,18 +197,22 @@ class HuggingFaceLLM(BaseLLM):
         role: str = "user",
         disregard_system_prompt: bool = False,
         cleaner: CleanerPipeline = None,
-    ):
-        messages = self.messages + [{"content": message, "role": role}]
+    ) -> str:
+        messages: list[dict[str, str]] = self.messages + [
+            {"content": message, "role": role}
+        ]
 
         if disregard_system_prompt:
             messages = messages[1:]
 
-        tbeg = time.time()
+        tbeg: float = time.time()
         response = self.forward(messages=messages)
-        response = self.clean_response(cleaner, response)
+        response: str = self.clean_response(cleaner, response)
 
-        self.messages = messages + [{"content": response, "role": "assistant"}]
-        self.times = self.times + [0, time.time() - tbeg]
+        self.messages: list[dict[str, str]] = messages + [
+            {"content": response, "role": "assistant"}
+        ]
+        self.times: list[Union[int, float]] = self.times + [0, time.time() - tbeg]
 
         return response
 
@@ -193,12 +220,14 @@ class HuggingFaceLLM(BaseLLM):
         self,
         message: str,
         role: str = "user",
-    ):
+    ) -> CustomTextIteratorStreamer:
         messages = self.messages + [{"content": message, "role": role}]
         prompt = self._make_prompt(messages)
 
         bt.logging.debug("Starting LLM streaming process...")
-        streamer = CustomTextIteratorStreamer(tokenizer=self.llm_pipeline.tokenizer)
+        streamer: CustomTextIteratorStreamer = CustomTextIteratorStreamer(
+            tokenizer=self.llm_pipeline.tokenizer
+        )
         _ = self.llm_pipeline(prompt, streamer=streamer, **self.model_kwargs)
 
         return streamer
@@ -218,7 +247,7 @@ class HuggingFaceLLM(BaseLLM):
     def forward(self, messages: List[Dict[str, str]]):
         composed_prompt = self._make_prompt(messages)
         # System prompt is composed in the prompt
-        response = self.llm_pipeline(
+        response: BasePipeline = self.llm_pipeline(
             composed_prompt=composed_prompt, **self.model_kwargs
         )
 
@@ -237,12 +266,12 @@ if __name__ == "__main__":
     torch_dtype = "float16"
     mock = True
 
-    llm_pipeline = HuggingFacePipeline(
+    llm_pipeline: HuggingFacePipeline = HuggingFacePipeline(
         model_id=model_id, device=device, torch_dtype=torch_dtype, mock=mock
     )
 
-    llm = HuggingFaceLLM(llm_pipeline, "You are a helpful AI assistant")
+    llm: HuggingFaceLLM = HuggingFaceLLM(llm_pipeline, "You are a helpful AI assistant")
 
-    message = "What is the capital of Texas?"
-    response = llm.query(message)
+    message: str = "What is the capital of Texas?"
+    response: str = llm.query(message)
     print(response)

@@ -1,7 +1,7 @@
 import bittensor as bt
 from abc import ABC, abstractmethod
 from prompting.cleaners.cleaner import CleanerPipeline
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Union
 
 
 class BasePipeline(ABC):
@@ -15,20 +15,20 @@ class BaseLLM(ABC):
         self,
         llm_pipeline: BasePipeline,
         system_prompt: str,
-        model_kwargs: dict,
+        model_kwargs: dict[str, Union[int, float]],
     ):
-        self.llm_pipeline = llm_pipeline
-        self.system_prompt = system_prompt
-        self.model_kwargs = model_kwargs
-        self.messages = []
-        self.times = []
+        self.llm_pipeline: BasePipeline = llm_pipeline
+        self.system_prompt: str = system_prompt
+        self.model_kwargs: dict[str, Union[int, float]] = model_kwargs
+        self.messages: list = []
+        self.times: list = []
         self.tokenizer = None
 
     def query(
         self,
         message: str,
         role: str = "user",
-        disregard_system_prompt: bool = False,
+        disregard_system_prompt: Optional[bool] = False,
         cleaner: CleanerPipeline = None,
     ) -> str:
         ...
