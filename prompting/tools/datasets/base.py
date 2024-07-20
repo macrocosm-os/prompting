@@ -47,7 +47,7 @@ class Dataset(ABC):
 
     def next(
         self, method: str = "random", selector: Selector = Selector(), **kwargs
-    )->Context:
+    ) -> Context:
         tries : int = 1
         t0 : float = time.time()
 
