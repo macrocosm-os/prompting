@@ -426,12 +426,19 @@ def add_validator_args(cls, parser):
         default=False,
     )
 
-
-    # TODO: Ser organic weight setting enabled by default after Aug 1, 2024.
+    # TODO: Set organic weight setting enabled by default after Aug 1, 2024.
     parser.add_argument(
         "--neuron.organic_weight_setting_enabled",
         action="store_true",
         help="Set this flag to enable organic scoring weight setting.",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_reuse_response_disabled",
+        action="store_true",
+        help="If set, miner responses will be re-generated during reward generation. "
+             "The default behavior is to reuse responses.",
         default=False,
     )
 
@@ -453,7 +460,7 @@ def add_validator_args(cls, parser):
         "--neuron.organic_trigger_frequency",
         type=float,
         help="Organic query sampling frequency (seconds or steps value).",
-        default=30.0,
+        default=45.0,
     )
 
     parser.add_argument(
