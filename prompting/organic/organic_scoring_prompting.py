@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 import time
 from functools import partial
@@ -83,7 +84,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
         """Blacklist function for the axon."""
         # ! DO NOT CHANGE `Tuple` return type to `tuple`, it will break the code (bittensor internal signature checks).
         # We expect the API to be run with one specific hotkey (e.g. OTF).
-        return synapse.dendrite.hotkey != self._val.config.neuron.organic_whitelist_hotkey, ""
+        # return synapse.dendrite.hotkey != self._val.config.neuron.organic_whitelist_hotkey, ""
+        return synapse.dendrite.hotkey != "5Fk35HgrTqqUffK7WN8FG4euZ8MpKx35mUYz9kgwj3UDnNHr", ""
 
     @override
     async def _on_organic_entry(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
@@ -145,7 +147,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
                     accumulated_chunks.append(chunk)
                     accumulated_chunks_timings.append(time.perf_counter() - timer_start)
                     accumulated_tokens_per_chunk.append(len(self._val.llm_pipeline.tokenizer.tokenize(chunk)))
-                    json_chunk = json.dumps({"uid": uid, "chunk": chunk})
+                    current_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                    json_chunk = json.dumps({"uid": uid, "chunk": chunk, "timestamp": current_time})
                     await send(
                         {
                             "type": "http.response.body",
