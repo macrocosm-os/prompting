@@ -48,8 +48,8 @@ class Dataset(ABC):
     def next(
         self, method: str = "random", selector: Selector = Selector(), **kwargs
     ) -> Context:
-        tries : int = 1
-        t0 : float = time.time()
+        tries = 1
+        t0 = time.time()
 
         while True:
             # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
