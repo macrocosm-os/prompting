@@ -20,7 +20,7 @@ import time
 import random
 import functools
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Any, Dict, Optional
 import bittensor as bt
 
 from ..selector import Selector
@@ -47,9 +47,9 @@ class Dataset(ABC):
 
     def next(
         self, method: str = "random", selector: Selector = Selector(), **kwargs
-    ) -> Dict:
-        tries = 1
-        t0 = time.time()
+    )->Context:
+        tries : int = 1
+        t0 : float = time.time()
 
         while True:
             # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
@@ -90,15 +90,15 @@ class TemplateDataset(Dataset):
     """Base class for datasets based on a template."""
 
     @property
-    def size(self):
+    def size(self)->int:
         return functools.reduce(
             lambda x, y: x * y, [len(v) for v in self.params.values()], 1
         )
 
-    def __repr__(self):
+    def __repr__(self)->str:
         return f"{self.__class__.__name__} with template: {self.query_template!r} and {self.size} possible phrases"
 
-    def get(self, params: dict):
+    def get(self, params: dict)->Dict[str, Any]:
         content = self.query_template.format(**params)
         keys, values = list(zip(*params.items()))
 
@@ -117,10 +117,10 @@ class TemplateDataset(Dataset):
             "extra": {},
         }
 
-    def random(self, selector: Selector = None):
+    def random(self, selector: Optional[Selector] = None)->Dict[str,Any]:
         selected = {k: selector(v) for k, v in self.params.items()}
         return self.get(selected)
 
-    def search(self, params: dict, selector: Selector = None):
+    def search(self, params: dict, selector: Optional[Selector] = None)->Dict[str, Any]:
         selected = {k: params.get(k, selector(v)) for k, v in self.params.items()}
         return self.get(selected)

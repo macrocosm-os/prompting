@@ -22,7 +22,8 @@ import itertools
 import mathgenerator
 import bittensor as bt
 from sympy.parsing.latex import parse_latex
-from typing import Dict, Union, List, Tuple
+from typing import Any, Dict, Optional, Union, List, Tuple
+from random import Random
 
 
 from .base import Dataset
@@ -30,19 +31,19 @@ from ..selector import Selector
 
 
 class MathDataset(Dataset):
-    name = 'math'
-    topics_list = mathgenerator.getGenList()
+    name : str = 'math'
+    topics_list : List[Tuple[str,str]] = mathgenerator.getGenList()
 
-    def __init__(self, seed=None):
-        self.seed = seed
-        self.rng = random.Random(seed)
+    def __init__(self, seed : Optional[int]=None):
+        self.seed : Optional[int] = seed
+        self.rng : Random = random.Random(seed)
 
     def get(
         self,
         name: str,
-        selector: Selector = None,
-        include: List = None,
-        exclude: List = None,
+        selector: Optional[Selector] = None,
+        include: Optional[List] = None,
+        exclude: Optional[List] = None,
         **kwargs,
     ) -> Dict:
         """Get a math problem.
@@ -57,9 +58,9 @@ class MathDataset(Dataset):
             Dict: _description_
         """
         bt.logging.info(f"Getting math problem {name!r}")
-        max_tries = 10
+        max_tries : int = 10
         for _ in range(max_tries):
-            info = mathgenerator.generate_context(name, **kwargs)
+            info : Dict[str, Any]= mathgenerator.generate_context(name, **kwargs)
             if info["reward_type"] != "float" or info["topic"] == "computer_science":       
                 pass
             else:
@@ -70,7 +71,7 @@ class MathDataset(Dataset):
                     "math problem",
                     "math technique",
                 ]
-                external_links = []
+                external_links : List = []
                 # construct external links from randomly shuffled trigrams containing 2 words from the problem and 1 random math word
                 # binary_to_decimal -> ['binary to', 'to decimal']
                 for bigram in itertools.combinations(info["forward_words"], 2):
@@ -90,12 +91,12 @@ class MathDataset(Dataset):
                 }
 
     def search(
-        self, name, selector: Selector, include: List = None, exclude: List = None
+        self, name : str, selector: Selector, include: Optional[List] = None, exclude: Optional[List] = None
     ) -> Dict:
         raise NotImplementedError(
             f"Search is not implemented for {self.__class__.__name__}"
         )
 
-    def random(self, selector: Selector, **kwargs):
+    def random(self, selector: Selector, **kwargs)->Dict:
         """Create a random math problem."""
         return self.get(name=None, selector=selector, **kwargs)
