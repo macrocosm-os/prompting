@@ -214,7 +214,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
     @override
     async def _query_miners(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Query miners with the given synthetic or organic sample."""
-        if sample.get("organic", False) and not self.config.neuron.organic_reuse_response_disabled:
+        if sample.get("organic", False) and not self._val.config.neuron.organic_reuse_response_disabled:
             responses = await self._reuse_organic_response(sample)
             return responses
 
