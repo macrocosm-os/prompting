@@ -59,7 +59,7 @@ class BaseNeuron(ABC):
     def block(self):
         return ttl_get_block(self)
 
-    def __init__(self, config: Optional[bt.config] =None):
+    def __init__(self, config: Optional[bt.config] = None):
         base_config: bt.config = copy.deepcopy(config or BaseNeuron._config())
         self.config: bt.config = self._config()
         self.config.merge(base_config)
@@ -67,7 +67,7 @@ class BaseNeuron(ABC):
 
         # Set up logging with the provided configuration and directory.
         bt.logging(config=self.config, logging_dir=self.config.full_path)
-    
+
         # If a gpu is required, set the device to cuda:N (e.g. cuda:0)
         self.device = self.config.neuron.device
 
@@ -82,7 +82,9 @@ class BaseNeuron(ABC):
         if self.config.mock:
             self.wallet = bt.MockWallet(config=self.config)
             self.subtensor = MockSubtensor(self.config.netuid, wallet=self.wallet)
-            self.metagraph = MockMetagraph(netuid=self.config.netuid, subtensor=self.subtensor)
+            self.metagraph = MockMetagraph(
+                netuid=self.config.netuid, subtensor=self.subtensor
+            )
         else:
             self.wallet = bt.wallet(config=self.config)
             self.subtensor = bt.subtensor(config=self.config)
@@ -103,12 +105,10 @@ class BaseNeuron(ABC):
         self.step = 0
 
     @abstractmethod
-    def forward(self, synapse: bt.Synapse) -> bt.Synapse:
-        ...
+    def forward(self, synapse: bt.Synapse) -> bt.Synapse: ...
 
     @abstractmethod
-    def run(self):
-        ...
+    def run(self): ...
 
     def sync(self):
         """

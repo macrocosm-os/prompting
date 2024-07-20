@@ -42,7 +42,7 @@ class BaseValidatorNeuron(BaseNeuron):
         super().add_args(parser)
         add_validator_args(cls, parser)
 
-    def __init__(self, config: Optional[bt.config] =None):
+    def __init__(self, config: Optional[bt.config] = None):
         super().__init__(config=config)
 
         # Save a copy of the hotkeys to local memory.
@@ -183,7 +183,9 @@ class BaseValidatorNeuron(BaseNeuron):
         if not self.is_running:
             bt.logging.debug("Starting validator in background thread.")
             self.should_exit: bool = False
-            self.thread: threading.Thread = threading.Thread(target=self.run, daemon=True)
+            self.thread: threading.Thread = threading.Thread(
+                target=self.run, daemon=True
+            )
             self.thread.start()
             self.is_running: bool = True
             bt.logging.debug("Started")
@@ -236,7 +238,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
-        raw_weights: torch.Tensor = torch.nn.functional.normalize(self.scores, p=1, dim=0)
+        raw_weights: torch.Tensor = torch.nn.functional.normalize(
+            self.scores, p=1, dim=0
+        )
 
         bt.logging.debug("raw_weights", raw_weights)
         bt.logging.debug("raw_weight_uids", self.metagraph.uids)

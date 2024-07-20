@@ -37,7 +37,7 @@ class BaseStreamMinerNeuron(BaseNeuron):
         super().add_args(parser)
         add_miner_args(cls, parser)
 
-    def __init__(self, config: Optional[bt.config] =None):
+    def __init__(self, config: Optional[bt.config] = None):
         super().__init__(config=config)
 
         # Warn if allowing incoming requests from anyone.
@@ -109,10 +109,7 @@ class BaseStreamMinerNeuron(BaseNeuron):
         # This loop maintains the miner's operations until intentionally stopped.
         try:
             while not self.should_exit:
-                while (
-                    self.block - last_update_block
-                    < self.config.neuron.epoch_length
-                ):
+                while self.block - last_update_block < self.config.neuron.epoch_length:
                     # Wait before checking again.
                     time.sleep(1)
 
@@ -145,7 +142,9 @@ class BaseStreamMinerNeuron(BaseNeuron):
         if not self.is_running:
             bt.logging.debug("Starting miner in background thread.")
             self.should_exit: bool = False
-            self.thread: threading.Thread = threading.Thread(target=self.run, daemon=True)
+            self.thread: threading.Thread = threading.Thread(
+                target=self.run, daemon=True
+            )
             self.thread.start()
             self.is_running: bool = True
             bt.logging.debug("Started")

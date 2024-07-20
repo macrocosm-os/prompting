@@ -27,6 +27,7 @@ from typing import List, Dict, Optional, Union
 from wandb.sdk.lib import RunDisabled
 from wandb.wandb_run import Run
 
+
 class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     """
     Your miner neuron class. You should use this class to define your miner's behavior.
@@ -39,7 +40,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function.
     """
 
-    def __init__(self, config: Optional[bt.config] =None):
+    def __init__(self, config: Optional[bt.config] = None):
         super().__init__(config=config)
         self.identity_tags: Optional[bool] = None
 
@@ -121,7 +122,9 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     def init_wandb(self):
         bt.logging.info("Initializing wandb...")
 
-        uid: str = f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
+        uid: str = (
+            f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
+        )
         net_uid: str = f"netuid_{self.config.netuid}"
         tags: list[str] = [
             self.wallet.hotkey.ss58_address,
@@ -150,7 +153,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
             run_name = "_".join(run_name_tags)
 
         # inits wandb in case it hasn't been inited yet
-        
+
         self.wandb_run: Optional[Union[Run, RunDisabled]] = wandb.init(
             name=run_name,
             project=self.config.wandb.project_name,
@@ -171,8 +174,8 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     ):
         if not getattr(self, "wandb_run", None):
             self.init_wandb()
-                
-        dendrite_uid: int = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)        
+
+        dendrite_uid: int = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
         step_log = {
             "epoch_time": timing,
             # TODO: add block to logs in the future in a way that doesn't impact performance
