@@ -117,7 +117,7 @@ class TemplateDataset(Dataset):
             "extra": {},
         }
 
-    def random(self, selector: Optional[Selector] = None)->Dict[str,Any]:
+    def random(self, selector: Optional[Selector] = None) -> dict[str, Any]:
         selected = {k: selector(v) for k, v in self.params.items()}
         return self.get(selected)
 
