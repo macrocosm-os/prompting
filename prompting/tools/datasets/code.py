@@ -525,14 +525,14 @@ def filter_comments(code: str, language: str) -> str:
 
 # TODO: why not define the chain_in, chain_out logic in the class itself?
 class HFCodingDataset(Dataset):
-    name : str = "hf_coding"
+    name: str = "hf_coding"
 
     def __init__(
         self,
-        dataset_id : str="codeparrot/github-code",
-        seed : Optional[int]=None,
-        languages : Optional[str]=None,
-        buffer_size : int =10000,
+        dataset_id: str = "codeparrot/github-code",
+        seed: Optional[int] = None,
+        languages: Optional[str] = None,
+        buffer_size: int = 10000,
     ):
         if seed is None:
             seed = random.randint(0, 1000)
@@ -540,10 +540,10 @@ class HFCodingDataset(Dataset):
 
         if languages is None:
             languages = list(LANGUAGES.keys())
-        self.languages : List[str] = languages
+        self.languages: List[str] = languages
 
-        self.dataset_id : str = dataset_id
-        self.dataset : IterableDataset = iter(
+        self.dataset_id: str = dataset_id
+        self.dataset: IterableDataset = iter(
             load_dataset(
                 dataset_id,
                 split="train",
@@ -552,8 +552,13 @@ class HFCodingDataset(Dataset):
             ).shuffle(seed=seed, buffer_size=buffer_size)
         )
 
-    def get(self, min_lines : int =5, max_lines : int =100, selector: Optional[Selector] = None) -> Optional[Dict[str, Any]]:
-        info : Dict[str, str]= next(self.dataset)
+    def get(
+        self,
+        min_lines: int = 5,
+        max_lines: int = 100,
+        selector: Optional[Selector] = None,
+    ) -> Optional[Dict[str, Any]]:
+        info: Dict[str, str] = next(self.dataset)
 
         if not (min_lines <= len(info["code"].splitlines()) <= max_lines):
             return None
@@ -561,8 +566,8 @@ class HFCodingDataset(Dataset):
         present_keywords, present_libraries = self.get_special_contents(
             info["code"], info["language"]
         )
-        keywords : List[str] = list(present_keywords) + list(present_libraries)
-        code_words : List[str] = [
+        keywords: List[str] = list(present_keywords) + list(present_libraries)
+        code_words: List[str] = [
             "code",
             "programming",
             "coding",
@@ -588,18 +593,29 @@ class HFCodingDataset(Dataset):
         }
 
     def search(
-        self, query, min_lines : int =5, max_lines : int =100, selector: Optional[Selector] = None, **kwargs
+        self,
+        query,
+        min_lines: int = 5,
+        max_lines: int = 100,
+        selector: Optional[Selector] = None,
+        **kwargs,
     ):
         # TODO: Would be great to be able to get other files from the same repo
         raise NotImplementedError(
             f"Search is not implemented for {self.__class__.__name__}"
         )
 
-    def random(self, min_lines : int =5, max_lines : int =100, selector: Optional[Selector] = None, **kwargs)->Optional[Dict[str, Any]]:
+    def random(
+        self,
+        min_lines: int = 5,
+        max_lines: int = 100,
+        selector: Optional[Selector] = None,
+        **kwargs,
+    ) -> Optional[Dict[str, Any]]:
         return self.get(min_lines, max_lines, selector)
 
-    def extract_keywords(self, code:str, language:str, field : str)->Set[str]:
-        matches : Set[str] = set()
+    def extract_keywords(self, code: str, language: str, field: str) -> Set[str]:
+        matches: Set[str] = set()
 
         # check which keywords and libraries are present in the code
         for keyword in LANGUAGES[language].get(field, []):
@@ -608,7 +624,9 @@ class HFCodingDataset(Dataset):
 
         return matches
 
-    def get_special_contents(self, code : str, language : str, remove_comments : bool=True)->Tuple[Set,Set]:
+    def get_special_contents(
+        self, code: str, language: str, remove_comments: bool = True
+    ) -> Tuple[Set, Set]:
         if remove_comments:
             code = filter_comments(code, language)
 
@@ -623,10 +641,10 @@ class StackOverflowDataset:
 
     def __init__(self):
         # Stack Overflow API endpoint for a random article
-        self.url : str = "https://api.stackexchange.com/2.3/questions"
-        self.questions : List = []
+        self.url: str = "https://api.stackexchange.com/2.3/questions"
+        self.questions: List = []
 
-    def get_stack_questions(self, min_upvotes : int = 10):
+    def get_stack_questions(self, min_upvotes: int = 10):
         params = {
             "order": "desc",
             "sort": "votes",  # Sorting by votes means that it's likely that the same questions will be fetched again
@@ -636,11 +654,11 @@ class StackOverflowDataset:
         }
 
         # Fetch questions
-        response : Response = requests.get(self.url, params=params)
+        response: Response = requests.get(self.url, params=params)
         response.raise_for_status()
 
         # Parse response
-        questions : List[Dict[str, Any]]= response.json()["items"]
+        questions: List[Dict[str, Any]] = response.json()["items"]
 
         # Filter questions by minimum upvotes
         filtered_questions = [q for q in questions if q["score"] >= min_upvotes]
@@ -657,10 +675,10 @@ class StackOverflowDataset:
             self.get_stack_questions()
         question = self.questions.pop()
         # Fetch the highest voted answer for the selected question
-        answer : str = self.get_stack_answer(question)
+        answer: str = self.get_stack_answer(question)
         return {"question": question["title"], "answer": answer}
 
-    def get_stack_answer(self, question :  Dict[str, Any])->str:
+    def get_stack_answer(self, question: Dict[str, Any]):
         question_id = question["question_id"]
         url_answers: str = (
             f"https://api.stackexchange.com/2.3/questions/{question_id}/answers"
@@ -671,20 +689,22 @@ class StackOverflowDataset:
             "site": "stackoverflow",
             "filter": "withbody",  #'!9_bDDxJY5'
         }
-        response_answers : Response = requests.get(url_answers, params=params_answers)
+        response_answers: Response = requests.get(url_answers, params=params_answers)
         response_answers.raise_for_status()
         answers: List[Dict[str, Any]] = response_answers.json()["items"]
         if not answers:
             bt.logging.warning("No answers found for the question!")
 
-        highest_voted_answer : Dict[str, Any] = answers[0]  # The first answer is the highest voted
-        soup : BeautifulSoup = BeautifulSoup(highest_voted_answer["body"], "html.parser")
-        full_content : str = soup.get_text(separator="\n")
+        highest_voted_answer: Dict[str, Any] = answers[
+            0
+        ]  # The first answer is the highest voted
+        soup: BeautifulSoup = BeautifulSoup(highest_voted_answer["body"], "html.parser")
+        full_content: str = soup.get_text(separator="\n")
         return full_content
 
-    def next(self) -> Dict[str,Any]:
+    def next(self) -> Dict[str, Any]:
         bt.logging.debug("Retrieving data from prompting.dataset...")
-        t0 : float = time.time()
-        info : Dict[str, Any] = self.get_stack_question()
+        t0: float = time.time()
+        info: Dict[str, Any] = self.get_stack_question()
         info["fetch_time"] = time.time() - t0
         return info
