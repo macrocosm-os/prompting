@@ -678,7 +678,7 @@ class StackOverflowDataset:
         answer: str = self.get_stack_answer(question)
         return {"question": question["title"], "answer": answer}
 
-    def get_stack_answer(self, question: Dict[str, Any]):
+    def get_stack_answer(self, question: Dict[str, Any]) -> str:
         question_id = question["question_id"]
         url_answers: str = (
             f"https://api.stackexchange.com/2.3/questions/{question_id}/answers"
