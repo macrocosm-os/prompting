@@ -58,9 +58,9 @@ class MathDataset(Dataset):
             Dict: _description_
         """
         bt.logging.info(f"Getting math problem {name!r}")
-        max_tries : int = 10
+        max_tries = 10
         for _ in range(max_tries):
-            info : Dict[str, Any]= mathgenerator.generate_context(name, **kwargs)
+            info: dict[str, Any] = mathgenerator.generate_context(name, **kwargs)
             if info["reward_type"] != "float" or info["topic"] == "computer_science":       
                 pass
             else:
@@ -91,12 +91,12 @@ class MathDataset(Dataset):
                 }
 
     def search(
-        self, name : str, selector: Selector, include: Optional[List] = None, exclude: Optional[List] = None
+        self, name: str, selector: Selector, include: Optional[List] = None, exclude: Optional[List] = None
     ) -> Dict:
         raise NotImplementedError(
             f"Search is not implemented for {self.__class__.__name__}"
         )
 
-    def random(self, selector: Selector, **kwargs)->Dict:
+    def random(self, selector: Selector, **kwargs) -> dict[str, Any]:
         """Create a random math problem."""
         return self.get(name=None, selector=selector, **kwargs)

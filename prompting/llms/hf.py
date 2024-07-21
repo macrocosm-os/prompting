@@ -80,9 +80,7 @@ def load_hf_pipeline(
         bt.logging.error(f"Failed to load tokenizer from model_id: {model_id}.")
         raise e
 
-    streamer: CustomTextIteratorStreamer = CustomTextIteratorStreamer(
-        tokenizer=tokenizer
-    )
+    streamer = CustomTextIteratorStreamer(tokenizer=tokenizer)
 
     # model_kwargs torch type definition conflicts with pipeline torch_dtype, so we need to differentiate them
     if model_kwargs is None:
@@ -147,9 +145,7 @@ class HuggingFacePipeline(BasePipeline):
             self.pipeline = package
             self.streamer = None
 
-        self.tokenizer: Union[
-            PreTrainedTokenizer, PreTrainedTokenizerFast
-        ] = self.pipeline.tokenizer
+        self.tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast] = self.pipeline.tokenizer
 
     def __call__(
         self, composed_prompt: str, **kwargs: dict

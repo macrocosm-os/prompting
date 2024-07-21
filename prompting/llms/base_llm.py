@@ -20,8 +20,8 @@ class BaseLLM(ABC):
         self.llm_pipeline: BasePipeline = llm_pipeline
         self.system_prompt: str = system_prompt
         self.model_kwargs: dict[str, Union[int, float]] = model_kwargs
-        self.messages: list = []
-        self.times: list = []
+        self.messages: list[str] = []
+        self.times: list[float] = []
         self.tokenizer = None
 
     def query(

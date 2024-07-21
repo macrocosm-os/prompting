@@ -83,7 +83,7 @@ class RewardResult:
             models=self.task_penalties,
             reward_type=RewardModelTypeEnum.PENALTY,
         )
-        self.rewards: torch.FloatTensor = self.total_reward()
+        self.rewards: torch.Tensor = self.total_reward()
 
     def __state_dict__(self, full: bool = False) -> dict[str, list]:
         state = {"rewards": self.rewards.tolist()}

@@ -95,10 +95,10 @@ class TemplateDataset(Dataset):
             lambda x, y: x * y, [len(v) for v in self.params.values()], 1
         )
 
-    def __repr__(self)->str:
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__} with template: {self.query_template!r} and {self.size} possible phrases"
 
-    def get(self, params: dict)->Dict[str, Any]:
+    def get(self, params: dict) -> dict[str, Any]:
         content = self.query_template.format(**params)
         keys, values = list(zip(*params.items()))
 

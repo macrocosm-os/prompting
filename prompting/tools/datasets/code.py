@@ -695,16 +695,15 @@ class StackOverflowDataset:
         if not answers:
             bt.logging.warning("No answers found for the question!")
 
-        highest_voted_answer: Dict[str, Any] = answers[
-            0
-        ]  # The first answer is the highest voted
+        # The first answer is the highest voted
+        highest_voted_answer: dict[str, Any] = answers[0]
         soup: BeautifulSoup = BeautifulSoup(highest_voted_answer["body"], "html.parser")
         full_content: str = soup.get_text(separator="\n")
         return full_content
 
-    def next(self) -> Dict[str, Any]:
+    def next(self) -> dict[str, Any]:
         bt.logging.debug("Retrieving data from prompting.dataset...")
         t0: float = time.time()
-        info: Dict[str, Any] = self.get_stack_question()
+        info: dict[str, Any] = self.get_stack_question()
         info["fetch_time"] = time.time() - t0
         return info

@@ -25,9 +25,7 @@ class StreamingRewardModel(BaseRewardModel):
         penalty_per_exceeding_chunk = 0.25
 
         # Iterate through each chunk of response tokens
-        for (
-            response_tokens_per_chunks
-        ) in response_event.stream_results_all_tokens_per_chunk:
+        for response_tokens_per_chunks in response_event.stream_results_all_tokens_per_chunk:
             start_time = time.time()
 
             # Calculate the accumulated penalty for the current chunk

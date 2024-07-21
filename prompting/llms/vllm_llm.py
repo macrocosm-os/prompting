@@ -71,9 +71,7 @@ class vLLMPipeline(BasePipeline):
         mock: bool = False,
     ):
         super().__init__()
-        self.llm = load_vllm_pipeline(
-            model_id, device, gpus, llm_max_allowed_memory_in_gb, mock
-        )
+        self.llm = load_vllm_pipeline(model_id, device, gpus, llm_max_allowed_memory_in_gb, mock)
         self.mock = mock
         self.gpus = gpus
         self.tokenizer = self.llm.llm_engine.tokenizer.tokenizer
@@ -92,9 +90,7 @@ class vLLMPipeline(BasePipeline):
         sampling_params = SamplingParams(
             temperature=temperature, top_p=top_p, max_tokens=max_tokens
         )
-        output: list[RequestOutput] = self.llm.generate(
-            composed_prompt, sampling_params, use_tqdm=True
-        )
+        output: list[RequestOutput] = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
         response: str = output[0].outputs[0].text
         return response
 

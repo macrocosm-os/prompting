@@ -122,9 +122,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     def init_wandb(self):
         bt.logging.info("Initializing wandb...")
 
-        uid: str = (
-            f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
-        )
+        uid = f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
         net_uid: str = f"netuid_{self.config.netuid}"
         tags: list[str] = [
             self.wallet.hotkey.ss58_address,

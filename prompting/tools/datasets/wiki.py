@@ -30,7 +30,7 @@ from ..selector import Selector
 
 
 # Create a queue called CACHED_ARTICLES to store wikipedia articles that have been fetched
-CACHED_ARTICLES : Queue = Queue(maxsize=300)
+CACHED_ARTICLES = Queue(maxsize=300)
 
 
 # speed up page loading
@@ -69,7 +69,7 @@ def _get_page(
 
 
 @lru_cache(maxsize=1000)
-def _get_random_titles(pages : int =10, seed : int =42) -> List:
+def _get_random_titles(pages: int = 10, seed: int = 42) -> list:
     """Cached wikipedia random page. Approximately deterministic random titles. This is useful for testing.
     NOTE: the actually cached result will change each session, but the result will be the same within a session.
     """
@@ -77,7 +77,7 @@ def _get_random_titles(pages : int =10, seed : int =42) -> List:
 
 
 @lru_cache(maxsize=1000)
-def _wiki_search(name : str , results : int) -> List:
+def _wiki_search(name: str , results: int) -> list:
     """Cached Wikipedia search."""
     return wiki.search(name, results=results)
 
@@ -129,14 +129,14 @@ def most_relevant_links(page, num_links : int =10, num_summary_words : int =50, 
         )
         link_scores[link] = iou / len(link.split())
 
-    sorted_links : List = sorted(link_scores.items(), key=lambda x: x[1], reverse=True)
+    sorted_links: list = sorted(link_scores.items(), key=lambda x: x[1], reverse=True)
     if return_scores:
         return sorted_links[:num_links]
 
     return [link for link, _ in sorted_links[:num_links]]
 
 
-def filter_categories(categories, exclude : Optional[bool] =None, include : Optional[bool]=None)->List:
+def filter_categories(categories, exclude: Optional[bool] = None, include : Optional[bool] = None) -> List:
     """Filter categories based on a list of categories to exclude and/or include."""
     if exclude:
         categories = [
@@ -169,8 +169,8 @@ class WikiDataset(Dataset):
             min_length_words (int, optional): Minimum section length. Defaults to 50.
             max_links (int, optional): _description_. Defaults to 10.
         """
-        self.min_length_words : int = min_length_words
-        self.max_links : int = max_links
+        self.min_length_words = min_length_words
+        self.max_links = max_links
 
     def get(
         self,
@@ -195,13 +195,13 @@ class WikiDataset(Dataset):
             Dict: _description_
         """
 
-        page : Optional[wiki.WikipediaPage]= _get_page(title=name, **kwargs)
+        page: Optional[wiki.WikipediaPage]= _get_page(title=name, **kwargs)
         if page is None:
             return None
 
         # Only return a sections with a minimum number of words
-        exclude : List = (exclude or []) + list(self.EXCLUDE_HEADERS)
-        sections : Dict = process_page(
+        exclude: List = (exclude or []) + list(self.EXCLUDE_HEADERS)
+        sections: Dict = process_page(
             page,
             valid_header=lambda x: x not in exclude and (not include or x in include),
             valid_content=lambda x: len(x.split()) >= self.min_length_words,
@@ -210,8 +210,8 @@ class WikiDataset(Dataset):
             return None
 
         key = header, section_title  = selector(list(sections.keys()))
-        content : str = "\n".join(sections[key])
-        section_length : int = len(content.split())
+        content: str = "\n".join(sections[key])
+        section_length: int = len(content.split())
         context = {
             "title": name,  # title of wiki article
             "topic": header or section_title,  # title of wiki section
@@ -233,12 +233,12 @@ class WikiDataset(Dataset):
             bt.logging.debug("Cache is full. Skipping article until cache is emptied.")
         return context
 
-    def search(self, name : str, results : int =3, selector: Optional[Selector] = None) ->  Optional[Dict[str, Any]]:
-        titles : List= _wiki_search(name, results=results)
-        title : Optional[Selector]= selector(titles)
+    def search(self, name: str, results: int = 3, selector: Optional[Selector] = None) ->  Optional[Dict[str, Any]]:
+        titles: List = _wiki_search(name, results=results)
+        title: Optional[Selector] = selector(titles)
         return self.get(title, selector=selector)
 
-    def random(self, pages : int =10, seed : Optional[int]=None, selector: Optional[Selector] = None, **kwargs) ->  Optional[Dict[str, Any]]:
+    def random(self, pages: int =10, seed: Optional[int] = None, selector: Optional[Selector] = None, **kwargs) -> Optional[Dict[str, Any]]:
         titles = (
             wiki.random(pages=pages)
             if seed is None
@@ -249,9 +249,9 @@ class WikiDataset(Dataset):
 
 
 class WikiDateDataset(Dataset):
-    name : str= "wiki_date"
-    INCLUDE_HEADERS : Tuple[str]= ("Events", "Births", "Deaths")
-    MONTHS : Tuple[str] = (
+    name = "wiki_date"
+    INCLUDE_HEADERS = ("Events", "Births", "Deaths")
+    MONTHS = (
         "January",
         "February",
         "March",
@@ -265,19 +265,19 @@ class WikiDateDataset(Dataset):
         "November",
         "December",
     )
-    EXCLUDE_CATEGORIES : Tuple[str] = ("articles", "wiki", "pages", "cs1")
+    EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
 
-    def __init__(self, max_tries: int = 10, seed : Optional[int] =None):
+    def __init__(self, max_tries: int = 10, seed: Optional[int] = None):
         self.max_tries = max_tries
         self.seed = seed
         self.rng = random.Random(seed)
         
     def extract_dates_and_sentences(self, text: str) -> Optional[Tuple[str, str]]:
         # Regular expression to find dates in various formats
-        date_pattern : str = r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b'
+        date_pattern: str = r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b'
 
         # Compile the regex pattern
-        date_regex : re.Pattern[str]= re.compile(date_pattern)
+        date_regex: re.Pattern[str] = re.compile(date_pattern)
 
         # Split text into sentences
         sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
@@ -313,17 +313,17 @@ class WikiDateDataset(Dataset):
         self,
         name,
         pageid=None,
-        auto_suggest : bool=False,
-        redirect : bool =False,
+        auto_suggest: bool = False,
+        redirect: bool = False,
         selector: Optional[Selector] = None,
     ) -> Dict:
         #TODO: Implement deterministic get method
         return self.random()
 
-    def search(self, name : str, results : int =5, selector: Optional[Selector] = None) -> Dict:
+    def search(self, name: str, results: int =5, selector: Optional[Selector] = None) -> Dict:
         raise NotImplementedError(
             f"Search is not implemented for {self.__class__.__name__}"
         )
 
-    def random(self, selector: Optional[Selector] = None, **kwargs)->Optional[str]:
+    def random(self, selector: Optional[Selector] = None, **kwargs) -> Optional[str]:
         return self._random_date()
