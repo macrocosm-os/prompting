@@ -187,7 +187,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 target=self.run, daemon=True
             )
             self.thread.start()
-            self.is_running: bool = True
+            self.is_running = True
             bt.logging.debug("Started")
 
     def stop_run_thread(self):
