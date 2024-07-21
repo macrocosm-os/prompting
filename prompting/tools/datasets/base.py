@@ -90,7 +90,7 @@ class TemplateDataset(Dataset):
     """Base class for datasets based on a template."""
 
     @property
-    def size(self)->int:
+    def size(self) -> int:
         return functools.reduce(
             lambda x, y: x * y, [len(v) for v in self.params.values()], 1
         )
