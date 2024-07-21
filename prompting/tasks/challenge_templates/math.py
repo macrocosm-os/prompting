@@ -187,5 +187,5 @@ class MathChallengeTemplate(ChallengeTemplate):
                 " ",
                 "\n",
                 "\n\n",
-            ]
+            ],
         }

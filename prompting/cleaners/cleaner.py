@@ -2,7 +2,14 @@ from typing import List, Dict
 
 import bittensor as bt
 
-from prompting.cleaners.all_cleaners import RemoveQuotes, RemoveRoles, PruneEnding, PrunePostQuestionText, RemoveTags, FirstQuestion
+from prompting.cleaners.all_cleaners import (
+    RemoveQuotes,
+    RemoveRoles,
+    PruneEnding,
+    PrunePostQuestionText,
+    RemoveTags,
+    FirstQuestion,
+)
 
 SUPPORTED_CLEANERS = {
     "remove_quotes": RemoveQuotes,

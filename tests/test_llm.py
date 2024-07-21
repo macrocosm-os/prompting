@@ -44,7 +44,13 @@ def test_llm_clean_response(
 def test_load_pipeline_mock(pipeline: BasePipeline):
     # Note that the model_id will be used internally as static response for the mock pipeline
     model_id = "gpt2"
-    pipeline_instance = pipeline(model_id=model_id, device="cpu", gpus=1, llm_max_allowed_memory_in_gb=0, mock=True)
+    pipeline_instance = pipeline(
+        model_id=model_id,
+        device="cpu",
+        gpus=1,
+        llm_max_allowed_memory_in_gb=0,
+        mock=True,
+    )
     pipeline_message = pipeline_instance("")
 
     mock_message = MockPipeline(model_id).forward(messages=[])
@@ -110,7 +116,11 @@ def test_calculate_gpu_requirements(
     mock_mem_get_info.return_value = (available_memory, available_memory)
     # Mock current_device to return a default device index if needed
     mock_current_device.return_value = 0
-    result = calculate_gpu_requirements(device=device, gpus=1, max_allowed_memory_allocation_in_bytes=max_allowed_memory_allocation_in_bytes)
+    result = calculate_gpu_requirements(
+        device=device,
+        gpus=1,
+        max_allowed_memory_allocation_in_bytes=max_allowed_memory_allocation_in_bytes,
+    )
     assert result == expected_result
 
 
@@ -133,9 +143,7 @@ def test_calulate_gpu_requirements_raises_cuda_error(
 # Test 1: Success on first attempt
 @patch("prompting.llms.vllm_llm.calculate_gpu_requirements")
 @patch("prompting.llms.vllm_llm.LLM")
-def test_load_vllm_pipeline_success(
-    mock_llm, mock_calculate_gpu_requirements
-):
+def test_load_vllm_pipeline_success(mock_llm, mock_calculate_gpu_requirements):
     # Mocking calculate_gpu_requirements to return a fixed value
     mock_calculate_gpu_requirements.return_value = 5e9  # Example value
 
@@ -153,11 +161,12 @@ def test_load_vllm_pipeline_success(
 
     # Setting the return value of the LLM mock to the mock LLM instance
     mock_llm.return_value = mock_llm_instance
-            
-    
-    result = load_vllm_pipeline(model_id="test_name", device="cuda", gpus=1, max_allowed_memory_in_gb=0)
+
+    result = load_vllm_pipeline(
+        model_id="test_name", device="cuda", gpus=1, max_allowed_memory_in_gb=0
+    )
     assert isinstance(result, MagicMock)  # or any other assertion you find suitable
     mock_llm.assert_called_once()  # Ensures LLM was called exactly once
-    
+
     # Verify the nested property (Specific assert for llama3)
     assert result.llm_engine.tokenizer.eos_token_id == 128009

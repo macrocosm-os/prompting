@@ -30,9 +30,7 @@ class MockModel(torch.nn.Module):
     def __init__(self, phrase):
         super().__init__()
 
-        self.tokenizer = SimpleNamespace(
-            tokenizer=MockTokenizer()
-        )
+        self.tokenizer = SimpleNamespace(tokenizer=MockTokenizer())
         self.phrase = phrase
 
     def __call__(self, messages):
@@ -47,12 +45,10 @@ class MockPipeline:
     @property
     def tokenizer(self):
         return self.model.tokenizer
-    
+
     @property
     def llm_engine(self):
-        return SimpleNamespace(
-            tokenizer=self.model.tokenizer
-        )
+        return SimpleNamespace(tokenizer=self.model.tokenizer)
 
     def __init__(
         self,
@@ -75,9 +71,9 @@ class MockPipeline:
         return self.postprocess(output)
 
     def postprocess(self, output, **kwargs):
-        output = output.split(self.model.tokenizer.tokenizer.role_expr.format(role="assistant"))[
-            -1
-        ].strip()
+        output = output.split(
+            self.model.tokenizer.tokenizer.role_expr.format(role="assistant")
+        )[-1].strip()
         return output
 
     def preprocess(self, **kwargs):
@@ -296,10 +292,10 @@ class MockDendrite(bt.dendrite):
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ):        
+    ):
         assert isinstance(
             synapse, StreamPromptingSynapse
-        ), "Synapse must be a StreamPromptingSynapse object when is_stream is True."        
+        ), "Synapse must be a StreamPromptingSynapse object when is_stream is True."
 
         async def query_all_axons(is_stream: bool):
             """Queries all axons for responses."""

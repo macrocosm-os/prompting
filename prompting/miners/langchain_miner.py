@@ -38,7 +38,11 @@ from dotenv import load_dotenv, find_dotenv
 from langchain_core.runnables.base import RunnableSequence
 from deprecated import deprecated
 
-@deprecated(version="2.4.1+", reason="Class is deprecated, use openai miner for reference on example miner.")
+
+@deprecated(
+    version="2.4.1+",
+    reason="Class is deprecated, use openai miner for reference on example miner.",
+)
 class LangchainMiner(BaseStreamPromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.
     This miner does not use any tools or external APIs when processing requests - it relies entirely on the models' own representation and world model. In some cases, this can produce lower quality results.

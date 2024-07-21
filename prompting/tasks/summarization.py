@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from prompting.tasks import Task
 
 
-
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 
 # TODO: Also add a query system prompt and a query prompt template

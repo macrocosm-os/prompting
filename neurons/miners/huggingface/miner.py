@@ -20,7 +20,10 @@ from prompting.miners import HuggingFaceMiner
 from deprecated import deprecated
 
 
-@deprecated(version="2.4.1+", reason="Class is deprecated, use openai miner for reference on example miner.")
+@deprecated(
+    version="2.4.1+",
+    reason="Class is deprecated, use openai miner for reference on example miner.",
+)
 def main():
     with HuggingFaceMiner() as miner:
         while True:

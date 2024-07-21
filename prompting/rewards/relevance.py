@@ -10,7 +10,6 @@ from prompting.rewards import (
 from prompting.dendrite import DendriteResponseEvent
 
 
-
 class RelevanceRewardModel(BaseRewardModel):
     @property
     def name(self) -> str:
@@ -26,7 +25,9 @@ class RelevanceRewardModel(BaseRewardModel):
             # This line is necessary to pass the model to the device defined at its initialization
             self.model = self.model.cuda()
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(
+        self, reference: str, response_event: DendriteResponseEvent
+    ) -> BatchRewardOutput:
         """Calculates the cosine similarity between sentence embeddings of the reference and completions.
         We subtract a baseline score which is what an empty string would get (a failed completion). This is usually around 0.35
         We also clip the rewards between 0 and 1. The maximum effective score is around 0.65

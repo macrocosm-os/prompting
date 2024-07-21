@@ -23,10 +23,10 @@ class Validator(BaseValidatorNeuron):
             llm_max_allowed_memory_in_gb=self.config.neuron.llm_max_allowed_memory_in_gb,
             device=self.device,
             mock=self.config.mock,
-        )        
+        )
         self.translation_pipeline = TranslationPipeline()
 
-        if abs(1-sum(self.config.neuron.task_p)) > 0.001:
+        if abs(1 - sum(self.config.neuron.task_p)) > 0.001:
             raise ValueError("Task probabilities do not sum to 1.")
 
         # Filter out tasks with 0 probability

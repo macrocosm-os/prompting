@@ -9,7 +9,7 @@ from prompting.rewards import (
     FloatDiffModel,
     DateRewardModel,
     OrdinalRewardModel,
-    StreamingRewardModel
+    StreamingRewardModel,
 )
 
 REWARD_MODELS = {

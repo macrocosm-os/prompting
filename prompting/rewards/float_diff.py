@@ -5,6 +5,7 @@ from sympy.parsing.sympy_parser import parse_expr
 from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
 from prompting.dendrite import DendriteResponseEvent
 
+
 class FloatDiffModel(BaseRewardModel):
     @property
     def name(self) -> str:
@@ -52,7 +53,9 @@ class FloatDiffModel(BaseRewardModel):
         except Exception:
             return 0.0
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(
+        self, reference: str, response_event: DendriteResponseEvent
+    ) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
         rewards = []
         timings = []

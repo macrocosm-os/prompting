@@ -63,6 +63,7 @@ You are a helpful assistant. Answer the question below in detail, prioritizing t
 Ensure your answer references relevant parts of the conversation history. Use the context only if it provides additional necessary information.
 """
 
+
 @dataclass
 class QuestionAnsweringTask(Task):
     name = "qa"
@@ -89,11 +90,15 @@ class QuestionAnsweringTask(Task):
 
         self.query_system_prompt = QUERY_SYSTEM_PROMPT
         if history:
-            self.query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(context=context.content, history=history)
-            bt.logging.warning(f'Using history!!\n{history=}\n\n{context=}\n\n{self.query_prompt=}')
+            self.query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(
+                context=context.content, history=history
+            )
+            bt.logging.warning(
+                f"Using history!!\n{history=}\n\n{context=}\n\n{self.query_prompt=}"
+            )
         else:
-            self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)            
-            
+            self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
+
         self.query = self.generate_query(llm_pipeline)
 
         if history:
@@ -103,10 +108,10 @@ class QuestionAnsweringTask(Task):
         else:
             self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
                 context=context.content, question=self.query
-            )            
+            )
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
-        
+
         self.topic = context.title
         self.subtopic = context.topic
         self.tags = context.tags

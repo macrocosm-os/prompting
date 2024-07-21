@@ -25,6 +25,7 @@ from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
 from typing import List, Dict
 
+
 class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     """
     Your miner neuron class. You should use this class to define your miner's behavior.
@@ -168,8 +169,8 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     ):
         if not getattr(self, "wandb_run", None):
             self.init_wandb()
-                
-        dendrite_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)        
+
+        dendrite_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
         step_log = {
             "epoch_time": timing,
             # TODO: add block to logs in the future in a way that doesn't impact performance

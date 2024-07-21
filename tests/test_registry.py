@@ -10,7 +10,10 @@ def test_task_registry():
     assert (
         not registry_missing_task
     ), f"Missing tasks in TASK_REGISTRY: {registry_missing_task}"
-    assert not registry_extra_task, f"Extra tasks in TASK_REGISTRY: {registry_extra_task}"
+    assert (
+        not registry_extra_task
+    ), f"Extra tasks in TASK_REGISTRY: {registry_extra_task}"
+
 
 def test_task_registry_datasets():
     registry_datasets = set(

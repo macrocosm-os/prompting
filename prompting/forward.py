@@ -36,13 +36,17 @@ from transformers import PreTrainedTokenizerFast as Tokenizer
 from prompting.utils.uids import get_random_uids
 from dataclasses import dataclass
 
-SINGLE_TURN_TASKS = ['sentiment', 'translation']
+SINGLE_TURN_TASKS = ["sentiment", "translation"]
+
 
 @async_log
 async def generate_reference(agent):
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
+    result = await loop.run_in_executor(
+        None, agent.task.generate_reference, agent.llm_pipeline
+    )
     return result
+
 
 @async_log
 async def execute_dendrite_call(dendrite_call):
@@ -50,7 +54,9 @@ async def execute_dendrite_call(dendrite_call):
     return responses
 
 
-async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokenizer) -> SynapseStreamResult:
+async def process_stream(
+    uid: int, async_iterator: Awaitable, tokenizer: Tokenizer
+) -> SynapseStreamResult:
     """Process a single response asynchronously."""
     synapse = None  # Initialize chunk with a default value
     exception = None
@@ -58,16 +64,20 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
     accumulated_chunks_timings = []
     accumulated_tokens_per_chunk = []
     start_time = time.time()
-    
-    try:                
-        async for chunk in async_iterator:  # most important loop, as this is where we acquire the final synapse.
+
+    try:
+        async for (
+            chunk
+        ) in (
+            async_iterator
+        ):  # most important loop, as this is where we acquire the final synapse.
             if isinstance(chunk, str):
                 accumulated_chunks.append(chunk)
                 accumulated_chunks_timings.append(time.time() - start_time)
-                
+
                 tokens_in_chunk = len(tokenizer.tokenize(chunk))
                 accumulated_tokens_per_chunk.append(tokens_in_chunk)
-                
+
                 bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
 
         # Assuming last chunk of async_iterator holds the last value yielded as a StreamingSynapse
@@ -76,7 +86,7 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
             raise ValueError(
                 f"Something went wrong with miner uid {uid}, Synapse is not StreamPromptingSynapse."
             )
-    except Exception as e:        
+    except Exception as e:
         exception = e
         traceback_details = traceback.format_exc()
         bt.logging.error(
@@ -95,12 +105,14 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
             tokens_per_chunk=accumulated_tokens_per_chunk,
             synapse=synapse,
             uid=uid,
-            exception=exception
+            exception=exception,
         )
 
 
 @async_log
-async def handle_response(stream_results_dict: Dict[int, Awaitable], tokenizer: Tokenizer) -> List[SynapseStreamResult]:
+async def handle_response(
+    stream_results_dict: Dict[int, Awaitable], tokenizer: Tokenizer
+) -> List[SynapseStreamResult]:
     """The handle_response function is responsible for creating asyncio tasks around acquiring streamed miner chunks
     and processing them asynchronously. It then pairs the results with their original UIDs and returns a list of StreamResults.
 
@@ -118,9 +130,13 @@ async def handle_response(stream_results_dict: Dict[int, Awaitable], tokenizer: 
     ]  # Pair UIDs with their tasks
 
     # Start tasks, preserving order and their associated UIDs
-    process_stream_tasks = [process_stream(uid, resp, tokenizer) for uid, resp in tasks_with_uid]
-    processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True) 
-    
+    process_stream_tasks = [
+        process_stream(uid, resp, tokenizer) for uid, resp in tasks_with_uid
+    ]
+    processed_stream_results = await asyncio.gather(
+        *process_stream_tasks, return_exceptions=True
+    )
+
     return processed_stream_results
 
 
@@ -162,7 +178,13 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
 
 
 async def run_step(
-    self, agent: HumanAgent, roles: List[str], messages: List[str], k: int, timeout: float, exclude: list = None
+    self,
+    agent: HumanAgent,
+    roles: List[str],
+    messages: List[str],
+    k: int,
+    timeout: float,
+    exclude: list = None,
 ):
     """Executes a single step of the agent, which consists of:
     - Getting a list of uids to query
@@ -201,7 +223,9 @@ async def run_step(
     # Prepare the task for handling stream responses
     stream_results_dict = dict(zip(uids_cpu, streams_responses))
     tokenizer = self.llm_pipeline.tokenizer
-    handle_stream_responses_task = asyncio.create_task(handle_response(stream_results_dict, tokenizer))
+    handle_stream_responses_task = asyncio.create_task(
+        handle_response(stream_results_dict, tokenizer)
+    )
 
     if not agent.task.static_reference:
         reference_generation_task = generate_reference(agent)
@@ -238,13 +262,13 @@ async def run_step(
     )
 
     self.update_scores(reward_result.rewards, uids)
-    
+
     # Log the step event.
     event = {
         "best": best_response,
         "block": self.block,
         "step": self.step,
-        "step_time": time.time() - start_time,        
+        "step_time": time.time() - start_time,
         **agent.__state_dict__(full=self.config.neuron.log_full),
         **reward_result.__state_dict__(full=self.config.neuron.log_full),
         **response_event.__state_dict__(),
@@ -292,7 +316,7 @@ async def forward(self):
 
     turn = 0
     exclude_uids = []
-    roles = ['user']
+    roles = ["user"]
     messages = [agent.challenge]
     while True:
         # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step.
@@ -314,22 +338,31 @@ async def forward(self):
             event["turn"] = turn
             log_event(self, event)
             task.complete = True
-            
-            accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
+
+            accepted_answer = (
+                event["best"] if random.random() < 0.5 else agent.task.reference
+            )
             roles.append("assistant")
             messages.append(accepted_answer)
 
             # 50% chance of single turn conversation, 25% of two turns, 12.5% chance of 3 turns, 6.25% chance of 4 turns, 3.63% chance of 5...
-            if random.random()<0.5 or turn>=1:
+            if random.random() < 0.5 or turn >= 1:
                 break
 
             if task.name in SINGLE_TURN_TASKS:
                 break
 
-            history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])
+            history = "\n".join(
+                [f"{role}: {message}" for role, message in zip(roles, messages)]
+            )
 
             # Use PREVIOUS task context
-            agent.task = QuestionAnsweringTask(self.llm_pipeline, context=task.context, create_reference=False, history=history)
+            agent.task = QuestionAnsweringTask(
+                self.llm_pipeline,
+                context=task.context,
+                create_reference=False,
+                history=history,
+            )
 
             # overwrite the challenge with the followup query, which *should* continue the persona
             agent.challenge = agent.task.query

@@ -182,5 +182,5 @@ class SentimentChallengeTemplate(ChallengeTemplate):
                 " ",
                 "\n",
                 "\n\n",
-            ]
+            ],
         }

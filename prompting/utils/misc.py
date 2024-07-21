@@ -134,12 +134,12 @@ def async_log(func):
     return wrapper
 
 
-def serialize_exception_to_string(e):    
+def serialize_exception_to_string(e):
     if isinstance(e, BaseException):
         # Format the traceback
-        tb_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+        tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
         # Combine type, message, and traceback into one string
         serialized_str = f"Exception Type: {type(e).__name__}, Message: {str(e)}, Traceback: {tb_str}"
         return serialized_str
-    else:        
+    else:
         return e

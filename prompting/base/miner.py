@@ -108,10 +108,7 @@ class BaseStreamMinerNeuron(BaseNeuron):
         # This loop maintains the miner's operations until intentionally stopped.
         try:
             while not self.should_exit:
-                while (
-                    self.block - last_update_block
-                    < self.config.neuron.epoch_length
-                ):
+                while self.block - last_update_block < self.config.neuron.epoch_length:
                     # Wait before checking again.
                     time.sleep(1)
 

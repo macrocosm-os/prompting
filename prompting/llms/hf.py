@@ -19,7 +19,12 @@ import time
 from typing import List, Dict
 import bittensor as bt
 
-from transformers import BitsAndBytesConfig, pipeline, AutoTokenizer, TextIteratorStreamer
+from transformers import (
+    BitsAndBytesConfig,
+    pipeline,
+    AutoTokenizer,
+    TextIteratorStreamer,
+)
 from prompting.mock import MockPipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 from transformers import pipeline, TextIteratorStreamer, AutoTokenizer
@@ -110,7 +115,7 @@ class HuggingFacePipeline(BasePipeline):
         model_kwargs: dict = None,
         return_streamer: bool = False,
         gpus: int = 1,
-        llm_max_allowed_memory_in_gb: int = 0
+        llm_max_allowed_memory_in_gb: int = 0,
     ):
         super().__init__()
         self.model = model_id

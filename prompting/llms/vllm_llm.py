@@ -26,7 +26,9 @@ from prompting.mock import MockPipeline
 from prompting.llms.utils import calculate_gpu_requirements
 
 
-def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory_in_gb: int, mock=False):
+def load_vllm_pipeline(
+    model_id: str, device: str, gpus: int, max_allowed_memory_in_gb: int, mock=False
+):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
     if mock or model_id == "mock":
         return MockPipeline(model_id)
@@ -39,7 +41,12 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
 
     try:
         # Attempt to initialize the LLM
-        llm = LLM(model=model_id, gpu_memory_utilization = gpu_mem_utilization, quantization="AWQ", tensor_parallel_size=gpus)
+        llm = LLM(
+            model=model_id,
+            gpu_memory_utilization=gpu_mem_utilization,
+            quantization="AWQ",
+            tensor_parallel_size=gpus,
+        )
         # This solution implemented by @bkb2135 sets the eos_token_id directly for efficiency in vLLM usage.
         # This approach avoids the overhead of loading a tokenizer each time the custom eos token is needed.
         # Using the Hugging Face pipeline, the eos token specific to llama models was fetched and saved (128009).
@@ -51,7 +58,6 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
             f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}"
         )
         raise e
-        
 
 
 class vLLMPipeline(BasePipeline):
@@ -61,10 +67,12 @@ class vLLMPipeline(BasePipeline):
         llm_max_allowed_memory_in_gb: int,
         device: str = None,
         gpus: int = 1,
-        mock: bool = False
+        mock: bool = False,
     ):
         super().__init__()
-        self.llm = load_vllm_pipeline(model_id, device, gpus, llm_max_allowed_memory_in_gb, mock)
+        self.llm = load_vllm_pipeline(
+            model_id, device, gpus, llm_max_allowed_memory_in_gb, mock
+        )
         self.mock = mock
         self.gpus = gpus
         self.tokenizer = self.llm.llm_engine.tokenizer.tokenizer

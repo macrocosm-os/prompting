@@ -155,6 +155,7 @@ def filter_categories(categories, exclude=None, include=None):
 
 class WikiDataset(Dataset):
     """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
+
     name = "wiki"
     EXCLUDE_HEADERS = ("See also", "References", "Further reading", "External links")
     EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
@@ -271,16 +272,16 @@ class WikiDateDataset(Dataset):
         self.max_tries = max_tries
         self.seed = seed
         self.rng = random.Random(seed)
-        
+
     def extract_dates_and_sentences(self, text: str) -> Tuple[str, str]:
         # Regular expression to find dates in various formats
-        date_pattern = r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b'
+        date_pattern = r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b"
 
         # Compile the regex pattern
         date_regex = re.compile(date_pattern)
 
         # Split text into sentences
-        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
+        sentences = re.split(r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s", text)
 
         # Iterate through sentences and find dates
         for sentence in sentences:
@@ -290,17 +291,17 @@ class WikiDateDataset(Dataset):
             if dates:
                 for date in dates:
                     # Return the first date found
-                    return (str(date), sentence.replace(str(date), '<date>').strip())
+                    return (str(date), sentence.replace(str(date), "<date>").strip())
         return None
-    
+
     def _random_date(self) -> str:
         for _ in range(self.max_tries):
             try:
                 context = CACHED_ARTICLES.get(block=False)
-                date_sentence = self.extract_dates_and_sentences(context['content'])
-                context['content'] = date_sentence[1]
-                context['extra']['date'] = date_sentence[0]
-                if context['content'] is None:
+                date_sentence = self.extract_dates_and_sentences(context["content"])
+                context["content"] = date_sentence[1]
+                context["extra"]["date"] = date_sentence[0]
+                if context["content"] is None:
                     continue
                 else:
                     return context
@@ -317,7 +318,7 @@ class WikiDateDataset(Dataset):
         redirect=False,
         selector: Selector = None,
     ) -> Dict:
-        #TODO: Implement deterministic get method
+        # TODO: Implement deterministic get method
         return self.random()
 
     def search(self, name, results=5, selector: Selector = None) -> Dict:

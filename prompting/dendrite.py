@@ -3,8 +3,8 @@ from typing import List
 from dataclasses import dataclass
 from prompting.protocol import StreamPromptingSynapse
 from prompting.utils.misc import serialize_exception_to_string
- 
- 
+
+
 @dataclass
 class SynapseStreamResult:
     exception: BaseException = None
@@ -17,7 +17,10 @@ class SynapseStreamResult:
 
 class DendriteResponseEvent:
     def __init__(
-        self, stream_results: SynapseStreamResult, uids: torch.LongTensor, timeout: float
+        self,
+        stream_results: SynapseStreamResult,
+        uids: torch.LongTensor,
+        timeout: float,
     ):
         self.uids = uids
         self.completions = []
@@ -29,7 +32,7 @@ class DendriteResponseEvent:
         self.stream_results_all_chunks = []
         self.stream_results_all_chunks_timings = []
         self.stream_results_all_tokens_per_chunk = []
-        
+
         for stream_result in stream_results:
             synapse = stream_result.synapse
 
@@ -50,10 +53,16 @@ class DendriteResponseEvent:
                 self.timings.append(0)
 
             self.stream_results_uids.append(stream_result.uid)
-            self.stream_results_exceptions.append(serialize_exception_to_string(stream_result.exception))
+            self.stream_results_exceptions.append(
+                serialize_exception_to_string(stream_result.exception)
+            )
             self.stream_results_all_chunks.append(stream_result.accumulated_chunks)
-            self.stream_results_all_chunks_timings.append(stream_result.accumulated_chunks_timings)
-            self.stream_results_all_tokens_per_chunk.append(stream_result.tokens_per_chunk)
+            self.stream_results_all_chunks_timings.append(
+                stream_result.accumulated_chunks_timings
+            )
+            self.stream_results_all_tokens_per_chunk.append(
+                stream_result.tokens_per_chunk
+            )
 
     def __state_dict__(self):
         return {

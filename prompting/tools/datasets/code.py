@@ -524,6 +524,7 @@ def filter_comments(code, language):
 # TODO: why not define the chain_in, chain_out logic in the class itself?
 class HFCodingDataset(Dataset):
     name = "hf_coding"
+
     def __init__(
         self,
         dataset_id="codeparrot/github-code",
@@ -617,6 +618,7 @@ class HFCodingDataset(Dataset):
 
 class StackOverflowDataset:
     name = "stack_overflow"
+
     def __init__(self):
         # Stack Overflow API endpoint for a random article
         self.url = "https://api.stackexchange.com/2.3/questions"

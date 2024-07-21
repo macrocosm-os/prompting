@@ -81,7 +81,9 @@ class BaseNeuron(ABC):
         if self.config.mock:
             self.wallet = bt.MockWallet(config=self.config)
             self.subtensor = MockSubtensor(self.config.netuid, wallet=self.wallet)
-            self.metagraph = MockMetagraph(netuid=self.config.netuid, subtensor=self.subtensor)
+            self.metagraph = MockMetagraph(
+                netuid=self.config.netuid, subtensor=self.subtensor
+            )
         else:
             self.wallet = bt.wallet(config=self.config)
             self.subtensor = bt.subtensor(config=self.config)
@@ -102,12 +104,10 @@ class BaseNeuron(ABC):
         self.step = 0
 
     @abstractmethod
-    def forward(self, synapse: bt.Synapse) -> bt.Synapse:
-        ...
+    def forward(self, synapse: bt.Synapse) -> bt.Synapse: ...
 
     @abstractmethod
-    def run(self):
-        ...
+    def run(self): ...
 
     def sync(self):
         """
