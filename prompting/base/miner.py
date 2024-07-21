@@ -132,7 +132,7 @@ class BaseStreamMinerNeuron(BaseNeuron):
         except Exception as err:
             bt.logging.error("Error during mining", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
-            self.should_exit: bool = True
+            self.should_exit = True
 
     def run_in_background_thread(self):
         """
