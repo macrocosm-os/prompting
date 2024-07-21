@@ -43,10 +43,12 @@ class PhraseMiner(BaseStreamPromptingMiner):
             default="Can you please repeat that?",
         )
 
-    def __init__(self, config=None):
+    def __init__(self, config: typing.Optional[bt.config] = None):
         super().__init__(config=config)
 
-    def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+    def forward(
+        self, synapse: StreamPromptingSynapse
+    ) -> bt.stream.StreamingSynapse.BTStreamingResponse:
         async def _forward(message: str, send: Send):
             await send(
                 {
