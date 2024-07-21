@@ -1,6 +1,8 @@
 import sys
 import bittensor as bt
 from dataclasses import dataclass
+from prompting.llms.base_llm import BasePipeline
+from prompting.shared.context import Context
 from prompting.tasks import Task
 from .challenge_templates import MathChallengeTemplate
 
@@ -18,14 +20,18 @@ class MathTask(Task):
 
     static_reference = True
     static_query = True
-    challenge_type = 'paraphrase'
+    challenge_type = "paraphrase"
     challenge_template = MathChallengeTemplate()
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
-        self.context = context
-
-        self.query = context.content
-        self.reference = context.extra["solution"]
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
+    def __init__(
+        self,
+        llm_pipeline: BasePipeline,
+        context: Context,
+        create_reference: bool = True,
+    ):
+        self.context: Context = context
+        self.query: str = context.content
+        self.reference: str = context.extra["solution"]
+        self.topic: str = context.title
+        self.subtopic: str = context.topic
+        self.tags: list[str] = context.tags

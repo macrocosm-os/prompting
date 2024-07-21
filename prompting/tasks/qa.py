@@ -1,5 +1,8 @@
+from typing import Optional
 import bittensor as bt
 from dataclasses import dataclass
+from prompting.llms.base_llm import BasePipeline
+from prompting.shared.context import Context
 from prompting.tasks import Task
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
@@ -63,6 +66,7 @@ You are a helpful assistant. Answer the question below in detail, prioritizing t
 Ensure your answer references relevant parts of the conversation history. Use the context only if it provides additional necessary information.
 """
 
+
 @dataclass
 class QuestionAnsweringTask(Task):
     name = "qa"
@@ -84,29 +88,39 @@ class QuestionAnsweringTask(Task):
         dict(name="remove_post_question_text"),
     ]
 
-    def __init__(self, llm_pipeline, context, create_reference=True, history=None):
-        self.context = context
+    def __init__(
+        self,
+        llm_pipeline: BasePipeline,
+        context: Context,
+        create_reference: bool = True,
+        history: Optional[bool] = None,
+    ):
+        self.context: Context = context
 
-        self.query_system_prompt = QUERY_SYSTEM_PROMPT
+        self.query_system_prompt: str = QUERY_SYSTEM_PROMPT
         if history:
-            self.query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(context=context.content, history=history)
-            bt.logging.warning(f'Using history!!\n{history=}\n\n{context=}\n\n{self.query_prompt=}')
+            self.query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(
+                context=context.content, history=history
+            )
+            bt.logging.warning(
+                f"Using history!!\n{history=}\n\n{context=}\n\n{self.query_prompt=}"
+            )
         else:
-            self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)            
-            
-        self.query = self.generate_query(llm_pipeline)
+            self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
+
+        self.query: str = self.generate_query(llm_pipeline)
 
         if history:
-            self.reference_prompt = FOLLOWUP_REFERENCE_PROMPT_TEMPLATE.format(
+            self.reference_prompt: str = FOLLOWUP_REFERENCE_PROMPT_TEMPLATE.format(
                 context=context.content, question=self.query, history=history
             )
         else:
-            self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
+            self.reference_prompt: str = REFERENCE_PROMPT_TEMPLATE.format(
                 context=context.content, question=self.query
-            )            
+            )
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
-        
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
+
+        self.topic: str = context.title
+        self.subtopic: str = context.topic
+        self.tags: list[str] = context.tags

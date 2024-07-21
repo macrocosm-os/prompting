@@ -1,3 +1,5 @@
+from prompting.llms.base_llm import BasePipeline
+from prompting.shared.context import Context
 from prompting.tasks import Task
 
 QUERY_PROMPT_TEMPLATE = """\
@@ -16,7 +18,7 @@ class GenericInstructionTask(Task):
     name = "generic"
     desc = "get help on answering a general instruction"
     goal = "to get the answer to the following instruction"
-    challenge_type = 'query'
+    challenge_type = "query"
 
     reward_definition = [
         dict(name="rouge", ngram="rouge-1", metric="f", weight=0.25),
@@ -32,16 +34,21 @@ class GenericInstructionTask(Task):
         dict(name="remove_roles"),
     ]
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
-        self.context = context
+    def __init__(
+        self,
+        llm_pipeline: BasePipeline,
+        context: Context,
+        create_reference: bool = True,
+    ):
+        self.context: Context = context
 
-        self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
-        self.query = self.generate_query(llm_pipeline)
+        self.query_prompt: str = QUERY_PROMPT_TEMPLATE.format(context=context.content)
+        self.query: str = self.generate_query(llm_pipeline)
 
-        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(query = self.query)
+        self.reference_prompt: str = REFERENCE_PROMPT_TEMPLATE.format(query=self.query)
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
 
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
+        self.topic: str = context.title
+        self.subtopic: str = context.topic
+        self.tags: list[str] = context.tags

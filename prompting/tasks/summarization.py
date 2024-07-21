@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from prompting.llms.base_llm import BasePipeline
+from prompting.shared.context import Context
 from prompting.tasks import Task
-
 
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
@@ -39,18 +40,20 @@ class SummarizationTask(Task):
 
     static_query = True
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
-        self.context = context
+    def __init__(
+        self, llm_pipeline: BasePipeline, context: Context, create_reference: str = True
+    ):
+        self.context: Context = context
 
         # Query is just the article title and section name
-        self.query = context.title + ", " + context.topic
+        self.query: str = context.title + ", " + context.topic
 
-        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
+        self.reference_prompt: str = REFERENCE_PROMPT_TEMPLATE.format(
             context=context.content
         )
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
 
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
+        self.topic: str = context.title
+        self.subtopic: str = context.topic
+        self.tags: list[str] = context.tags

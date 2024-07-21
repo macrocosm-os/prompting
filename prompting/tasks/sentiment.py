@@ -1,3 +1,5 @@
+from prompting.llms.base_llm import BasePipeline
+from prompting.shared.context import Context
 from prompting.tasks import Task
 from .challenge_templates import SentimentChallengeTemplate
 
@@ -11,7 +13,7 @@ class SentimentAnalysisTask(Task):
     name = "sentiment"
     desc = "get help analyzing the sentiment of a review"
     goal = "to get the sentiment to the following review"
-    challenge_type = 'paraphrase'
+    challenge_type = "paraphrase"
     challenge_template = SentimentChallengeTemplate()
 
     reward_definition = [
@@ -22,15 +24,20 @@ class SentimentAnalysisTask(Task):
 
     static_reference = True
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
-        self.context = context
-        self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
-        self.query = self.generate_query(llm_pipeline)
-        self.reference = context.subtopic
+    def __init__(
+        self,
+        llm_pipeline: BasePipeline,
+        context: Context,
+        create_reference: bool = True,
+    ):
+        self.context: Context = context
+        self.query_prompt: str = QUERY_PROMPT_TEMPLATE.format(context=context.content)
+        self.query: str = self.generate_query(llm_pipeline)
+        self.reference: str = context.subtopic
 
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
+        self.topic: str = context.title
+        self.subtopic: str = context.topic
+        self.tags: list[str] = context.tags
 
     def format_challenge(self, challenge) -> str:
-        return challenge.format(context = self.query)
+        return challenge.format(context=self.query)

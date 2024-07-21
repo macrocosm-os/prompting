@@ -3,9 +3,10 @@ import bittensor as bt
 from abc import ABC
 from dataclasses import dataclass, asdict
 from enum import Enum
-from typing import List, Union, Dict
+from typing import List, Optional, Union, Dict
 from prompting.llms import HuggingFaceLLM, vLLM_LLM, BasePipeline
 from prompting.cleaners.cleaner import CleanerPipeline
+from prompting.shared.context import Context
 
 CHATTENSOR_SYSTEM_PROMPT = """
 The assistant is Chattensor, created by Macrocosmos. The current date is {date}.
@@ -15,8 +16,10 @@ It does not mention this information about itself unless the information is dire
 """
 
 
-def make_system_prompt():
+def make_system_prompt() -> str:
     return CHATTENSOR_SYSTEM_PROMPT.format(date=time.strftime("%B %d, %Y"))
+
+
 class TaskEvaluationType(Enum):
     REWARD_STACK = "reward"
     FILTER_STACK = "filter"
@@ -35,12 +38,12 @@ class Task(ABC):
     topic: str
     subtopic: str
     tags: List[str]
-    context: dict
-    reward_definition: List[dict]
-    penalty_definition: List[dict] = None
+    context: Context
+    reward_definition: list[dict]
+    penalty_definition: Optional[list[dict]] = None
     reward_threshold: float = 0.0
     reference: Union[str, List[str]] = ""
-    criteria: str = ("",)
+    criteria: tuple[str] = ("",)
     delimiter: str = ""
     complete: bool = False
     static_reference: bool = False
@@ -48,10 +51,10 @@ class Task(ABC):
     reference_prompt = ""
     query_system_prompt = ""
     query_prompt = ""
-    cleaner = None
+    cleaner: Optional[CleanerPipeline] = None
     clean_reference = True
-    challenge_type = 'inference'
-    
+    challenge_type = "inference"
+
     global_penalty_definition = [
         dict(name="streaming", max_tokens_per_chunk=200, weight=0.2)
     ]
@@ -62,7 +65,7 @@ class Task(ABC):
     def __repr__(self):
         return str(self)
 
-    def __state_dict__(self, full=False):
+    def __state_dict__(self, full: bool = False):
         state = {
             "task": self.name,
             "desc": self.desc,
@@ -81,7 +84,7 @@ class Task(ABC):
         return state
 
     def generate(
-        self, system: str, prompt: str, pipeline: BasePipeline, clean=True
+        self, system: str, prompt: str, pipeline: BasePipeline, clean: bool = True
     ) -> str:
         """Uses the llm to generate a response to a prompt"""
 
@@ -92,7 +95,7 @@ class Task(ABC):
             message=prompt, cleaner=cleaner
         )
 
-    def generate_reference(self, pipeline: BasePipeline, clean=True) -> str:
+    def generate_reference(self, pipeline: BasePipeline, clean: bool = True) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         t0 = time.time()
         if not self.static_reference:
@@ -109,13 +112,13 @@ class Task(ABC):
         self.reference_time = time.time() - t0
         return self.reference
 
-    def generate_query(self, pipeline: BasePipeline, clean=True) -> str:
+    def generate_query(self, pipeline: BasePipeline, clean: bool = True) -> str:
         """Generates a query to be used for generating the challenge"""
         t0 = time.time()
         if not self.static_query:
             bt.logging.info("🤖 Generating query...")
             self.query = self.generate(
-                system=self.query_system_prompt, #Could possibly add the chattensor system prompt to query but I don't think it adds anything
+                system=self.query_system_prompt,  # Could possibly add the chattensor system prompt to query but I don't think it adds anything
                 prompt=self.query_prompt,
                 pipeline=pipeline,
                 clean=clean,
@@ -124,6 +127,6 @@ class Task(ABC):
         self.query_time = time.time() - t0
         return self.query
 
-    def format_challenge(self, challenge) -> str:
+    def format_challenge(self, challenge: str) -> str:
         """Formats the challenge to be used for the conversation"""
         return challenge
