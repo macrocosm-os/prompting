@@ -36,7 +36,7 @@ CACHED_ARTICLES : Queue = Queue(maxsize=300)
 # speed up page loading
 @lru_cache(maxsize=1000)
 def _get_page(
-    title, pageid=None, auto_suggest : bool =False, redirect : bool =True, seed : Optional[int]=None
+    title, pageid=None, auto_suggest: bool =False, redirect: bool = True, seed: Optional[int] = None
 ) -> Optional[wiki.WikipediaPage]:
     """Cached Wikipedia page loading."""
     try:
