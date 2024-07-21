@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import textwrap
 import time
+from typing import Any
 import bittensor as bt
 from dataclasses import asdict
 from prompting.tasks import Task
@@ -91,18 +92,20 @@ class HumanAgent(vLLM_LLM):
             self.challenge = super().query(
                 message="Ask a question related to your goal", cleaner=cleaner
             )
-        elif self.task.challenge_type == 'paraphrase':
+        elif self.task.challenge_type == "paraphrase":
             self.challenge = self.task.challenge_template.next(self.task.query)
-        elif self.task.challenge_type == 'query':
+        elif self.task.challenge_type == "query":
             self.challenge = self.task.query
         else:
-            bt.logging.error(f"Task {self.task.name} has challenge type of: {self.task.challenge_type} which is not supported.")
+            bt.logging.error(
+                f"Task {self.task.name} has challenge type of: {self.task.challenge_type} which is not supported."
+            )
         self.challenge = self.task.format_challenge(self.challenge)
         self.challenge_time = time.time() - t0
 
         return self.challenge
 
-    def __state_dict__(self, full=False):
+    def __state_dict__(self, full=False) -> dict[str, Any]:
         return {
             "challenge": self.challenge,
             "challenge_time": self.challenge_time,
@@ -111,10 +114,10 @@ class HumanAgent(vLLM_LLM):
             "system_prompt": self.system_prompt,
         }
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.system_prompt
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     def continue_conversation(self, miner_response: str):
