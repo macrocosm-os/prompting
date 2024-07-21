@@ -111,7 +111,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         caller_uid: int = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
         )  # Get the caller index.
-        priority: float = float(
+        priority = float(
             self.metagraph.S[caller_uid]
         )  # Return the stake as the priority.
         bt.logging.trace(
