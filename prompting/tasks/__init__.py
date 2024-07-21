@@ -1,3 +1,4 @@
+from typing import Type
 from .task import Task
 from .debugging import DebuggingTask
 from .summarization import SummarizationTask
@@ -9,11 +10,11 @@ from .translate import TranslationTask, TranslationPipeline
 from .mock import MockTask
 from .sentiment import SentimentAnalysisTask
 
-TASKS = {
+TASKS: dict[str, Type[Task]] = {
     QuestionAnsweringTask.name: QuestionAnsweringTask,
     DateQuestionAnsweringTask.name: DateQuestionAnsweringTask,
     SummarizationTask.name: SummarizationTask,
-    #DebuggingTask.name: DebuggingTask,
+    # DebuggingTask.name: DebuggingTask,
     GenericInstructionTask.name: GenericInstructionTask,
     MathTask.name: MathTask,
     TranslationTask.name: TranslationTask,

@@ -5,7 +5,10 @@ from typing import List
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
+from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent
+from prompting.rewards.pipeline import RewardPipeline
+
 
 class RewardModelTypeEnum(Enum):
     WEIGHTED_REWARD = "reward"
@@ -28,20 +31,32 @@ class RewardEvent:
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
         return {
-            f"{self.model_name}_raw_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards),
-            f"{self.model_name}_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards_normalized, 4),
-            f"{self.model_name}_{self.model_type.value}_timings": self.tensor_to_rounded_list(self.timings),
+            f"{self.model_name}_raw_{self.model_type.value}": self.tensor_to_rounded_list(
+                self.rewards
+            ),
+            f"{self.model_name}_{self.model_type.value}": self.tensor_to_rounded_list(
+                self.rewards_normalized, 4
+            ),
+            f"{self.model_name}_{self.model_type.value}_timings": self.tensor_to_rounded_list(
+                self.timings
+            ),
             f"{self.model_name}_{self.model_type.value}_batch_time": self.batch_time,
             f"{self.model_name}_{self.model_type.value}_extra_info": self.extra_info,
         }
-            
+
     def tensor_to_rounded_list(self, tensor, decimals=6):
         # Convert the tensor elements to floats and round them to 6 decimal places
         return [round(float(element), decimals) for element in tensor]
 
 
 class RewardResult:
-    def __init__(self, reward_pipeline, agent, response_event, device):
+    def __init__(
+        self,
+        reward_pipeline: RewardPipeline,
+        agent: HumanAgent,
+        response_event: DendriteResponseEvent,
+        device: str,
+    ):
         """Passes the responses through the reward models and calculates the total reward
 
         Args:
@@ -51,32 +66,34 @@ class RewardResult:
             device (str): Device to run the reward models on
         """
 
-        self.reward_pipeline = reward_pipeline
-        self.response_event = response_event
-        self.device = device
-        self.task_rewards = agent.task.reward_definition
-        self.task_penalties = agent.task.penalty_definition + agent.task.global_penalty_definition
-        self.reward_events = self.reward_responses(
+        self.reward_pipeline: RewardPipeline = reward_pipeline
+        self.response_event: DendriteResponseEvent = response_event
+        self.device: str = device
+        self.task_rewards: list[dict] = agent.task.reward_definition
+        self.task_penalties: list[dict] = (
+            agent.task.penalty_definition + agent.task.global_penalty_definition
+        )
+        self.reward_events: list[RewardEvent] = self.reward_responses(
             reference=agent.task.reference,
             models=self.task_rewards,
             reward_type=RewardModelTypeEnum.WEIGHTED_REWARD,
         )
-        self.penalty_events = self.reward_responses(
+        self.penalty_events: list[RewardEvent] = self.reward_responses(
             reference=agent.challenge,
             models=self.task_penalties,
             reward_type=RewardModelTypeEnum.PENALTY,
         )
-        self.rewards = self.total_reward()
+        self.rewards: torch.FloatTensor = self.total_reward()
 
-    def __state_dict__(self, full=False):
+    def __state_dict__(self, full: bool = False) -> dict[str, list]:
         state = {"rewards": self.rewards.tolist()}
         for event in self.reward_events + self.penalty_events:
             state.update(event.asdict())
         return state
 
     def reward_responses(
-        self, reference: str, models: List[dict], reward_type: RewardModelTypeEnum
-    ) -> List[RewardEvent]:
+        self, reference: str, models: list[dict], reward_type: RewardModelTypeEnum
+    ) -> list[RewardEvent]:
         """Calculates the rewards for the responses given the task and returns a RewardEvent for each reward model
         reward_events: List[RewardEvent] = [
             RewardEvent(model_name='rouge', rewards=torch.zeros(50), timings=torch.zeros(50), ...),
@@ -100,11 +117,11 @@ class RewardResult:
 
         return reward_events
 
-    def total_reward(self) -> torch.FloatTensor:
+    def total_reward(self) -> torch.Tensor:
         """Combines the rewards from all the reward models into a single reward tensor"""
 
         # TODO: How would using the Agent as a reward model fit into this flow?
-        # Compute the rewards for the responses given the prompt        
+        # Compute the rewards for the responses given the prompt
         rewards = torch.zeros_like(
             self.response_event.uids, dtype=torch.float32, device=self.device
         )
@@ -155,10 +172,17 @@ class BaseRewardModel(ABC):
         pass
 
     @abstractmethod
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(
+        self, reference: str, response_event: DendriteResponseEvent
+    ) -> BatchRewardOutput:
         pass
 
-    def apply(self, reference: str, response_event: DendriteResponseEvent, reward_type: RewardModelTypeEnum) -> RewardEvent:
+    def apply(
+        self,
+        reference: str,
+        response_event: DendriteResponseEvent,
+        reward_type: RewardModelTypeEnum,
+    ) -> RewardEvent:
         t0 = time.time()
         batch_rewards_output = self.reward(reference, response_event)
         batch_rewards_time = time.time() - t0

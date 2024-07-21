@@ -1,9 +1,10 @@
 import time
 import torch
-from typing import List
+from typing import List, Optional
 from sympy.parsing.sympy_parser import parse_expr
 from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
 from prompting.dendrite import DendriteResponseEvent
+
 
 class FloatDiffModel(BaseRewardModel):
     @property
@@ -14,7 +15,7 @@ class FloatDiffModel(BaseRewardModel):
         super().__init__()
 
     @staticmethod
-    def extract_number(text: str) -> float:
+    def extract_number(text: str) -> Optional[float]:
         """Extract a number from a string."""
         # loop over all words reversed and try to cast as a float, break when you find the first one
         words = text.split()
@@ -52,7 +53,9 @@ class FloatDiffModel(BaseRewardModel):
         except Exception:
             return 0.0
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(
+        self, reference: str, response_event: DendriteResponseEvent
+    ) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
         rewards = []
         timings = []

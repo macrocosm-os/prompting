@@ -14,21 +14,30 @@ class RougeRewardModel(BaseRewardModel):
     def name(self) -> str:
         return "rouge"
 
-    def __init__(self, ngram="rouge-l", metric="f", avg=False, device=None, **kwargs):
+    def __init__(
+        self,
+        ngram: str = "rouge-l",
+        metric: str = "f",
+        avg: bool = False,
+        device: str = None,
+        **kwargs
+    ):
         super().__init__()
-        self.ngram = ngram
-        self.metric = metric
-        self.avg = avg
+        self.ngram: str = ngram
+        self.metric: str = metric
+        self.avg: bool = avg
         self.rouge = Rouge(**kwargs)
 
-    def rouge_score(self, reference, completion):
+    def rouge_score(self, reference, completion) -> float:
         if not completion or not reference:
             return 0.0
         return self.rouge.get_scores(reference, completion, avg=self.avg)[0][
             self.ngram
         ][self.metric]
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(
+        self, reference: str, response_event: DendriteResponseEvent
+    ) -> BatchRewardOutput:
         """Compute ROUGE scores given a completion and reference pair."""
         rewards = []
         timings = []
