@@ -11,7 +11,7 @@ class ReviewDataset(TemplateDataset):
     name : str = 'review'
     SENTIMENTS : List = ["positive", "neutral", "negative"]
     # TODO: Expand the params to create a larger dataset, while maintaining the same quality. 
-    query_template : str = "Create a {topic} review of a {title}. The review must be of {subtopic} sentiment."
+    query_template = "Create a {topic} review of a {title}. The review must be of {subtopic} sentiment."
     params = dict(
         topic=[
             "short",
