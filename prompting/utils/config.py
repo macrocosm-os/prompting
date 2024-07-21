@@ -58,7 +58,7 @@ def check_config(cls, config: "bt.Config"):
         logging.addLevelName(38, "EVENTS")
 
 
-def add_args(cls, parser):
+def add_args(cls, parser: argparse.ArgumentParser):
     """
     Adds relevant arguments to the parser for operation.
     """
@@ -147,7 +147,7 @@ def add_args(cls, parser):
     )
 
 
-def add_miner_args(cls, parser):
+def add_miner_args(cls, parser: argparse.ArgumentParser):
     """Add miner specific arguments to the parser."""
 
     parser.add_argument(

@@ -29,7 +29,7 @@ class Log:
     # extra_info: dict
 
 
-def export_logs(logs: List[Log]):
+def export_logs(logs: List[Log]) -> str:
     bt.logging.info("📝 Exporting logs...")
 
     # Create logs folder if it doesn't exist
@@ -53,7 +53,7 @@ def export_logs(logs: List[Log]):
     return log_file
 
 
-def should_reinit_wandb(self):
+def should_reinit_wandb(self) -> bool:
     # Check if wandb run needs to be rolled over.
     return (
         not self.config.wandb.off
@@ -62,7 +62,7 @@ def should_reinit_wandb(self):
     )
 
 
-def init_wandb(self, reinit=False):
+def init_wandb(self, reinit: bool = False):
     """Starts a new wandb run."""
     tags = [
         self.wallet.hotkey.ss58_address,
