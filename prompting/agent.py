@@ -26,6 +26,8 @@ from prompting.persona import Persona, create_persona
 
 from transformers import Pipeline
 
+RETRY_LIMIT = 3
+
 
 class HumanAgent(vLLM_LLM):
     "Agent that impersonates a human user and makes queries based on its goal."
@@ -78,21 +80,13 @@ class HumanAgent(vLLM_LLM):
         if begin_conversation:
             bt.logging.info("🤖 Generating challenge query...")
             # initiates the conversation with the miner
-            retry_limit = 3
-            retry_count = 0
-            try:
-                while retry_count < retry_limit:
-                    self.challenge = self.create_challenge()
-                    if not self.challenge:
-                        bt.logging.error("❌ Generated an empty challenge. Retrying...")
-                        retry_count += 1
-                        continue
-                    else:
-                        break
-                if retry_count == retry_limit:
-                    raise ValueError("Challenge is empty after generation.")
-            except ValueError as e:
-                bt.logging.exception("Exception occured: %s", str(e))
+            for i in range(RETRY_LIMIT):
+                self.challenge = self.challenge_time()
+                if not self.challenge:
+                    bt.logging.error("❌ Generated an empty challenge. Retrying...")
+                else:
+                    break
+            if not self.challenge:
                 bt.logging.error("Max retries reached. Skipping task.")
 
     def create_challenge(self) -> str:
