@@ -26,6 +26,8 @@ from prompting.persona import Persona, create_persona
 
 from transformers import Pipeline
 
+RETRY_LIMIT = 3
+
 
 class HumanAgent(vLLM_LLM):
     "Agent that impersonates a human user and makes queries based on its goal."
@@ -78,7 +80,14 @@ class HumanAgent(vLLM_LLM):
         if begin_conversation:
             bt.logging.info("🤖 Generating challenge query...")
             # initiates the conversation with the miner
-            self.challenge = self.create_challenge()
+            for i in range(RETRY_LIMIT):
+                self.challenge = self.challenge_time()
+                if not self.challenge:
+                    bt.logging.error("❌ Generated an empty challenge. Retrying...")
+                else:
+                    break
+            if not self.challenge:
+                bt.logging.error("Max retries reached. Skipping task.")
 
     def create_challenge(self) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
@@ -91,12 +100,14 @@ class HumanAgent(vLLM_LLM):
             self.challenge = super().query(
                 message="Ask a question related to your goal", cleaner=cleaner
             )
-        elif self.task.challenge_type == 'paraphrase':
+        elif self.task.challenge_type == "paraphrase":
             self.challenge = self.task.challenge_template.next(self.task.query)
-        elif self.task.challenge_type == 'query':
+        elif self.task.challenge_type == "query":
             self.challenge = self.task.query
         else:
-            bt.logging.error(f"Task {self.task.name} has challenge type of: {self.task.challenge_type} which is not supported.")
+            bt.logging.error(
+                f"Task {self.task.name} has challenge type of: {self.task.challenge_type} which is not supported."
+            )
         self.challenge = self.task.format_challenge(self.challenge)
         self.challenge_time = time.time() - t0
 
