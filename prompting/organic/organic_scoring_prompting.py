@@ -166,7 +166,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
             completions[uid]["accumulated_tokens_per_chunk"] = accumulated_tokens_per_chunk
             completions[uid]["completed"] = True
             completions[uid]["synapse"] = synapse
-            bt.logging.info(f"[Organic] Streaming back {uid}: {''.join(accumulated_chunks)}")
+            bt.logging.debug(f"[Organic] Streaming back {uid}: {''.join(accumulated_chunks)}")
 
         bt.logging.info(f"[Organic] Awaiting miner streams UIDs: {uids}")
         await asyncio.gather(*[stream_miner_chunks(uid, chunks) for uid, chunks in zip(uids, responses)])
