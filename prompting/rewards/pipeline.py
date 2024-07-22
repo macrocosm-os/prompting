@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Union
 
 from prompting.tasks import TASKS
 from prompting.rewards import (
@@ -9,7 +9,7 @@ from prompting.rewards import (
     FloatDiffModel,
     DateRewardModel,
     OrdinalRewardModel,
-    StreamingRewardModel
+    StreamingRewardModel,
 )
 
 REWARD_MODELS = {
@@ -24,19 +24,19 @@ REWARD_MODELS = {
 
 
 class RewardPipeline:
-    def __init__(self, selected_tasks: List[str], device):
-        self.selected_tasks = selected_tasks
-        self.device = device
+    def __init__(self, selected_tasks: list[str], device: str):
+        self.selected_tasks: list[str] = selected_tasks
+        self.device: str = device
         self.validate_tasks()
         self.load_reward_pipeline()
 
-    def __getitem__(self, __key: str) -> BaseRewardModel:
+    def __getitem__(self, __key: str) -> Optional[BaseRewardModel]:
         return self.reward_models.get(__key)
 
-    def get(self, __key: str) -> BaseRewardModel:
+    def get(self, __key: str) -> Optional[BaseRewardModel]:
         return self.reward_models.get(__key)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"RewardPipeline({self.reward_models})"
 
     def validate_tasks(self):
@@ -49,10 +49,12 @@ class RewardPipeline:
             self._check_weights(task, "reward_definition", expected_weight=1)
             self._check_weights(task, "penalty_definition", expected_weight=None)
 
-    def _check_weights(self, task, definition, expected_weight):
+    def _check_weights(
+        self, task: str, definition: str, expected_weight: Optional[Union[int, float]]
+    ):
         total_weight = 0
 
-        model_infos = getattr(TASKS[task], definition)
+        model_infos: Optional[list[dict]] = getattr(TASKS[task], definition)
 
         for model_info in model_infos:
             if not isinstance(model_info, dict):
@@ -112,4 +114,4 @@ class RewardPipeline:
             params = {k: v for k, v in model.items() if k not in ["name", "weight"]}
             reward_models[name] = cls(device=self.device, **params)
 
-        self.reward_models = reward_models
+        self.reward_models: dict[str, BaseRewardModel] = reward_models

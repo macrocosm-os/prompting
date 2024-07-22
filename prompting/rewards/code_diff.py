@@ -1,6 +1,6 @@
 import difflib
 import torch
-from typing import List
+from typing import List, Optional
 from prompting.rewards import (
     BaseRewardModel,
     BatchRewardOutput,
@@ -15,20 +15,24 @@ class DiffRewardModel(BaseRewardModel):
     def name(self) -> str:
         return "diff"
 
-    def __init__(self, lines=False, threshold=None, **kwargs):
+    def __init__(
+        self, lines: bool = False, threshold: Optional[float] = None, **kwargs
+    ):
         super().__init__()
         self.lines = lines
         self.threshold = threshold
 
-    def unified_diff(self, reference, completion):
+    def unified_diff(self, reference: str, completion: str) -> int:
         return len(
             difflib.unified_diff(reference.splitlines(), completion.splitlines())
         )
 
-    def seq_match(self, reference, completion):
+    def seq_match(self, reference: str, completion: str) -> float:
         return difflib.SequenceMatcher(None, reference, completion).ratio()
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(
+        self, reference: str, response_event: DendriteResponseEvent
+    ) -> BatchRewardOutput:
         """Get the score between two strings.
         lines: If True, return a unified diff. If False, return a ratio.
         """

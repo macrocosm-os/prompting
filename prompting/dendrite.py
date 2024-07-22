@@ -1,5 +1,5 @@
 import torch
-from typing import List
+from typing import Any, List
 from dataclasses import dataclass
 from prompting.protocol import StreamPromptingSynapse
 from prompting.utils.misc import serialize_exception_to_string
@@ -17,18 +17,18 @@ class SynapseStreamResult:
 
 class DendriteResponseEvent:
     def __init__(
-        self, stream_results: SynapseStreamResult, uids: torch.LongTensor, timeout: float
+        self, stream_results: list[SynapseStreamResult], uids: torch.LongTensor, timeout: float
     ):
         self.uids = uids
-        self.completions = []
-        self.status_messages = []
-        self.status_codes = []
-        self.timings = []
-        self.stream_results_uids = []
-        self.stream_results_exceptions = []
-        self.stream_results_all_chunks = []
-        self.stream_results_all_chunks_timings = []
-        self.stream_results_all_tokens_per_chunk = []
+        self.completions: list[str] = []
+        self.status_messages: list[str] = []
+        self.status_codes: list[int] = []
+        self.timings: list[float] = []
+        self.stream_results_uids: list[int] = []
+        self.stream_results_exceptions: list[str] = []
+        self.stream_results_all_chunks: list[list[str]] = []
+        self.stream_results_all_chunks_timings: list[list[float]] = []
+        self.stream_results_all_tokens_per_chunk: list[list[int]] = []
         
         for stream_result in stream_results:
             synapse = stream_result.synapse
@@ -55,7 +55,7 @@ class DendriteResponseEvent:
             self.stream_results_all_chunks_timings.append(stream_result.accumulated_chunks_timings)
             self.stream_results_all_tokens_per_chunk.append(stream_result.tokens_per_chunk)
 
-    def __state_dict__(self):
+    def __state_dict__(self) -> dict[str, Any]:
         return {
             "uids": self.uids.tolist(),
             "completions": self.completions,
@@ -69,5 +69,5 @@ class DendriteResponseEvent:
             "stream_results_all_tokens_per_chunk": self.stream_results_all_tokens_per_chunk,
         }
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"DendriteResponseEvent(uids={self.uids}, completions={self.completions}, timings={self.timings}, status_messages={self.status_messages}, status_codes={self.status_codes})"

@@ -1,5 +1,8 @@
 from dataclasses import dataclass
+from prompting.llms.base_llm import BasePipeline
+from prompting.shared.context import Context
 from prompting.tasks import Task
+
 
 @dataclass
 class MockTask(Task):
@@ -15,15 +18,18 @@ class MockTask(Task):
     static_reference = True
     static_query = True
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
-        self.context = context
+    def __init__(
+        self,
+        llm_pipeline: BasePipeline,
+        context: Context,
+        create_reference: bool = True,
+    ):
+        self.context: Context = context
 
-        self.query = (
-            "How can I solve the following problem, "
-            + context.content
-            + "?"
+        self.query: str = (
+            "How can I solve the following problem, " + context.content + "?"
         )
-        self.reference = "This is the reference answer"
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
+        self.reference: str = "This is the reference answer"
+        self.topic: str = context.title
+        self.subtopic: str = context.topic
+        self.tags: list[str] = context.tags

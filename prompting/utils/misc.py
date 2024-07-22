@@ -21,7 +21,7 @@ import asyncio
 import traceback
 import bittensor as bt
 from math import floor
-from typing import Callable, Any
+from typing import Any, Callable, Generator
 from functools import lru_cache, update_wrapper
 
 
@@ -71,7 +71,7 @@ def ttl_cache(maxsize: int = 128, typed: bool = False, ttl: int = -1):
     return wrapper
 
 
-def _ttl_hash_gen(seconds: int):
+def _ttl_hash_gen(seconds: int) -> Generator[int, None , None]:
     """
     Internal generator function used by the `ttl_cache` decorator to generate a new hash value at regular
     time intervals specified by `seconds`.
@@ -134,7 +134,7 @@ def async_log(func):
     return wrapper
 
 
-def serialize_exception_to_string(e):    
+def serialize_exception_to_string(e) -> str:    
     if isinstance(e, BaseException):
         # Format the traceback
         tb_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))

@@ -5,13 +5,13 @@ from .base import ChallengeTemplate
 class MathChallengeTemplate(ChallengeTemplate):
     def __init__(self):
         super().__init__()
-        self.templates = [
+        self.templates: list[str] = [
             "{greeting}{greeting_punctuation}{query}{whitespace}{request}<end>",
             "{query}<end>{greeting}{greeting_punctuation}{request}{whitespace}",
             "{greeting}{greeting_punctuation}{query}<end>{request}{whitespace}",
             "{query}{whitespace}{request}<end>{greeting}{greeting_punctuation}",
         ]
-        self.fields = {
+        self.fields: dict[str, list[str]] = {
             "greeting": [
                 "Hello",
                 "Hi",
@@ -187,5 +187,5 @@ class MathChallengeTemplate(ChallengeTemplate):
                 " ",
                 "\n",
                 "\n\n",
-            ]
+            ],
         }

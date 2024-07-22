@@ -11,7 +11,7 @@ class Validator(BaseValidatorNeuron):
     Text prompt validator neuron.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, config: bt.config = None):
         super(Validator, self).__init__(config=config)
 
         bt.logging.info("load_state()")
@@ -23,10 +23,10 @@ class Validator(BaseValidatorNeuron):
             llm_max_allowed_memory_in_gb=self.config.neuron.llm_max_allowed_memory_in_gb,
             device=self.device,
             mock=self.config.mock,
-        )        
+        )
         self.translation_pipeline = TranslationPipeline()
 
-        if abs(1-sum(self.config.neuron.task_p)) > 0.001:
+        if abs(1 - sum(self.config.neuron.task_p)) > 0.001:
             raise ValueError("Task probabilities do not sum to 1.")
 
         # Filter out tasks with 0 probability
@@ -36,7 +36,7 @@ class Validator(BaseValidatorNeuron):
             if p > 0
         ]
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(
+        self.reward_pipeline: RewardPipeline = RewardPipeline(
             selected_tasks=self.active_tasks, device=self.device
         )
 

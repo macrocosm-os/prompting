@@ -23,7 +23,7 @@ import argparse
 import threading
 import bittensor as bt
 
-from typing import List
+from typing import List, Optional
 from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
@@ -42,7 +42,7 @@ class BaseValidatorNeuron(BaseNeuron):
         super().add_args(parser)
         add_validator_args(cls, parser)
 
-    def __init__(self, config=None):
+    def __init__(self, config: Optional[bt.config] = None):
         super().__init__(config=config)
 
         # Save a copy of the hotkeys to local memory.
@@ -71,7 +71,7 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.warning("axon off, not serving ip to chain.")
 
         # Create asyncio event loop to manage async tasks.
-        self.loop = asyncio.get_event_loop()
+        self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
 
         # Instantiate runners
         self.should_exit: bool = False
@@ -182,8 +182,10 @@ class BaseValidatorNeuron(BaseNeuron):
         """
         if not self.is_running:
             bt.logging.debug("Starting validator in background thread.")
-            self.should_exit = False
-            self.thread = threading.Thread(target=self.run, daemon=True)
+            self.should_exit: bool = False
+            self.thread: threading.Thread = threading.Thread(
+                target=self.run, daemon=True
+            )
             self.thread.start()
             self.is_running = True
             bt.logging.debug("Started")
@@ -194,9 +196,9 @@ class BaseValidatorNeuron(BaseNeuron):
         """
         if self.is_running:
             bt.logging.debug("Stopping validator in background thread.")
-            self.should_exit = True
+            self.should_exit: bool = True
             self.thread.join(5)
-            self.is_running = False
+            self.is_running: bool = False
             bt.logging.debug("Stopped")
 
     def __enter__(self):
@@ -218,9 +220,9 @@ class BaseValidatorNeuron(BaseNeuron):
         """
         if self.is_running:
             bt.logging.debug("Stopping validator in background thread.")
-            self.should_exit = True
+            self.should_exit: bool = True
             self.thread.join(5)
-            self.is_running = False
+            self.is_running: bool = False
             bt.logging.debug("Stopped")
 
     def set_weights(self):
@@ -236,7 +238,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
-        raw_weights = torch.nn.functional.normalize(self.scores, p=1, dim=0)
+        raw_weights: torch.Tensor = torch.nn.functional.normalize(
+            self.scores, p=1, dim=0
+        )
 
         bt.logging.debug("raw_weights", raw_weights)
         bt.logging.debug("raw_weight_uids", self.metagraph.uids)
@@ -265,7 +269,7 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.debug("uint_uids", uint_uids)
 
         # Set the weights on chain via our subtensor connection.
-        result = self.subtensor.set_weights(
+        result: tuple[bool, str] = self.subtensor.set_weights(
             wallet=self.wallet,
             netuid=self.config.netuid,
             uids=uint_uids,
@@ -324,16 +328,16 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Compute forward pass rewards, assumes uids are mutually exclusive.
         # shape: [ metagraph.n ]
-        step_rewards = self.scores.scatter(
+        step_rewards: torch.Tensor = self.scores.scatter(
             0, torch.tensor(uids).to(self.device), rewards.to(self.device)
         ).to(self.device)
         bt.logging.debug(f"Scattered rewards: {rewards}")
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
-        alpha = self.config.neuron.moving_average_alpha
-        self.scores = alpha * step_rewards + (1 - alpha) * self.scores
-        self.scores = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)
+        alpha: float = self.config.neuron.moving_average_alpha
+        self.scores: torch.Tensor = alpha * step_rewards + (1 - alpha) * self.scores
+        self.scores: torch.Tensor = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)
         bt.logging.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):

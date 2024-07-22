@@ -1,19 +1,22 @@
 import random
+from typing import Optional
 import bittensor as bt
 from dataclasses import dataclass
+from prompting.llms.base_llm import BasePipeline
+from prompting.shared.context import Context
 from prompting.tasks import Task
 import difflib
 
 
 def corrupt(
-    code,
-    n_remove=0,
-    n_swap=0,
-    seed=None,
-    sep=" ",
-    min_length=1,
-    max_length=10,
-    remove_comment_lines=False,
+    code: str,
+    n_remove: int = 0,
+    n_swap: int = 0,
+    seed: Optional[int] = None,
+    sep: str = " ",
+    min_length: int = 1,
+    max_length: int = 10,
+    remove_comment_lines: bool = False,
 ):
     """
     Corrupt a piece of code by removing and/or swapping chunks of it.
@@ -34,7 +37,9 @@ def corrupt(
 
     assert n_remove + n_swap > 0, "Must specify at least one corruption type."
 
-    def remove(code, n, sep=" ", min_length=1, max_length=10):
+    def remove(
+        code, n: int, sep: str = " ", min_length: int = 1, max_length: int = 10
+    ) -> str:
         """Remove n random chunks from the code. Chunks can be characters, words, or lines."""
 
         chunks = code.split(sep) if sep else list(code)
@@ -54,12 +59,14 @@ def corrupt(
 
         return sep.join([chunk for i, chunk in enumerate(chunks) if i not in indices])
 
-    def swap(code, sep=" ", min_length=1, max_length=10):
+    def swap(
+        code: str, sep: str = " ", min_length: int = 1, max_length: int = 10
+    ) -> str:
         """Swap two random chunks in the code. Chunks can be characters, words, or lines."""
-        chunks = code.split(sep) if sep else list(code)
+        chunks: list[str] = code.split(sep) if sep else list(code)
 
         # select 2 random chunks to swap
-        indices = random.sample(
+        indices: list[int] = random.sample(
             [
                 i
                 for i, chunk in enumerate(chunks)
@@ -98,7 +105,7 @@ def corrupt(
     return code
 
 
-def diff(query, reference):
+def diff(query: str, reference: str) -> str:
     """Get the diff between two strings."""
     return "\n".join(difflib.unified_diff(query.splitlines(), reference.splitlines()))
 
@@ -116,21 +123,26 @@ class DebuggingTask(Task):
     static_reference = True
     static_query = True
 
-    def __init__(self, llm_pipeline, context, create_reference=True):
-        self.context = context
+    def __init__(
+        self,
+        llm_pipeline: BasePipeline,
+        context: Context,
+        create_reference: bool = True,
+    ):
+        self.context: Context = context
 
         # No LLM involved in generating the query, we just apply some language-independent corruption to the code
-        self.query = corrupt(
+        self.query: str = corrupt(
             context.content,
             n_remove=random.randint(1, 3),
             n_swap=random.randint(0, 2),
             sep=random.choices(["", " ", "\n"], weights=[0.3, 0.6, 0.1], k=1)[0],
         )
-        self.reference = context.content
-        self.delimiter = "```"
-        self.topic = context.title
-        self.subtopic = context.subtopic
-        self.tags = context.tags
+        self.reference: str = context.content
+        self.delimiter: str = "```"
+        self.topic: str = context.title
+        self.subtopic: str = context.subtopic
+        self.tags: list[str] = context.tags
 
-    def format_challenge(self, challenge):
+    def format_challenge(self, challenge: str) -> str:
         return f"{challenge}\n{self.delimiter}\n{self.query}\n{self.delimiter}"

@@ -1,8 +1,15 @@
-from typing import List, Dict
+from typing import List, Dict, Union
 
 import bittensor as bt
 
-from prompting.cleaners.all_cleaners import RemoveQuotes, RemoveRoles, PruneEnding, PrunePostQuestionText, RemoveTags, FirstQuestion
+from prompting.cleaners.all_cleaners import (
+    RemoveQuotes,
+    RemoveRoles,
+    PruneEnding,
+    PrunePostQuestionText,
+    RemoveTags,
+    FirstQuestion,
+)
 
 SUPPORTED_CLEANERS = {
     "remove_quotes": RemoveQuotes,
@@ -24,7 +31,7 @@ class CleanerPipeline:
             Example: [{"name": "remove_quotes", "kwargs": {}}, {"name": "prune_ending", "kwargs": {}}]
 
         """
-        self.cleaning_pipeline = cleaning_pipeline
+        self.cleaning_pipeline: list[dict] = cleaning_pipeline
 
     def apply(self, generation: str) -> str:
         """Apply cleaning steps to generation listed in cleaning_pipeline.
@@ -41,13 +48,20 @@ class CleanerPipeline:
                         f"Cleaning pipeline step {cleaner} must have a name, or must be in SUPPORTED_CLEANERS."
                     )
 
-                func = SUPPORTED_CLEANERS[cleaner["name"]]
+                func: Union[
+                    RemoveQuotes,
+                    RemoveRoles,
+                    PruneEnding,
+                    PrunePostQuestionText,
+                    FirstQuestion,
+                    RemoveTags,
+                ] = SUPPORTED_CLEANERS[cleaner["name"]]
 
                 kwargs = cleaner.get("kwargs", {})
                 func = func(**kwargs)  # instantiate the cleaner with the kwargs
 
                 # apply all the filters for the specific task.
-                generation = func.apply(generation=generation)
+                generation: str = func.apply(generation=generation)
 
             return generation
 

@@ -16,6 +16,7 @@
 # DEALINGS IN THE SOFTWARE.
 import textwrap
 import time
+from typing import Any
 import bittensor as bt
 from dataclasses import asdict
 from prompting.tasks import Task
@@ -113,7 +114,7 @@ class HumanAgent(vLLM_LLM):
 
         return self.challenge
 
-    def __state_dict__(self, full=False):
+    def __state_dict__(self, full=False) -> dict[str, Any]:
         return {
             "challenge": self.challenge,
             "challenge_time": self.challenge_time,
@@ -122,10 +123,10 @@ class HumanAgent(vLLM_LLM):
             "system_prompt": self.system_prompt,
         }
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.system_prompt
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     def continue_conversation(self, miner_response: str):

@@ -5,11 +5,11 @@ from .base import ChallengeTemplate
 class SentimentChallengeTemplate(ChallengeTemplate):
     def __init__(self):
         super().__init__()
-        self.templates = [
+        self.templates: list[str] = [
             "{greeting}{greeting_punctuation}{request}{whitespace}{query}<end>",
             "{request}{whitespace}{query}<end>{greeting}{greeting_punctuation}",
         ]
-        self.fields = {
+        self.fields: dict[str, list[str]] = {
             "greeting": [
                 "Hello",
                 "Hi",
@@ -182,5 +182,5 @@ class SentimentChallengeTemplate(ChallengeTemplate):
                 " ",
                 "\n",
                 "\n\n",
-            ]
+            ],
         }

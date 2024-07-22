@@ -21,7 +21,8 @@ import bittensor as bt
 import argparse
 from starlette.types import Send
 from functools import partial
-from typing import Dict, Awaitable
+from typing import Dict, Awaitable, Optional
+from bittensor.stream import StreamingSynapse
 
 # Bittensor Miner Template:
 from prompting.base.prompting_miner import BaseStreamPromptingMiner
@@ -51,7 +52,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
         """
         super().add_args(parser)
 
-    def __init__(self, config=None):
+    def __init__(self, config: Optional[bt.config] = None):
         super().__init__(config=config)
 
         bt.logging.info(f"Initializing with model {self.config.neuron.model_id}...")
@@ -64,14 +65,16 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
         # Set openai key and other args
         self.model = OpenAI(api_key=api_key)
-                        
-        self.system_prompt = self.config.neuron.system_prompt
-        self.accumulated_total_tokens = 0
-        self.accumulated_prompt_tokens = 0
-        self.accumulated_completion_tokens = 0
-        self.accumulated_total_cost = 0
 
-    def forward(self, synapse: StreamPromptingSynapse) -> Awaitable:
+        self.system_prompt: str = self.config.neuron.system_prompt
+        self.accumulated_total_tokens: int = 0
+        self.accumulated_prompt_tokens: int = 0
+        self.accumulated_completion_tokens: int = 0
+        self.accumulated_total_cost: int = 0
+
+    def forward(
+        self, synapse: StreamPromptingSynapse
+    ) -> StreamingSynapse.BTStreamingResponse:
         async def _forward(
             self,
             synapse: StreamPromptingSynapse,
@@ -85,34 +88,38 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             messages = []
             temp_completion = ""  # for wandb logging
             timeout_reached = False
-            
 
-            try:                
-                system_prompt_message = [{ 'role': 'system', 'content': self.system_prompt }]
-                synapse_messages = [{'role': role, 'content': message} for role, message in zip(synapse.roles, synapse.messages)]
-                
+            try:
+                system_prompt_message: list[dict[str, str]] = [
+                    {"role": "system", "content": self.system_prompt}
+                ]
+                synapse_messages: list[dict[str, str]] = [
+                    {"role": role, "content": message}
+                    for role, message in zip(synapse.roles, synapse.messages)
+                ]
+
                 messages = system_prompt_message + synapse_messages
-                
+
                 start_time = time.time()
                 stream_response = self.model.chat.completions.create(
                     model=self.config.neuron.model_id,
                     messages=messages,
                     temperature=self.config.neuron.temperature,
                     max_tokens=self.config.neuron.max_tokens,
-                    stream=True
+                    stream=True,
                 )
-                                
+
                 for chunk in stream_response:
                     chunk_content = chunk.choices[0].delta.content
-                    
+
                     if chunk_content is None:
                         bt.logging.info("OpenAI returned chunk content with None")
                         continue
-                    
+
                     accumulated_chunks.append(chunk_content)
-                    accumulated_chunks_timings.append(time.time() - start_time)                          
-                    
-                    buffer.append(chunk_content)                                        
+                    accumulated_chunks_timings.append(time.time() - start_time)
+
+                    buffer.append(chunk_content)
 
                     if time.time() - init_time > timeout_threshold:
                         bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
@@ -159,11 +166,13 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                         timing=synapse_latency,
                         messages=messages,
                         accumulated_chunks=accumulated_chunks,
-                        accumulated_chunks_timings = accumulated_chunks_timings,
+                        accumulated_chunks_timings=accumulated_chunks_timings,
                     )
 
-        bt.logging.debug(f"📧 Message received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}; \nForwarding synapse: {synapse}")
-        
+        bt.logging.debug(
+            f"📧 Message received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}; \nForwarding synapse: {synapse}"
+        )
+
         init_time = time.time()
         timeout_threshold = synapse.timeout
 
@@ -172,6 +181,6 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             self,
             synapse,
             init_time,
-            timeout_threshold,            
+            timeout_threshold,
         )
         return synapse.create_streaming_response(token_streamer)

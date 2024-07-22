@@ -23,7 +23,10 @@ import prompting
 from prompting.protocol import StreamPromptingSynapse
 from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Optional, Union
+from wandb.sdk.lib import RunDisabled
+from wandb.wandb_run import Run
+
 
 class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     """
@@ -37,9 +40,9 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     This class provides reasonable default behavior for a miner such as blacklisting unrecognized hotkeys, prioritizing requests based on stake, and forwarding requests to the forward function.
     """
 
-    def __init__(self, config=None):
+    def __init__(self, config: Optional[bt.config] = None):
         super().__init__(config=config)
-        self.identity_tags = None
+        self.identity_tags: Optional[bool] = None
 
     async def blacklist(
         self, synapse: StreamPromptingSynapse
@@ -105,7 +108,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         Example priority logic:
         - A higher stake results in a higher priority value.
         """
-        caller_uid = self.metagraph.hotkeys.index(
+        caller_uid: int = self.metagraph.hotkeys.index(
             synapse.dendrite.hotkey
         )  # Get the caller index.
         priority = float(
@@ -120,8 +123,8 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         bt.logging.info("Initializing wandb...")
 
         uid = f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
-        net_uid = f"netuid_{self.config.netuid}"
-        tags = [
+        net_uid: str = f"netuid_{self.config.netuid}"
+        tags: list[str] = [
             self.wallet.hotkey.ss58_address,
             net_uid,
             f"uid_{uid}",
@@ -129,7 +132,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
             str(prompting.__spec_version__),
         ]
 
-        run_name = None
+        run_name: Optional[str] = None
         if self.identity_tags:
             # Add identity tags to run tags
             tags += self.identity_tags
@@ -148,7 +151,8 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
             run_name = "_".join(run_name_tags)
 
         # inits wandb in case it hasn't been inited yet
-        self.wandb_run = wandb.init(
+
+        self.wandb_run: Optional[Union[Run, RunDisabled]] = wandb.init(
             name=run_name,
             project=self.config.wandb.project_name,
             entity=self.config.wandb.entity,
@@ -168,8 +172,8 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     ):
         if not getattr(self, "wandb_run", None):
             self.init_wandb()
-                
-        dendrite_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)        
+
+        dendrite_uid: int = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
         step_log = {
             "epoch_time": timing,
             # TODO: add block to logs in the future in a way that doesn't impact performance
