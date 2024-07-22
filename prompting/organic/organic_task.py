@@ -6,6 +6,7 @@ from prompting.tasks import Task
 @dataclass
 class OrganicTask(Task):
     """Task with defined reward and penalty mechanisms for organic prompts."""
+
     name = "organic"
     # Use challenge as a query.
     challenge_type = "query"

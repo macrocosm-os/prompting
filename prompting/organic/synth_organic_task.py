@@ -6,6 +6,7 @@ from prompting.organic.organic_task import OrganicTask
 @dataclass
 class SynthOrganicTask(OrganicTask):
     """Task with defined reward and penalty mechanisms for synthetic organic prompts."""
+
     name = "synthetic-organic"
 
     reward_definition = [

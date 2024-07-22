@@ -3,7 +3,7 @@ import datetime
 import json
 import time
 from functools import partial
-from typing import Any, AsyncGenerator, Literal, Sequence, Tuple
+from typing import Any, AsyncGenerator, Literal, Sequence, Tuple, Union
 
 import bittensor as bt
 import torch
@@ -32,12 +32,12 @@ class OrganicScoringPrompting(OrganicScoringBase):
     def __init__(
         self,
         axon: bt.axon,
-        synth_dataset: SynthDatasetBase | Sequence[SynthDatasetBase],
-        trigger_frequency: float | int,
+        synth_dataset: Union[SynthDatasetBase, Sequence[SynthDatasetBase]],
+        trigger_frequency: Union[float, int],
         trigger: Literal["seconds", "steps"],
         validator: BaseNeuron,
-        trigger_frequency_min: float | int = 2,
-        trigger_scaling_factor: float | int = 50,
+        trigger_frequency_min: Union[float, int] = 5,
+        trigger_scaling_factor: Union[float, int] = 50,
     ):
         """Organic Scoring implementation.
 
@@ -71,13 +71,13 @@ class OrganicScoringPrompting(OrganicScoringBase):
             available_tasks={
                 OrganicTask.name: OrganicTask,
                 SynthOrganicTask.name: SynthOrganicTask,
-            }
+            },
         )
 
     @override
     async def _priority_fn(self, synapse: StreamPromptingSynapse) -> float:
         """Priority function for the axon."""
-        return 1000000.0
+        return 10000000.0
 
     @override
     async def _blacklist_fn(self, synapse: StreamPromptingSynapse) -> Tuple[bool, str]:
@@ -95,7 +95,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
             self._val,
             sampling_mode=self._val.config.neuron.organic_sampling_mode,
             k=self._val.config.neuron.organic_sample_size,
-            exclude=[])
+            exclude=[],
+        )
         uids_list = uids.cpu().tolist()
         completions: dict[int, dict] = {}
         token_streamer = partial(
@@ -106,15 +107,17 @@ class OrganicScoringPrompting(OrganicScoringBase):
         )
 
         streaming_response = synapse.create_streaming_response(token_streamer)
-        self._organic_queue.add({
-            "roles": synapse.roles,
-            "messages": synapse.messages,
-            "organic": True,
-            "synapse": synapse,
-            "streaming_response": streaming_response,
-            "uids": uids_list,
-            "completions": completions,
-        })
+        self._organic_queue.add(
+            {
+                "roles": synapse.roles,
+                "messages": synapse.messages,
+                "organic": True,
+                "synapse": synapse,
+                "streaming_response": streaming_response,
+                "uids": uids_list,
+                "completions": completions,
+            }
+        )
         return streaming_response
 
     async def _stream_miner_response(
@@ -157,6 +160,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                     )
                 elif isinstance(chunk, StreamPromptingSynapse):
                     synapse = chunk
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
             completions[uid]["accumulated_chunks"] = accumulated_chunks
             completions[uid]["accumulated_chunks_timings"] = accumulated_chunks_timings
             completions[uid]["accumulated_tokens_per_chunk"] = accumulated_tokens_per_chunk
@@ -169,9 +173,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
     async def _reuse_organic_response(self, sample: dict[str, Any]) -> dict[int, SynapseStreamResult]:
         """Return a dictionary where the keys are miner UIDs and the values are their corresponding streaming responses.
-        
-        This method reuses miner responses for organic data. It waits for each miner to complete within the 
-        `neuron.organic_timeout` specified timeout and returns the responses. For miners who exceed the timeout, 
+
+        This method reuses miner responses for organic data. It waits for each miner to complete within the
+        `neuron.organic_timeout` specified timeout and returns the responses. For miners who exceed the timeout,
         an empty synapse response is returned.
 
         Args:
@@ -190,14 +194,17 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
         async def _wait_for_completion(uid: int):
             try:
-                await asyncio.wait_for(_check_completion(sample, uid), self._val.config.neuron.organic_timeout)
+                await asyncio.wait_for(
+                    _check_completion(sample, uid),
+                    self._val.config.neuron.organic_timeout,
+                )
                 response = SynapseStreamResult(
                     accumulated_chunks=sample["completions"][uid]["accumulated_chunks"],
                     accumulated_chunks_timings=sample["completions"][uid]["accumulated_chunks_timings"],
                     tokens_per_chunk=sample["completions"][uid]["accumulated_tokens_per_chunk"],
                     synapse=sample["completions"][uid]["synapse"],
                     uid=uid,
-                    exception=None
+                    exception=None,
                 )
             except asyncio.TimeoutError:
                 response = SynapseStreamResult(
@@ -206,7 +213,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                     tokens_per_chunk=[],
                     synapse=None,
                     uid=uid,
-                    exception=None
+                    exception=None,
                 )
             responses[uid] = response
 
@@ -221,7 +228,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
             return responses
 
         # Get the list of uids to query.
-        uids = get_random_uids(self._val, k=self._val.config.neuron.organic_sample_size, exclude=None).to(self._val.device)
+        uids = get_random_uids(self._val, k=self._val.config.neuron.organic_sample_size, exclude=None).to(
+            self._val.device
+        )
         uids_cpu = uids.cpu().tolist()
         bt.logging.info(f"[Organic] Querying miners with synthetic data, UIDs: {uids_cpu}")
         streams_responses = self._val.dendrite.query(
@@ -270,11 +279,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
             device=self._val.device,
         )
         bt.logging.info(f"[Organic] RewardResult: {reward_result}")
-        return {
-            "reward": reward_result,
-            "uids": uids_list,
-            "agent": agent
-        }
+        return {"reward": reward_result, "uids": uids_list, "agent": agent}
 
     @override
     async def _set_weights(self, reward: dict[str, Any]):
@@ -299,8 +304,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
         *args,
         **kwargs,
     ):
-        logs["block"] = self._val.block,
-        logs["step"] = self._val.step,
+        logs["block"] = (self._val.block,)
+        logs["step"] = (self._val.step,)
         logs.update(rewards["reward"].__state_dict__(full=self._val.config.neuron.log_full))
         log_event(self._val, logs)
         return logs
@@ -315,6 +320,6 @@ class OrganicScoringPrompting(OrganicScoringBase):
         ).query_conversation(
             messages=sample["messages"],
             roles=sample["roles"],
-            cleaner=CleanerPipeline(cleaning_pipeline=[])
+            cleaner=CleanerPipeline(cleaning_pipeline=[]),
         )
         return reference
