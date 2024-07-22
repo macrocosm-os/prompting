@@ -150,8 +150,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                     accumulated_chunks.append(chunk)
                     accumulated_chunks_timings.append(time.perf_counter() - timer_start)
                     accumulated_tokens_per_chunk.append(len(self._val.llm_pipeline.tokenizer.tokenize(chunk)))
-                    current_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-                    json_chunk = json.dumps({"uid": uid, "chunk": chunk, "timestamp": current_time})
+                    json_chunk = json.dumps({"uid": uid, "chunk": chunk})
                     await send(
                         {
                             "type": "http.response.body",
