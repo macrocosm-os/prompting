@@ -1,3 +1,5 @@
+import os
+import csv
 import asyncio
 import datetime
 import json
@@ -74,6 +76,22 @@ class OrganicScoringPrompting(OrganicScoringBase):
                 SynthOrganicTask.name: SynthOrganicTask,
             },
         )
+        # Debugging CSV.
+        self._file_name = "organic.csv"
+        self._fieldnames = [
+            "turn",
+            "total_rewards",
+            "chosen_uid",
+            "message",
+            "reference",
+            "chosen_response",
+        ]
+        file_exists = os.path.isfile(self._file_name)
+
+        with open(self._file_name, mode="a", newline="") as file:
+            writer = csv.DictWriter(file, self._fieldnames)
+            if not file_exists:
+                writer.writeheader()
 
     @override
     async def _priority_fn(self, synapse: StreamPromptingSynapse) -> float:
@@ -150,8 +168,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                     accumulated_chunks.append(chunk)
                     accumulated_chunks_timings.append(time.perf_counter() - timer_start)
                     accumulated_tokens_per_chunk.append(len(self._val.llm_pipeline.tokenizer.tokenize(chunk)))
-                    current_time = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-                    json_chunk = json.dumps({"uid": uid, "chunk": chunk, "timestamp": current_time})
+                    json_chunk = json.dumps({"uid": uid, "chunk": chunk})
                     await send(
                         {
                             "type": "http.response.body",
@@ -315,6 +332,20 @@ class OrganicScoringPrompting(OrganicScoringBase):
         logs["organic_reference_chars"] = len(reference)
         logs.update(rewards["reward"].__state_dict__(full=self._val.config.neuron.log_full))
         log_event(self._val, logs)
+
+        with open(self._file_name, mode="a", newline="") as file:
+            writer = csv.DictWriter(file, self._fieldnames)
+            reward_values: list[float] = rewards["reward"].rewards.tolist()
+            writer.writerow(
+                {
+                    "turn": logs["turn"],
+                    "total_rewards": [reward for reward in reward_values],
+                    "chosen_uid": next(iter(responses.keys())),
+                    "message": sample["messages"][-1].replace("\n", "--"),
+                    "reference": reference.replace("\n", "--"),
+                    "chosen_response": next(iter(responses.values())).synapse.completion.replace("\n", "--"),
+                }
+            )
         return logs
 
     @override
