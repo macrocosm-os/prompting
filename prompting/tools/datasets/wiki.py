@@ -208,7 +208,7 @@ class WikiDataset(Dataset):
         )
         if not sections:
             return None
-        if selector == 'all':
+        if selector == "all":
             content = "\n".join(["\n".join(section) for section in sections.values()])
             section_length = len(content.split())
             topic = "All Sections"
