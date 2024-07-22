@@ -456,11 +456,12 @@ def add_validator_args(cls, parser):
         default=1024,
     )
 
+    # TODO: Increase sampling rate after after Aug 1, 2024.
     parser.add_argument(
         "--neuron.organic_trigger_frequency",
         type=float,
         help="Organic query sampling frequency (seconds or steps value).",
-        default=45.0,
+        default=120.0,
     )
 
     parser.add_argument(
@@ -468,6 +469,16 @@ def add_validator_args(cls, parser):
         type=float,
         help="Minimum organic query sampling frequency (seconds or steps value).",
         default=5.0,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_scaling_factor",
+        type=float,
+        help=(
+            "The scaling factor to adjust the trigger frequency based on the size of the organic queue. "
+            "A higher value means the trigger frequency adjusts more slowly to the increase of organic queue size."
+        ),
+        default=1.0,
     )
 
     parser.add_argument(

@@ -7,6 +7,7 @@ from typing import Any, AsyncGenerator, Literal, Sequence, Tuple, Union
 
 import bittensor as bt
 import torch
+import numpy as np
 from organic_scoring import OrganicScoringBase
 from organic_scoring.synth_dataset import SynthDatasetBase
 from starlette.types import Send
@@ -297,21 +298,27 @@ class OrganicScoringPrompting(OrganicScoringBase):
     async def _log_results(
         self,
         logs: dict[str, Any],
-        reference: dict[str, Any],
-        responses: dict[str, Any],
+        reference: str,
+        responses: dict[int, SynapseStreamResult],
         rewards: dict[str, Any],
         sample: dict[str, Any],
         *args,
         **kwargs,
     ):
-        logs["block"] = (self._val.block,)
-        logs["step"] = (self._val.step,)
+        logs["block"] = self._val.block
+        logs["step"] = self._val.step
+        # Length of messages is incremented by 2 every step: query and response.
+        logs["turn"] = len(sample["messages"]) // 2
+        completions_len: list[int] = [len(response.synapse.completion) for response in responses.values()]
+        logs["organic_response_mean_chars"] = np.mean(completions_len)
+        logs["organic_response_std_chars"] = np.std(completions_len)
+        logs["organic_reference_chars"] = len(reference)
         logs.update(rewards["reward"].__state_dict__(full=self._val.config.neuron.log_full))
         log_event(self._val, logs)
         return logs
 
     @override
-    async def _generate_reference(self, sample: dict[str, Any]) -> dict[str, Any]:
+    async def _generate_reference(self, sample: dict[str, Any]) -> str:
         """Generate reference for the given organic or synthetic sample."""
         reference = vLLM_LLM(
             self._val.llm_pipeline,

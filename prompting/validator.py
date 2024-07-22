@@ -49,6 +49,7 @@ class Validator(BaseValidatorNeuron):
                 trigger_frequency=self.config.neuron.organic_trigger_frequency,
                 trigger_frequency_min=self.config.neuron.organic_trigger_frequency_min,
                 trigger=self.config.neuron.organic_trigger,
+                trigger_scaling_factor=self.config.neuron.organic_scaling_factor,
                 validator=self,
             )
             self.loop.create_task(self._organic_scoring.start_loop())
