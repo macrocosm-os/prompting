@@ -36,7 +36,7 @@ from transformers import PreTrainedTokenizerFast as Tokenizer
 from prompting.utils.uids import get_random_uids
 from dataclasses import dataclass
 
-SINGLE_TURN_TASKS = ['sentiment', 'translation']
+SINGLE_TURN_TASKS = ['sentiment', 'translation','benchmark']
 
 @async_log
 async def generate_reference(agent):

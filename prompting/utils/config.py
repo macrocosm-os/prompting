@@ -251,7 +251,7 @@ def add_miner_args(cls, parser):
     parser.add_argument(
         "--wandb.entity",
         type=str,
-        default="opentensor-dev",
+        default="macrocosmos",
         help="Wandb entity to log to.",
     )
 

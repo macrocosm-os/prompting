@@ -1,27 +1,7 @@
 from typing import List
 
 from prompting.tasks import TASKS
-from prompting.rewards import (
-    BaseRewardModel,
-    RougeRewardModel,
-    DiffRewardModel,
-    RelevanceRewardModel,
-    FloatDiffModel,
-    DateRewardModel,
-    OrdinalRewardModel,
-    StreamingRewardModel
-)
-
-REWARD_MODELS = {
-    "rouge": RougeRewardModel,
-    "relevance": RelevanceRewardModel,
-    "diff": DiffRewardModel,
-    "float_diff": FloatDiffModel,
-    "date": DateRewardModel,
-    "ordinal": OrdinalRewardModel,
-    "streaming": StreamingRewardModel,
-}
-
+from ..rewards import BaseRewardModel, REWARD_MODELS
 
 class RewardPipeline:
     def __init__(self, selected_tasks: List[str], device):
