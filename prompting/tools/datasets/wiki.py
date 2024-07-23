@@ -45,11 +45,8 @@ def _get_page(
         )
         # create sections manually if not found
         if not page.sections:
-            page._sections = [
-                line.strip("= ")
-                for line in page.content.splitlines()
-                if re.search(r"=+\s+.*\s+=+", line)
-            ]
+            return None # Since headers are no longer in the content of the page, we can't create sections manually
+
         return page
 
     except wiki.DisambiguationError as e:
@@ -83,7 +80,7 @@ def _wiki_search(name, results) -> List:
 
 
 def process_page(
-    page, valid_header: callable = None, valid_content: callable = None
+    page, exclude_sections: list = None, valid_section: callable = None
 ) -> Dict:
     """Process a Wikipedia page and return a dictionary of sections with their content.
 
@@ -94,31 +91,23 @@ def process_page(
     Returns:
         dict: dictionary of sections and their content. Note that keys are tuples (header, section_title)
     """
-    header = ""
-    sections = {}
-    key = ('full', 'full')
-    sections[key] = page.content.splitlines()
 
-    for section_title in page.sections:
-        content = page.section(section_title)
-        if not content:
-            header = section_title
+    # Split the text into paragraphs
+    paragraphs = page.content.strip().split('\n\n')
+    
+    # Determine the number of paragraphs to ignore
+    N = len([item for item in page.sections if item in exclude_sections])
+
+    sections = paragraphs[:-N] if N > 0 else paragraphs
+    
+    valid_sections = []
+    for section in sections:
+        if valid_section and not valid_section(section):
             continue
 
-        # Filter out sections that don't match the headers and/or are not valid
-        if (valid_header and not valid_header(header)) or (
-            valid_content and not valid_content(content)
-        ):
-            print(f"Skipping section {section_title!r} in page {page.title!r}, with content: {content}")
-            continue
+        valid_sections.append(section)
 
-        key = (header, section_title)
-        sections[key] = content.splitlines()
-
-    if not sections:
-        bt.logging.debug(f"No valid sections found in page {page.title!r} ({page.url})")
-
-    return sections
+    return valid_sections
 
 
 def most_relevant_links(page, num_links=10, num_summary_words=50, return_scores=False):
@@ -206,21 +195,20 @@ class WikiDataset(Dataset):
         exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
         sections = process_page(
             page,
-            valid_header=lambda x: x not in exclude and (not include or x in include),
-            valid_content=lambda x: len(x.split()) >= self.min_length_words,
+            exclude_sections=exclude,
+            valid_section=lambda x: len(x.split()) >= self.min_length_words,
         )
         if not sections:
             print('#'*50, 'No valid Sections found',)
             return None
 
-        key = header, section_title = selector(list(sections.keys()))
-        content = "\n".join(sections[key])
-        section_length = len(content.split())
+        section = selector(sections)
+        section_length = len(section.split())
         context = {
             "title": name,  # title of wiki article
-            "topic": header or section_title,  # title of wiki section
-            "subtopic": section_title,
-            "content": content,
+            "topic": name,
+            "subtopic": name,
+            "content": section,
             "internal_links": list(filter(lambda x: x not in exclude, page.sections)),
             "external_links": most_relevant_links(page, num_links=self.max_links),
             "tags": filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
