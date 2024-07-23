@@ -243,7 +243,7 @@ async def run_step(
     # Log the step event.
     event = {
         "best": best_response,
-        "block": self.block,
+        "block": self.latest_block,
         "step": self.step,
         "step_time": time.time() - start_time,        
         **agent.__state_dict__(full=self.config.neuron.log_full),
