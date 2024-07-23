@@ -39,7 +39,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         trigger: Literal["seconds", "steps"],
         validator: BaseNeuron,
         trigger_frequency_min: Union[float, int] = 5,
-        trigger_scaling_factor: Union[float, int] = 5,
+        trigger_scaling_factor: Union[float, int] = 50,
     ):
         """Organic Scoring implementation.
 
