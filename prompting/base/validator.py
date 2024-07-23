@@ -17,17 +17,20 @@
 
 import sys
 import copy
+from typing import Optional
 import torch
 import asyncio
 import argparse
 import threading
+from traceback import print_exception
 
 import bittensor as bt
+from organic_scoring.synth_dataset import SynthDatasetLmSysChat
 
-from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
+from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
 
@@ -66,7 +69,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         self.axon: bt.axon | None = None
         if not self.config.neuron.axon_off:
-            self._serve_axon()
+            self.axon = bt.axon(wallet=self.wallet, config=self.config)
         else:
             bt.logging.warning("axon off, not serving ip to chain.")
 
@@ -79,13 +82,33 @@ class BaseValidatorNeuron(BaseNeuron):
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
 
+        self._organic_scoring: Optional[OrganicScoringPrompting] = None
+        if self.axon is not None and not self.config.neuron.organic_disabled:
+            self._organic_scoring = OrganicScoringPrompting(
+                axon=self.axon,
+                synth_dataset=SynthDatasetLmSysChat(),
+                trigger_frequency=self.config.neuron.organic_trigger_frequency,
+                trigger_frequency_min=self.config.neuron.organic_trigger_frequency_min,
+                trigger=self.config.neuron.organic_trigger,
+                trigger_scaling_factor=self.config.neuron.organic_scaling_factor,
+                validator=self,
+            )
+        else:
+            bt.logging.warning(
+                "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
+            )
+        
+        if self.axon is not None:
+            self._serve_axon()
+
+        if self._organic_scoring is not None:
+            self.loop.create_task(self._organic_scoring.start_loop())
+
     def _serve_axon(self):
         """Serve axon to enable external connections"""
         validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
-        self.axon = bt.axon(wallet=self.wallet, config=self.config)
-        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
-        self.axon.start()
+        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor).start()
 
     def run(self):
         """
