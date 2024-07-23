@@ -435,6 +435,13 @@ def add_validator_args(cls, parser):
     )
 
     parser.add_argument(
+        "--neuron.organic_synth_reward_scale",
+        type=float,
+        help="Scale factor for synthetic organic rewards.",
+        default=0.2,
+    )
+
+    parser.add_argument(
         "--neuron.organic_reuse_response_disabled",
         action="store_true",
         help="If set, miner responses will be re-generated during reward generation. "

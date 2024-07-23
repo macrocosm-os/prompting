@@ -13,6 +13,7 @@ from organic_scoring import OrganicScoringBase
 from organic_scoring.synth_dataset import SynthDatasetBase
 from starlette.types import Send
 from typing_extensions import override
+from bittensor.dendrite import dendrite
 
 from prompting.agent import HumanAgent
 from prompting.base.neuron import BaseNeuron
@@ -39,7 +40,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         trigger: Literal["seconds", "steps"],
         validator: BaseNeuron,
         trigger_frequency_min: Union[float, int] = 5,
-        trigger_scaling_factor: Union[float, int] = 50,
+        trigger_scaling_factor: Union[float, int] = 5,
     ):
         """Organic Scoring implementation.
 
@@ -155,13 +156,14 @@ class OrganicScoringPrompting(OrganicScoringBase):
         """Stream back miner's responses."""
         bt.logging.info(f"[Organic] Querying miner UIDs: {uids}")
         try:
-            responses = self._val.dendrite.query(
-                axons=[self._val.metagraph.axons[uid] for uid in uids],
-                synapse=synapse,
-                timeout=self._val.config.neuron.organic_timeout,
-                deserialize=False,
-                streaming=True,
-            )
+            async with dendrite(wallet=self._val.wallet) as dend:
+                responses = await dend(
+                    axons=[self._val.metagraph.axons[uid] for uid in uids],
+                    synapse=synapse,
+                    timeout=self._val.config.neuron.organic_timeout,
+                    deserialize=False,
+                    streaming=True,
+                )
         except Exception as e:
             bt.logging.error(f"[Organic] Error querying dendrite: {e}")
             return
@@ -172,13 +174,17 @@ class OrganicScoringPrompting(OrganicScoringBase):
             accumulated_tokens_per_chunk: list[int] = []
             synapse: StreamPromptingSynapse | None = None
             completions[uid] = {"completed": False}
+            # t = 0
             timer_start = time.perf_counter()
             async for chunk in chunks:
                 try:
                     if isinstance(chunk, str):
                         accumulated_chunks.append(chunk)
                         accumulated_chunks_timings.append(time.perf_counter() - timer_start)
-                        accumulated_tokens_per_chunk.append(len(self._val.llm_pipeline.tokenizer.tokenize(chunk)))
+                        # s = time.perf_counter()
+                        # Tokenize for each uid takes ~10ms, but doesn't bring too much value.
+                        # accumulated_tokens_per_chunk.append(len(self._val.llm_pipeline.tokenizer.tokenize(chunk)))
+                        # t += time.perf_counter() - s
                         json_chunk = json.dumps({"uid": uid, "chunk": chunk})
                         await send(
                             {
@@ -198,10 +204,14 @@ class OrganicScoringPrompting(OrganicScoringBase):
             completions[uid]["accumulated_tokens_per_chunk"] = accumulated_tokens_per_chunk
             completions[uid]["completed"] = True
             completions[uid]["synapse"] = synapse
-            bt.logging.debug(f"[Organic] Streaming back {uid}: {''.join(accumulated_chunks)}")
+            # bt.logging.info(f"[Organic] TIME TOKENIZER {t:.4f}s")
+            # bt.logging.debug(f"[Organic] Streaming {uid}: {''.join(accumulated_chunks)}")
 
         bt.logging.info(f"[Organic] Awaiting miner streams UIDs: {uids}")
-        await asyncio.gather(*[stream_miner_chunks(uid, chunks) for uid, chunks in zip(uids, responses)])
+        await asyncio.gather(
+            *[stream_miner_chunks(uid, chunks) for uid, chunks in zip(uids, responses)],
+            return_exceptions=True,
+        )
 
     async def _reuse_organic_response(self, sample: dict[str, Any]) -> dict[int, SynapseStreamResult]:
         """Return a dictionary where the keys are miner UIDs and the values are their corresponding streaming responses.
@@ -253,7 +263,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         return responses
 
     @override
-    async def _query_miners(self, sample: dict[str, Any]) -> dict[str, Any]:
+    async def _query_miners(self, sample: dict[str, Any]) -> dict[str, SynapseStreamResult]:
         """Query miners with the given synthetic or organic sample."""
         if sample.get("organic", False) and not self._val.config.neuron.organic_reuse_response_disabled:
             responses = await self._reuse_organic_response(sample)
@@ -265,7 +275,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         )
         uids_cpu = uids.cpu().tolist()
         bt.logging.info(f"[Organic] Querying miners with synthetic data, UIDs: {uids_cpu}")
-        streams_responses = self._val.dendrite.query(
+        streams_responses = await self._val.dendrite.forward(
             axons=[self._val.metagraph.axons[uid] for uid in uids_cpu],
             synapse=StreamPromptingSynapse(roles=sample["roles"], messages=sample["messages"]),
             timeout=self._val.config.neuron.organic_timeout,
@@ -311,14 +321,18 @@ class OrganicScoringPrompting(OrganicScoringBase):
             device=self._val.device,
         )
         bt.logging.info(f"[Organic] RewardResult: {reward_result}")
-        return {"reward": reward_result, "uids": uids_list, "agent": agent}
+        return {"reward": reward_result, "uids": uids_list, "agent": agent, "organic": sample.get("organic", False)}
 
     @override
     async def _set_weights(self, reward: dict[str, Any]):
         """Set weights based on the given reward."""
         uids = reward["uids"]
         reward_result = reward["reward"]
-        bt.logging.info(f"[Organic] Rewards for miner's UIDs: {dict(zip(uids, reward_result.rewards))}")
+        if not reward.get("organic", False):
+            reward_result.rewards *= self._val.config.neuron.organic_synth_reward_scale
+
+        uids_to_reward = dict(zip(uids, reward_result.rewards))
+        bt.logging.info(f"[Organic] Rewards for miner's UIDs: {uids_to_reward}")
         bt.logging.info(f"[Organic] Weight setting enabled: {self._val.config.neuron.organic_set_weights_enabled}")
         if self._val.config.neuron.organic_set_weights_enabled:
             self._val.update_scores(reward_result.rewards, uids)
