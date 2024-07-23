@@ -154,13 +154,17 @@ class OrganicScoringPrompting(OrganicScoringBase):
     ):
         """Stream back miner's responses."""
         bt.logging.info(f"[Organic] Querying miner UIDs: {uids}")
-        responses = self._val.dendrite.query(
-            axons=[self._val.metagraph.axons[uid] for uid in uids],
-            synapse=synapse,
-            timeout=self._val.config.neuron.organic_timeout,
-            deserialize=False,
-            streaming=True,
-        )
+        try:
+            responses = self._val.dendrite.query(
+                axons=[self._val.metagraph.axons[uid] for uid in uids],
+                synapse=synapse,
+                timeout=self._val.config.neuron.organic_timeout,
+                deserialize=False,
+                streaming=True,
+            )
+        except Exception as e:
+            bt.logging.error(f"[Organic] Error querying dendrite: {e}")
+            return
 
         async def stream_miner_chunks(uid: int, chunks: AsyncGenerator):
             accumulated_chunks: list[str] = []
@@ -170,20 +174,24 @@ class OrganicScoringPrompting(OrganicScoringBase):
             completions[uid] = {"completed": False}
             timer_start = time.perf_counter()
             async for chunk in chunks:
-                if isinstance(chunk, str):
-                    accumulated_chunks.append(chunk)
-                    accumulated_chunks_timings.append(time.perf_counter() - timer_start)
-                    accumulated_tokens_per_chunk.append(len(self._val.llm_pipeline.tokenizer.tokenize(chunk)))
-                    json_chunk = json.dumps({"uid": uid, "chunk": chunk})
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": json_chunk.encode("utf-8"),
-                            "more_body": True,
-                        }
-                    )
-                elif isinstance(chunk, StreamPromptingSynapse):
-                    synapse = chunk
+                try:
+                    if isinstance(chunk, str):
+                        accumulated_chunks.append(chunk)
+                        accumulated_chunks_timings.append(time.perf_counter() - timer_start)
+                        accumulated_tokens_per_chunk.append(len(self._val.llm_pipeline.tokenizer.tokenize(chunk)))
+                        json_chunk = json.dumps({"uid": uid, "chunk": chunk})
+                        await send(
+                            {
+                                "type": "http.response.body",
+                                "body": json_chunk.encode("utf-8"),
+                                "more_body": True,
+                            }
+                        )
+                    elif isinstance(chunk, StreamPromptingSynapse):
+                        synapse = chunk
+                except Exception as e:
+                    bt.logging.error(f"[Organic] Error while streaming chunks: {e}")
+                    break
             await send({"type": "http.response.body", "body": b"", "more_body": False})
             completions[uid]["accumulated_chunks"] = accumulated_chunks
             completions[uid]["accumulated_chunks_timings"] = accumulated_chunks_timings
