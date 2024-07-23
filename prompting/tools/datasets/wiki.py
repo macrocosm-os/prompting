@@ -190,19 +190,21 @@ class WikiDataset(Dataset):
         page = _get_page(title=name, **kwargs)
         if page is None:
             return None
+        if selector == "all":
+            section = page.content
+        else:
+            # Only return a sections with a minimum number of words
+            exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
+            sections = process_page(
+                page,
+                exclude_sections=exclude,
+                valid_section=lambda x: len(x.split()) >= self.min_length_words,
+            )
+            if not sections:
+                print('#'*50, 'No valid Sections found',)
+                return None
 
-        # Only return a sections with a minimum number of words
-        exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
-        sections = process_page(
-            page,
-            exclude_sections=exclude,
-            valid_section=lambda x: len(x.split()) >= self.min_length_words,
-        )
-        if not sections:
-            print('#'*50, 'No valid Sections found',)
-            return None
-
-        section = selector(sections)
+            section = selector(sections)
         section_length = len(section.split())
         context = {
             "title": name,  # title of wiki article
