@@ -307,7 +307,7 @@ def add_validator_args(cls, parser):
         "--neuron.timeout",
         type=float,
         help="The timeout for each forward call in seconds.",
-        default=15,
+        default=0.05,
     )
 
     parser.add_argument(

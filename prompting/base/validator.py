@@ -110,6 +110,35 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
         self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor).start()
 
+    async def _run_loop(self):
+        while True:
+            bt.logging.info(f"step({self.step}) block({self.block})")
+
+            forward_timeout = self.config.neuron.forward_max_time
+            try:
+                async with self.lock:
+                    await asyncio.wait_for(self.forward(), timeout=forward_timeout)
+            except torch.cuda.OutOfMemoryError as e:
+                bt.logging.error(f"Out of memory error: {e}")
+                continue
+            except MaxRetryError as e:
+                bt.logging.error(f"MaxRetryError: {e}")
+                continue
+            except asyncio.TimeoutError as e:
+                bt.logging.error(
+                    f"Forward timeout: Task execution exceeded {forward_timeout} seconds and was cancelled.: {e}"
+                )
+                continue
+
+            # Check if we should exit.
+            if self.should_exit:
+                break
+
+            # Sync metagraph and potentially set weights.
+            self.sync()
+
+            self.step += 1
+
     def run(self):
         """
         Initiates and manages the main lop for the miner on the Bittensor network. The main loop handles graceful shutdown on keyboard interrupts and logs unforeseen errors.
@@ -129,7 +158,6 @@ class BaseValidatorNeuron(BaseNeuron):
             KeyboardInterrupt: If the miner is stopped by a manual interruption.
             Exception: For unforeseen errors during the miner's operation, which are logged for diagnosis.
         """
-
         # Check that validator is registered on the network.
         self.sync()
 
@@ -144,45 +172,12 @@ class BaseValidatorNeuron(BaseNeuron):
 
         bt.logging.info(f"Validator starting at block: {self.block}")
 
-        # This loop maintains the validator's operations until intentionally stopped.
         try:
-            while True:
-                bt.logging.info(f"step({self.step}) block({self.block})")
-
-                forward_timeout = self.config.neuron.forward_max_time
-                try:
-                    task = self.loop.create_task(self.forward())
-                    self.loop.run_until_complete(
-                        asyncio.wait_for(task, timeout=forward_timeout)
-                    )
-                except torch.cuda.OutOfMemoryError as e:
-                    bt.logging.error(f"Out of memory error: {e}")
-                    continue
-                except MaxRetryError as e:
-                    bt.logging.error(f"MaxRetryError: {e}")
-                    continue
-                except asyncio.TimeoutError as e:
-                    bt.logging.error(
-                        f"Forward timeout: Task execution exceeded {forward_timeout} seconds and was cancelled.: {e}"
-                    )
-                    continue
-
-                # Check if we should exit.
-                if self.should_exit:
-                    break
-
-                # Sync metagraph and potentially set weights.
-                self.sync()
-
-                self.step += 1
-
-        # If someone intentionally stops the validator, it'll safely terminate operations.
+            self.loop.run_until_complete(self._run_loop())
         except KeyboardInterrupt:
             self.axon.stop()
             bt.logging.success("Validator killed by keyboard interrupt.")
             sys.exit()
-
-        # In case of unforeseen errors, the validator will log the error and quit
         except Exception as err:
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
