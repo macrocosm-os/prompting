@@ -96,6 +96,8 @@ def process_page(
     """
     header = ""
     sections = {}
+    key = ('full', 'full')
+    sections[key] = page.content.splitlines()
 
     for section_title in page.sections:
         content = page.section(section_title)
@@ -107,6 +109,7 @@ def process_page(
         if (valid_header and not valid_header(header)) or (
             valid_content and not valid_content(content)
         ):
+            print(f"Skipping section {section_title!r} in page {page.title!r}, with content: {content}")
             continue
 
         key = (header, section_title)
@@ -161,7 +164,7 @@ class WikiDataset(Dataset):
 
     def __init__(
         self,
-        min_length_words: int = 50,
+        min_length_words: int = 20,
         max_links: int = 10,
     ):
         """
@@ -207,6 +210,7 @@ class WikiDataset(Dataset):
             valid_content=lambda x: len(x.split()) >= self.min_length_words,
         )
         if not sections:
+            print('#'*50, 'No valid Sections found',)
             return None
 
         key = header, section_title = selector(list(sections.keys()))
