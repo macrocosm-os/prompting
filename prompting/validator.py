@@ -1,5 +1,4 @@
 import bittensor as bt
-from organic_scoring.synth_dataset import SynthDatasetLmSysChat
 
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.forward import forward
@@ -42,21 +41,6 @@ class Validator(BaseValidatorNeuron):
         self.reward_pipeline = RewardPipeline(
             selected_tasks=self.active_tasks, device=self.device
         )
-        if self.axon is not None and not self.config.neuron.organic_disabled:
-            self._organic_scoring = OrganicScoringPrompting(
-                axon=self.axon,
-                synth_dataset=SynthDatasetLmSysChat(),
-                trigger_frequency=self.config.neuron.organic_trigger_frequency,
-                trigger_frequency_min=self.config.neuron.organic_trigger_frequency_min,
-                trigger=self.config.neuron.organic_trigger,
-                trigger_scaling_factor=self.config.neuron.organic_scaling_factor,
-                validator=self,
-            )
-            self.loop.create_task(self._organic_scoring.start_loop())
-        else:
-            bt.logging.warning(
-                "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
-            )
 
     async def forward(self):
         """
