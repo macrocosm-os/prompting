@@ -101,7 +101,6 @@ class BaseNeuron(ABC):
             f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
         )
         self.step = 0
-        self._thread_lock = threading.Lock()
 
     @abstractmethod
     def forward(self, synapse: bt.Synapse) -> bt.Synapse:
@@ -115,18 +114,17 @@ class BaseNeuron(ABC):
         """
         Wrapper for synchronizing the state of the network for the given miner or validator.
         """
-        with self._thread_lock:
-            # Ensure miner or validator hotkey is still registered on the network.
-            self.check_registered()
+        # Ensure miner or validator hotkey is still registered on the network.
+        self.check_registered()
 
-            if self.should_sync_metagraph():
-                self.resync_metagraph()
+        if self.should_sync_metagraph():
+            self.resync_metagraph()
 
-            if self.should_set_weights():
-                self.set_weights()
+        if self.should_set_weights():
+            self.set_weights()
 
-            # Always save state.
-            self.save_state()
+        # Always save state.
+        self.save_state()
 
     def check_registered(self):
         # --- Check for registration.

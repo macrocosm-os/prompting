@@ -86,7 +86,6 @@ class vLLMPipeline(BasePipeline):
 
 
 class vLLM_LLM(BaseLLM):
-    _lock = threading.Lock()
     def __init__(
         self,
         llm_pipeline: BasePipeline,
@@ -173,8 +172,7 @@ class vLLM_LLM(BaseLLM):
     def forward(self, messages: List[Dict[str, str]]):
         # make composed prompt from messages
         composed_prompt = self._make_prompt(messages)
-        with self._lock:
-            response = self.llm_pipeline(composed_prompt, **self.model_kwargs)
+        response = self.llm_pipeline(composed_prompt, **self.model_kwargs)
 
         bt.logging.info(
             f"{self.__class__.__name__} generated the following output:\n{response}"

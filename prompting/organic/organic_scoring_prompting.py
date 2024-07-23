@@ -1,3 +1,5 @@
+import os
+import csv
 import asyncio
 import json
 import time
@@ -73,6 +75,29 @@ class OrganicScoringPrompting(OrganicScoringBase):
                 SynthOrganicTask.name: SynthOrganicTask,
             },
         )
+        # Debugging CSV.
+        self._synth_file = "synth.csv"
+        self._organic_file = "organic.csv"
+        self._fieldnames = [
+            "turn",
+            "total_rewards",
+            "chosen_uid",
+            "message",
+            "reference",
+            "chosen_response",
+        ]
+        file_exists = os.path.isfile(self._organic_file)
+
+        with open(self._organic_file, mode="a", newline="") as file:
+            writer = csv.DictWriter(file, self._fieldnames)
+            if not file_exists:
+                writer.writeheader()
+
+        file_exists = os.path.isfile(self._synth_file)
+        with open(self._synth_file, mode="a", newline="") as file:
+            writer = csv.DictWriter(file, self._fieldnames)
+            if not file_exists:
+                writer.writeheader()
 
     @override
     async def _priority_fn(self, synapse: StreamPromptingSynapse) -> float:
@@ -129,13 +154,17 @@ class OrganicScoringPrompting(OrganicScoringBase):
     ):
         """Stream back miner's responses."""
         bt.logging.info(f"[Organic] Querying miner UIDs: {uids}")
-        responses = self._val.dendrite.query(
-            axons=[self._val.metagraph.axons[uid] for uid in uids],
-            synapse=synapse,
-            timeout=self._val.config.neuron.organic_timeout,
-            deserialize=False,
-            streaming=True,
-        )
+        try:
+            responses = self._val.dendrite.query(
+                axons=[self._val.metagraph.axons[uid] for uid in uids],
+                synapse=synapse,
+                timeout=self._val.config.neuron.organic_timeout,
+                deserialize=False,
+                streaming=True,
+            )
+        except Exception as e:
+            bt.logging.error(f"[Organic] Error querying dendrite: {e}")
+            return
 
         async def stream_miner_chunks(uid: int, chunks: AsyncGenerator):
             accumulated_chunks: list[str] = []
@@ -145,20 +174,24 @@ class OrganicScoringPrompting(OrganicScoringBase):
             completions[uid] = {"completed": False}
             timer_start = time.perf_counter()
             async for chunk in chunks:
-                if isinstance(chunk, str):
-                    accumulated_chunks.append(chunk)
-                    accumulated_chunks_timings.append(time.perf_counter() - timer_start)
-                    accumulated_tokens_per_chunk.append(len(self._val.llm_pipeline.tokenizer.tokenize(chunk)))
-                    json_chunk = json.dumps({"uid": uid, "chunk": chunk})
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": json_chunk.encode("utf-8"),
-                            "more_body": True,
-                        }
-                    )
-                elif isinstance(chunk, StreamPromptingSynapse):
-                    synapse = chunk
+                try:
+                    if isinstance(chunk, str):
+                        accumulated_chunks.append(chunk)
+                        accumulated_chunks_timings.append(time.perf_counter() - timer_start)
+                        accumulated_tokens_per_chunk.append(len(self._val.llm_pipeline.tokenizer.tokenize(chunk)))
+                        json_chunk = json.dumps({"uid": uid, "chunk": chunk})
+                        await send(
+                            {
+                                "type": "http.response.body",
+                                "body": json_chunk.encode("utf-8"),
+                                "more_body": True,
+                            }
+                        )
+                    elif isinstance(chunk, StreamPromptingSynapse):
+                        synapse = chunk
+                except Exception as e:
+                    bt.logging.error(f"[Organic] Error while streaming chunks: {e}")
+                    break
             await send({"type": "http.response.body", "body": b"", "more_body": False})
             completions[uid]["accumulated_chunks"] = accumulated_chunks
             completions[uid]["accumulated_chunks_timings"] = accumulated_chunks_timings
@@ -313,18 +346,40 @@ class OrganicScoringPrompting(OrganicScoringBase):
         logs["organic_reference_chars"] = len(reference)
         logs.update(rewards["reward"].__state_dict__(full=self._val.config.neuron.log_full))
         log_event(self._val, logs)
+
+        def write(file: str):
+            with open(file, mode="a", newline="") as file:
+                writer = csv.DictWriter(file, self._fieldnames)
+                reward_values: list[float] = rewards["reward"].rewards.tolist()
+                writer.writerow(
+                    {
+                        "turn": logs["turn"],
+                        "total_rewards": [reward for reward in reward_values],
+                        "chosen_uid": next(iter(responses.keys())),
+                        "message": sample["messages"][-1].replace("\n", "--"),
+                        "reference": reference.replace("\n", "--"),
+                        "chosen_response": next(iter(responses.values())).synapse.completion.replace("\n", "--"),
+                    }
+                )
+
+        if sample.get("organic", False):
+            write(self._organic_file)
+        else:
+            write(self._synth_file)
+
         return logs
 
     @override
     async def _generate_reference(self, sample: dict[str, Any]) -> str:
         """Generate reference for the given organic or synthetic sample."""
-        reference = vLLM_LLM(
-            self._val.llm_pipeline,
-            system_prompt=make_system_prompt(),
-            max_new_tokens=self._val.config.neuron.organic_reference_max_tokens,
-        ).query_conversation(
-            messages=sample["messages"],
-            roles=sample["roles"],
-            cleaner=CleanerPipeline(cleaning_pipeline=[]),
-        )
+        async with self._val.lock:
+            reference = vLLM_LLM(
+                self._val.llm_pipeline,
+                system_prompt=make_system_prompt(),
+                max_new_tokens=self._val.config.neuron.organic_reference_max_tokens,
+            ).query_conversation(
+                messages=sample["messages"],
+                roles=sample["roles"],
+                cleaner=CleanerPipeline(cleaning_pipeline=[]),
+            )
         return reference
