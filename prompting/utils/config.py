@@ -438,7 +438,7 @@ def add_validator_args(cls, parser):
         "--neuron.organic_synth_reward_scale",
         type=float,
         help="Scale factor for synthetic organic rewards.",
-        default=0.2,
+        default=0.1,
     )
 
     parser.add_argument(
