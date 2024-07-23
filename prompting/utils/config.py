@@ -461,14 +461,14 @@ def add_validator_args(cls, parser):
         "--neuron.organic_trigger_frequency",
         type=float,
         help="Organic query sampling frequency (seconds or steps value).",
-        default=120.0,
+        default=8.0,
     )
 
     parser.add_argument(
         "--neuron.organic_trigger_frequency_min",
         type=float,
         help="Minimum organic query sampling frequency (seconds or steps value).",
-        default=5.0,
+        default=2.0,
     )
 
     parser.add_argument(
@@ -485,7 +485,7 @@ def add_validator_args(cls, parser):
         "--neuron.organic_trigger",
         type=str,
         help="Organic query validation trigger mode (seconds or steps).",
-        default="seconds",
+        default="steps",
     )
 
     parser.add_argument(

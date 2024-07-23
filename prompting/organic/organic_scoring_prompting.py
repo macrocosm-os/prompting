@@ -39,7 +39,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         trigger: Literal["seconds", "steps"],
         validator: BaseNeuron,
         trigger_frequency_min: Union[float, int] = 5,
-        trigger_scaling_factor: Union[float, int] = 50,
+        trigger_scaling_factor: Union[float, int] = 5,
     ):
         """Organic Scoring implementation.
 
@@ -109,7 +109,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
         """Blacklist function for the axon."""
         # ! DO NOT CHANGE `Tuple` return type to `tuple`, it will break the code (bittensor internal signature checks).
         # We expect the API to be run with one specific hotkey (e.g. OTF).
-        return synapse.dendrite.hotkey != self._val.config.neuron.organic_whitelist_hotkey, ""
+        # return synapse.dendrite.hotkey != self._val.config.neuron.organic_whitelist_hotkey, ""
+        return synapse.dendrite.hotkey != "5Fk35HgrTqqUffK7WN8FG4euZ8MpKx35mUYz9kgwj3UDnNHr", ""
 
     @override
     async def _on_organic_entry(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:

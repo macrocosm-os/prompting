@@ -71,7 +71,7 @@ class BaseValidatorNeuron(BaseNeuron):
         if not self.config.neuron.axon_off:
             self.axon = bt.axon(wallet=self.wallet, config=self.config)
         else:
-            bt.logging.warning("axon off, not serving ip to chain.")
+            bt.logging.warning("Axon off, not serving IP to chain.")
 
         # Create asyncio event loop to manage async tasks.
         self.loop = asyncio.get_event_loop()
@@ -101,8 +101,9 @@ class BaseValidatorNeuron(BaseNeuron):
         if self.axon is not None:
             self._serve_axon()
 
-        if self._organic_scoring is not None:
-            self.loop.create_task(self._organic_scoring.start_loop())
+        # TODO (dbobrenko): Enable organic asyncio task.
+        # if self._organic_scoring is not None:
+        #     self.loop.create_task(self._organic_scoring.start_loop())
 
     def _serve_axon(self):
         """Serve axon to enable external connections"""
@@ -117,7 +118,14 @@ class BaseValidatorNeuron(BaseNeuron):
             forward_timeout = self.config.neuron.forward_max_time
             try:
                 async with self.lock:
+                    bt.logging.info("[Tasks] Starting forward iteration")
                     await asyncio.wait_for(self.forward(), timeout=forward_timeout)
+ 
+                # TODO (dbobrenko): Use organic asyncio task instead.
+                if self.step % self._organic_scoring.sampling_rate_dynamic() == 0:
+                    bt.logging.info("[Organic] Starting loop iteration")
+                    await asyncio.wait_for(self._organic_scoring.loop_iteration(), timeout=forward_timeout)
+
             except torch.cuda.OutOfMemoryError as e:
                 bt.logging.error(f"Out of memory error: {e}")
                 continue
