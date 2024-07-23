@@ -1,7 +1,6 @@
 import os
 import csv
 import asyncio
-import datetime
 import json
 import time
 from functools import partial
@@ -356,9 +355,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
                 )
 
         if sample.get("organic", False):
-            write(self._synth_file)
-        else:
             write(self._organic_file)
+        else:
+            write(self._synth_file)
 
         return logs
 
