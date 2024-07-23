@@ -102,6 +102,7 @@ class BaseValidatorNeuron(BaseNeuron):
             self._serve_axon()
 
         # TODO (dbobrenko): Enable organic asyncio task.
+        # TODO (dbobrenko): Investigate status_message: "Timeout context manager should be used inside a task".
         # if self._organic_scoring is not None:
         #     self.loop.create_task(self._organic_scoring.start_loop())
 
