@@ -66,7 +66,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Init sync with the network. Updates the metagraph.
         self.sync()
 
-        self.axon: bt.axon | None = None
+        self.axon: Optional[bt.axon] = None
         if not self.config.neuron.axon_off:
             self.axon = bt.axon(wallet=self.wallet, config=self.config)
         else:

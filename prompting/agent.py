@@ -18,10 +18,11 @@ import textwrap
 import time
 import bittensor as bt
 from dataclasses import asdict
+from typing import Optional
+
 from prompting.tasks import Task
 from prompting.llms import vLLM_LLM
 from prompting.cleaners.cleaner import CleanerPipeline
-
 from prompting.persona import Persona, create_persona
 
 from transformers import Pipeline
@@ -52,7 +53,7 @@ class HumanAgent(vLLM_LLM):
         system_template: str = None,
         persona: Persona = None,
         begin_conversation=True,
-        system_prompt: str | None = None,
+        system_prompt: Optional[str] = None,
     ):
         self.persona = persona
         self.task = task
