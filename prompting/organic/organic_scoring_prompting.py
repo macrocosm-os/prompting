@@ -149,17 +149,12 @@ class OrganicScoringPrompting(OrganicScoringBase):
             accumulated_tokens_per_chunk: list[int] = []
             synapse: StreamPromptingSynapse | None = None
             completions[uid] = {"completed": False}
-            # t = 0
             timer_start = time.perf_counter()
             async for chunk in chunks:
                 try:
                     if isinstance(chunk, str):
                         accumulated_chunks.append(chunk)
                         accumulated_chunks_timings.append(time.perf_counter() - timer_start)
-                        # s = time.perf_counter()
-                        # Tokenize for each uid takes ~10ms, but doesn't bring too much value.
-                        # accumulated_tokens_per_chunk.append(len(self._val.llm_pipeline.tokenizer.tokenize(chunk)))
-                        # t += time.perf_counter() - s
                         json_chunk = json.dumps({"uid": uid, "chunk": chunk})
                         await send(
                             {
@@ -173,13 +168,15 @@ class OrganicScoringPrompting(OrganicScoringBase):
                 except Exception as e:
                     bt.logging.error(f"[Organic] Error while streaming chunks: {e}")
                     break
+            # TODO: Do we need to identify the end of each miner's response?
+            # json_chunk = json.dumps({"uid": uid, "chunk": b"", "completed": True})
+            # await send({"type": "http.response.body", "body": json_chunk, "more_body": False})
             await send({"type": "http.response.body", "body": b"", "more_body": False})
             completions[uid]["accumulated_chunks"] = accumulated_chunks
             completions[uid]["accumulated_chunks_timings"] = accumulated_chunks_timings
             completions[uid]["accumulated_tokens_per_chunk"] = accumulated_tokens_per_chunk
             completions[uid]["completed"] = True
             completions[uid]["synapse"] = synapse
-            # bt.logging.info(f"[Organic] TIME TOKENIZER {t:.4f}s")
             # bt.logging.debug(f"[Organic] Streaming {uid}: {''.join(accumulated_chunks)}")
 
         bt.logging.info(f"[Organic] Awaiting miner streams UIDs: {uids}")

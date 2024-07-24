@@ -83,6 +83,12 @@ class BaseValidatorNeuron(BaseNeuron):
 
         self._organic_scoring: Optional[OrganicScoringPrompting] = None
         if self.axon is not None and not self.config.neuron.organic_disabled:
+            dataset = SynthDatasetConversation()
+            if dataset.exception is not None:
+                bt.logging.error(
+                    f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}"
+                )
+                dataset = None
             self._organic_scoring = OrganicScoringPrompting(
                 axon=self.axon,
                 synth_dataset=SynthDatasetConversation(),
