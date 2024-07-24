@@ -91,7 +91,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 dataset = None
             self._organic_scoring = OrganicScoringPrompting(
                 axon=self.axon,
-                synth_dataset=SynthDatasetConversation(),
+                synth_dataset=dataset,
                 trigger_frequency=self.config.neuron.organic_trigger_frequency,
                 trigger_frequency_min=self.config.neuron.organic_trigger_frequency_min,
                 trigger=self.config.neuron.organic_trigger,
