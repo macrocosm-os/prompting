@@ -192,6 +192,7 @@ class WikiDataset(Dataset):
 
         page = _get_page(title=name, **kwargs)
         if page is None:
+            raise ValueError(f"Could not find page {name!r}")
             return None
         # Only return a sections with a minimum number of words
         exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
@@ -202,6 +203,7 @@ class WikiDataset(Dataset):
             selector=selector,
         )
         if not section:
+            raise ValueError(f"No valid Sections found for {name!r}")
             print('#'*50, 'No valid Sections found',)
             return None
 
