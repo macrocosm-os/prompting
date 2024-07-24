@@ -85,14 +85,10 @@ def get_article_sections(title: str) -> Dict:
     # Parse the HTML using BeautifulSoup
     soup = BeautifulSoup(html_content, 'html.parser')
 
-    # Find all the sections and their content
     sections = {}
     for section in soup.find_all('h2'):
-        section_title = section.text
-        section_content_tag = section.find_next('p')
-        if section_content_tag is not None:
-            section_content = section_content_tag.text
-            sections[section_title] = section_content
+        if (p_tag := section.find_next('p')) is not None:
+            sections[section.text] = p_tag.text
 
     return sections
 
