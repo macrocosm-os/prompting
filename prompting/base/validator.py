@@ -66,7 +66,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Init sync with the network. Updates the metagraph.
         self.sync()
 
-        self.axon: bt.axon | None = None
+        self.axon: Optional[bt.axon] = None
         if not self.config.neuron.axon_off:
             self.axon = bt.axon(wallet=self.wallet, config=self.config)
         else:
@@ -83,9 +83,15 @@ class BaseValidatorNeuron(BaseNeuron):
 
         self._organic_scoring: Optional[OrganicScoringPrompting] = None
         if self.axon is not None and not self.config.neuron.organic_disabled:
+            dataset = SynthDatasetConversation()
+            if dataset.exception is not None:
+                bt.logging.error(
+                    f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}"
+                )
+                dataset = None
             self._organic_scoring = OrganicScoringPrompting(
                 axon=self.axon,
-                synth_dataset=SynthDatasetConversation(),
+                synth_dataset=dataset,
                 trigger_frequency=self.config.neuron.organic_trigger_frequency,
                 trigger_frequency_min=self.config.neuron.organic_trigger_frequency_min,
                 trigger=self.config.neuron.organic_trigger,
