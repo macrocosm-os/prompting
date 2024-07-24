@@ -80,7 +80,7 @@ def _wiki_search(name, results) -> List:
 
 
 def process_page(
-    page, exclude_sections: list = None, valid_section: callable = None
+    page, exclude_sections: list = None, valid_section: callable = None, selector: Selector = None
 ) -> Dict:
     """Process a Wikipedia page and return a dictionary of sections with their content.
 
@@ -100,6 +100,9 @@ def process_page(
 
     sections = paragraphs[:-N] if N > 0 else paragraphs
     
+    if selector == "all":
+        return "\n\n".join(sections)
+
     valid_sections = []
     for section in sections:
         if valid_section and not valid_section(section):
@@ -107,7 +110,7 @@ def process_page(
 
         valid_sections.append(section)
 
-    return valid_sections
+    return selector(valid_sections)
 
 
 def most_relevant_links(page, num_links=10, num_summary_words=50, return_scores=False):
@@ -169,7 +172,7 @@ class WikiDataset(Dataset):
         name: str,
         selector: Selector = None,
         include: List = None,
-        exclude: List = None,
+        exclude: List = [],
         **kwargs,
     ) -> Dict:
         """Get a specified Wikipedia page and extract a section based on the selector.
@@ -190,21 +193,18 @@ class WikiDataset(Dataset):
         page = _get_page(title=name, **kwargs)
         if page is None:
             return None
-        if selector == "all":
-            section = page.content
-        else:
-            # Only return a sections with a minimum number of words
-            exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
-            sections = process_page(
-                page,
-                exclude_sections=exclude,
-                valid_section=lambda x: len(x.split()) >= self.min_length_words,
-            )
-            if not sections:
-                print('#'*50, 'No valid Sections found',)
-                return None
+        # Only return a sections with a minimum number of words
+        exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
+        section = process_page(
+            page,
+            exclude_sections=exclude,
+            valid_section=lambda x: len(x.split()) >= self.min_length_words,
+            selector=selector,
+        )
+        if not section:
+            print('#'*50, 'No valid Sections found',)
+            return None
 
-            section = selector(sections)
         section_length = len(section.split())
         context = {
             "title": name,  # title of wiki article
