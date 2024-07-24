@@ -10,11 +10,15 @@ class SynthOrganicTask(OrganicTask):
     name = "synthetic-organic"
 
     reward_definition = [
-        dict(name="relevance", weight=1.0),
+        dict(name="relevance", weight=0.8),
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.2),
     ]
+
     penalty_definition = [
-        dict(name="relevance", weight=1.0),
+        dict(name="relevance", weight=0.5),
     ]
+
+    cleaning_pipeline = []
 
     def __init__(self, context: dict, reference: str):
         self.context = context
