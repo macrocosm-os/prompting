@@ -45,11 +45,13 @@ def _get_page(
         )
         # create sections manually if not found
         if not page.sections:
+            raise ValueError(f"No sections found in the page for.{page}")
             return None # Since headers are no longer in the content of the page, we can't create sections manually
 
         return page
 
     except wiki.DisambiguationError as e:
+        raise ValueError(f"{e.__class__.__name__} loading page {title!r}: {e}")
         bt.logging.debug(f"{e.__class__.__name__} loading page {title!r}: {e}")
         # exc info contains a tuple of (requested_title: str, possible_matches: List[str])
         pages = sys.exc_info()[1].args[1]
@@ -59,6 +61,7 @@ def _get_page(
         return _get_page(title, auto_suggest=auto_suggest, redirect=redirect)
 
     except wiki.PageError as e:
+        raise ValueError(f"{e.__class__.__name__} loading page with page error {title!r}: {e}")
         bt.logging.warning(f"{e.__class__.__name__} loading page {title!r}: {e}")
         if not auto_suggest:
             return _get_page(title, auto_suggest=True, redirect=redirect)
