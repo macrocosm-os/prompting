@@ -117,10 +117,10 @@ def process_page(
         sections = {k: v for k, v in sections.items() if k not in exclude_sections}
     
     if selector == "all":
-        return ("Full Page", "\n\n".join(sections.values()))
+        return ("Full Page", "\n\n".join(sections.values())) , sections.keys()
 
     valid_sections = [(key, value) for key, value in sections.items() if not valid_section or valid_section(sections[key])]
-    return selector(valid_sections)
+    return selector(valid_sections), sections.keys()
 
 
 def most_relevant_links(page, num_links=10, num_summary_words=50, return_scores=False):
@@ -205,7 +205,7 @@ class WikiDataset(Dataset):
             return None
         # Only return a sections with a minimum number of words
         exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
-        section = process_page(
+        section, all_sections= process_page(
             page,
             exclude_sections=exclude,
             valid_section=lambda x: len(x.split()) >= self.min_length_words,
@@ -220,7 +220,7 @@ class WikiDataset(Dataset):
             "topic": section[0],
             "subtopic": section[0],
             "content": section[1],
-            "internal_links": list(filter(lambda x: x not in exclude, page.sections)),
+            "internal_links": list(filter(lambda x: x not in exclude, all_sections)),
             "external_links": most_relevant_links(page, num_links=self.max_links),
             "tags": filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
             "source": "Wikipedia",
