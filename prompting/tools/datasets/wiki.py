@@ -177,8 +177,7 @@ class WikiDataset(Dataset):
         self,
         name: str,
         selector: Selector = None,
-        include: List = None,
-        exclude: List = [],
+        exclude: List = None,
         **kwargs,
     ) -> Dict:
         """Get a specified Wikipedia page and extract a section based on the selector.
