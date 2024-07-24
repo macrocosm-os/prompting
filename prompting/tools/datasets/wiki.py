@@ -20,6 +20,8 @@ import re
 import sys
 import random
 import datetime
+import requests
+from bs4 import BeautifulSoup
 import bittensor as bt
 import wikipedia as wiki
 from typing import Dict, Union, List, Tuple
@@ -43,15 +45,9 @@ def _get_page(
         page = wiki.page(
             title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect
         )
-        # create sections manually if not found
-        if not page.sections:
-            raise ValueError(f"No sections found in the page for.{page}")
-            return None # Since headers are no longer in the content of the page, we can't create sections manually
-
         return page
 
     except wiki.DisambiguationError as e:
-        raise ValueError(f"{e.__class__.__name__} loading page {title!r}: {e}")
         bt.logging.debug(f"{e.__class__.__name__} loading page {title!r}: {e}")
         # exc info contains a tuple of (requested_title: str, possible_matches: List[str])
         pages = sys.exc_info()[1].args[1]
@@ -61,7 +57,6 @@ def _get_page(
         return _get_page(title, auto_suggest=auto_suggest, redirect=redirect)
 
     except wiki.PageError as e:
-        raise ValueError(f"{e.__class__.__name__} loading page with page error {title!r}: {e}")
         bt.logging.warning(f"{e.__class__.__name__} loading page {title!r}: {e}")
         if not auto_suggest:
             return _get_page(title, auto_suggest=True, redirect=redirect)
@@ -81,6 +76,25 @@ def _wiki_search(name, results) -> List:
     """Cached Wikipedia search."""
     return wiki.search(name, results=results)
 
+def get_article_sections(title):
+    # Fetch the HTML content of the Wikipedia article
+    url = f"https://en.wikipedia.org/wiki/{title}"
+    response = requests.get(url)
+    html_content = response.text
+
+    # Parse the HTML using BeautifulSoup
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    # Find all the sections and their content
+    sections = {}
+    for section in soup.find_all('h2'):
+        section_title = section.text
+        section_content_tag = section.find_next('p')
+        if section_content_tag is not None:
+            section_content = section_content_tag.text
+            sections[section_title] = section_content
+
+    return sections
 
 def process_page(
     page, exclude_sections: list = None, valid_section: callable = None, selector: Selector = None
@@ -94,25 +108,18 @@ def process_page(
     Returns:
         dict: dictionary of sections and their content. Note that keys are tuples (header, section_title)
     """
+    title = page.title
 
-    # Split the text into paragraphs
-    paragraphs = page.content.strip().split('\n\n')
+    sections = get_article_sections(title)
     
-    # Determine the number of paragraphs to ignore
-    N = len([item for item in page.sections if item in exclude_sections])
-
-    sections = paragraphs[:-N] if N > 0 else paragraphs
+    # Filter out the section keys that are in the exclude list
+    if exclude_sections:
+        sections = {k: v for k, v in sections.items() if k not in exclude_sections}
     
     if selector == "all":
-        return "\n\n".join(sections)
+        return ("Full Page", "\n\n".join(sections.values()))
 
-    valid_sections = []
-    for section in sections:
-        if valid_section and not valid_section(section):
-            continue
-
-        valid_sections.append(section)
-
+    valid_sections = [(key, value) for key, value in sections.items() if not valid_section or valid_section(sections[key])]
     return selector(valid_sections)
 
 
@@ -195,7 +202,6 @@ class WikiDataset(Dataset):
 
         page = _get_page(title=name, **kwargs)
         if page is None:
-            raise ValueError(f"Could not find page {name!r}")
             return None
         # Only return a sections with a minimum number of words
         exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
@@ -204,18 +210,16 @@ class WikiDataset(Dataset):
             exclude_sections=exclude,
             valid_section=lambda x: len(x.split()) >= self.min_length_words,
             selector=selector,
-        )
+        ) # Returns a tuple of (section_name, content)
         if not section:
-            raise ValueError(f"No valid Sections found for {name!r}")
-            print('#'*50, 'No valid Sections found',)
             return None
 
-        section_length = len(section.split())
+        section_length = len(section[1].split())
         context = {
             "title": name,  # title of wiki article
-            "topic": name,
-            "subtopic": name,
-            "content": section,
+            "topic": section[0],
+            "subtopic": section[0],
+            "content": section[1],
             "internal_links": list(filter(lambda x: x not in exclude, page.sections)),
             "external_links": most_relevant_links(page, num_links=self.max_links),
             "tags": filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
@@ -290,6 +294,20 @@ class WikiDateDataset(Dataset):
                 for date in dates:
                     # Return the first date found
                     return (str(date), sentence.replace(str(date), '<date>').strip())
+
+                            # If no dates are found, search for dates in the form of "Month DD"
+        secondary_date_pattern = r'\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?\b'
+        secondary_date_regex = re.compile(secondary_date_pattern)
+
+        for sentence in sentences:
+            # Find all dates in the sentence
+            dates = secondary_date_regex.findall(sentence)
+            # If dates are found, add them to the result dictionary with the corresponding sentence
+            if dates:
+                for date in dates:
+                    # Return the first date found
+                    return (str(date), sentence.replace(str(date), '<date>').strip())
+
         return None
     
     def _random_date(self) -> str:
