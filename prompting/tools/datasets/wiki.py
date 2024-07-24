@@ -205,21 +205,21 @@ class WikiDataset(Dataset):
             return None
         # Only return a sections with a minimum number of words
         exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
-        section, all_sections= process_page(
+        selected_section, all_sections= process_page(
             page,
             exclude_sections=exclude,
             valid_section=lambda x: len(x.split()) >= self.min_length_words,
             selector=selector,
         ) # Returns a tuple of (section_name, content)
-        if not section:
+        if not selected_section:
             return None
 
-        section_length = len(section[1].split())
+        section_length = len(selected_section[1].split())
         context = {
             "title": name,  # title of wiki article
-            "topic": section[0],
-            "subtopic": section[0],
-            "content": section[1],
+            "topic": selected_section[0],
+            "subtopic": selected_section[0],
+            "content": selected_section[1],
             "internal_links": list(filter(lambda x: x not in exclude, all_sections)),
             "external_links": most_relevant_links(page, num_links=self.max_links),
             "tags": filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
