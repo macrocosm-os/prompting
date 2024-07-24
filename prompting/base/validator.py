@@ -110,38 +110,9 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
         self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor).start()
 
-    async def _run_loop(self):
-        while True:
-            bt.logging.info(f"step({self.step}) block({self.block})")
-
-            forward_timeout = self.config.neuron.forward_max_time
-            try:
-                async with self.lock:
-                    await asyncio.wait_for(self.forward(), timeout=forward_timeout)
-            except torch.cuda.OutOfMemoryError as e:
-                bt.logging.error(f"Out of memory error: {e}")
-                continue
-            except MaxRetryError as e:
-                bt.logging.error(f"MaxRetryError: {e}")
-                continue
-            except asyncio.TimeoutError as e:
-                bt.logging.error(
-                    f"Forward timeout: Task execution exceeded {forward_timeout} seconds and was cancelled.: {e}"
-                )
-                continue
-
-            # Check if we should exit.
-            if self.should_exit:
-                break
-
-            # Sync metagraph and potentially set weights.
-            self.sync()
-
-            self.step += 1
-
     def run(self):
         """
-        Initiates and manages the main lop for the miner on the Bittensor network. The main loop handles graceful shutdown on keyboard interrupts and logs unforeseen errors.
+        Initiates and manages the main loop for the miner on the Bittensor network. The main loop handles graceful shutdown on keyboard interrupts and logs unforeseen errors.
 
         This function performs the following primary tasks:
         1. Check for registration on the Bittensor network.
@@ -172,12 +143,45 @@ class BaseValidatorNeuron(BaseNeuron):
 
         bt.logging.info(f"Validator starting at block: {self.block}")
 
+        # This loop maintains the validator's operations until intentionally stopped.
         try:
-            self.loop.run_until_complete(self._run_loop())
+            while True:
+                bt.logging.info(f"step({self.step}) block({self.block})")
+
+                forward_timeout = self.config.neuron.forward_max_time
+                try:
+                    task = self.loop.create_task(self.forward())
+                    self.loop.run_until_complete(
+                        asyncio.wait_for(task, timeout=forward_timeout)
+                    )
+                except torch.cuda.OutOfMemoryError as e:
+                    bt.logging.error(f"Out of memory error: {e}")
+                    continue
+                except MaxRetryError as e:
+                    bt.logging.error(f"MaxRetryError: {e}")
+                    continue
+                except asyncio.TimeoutError as e:
+                    bt.logging.error(
+                        f"Forward timeout: Task execution exceeded {forward_timeout} seconds and was cancelled.: {e}"
+                    )
+                    continue
+
+                # Check if we should exit.
+                if self.should_exit:
+                    break
+
+                # Sync metagraph and potentially set weights.
+                self.sync()
+
+                self.step += 1
+
+        # If someone intentionally stops the validator, it'll safely terminate operations.
         except KeyboardInterrupt:
             self.axon.stop()
             bt.logging.success("Validator killed by keyboard interrupt.")
             sys.exit()
+
+        # In case of unforeseen errors, the validator will log the error and quit
         except Exception as err:
             bt.logging.error("Error during validation", str(err))
             bt.logging.debug(print_exception(type(err), err, err.__traceback__))
@@ -321,7 +325,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
-    def update_scores(self, rewards: torch.FloatTensor, uids: list[int]):
+    def update_scores(self, rewards: torch.FloatTensor, uids: list[int], organic_scale: torch.FloatTensor = None):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
 
         # Check if rewards contains NaN values.
@@ -335,12 +339,14 @@ class BaseValidatorNeuron(BaseNeuron):
         step_rewards = self.scores.scatter(
             0, torch.tensor(uids).to(self.device), rewards.to(self.device)
         ).to(self.device)
+
         bt.logging.debug(f"Scattered rewards: {rewards}")
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
-        # TODO: if miner's UID organics are empty then apply additional penalty:
-        # scores = scores * self.config.organic_empty_penalty
+        # if organic_scale is not None:
+        #     # self.scores = self.scores * organic_scale # config 
+        #     pass
         alpha = self.config.neuron.moving_average_alpha
         self.scores = alpha * step_rewards + (1 - alpha) * self.scores
         self.scores = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)
