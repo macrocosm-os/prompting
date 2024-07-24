@@ -324,7 +324,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
-    def update_scores(self, rewards: torch.FloatTensor, uids: list[int], organic_scale: torch.FloatTensor = None):
+    def update_scores(self, rewards: torch.FloatTensor, uids: list[int]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
 
         # Check if rewards contains NaN values.
@@ -343,9 +343,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
-        # if organic_scale is not None:
-        #     # self.scores = self.scores * organic_scale # config 
-        #     pass
         alpha = self.config.neuron.moving_average_alpha
         self.scores = alpha * step_rewards + (1 - alpha) * self.scores
         self.scores = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)
