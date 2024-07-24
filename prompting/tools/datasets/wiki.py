@@ -72,11 +72,11 @@ def _get_random_titles(pages=10, seed=42) -> List:
 
 
 @lru_cache(maxsize=1000)
-def _wiki_search(name, results) -> List:
+def _wiki_search(name: str, results: wiki.WikipediaPage) -> List:
     """Cached Wikipedia search."""
     return wiki.search(name, results=results)
 
-def get_article_sections(title):
+def get_article_sections(title: str) -> Dict:
     # Fetch the HTML content of the Wikipedia article
     url = f"https://en.wikipedia.org/wiki/{title}"
     response = requests.get(url)
@@ -123,7 +123,7 @@ def process_page(
     return selector(valid_sections), sections.keys()
 
 
-def most_relevant_links(page, num_links=10, num_summary_words=50, return_scores=False):
+def most_relevant_links(page: wiki.WikipediaPage, num_links=10, num_summary_words=50, return_scores=False) -> List:
     """Return the most relevant links to a Wikipedia page based on the intersection over union (IOU) of the link and the page summary."""
     link_scores = {}
     summary_words = set(page.summary.split()[:num_summary_words])
