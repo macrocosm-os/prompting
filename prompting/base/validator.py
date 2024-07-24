@@ -15,18 +15,17 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
-import copy
-from typing import Optional
-import torch
-import asyncio
 import argparse
+import asyncio
+import copy
+import sys
 import threading
 from traceback import print_exception
+from typing import Optional
 
 import bittensor as bt
-from organic_scoring.synth_dataset import SynthDatasetLmSysChat
-
+import torch
+from organic_scoring.synth_dataset import SynthDatasetConversation
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
@@ -86,7 +85,7 @@ class BaseValidatorNeuron(BaseNeuron):
         if self.axon is not None and not self.config.neuron.organic_disabled:
             self._organic_scoring = OrganicScoringPrompting(
                 axon=self.axon,
-                synth_dataset=SynthDatasetLmSysChat(),
+                synth_dataset=SynthDatasetConversation(),
                 trigger_frequency=self.config.neuron.organic_trigger_frequency,
                 trigger_frequency_min=self.config.neuron.organic_trigger_frequency_min,
                 trigger=self.config.neuron.organic_trigger,

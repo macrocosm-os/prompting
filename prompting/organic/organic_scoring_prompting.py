@@ -1,5 +1,3 @@
-import os
-import csv
 import asyncio
 import json
 import time
@@ -76,29 +74,6 @@ class OrganicScoringPrompting(OrganicScoringBase):
                 SynthOrganicTask.name: SynthOrganicTask,
             },
         )
-        # Debugging CSV.
-        self._synth_file = "synth.csv"
-        self._organic_file = "organic.csv"
-        self._fieldnames = [
-            "turn",
-            "total_rewards",
-            "chosen_uid",
-            "message",
-            "reference",
-            "chosen_response",
-        ]
-        file_exists = os.path.isfile(self._organic_file)
-
-        with open(self._organic_file, mode="a", newline="") as file:
-            writer = csv.DictWriter(file, self._fieldnames)
-            if not file_exists:
-                writer.writeheader()
-
-        file_exists = os.path.isfile(self._synth_file)
-        with open(self._synth_file, mode="a", newline="") as file:
-            writer = csv.DictWriter(file, self._fieldnames)
-            if not file_exists:
-                writer.writeheader()
 
     @override
     async def _priority_fn(self, synapse: StreamPromptingSynapse) -> float:
@@ -360,26 +335,6 @@ class OrganicScoringPrompting(OrganicScoringBase):
         logs["organic_reference_chars"] = len(reference)
         logs.update(rewards["reward"].__state_dict__(full=self._val.config.neuron.log_full))
         log_event(self._val, logs)
-
-        def write(file: str):
-            with open(file, mode="a", newline="") as file:
-                writer = csv.DictWriter(file, self._fieldnames)
-                reward_values: list[float] = rewards["reward"].rewards.tolist()
-                writer.writerow(
-                    {
-                        "turn": logs["turn"],
-                        "total_rewards": [reward for reward in reward_values],
-                        "chosen_uid": next(iter(responses.keys())),
-                        "message": sample["messages"][-1].replace("\n", "--"),
-                        "reference": reference.replace("\n", "--"),
-                        "chosen_response": next(iter(responses.values())).synapse.completion.replace("\n", "--"),
-                    }
-                )
-
-        if sample.get("organic", False):
-            write(self._organic_file)
-        else:
-            write(self._synth_file)
 
         return logs
 
