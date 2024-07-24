@@ -16,7 +16,7 @@ DATASETS = [
 
 
 MOCK_CONTEXT = MockDataset().next()
-WIKI_CONTEXT =   WikiDataset().next(name="Emilio Alvarez (bishop)", method="get", selector = "all")
+WIKI_CONTEXT = None
 CODING_CONTEXT = HFCodingDataset(buffer_size=1, seed=42).next()
 MATH_CONTEXT = MathDataset(seed=123).next()
 DATEQA_CONTEXT = WikiDateDataset(seed=123).next()
