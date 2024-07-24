@@ -73,7 +73,7 @@ class Dataset(ABC):
             tries += 1
             if tries >= self.max_tries:
                 raise MaxRetryError(
-                    f"Could not find any samples which meet {self.__class__.__name__} requirements after {tries} tries."
+                    f"{info}, {self.get(selector=selector, **kwargs)}"
                 )
 
         info["source"] = self.__class__.__name__
