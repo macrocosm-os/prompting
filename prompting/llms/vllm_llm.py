@@ -54,6 +54,8 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
 
 
 class vLLMPipeline(BasePipeline):
+    _LOCK = threading.Lock()
+
     def __init__(
         self,
         model_id: str,
@@ -80,7 +82,8 @@ class vLLMPipeline(BasePipeline):
         sampling_params = SamplingParams(
             temperature=temperature, top_p=top_p, max_tokens=max_tokens
         )
-        output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
+        with self._LOCK:
+            output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
         response = output[0].outputs[0].text
         return response
 

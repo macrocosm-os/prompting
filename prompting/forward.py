@@ -199,10 +199,11 @@ async def run_step(
     handle_stream_responses_task = asyncio.create_task(handle_response(stream_results_dict, tokenizer))
 
     if not agent.task.static_reference:
-        reference_generation_task = generate_reference(agent)
-        _, stream_results = await asyncio.gather(
-            reference_generation_task, handle_stream_responses_task
-        )
+        async with self.lock:
+            reference_generation_task = generate_reference(agent)
+            _, stream_results = await asyncio.gather(
+                reference_generation_task, handle_stream_responses_task
+            )
     else:
         stream_results = await handle_stream_responses_task
 
