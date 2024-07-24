@@ -11,9 +11,14 @@ class OrganicTask(Task):
     # Use challenge as a query.
     challenge_type = "query"
 
-    reward_definition = [dict(name="relevance", weight=1.0)]
+    reward_definition = [
+        dict(name="relevance", weight=0.8),
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.2),
+    ]
 
-    penalty_definition = [dict(name="relevance", weight=1.0)]
+    penalty_definition = [
+        dict(name="relevance", weight=0.5),
+    ]
 
     cleaning_pipeline = []
 
