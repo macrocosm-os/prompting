@@ -24,7 +24,7 @@ import requests
 from bs4 import BeautifulSoup
 import bittensor as bt
 import wikipedia as wiki
-from typing import Dict, Union, List, Tuple
+from typing import Dict, Optional, List, Tuple
 from queue import Queue, Full, Empty
 from functools import lru_cache
 from .base import Dataset
@@ -93,7 +93,7 @@ def get_article_sections(title: str) -> Dict:
     return sections
 
 def process_page(
-    page, exclude_sections: list = None, valid_section: callable = None, selector: Selector = None
+    page, exclude_sections: Optional[list] = None, valid_section: callable = None, selector: Selector = None
 ) -> Dict:
     """Process a Wikipedia page and return a dictionary of sections with their content.
 
