@@ -17,6 +17,7 @@
 
 import copy
 import sys
+import threading
 
 import bittensor as bt
 
