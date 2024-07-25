@@ -290,7 +290,7 @@ class WikiDateDataset(Dataset):
                     # Return the first date found
                     return (str(date), sentence.replace(str(date), '<date>').strip())
 
-                            # If no dates are found, search for dates in the form of "Month DD"
+        # If no dates are found, search for dates in the form of "Month DD"
         secondary_date_pattern = r'\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?\b'
         secondary_date_regex = re.compile(secondary_date_pattern)
 
