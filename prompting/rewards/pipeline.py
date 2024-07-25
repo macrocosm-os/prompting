@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Optional
 from prompting.tasks import TASKS
 from prompting.rewards import (
     BaseRewardModel,
@@ -24,7 +24,7 @@ REWARD_MODELS = {
 
 
 class RewardPipeline:
-    def __init__(self, selected_tasks: list[str], device, available_tasks: dict[str, Type[Task]] | None = None):
+    def __init__(self, selected_tasks: list[str], device, available_tasks: Optional[dict[str, Type[Task]]] = None):
         self.available_tasks = available_tasks
         if self.available_tasks is None:
             self.available_tasks = TASKS
