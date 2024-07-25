@@ -23,6 +23,7 @@ import traceback
 import numpy as np
 import bittensor as bt
 from typing import List, Dict, Awaitable
+
 from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.conversation import create_task
@@ -33,16 +34,9 @@ from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from transformers import PreTrainedTokenizerFast as Tokenizer
-from prompting.utils.uids import get_random_uids
-from dataclasses import dataclass
 
-SINGLE_TURN_TASKS = ['sentiment', 'translation']
+SINGLE_TURN_TASKS = ('sentiment', 'translation')
 
-@async_log
-async def generate_reference(agent):
-    loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
-    return result
 
 @async_log
 async def execute_dendrite_call(dendrite_call):
@@ -59,7 +53,8 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
     accumulated_tokens_per_chunk = []
     start_time = time.time()
     
-    try:                
+    try:
+        chunk = None
         async for chunk in async_iterator:  # most important loop, as this is where we acquire the final synapse.
             if isinstance(chunk, str):
                 accumulated_chunks.append(chunk)
@@ -76,7 +71,7 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
             raise ValueError(
                 f"Something went wrong with miner uid {uid}, Synapse is not StreamPromptingSynapse."
             )
-    except Exception as e:        
+    except Exception as e:
         exception = e
         traceback_details = traceback.format_exc()
         bt.logging.error(
@@ -204,10 +199,11 @@ async def run_step(
     handle_stream_responses_task = asyncio.create_task(handle_response(stream_results_dict, tokenizer))
 
     if not agent.task.static_reference:
-        reference_generation_task = generate_reference(agent)
-        _, stream_results = await asyncio.gather(
-            reference_generation_task, handle_stream_responses_task
-        )
+        async with self.lock:
+            reference_generation_task = generate_reference(agent)
+            _, stream_results = await asyncio.gather(
+                reference_generation_task, handle_stream_responses_task
+            )
     else:
         stream_results = await handle_stream_responses_task
 
@@ -244,7 +240,7 @@ async def run_step(
         "best": best_response,
         "block": self.block,
         "step": self.step,
-        "step_time": time.time() - start_time,        
+        "step_time": time.time() - start_time,
         **agent.__state_dict__(full=self.config.neuron.log_full),
         **reward_result.__state_dict__(full=self.config.neuron.log_full),
         **response_event.__state_dict__(),
@@ -292,7 +288,7 @@ async def forward(self):
 
     turn = 0
     exclude_uids = []
-    roles = ['user']
+    roles = ["user"]
     messages = [agent.challenge]
     while True:
         # Note: The try catch is a safe clause to ensure that the forward loop continues even if an error occurs in run_step.
@@ -314,13 +310,13 @@ async def forward(self):
             event["turn"] = turn
             log_event(self, event)
             task.complete = True
-            
+
             accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
             roles.append("assistant")
             messages.append(accepted_answer)
 
-            # 50% chance of single turn conversation, 25% of two turns, 12.5% chance of 3 turns, 6.25% chance of 4 turns, 3.63% chance of 5...
-            if random.random()<0.5 or turn>=1:
+            # 50% chance of single turn conversation, 25% of two turns.
+            if random.random() < 0.5 or turn >= 1:
                 break
 
             if task.name in SINGLE_TURN_TASKS:
@@ -341,13 +337,16 @@ async def forward(self):
         except BaseException as e:
             unexpected_errors = serialize_exception_to_string(e)
             bt.logging.error(
-                f"Error in run_step: Skipping to next round. \n {unexpected_errors}"
+                f"Error in run_step: Skipping to next round.\n"
+                f"Task: {task_name}\nMessages: {messages}\nRoles: {roles}\nTurn: {turn}.\n"
+                f"{unexpected_errors}\n"
             )
 
             event = {"unexpected_errors": unexpected_errors}
 
             log_event(self, event)
-            continue
 
+            await asyncio.sleep(1)
+            continue
     del agent
     del task
