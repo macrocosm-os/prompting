@@ -122,7 +122,6 @@ numpy = "1.26.4"
 bittensor = "^7.3.0"
 pydantic = "^2.8.2"
 rouge = "^1.0.1"
-vllm = "^0.5.1"
 torch = "2.3.0"
 wandb = "^0.17.4"
 starlette = "^0.37.2"
@@ -143,6 +142,11 @@ flake8 = "^7.1.0"
 black = "^24.4.2"
 pytest = "^8.3.1"
 
+# optional dependencies for some services to run
+vllm = { version = "^0.5.1", optional = true }
+
+[tool.poetry.extras]
+validator = ["vllm"]
 
 [build-system]
 requires = ["poetry-core"]

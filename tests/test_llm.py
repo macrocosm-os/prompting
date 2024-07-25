@@ -14,8 +14,6 @@ from unittest.mock import patch, MagicMock
 from .fixtures.llm import llms, pipelines
 from .fixtures.cleaner import DEFAULT_CLEANER_PIPELINE
 
-from vllm import LLM
-
 
 @pytest.mark.parametrize(
     "input, expected_result, cleaner",

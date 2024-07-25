@@ -19,7 +19,6 @@ import time
 import torch
 import bittensor as bt
 from typing import List, Dict
-from vllm import LLM, SamplingParams
 from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.llms import BasePipeline, BaseLLM
 from prompting.mock import MockPipeline
@@ -28,6 +27,14 @@ from prompting.llms.utils import calculate_gpu_requirements
 
 def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory_in_gb: int, mock=False):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
+
+    try:
+        from vllm import LLM, SamplingParams
+    except ImportError:
+        raise ImportError(
+            "Could not import vllm library.  Please install via poetry: "
+            "poetry install --extras \"vllm\" "
+        )
     if mock or model_id == "mock":
         return MockPipeline(model_id)
 

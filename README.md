@@ -42,9 +42,9 @@ git clone https://github.com/opentensor/prompting.git
 cd prompting
 bash install.sh
 ```
-If you are running a miner, you will also need to uninstall uvloop.
+If you are running a validator, you will need to install the extras via poetry.  Linux is required to run a validator.
 ```bash
-pip uninstall uvloop -y
+poetry install --extras validator
 ```
 
 </div>
