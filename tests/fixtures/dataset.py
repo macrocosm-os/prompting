@@ -23,7 +23,6 @@ CODING_CONTEXT = HFCodingDataset(buffer_size=1, seed=42).next()
 MATH_CONTEXT = MathDataset(seed=123).next()
 DATEQA_CONTEXT = WikiDateDataset(seed=123).next()
 
-print(WIKI_CONTEXT)
 
 CONTEXTS = {
     MockDataset: MOCK_CONTEXT,
