@@ -1,8 +1,9 @@
 import torch
 import random
 import bittensor as bt
-from typing import List
+from typing import List, Union
 from prompting.utils.consts import QUERY_UNIQUE_COLDKEYS, QUERY_UNIQUE_IPS
+from prompting.base.neuron import BaseNeuron
 
 
 def check_uid_availability(
@@ -44,7 +45,7 @@ def check_uid_availability(
     return True
 
 
-def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor:
+def get_random_uids(self: BaseNeuron, k: int, exclude: List[int] = None) -> torch.LongTensor:
     """Returns k available random uids from the metagraph.
     Args:
         k (int): Number of uids to return.
@@ -90,3 +91,34 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
         return torch.tensor(random.sample(candidate_uids, k))
     else:
         raise ValueError(f"No eligible uids were found. Cannot return {k} uids")
+
+
+def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> torch.LongTensor:
+    metagraph = self.metagraph
+    miners_uids = list(map(int, filter(lambda uid: check_uid_availability(metagraph, uid, vpermit_tao_limit),
+        metagraph.uids)))
+    
+    # Builds a dictionary of uids and their corresponding incentives.
+    all_miners_incentives = {
+        "miners_uids": miners_uids,
+        "incentives": list(map(lambda uid: metagraph.I[uid], miners_uids))
+    }
+    
+    # Zip the uids and their corresponding incentives into a list of tuples.
+    uid_incentive_pairs = list(zip(all_miners_incentives["miners_uids"], all_miners_incentives["incentives"]))
+
+    # Sort the list of tuples by the incentive value in descending order.
+    uid_incentive_pairs_sorted = sorted(uid_incentive_pairs, key=lambda x: x[1], reverse=True)
+
+    # Extract the top uids.
+    top_k_uids = [uid for uid, incentive in uid_incentive_pairs_sorted[:k]]
+    
+    return torch.tensor(top_k_uids)
+
+
+def get_uids(self: BaseNeuron, sampling_mode: str, k: int, exclude: List[int] = []) -> torch.LongTensor:
+    if sampling_mode == "random":
+        return get_random_uids(self, k=k, exclude=exclude or [])
+    if sampling_mode == "top_incentive":
+        vpermit_tao_limit = self.config.neuron.vpermit_tao_limit
+        return get_top_incentive_uids(self, k=k, vpermit_tao_limit=vpermit_tao_limit)

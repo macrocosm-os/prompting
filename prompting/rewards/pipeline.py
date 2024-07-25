@@ -1,5 +1,4 @@
-from typing import List
-
+from typing import Type, Optional
 from prompting.tasks import TASKS
 from prompting.rewards import (
     BaseRewardModel,
@@ -11,6 +10,7 @@ from prompting.rewards import (
     OrdinalRewardModel,
     StreamingRewardModel
 )
+from prompting.tasks.task import Task
 
 REWARD_MODELS = {
     "rouge": RougeRewardModel,
@@ -24,7 +24,10 @@ REWARD_MODELS = {
 
 
 class RewardPipeline:
-    def __init__(self, selected_tasks: List[str], device):
+    def __init__(self, selected_tasks: list[str], device, available_tasks: Optional[dict[str, Type[Task]]] = None):
+        self.available_tasks = available_tasks
+        if self.available_tasks is None:
+            self.available_tasks = TASKS
         self.selected_tasks = selected_tasks
         self.device = device
         self.validate_tasks()
@@ -41,9 +44,9 @@ class RewardPipeline:
 
     def validate_tasks(self):
         for task in self.selected_tasks:
-            if task not in TASKS:
+            if task not in self.available_tasks:
                 raise ValueError(
-                    f"Task {task} not supported. Please choose from {TASKS.keys()}"
+                    f"Task {task} not supported. Please choose from {self.available_tasks.keys()}"
                 )
             # Check that the reward_definition and penalty_definition are lists of dictionaries whose weights sum to one
             self._check_weights(task, "reward_definition", expected_weight=1)
@@ -52,7 +55,7 @@ class RewardPipeline:
     def _check_weights(self, task, definition, expected_weight):
         total_weight = 0
 
-        model_infos = getattr(TASKS[task], definition)
+        model_infos = getattr(self.available_tasks[task], definition)
 
         for model_info in model_infos:
             if not isinstance(model_info, dict):
@@ -90,9 +93,9 @@ class RewardPipeline:
         active_reward_models = []
 
         for task in self.selected_tasks:
-            active_reward_models += TASKS[task].reward_definition
-            active_reward_models += TASKS[task].penalty_definition
-            active_reward_models += TASKS[task].global_penalty_definition
+            active_reward_models += self.available_tasks[task].reward_definition
+            active_reward_models += self.available_tasks[task].penalty_definition
+            active_reward_models += self.available_tasks[task].global_penalty_definition
 
         # Instantiate only the required reward models
         reward_models = {}
