@@ -43,7 +43,7 @@ class SummarizationTask(Task):
         self.context = context
 
         # Query is just the article title and section name
-        self.query = context.title + ", " + context.topic
+        self.query = context.title
 
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
             context=context.content

@@ -146,12 +146,12 @@ class BaseValidatorNeuron(BaseNeuron):
                 f"Running validator on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
             )
 
-        bt.logging.info(f"Validator starting at block: {self.block}")
+        bt.logging.info(f"Validator starting at block: {self.latest_block}")
 
         # This loop maintains the validator's operations until intentionally stopped.
         try:
             while True:
-                bt.logging.info(f"step({self.step}) block({self.block})")
+                bt.logging.info(f"step({self.step}) block({self.latest_block})")
 
                 forward_timeout = self.config.neuron.forward_max_time
                 try:
