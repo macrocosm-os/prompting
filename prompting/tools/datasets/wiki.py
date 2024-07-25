@@ -301,7 +301,7 @@ class WikiDateDataset(Dataset):
             if dates:
                 for date in dates:
                     # Return the first date found
-                    return (str(date), sentence.replace(str(date), '<date>').strip())
+                    return (str(date), sentence.replace(str(date), "<date>").strip())
 
         return None
     
