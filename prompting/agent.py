@@ -18,10 +18,11 @@ import textwrap
 import time
 import bittensor as bt
 from dataclasses import asdict
-from prompting.tasks import Task
-from prompting.llms import HuggingFaceLLM, vLLM_LLM
-from prompting.cleaners.cleaner import CleanerPipeline
+from typing import Optional
 
+from prompting.tasks import Task
+from prompting.llms import vLLM_LLM
+from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.persona import Persona, create_persona
 
 from transformers import Pipeline
@@ -44,7 +45,7 @@ class HumanAgent(vLLM_LLM):
         """This is a roleplaying game where you are impersonating {mood} human user with a specific persona. As a human, you are using AI assistant to {desc} related to {topic} ({subtopic}) in a {tone} tone. You don't need to greet the assistant or be polite, unless this is part of your persona. The spelling and grammar of your messages should also reflect your persona.
 
         Your singular focus is to use the assistant to {goal}: {query}
-    """
+        """
     )
 
     def __init__(
@@ -54,10 +55,8 @@ class HumanAgent(vLLM_LLM):
         system_template: str = None,
         persona: Persona = None,
         begin_conversation=True,
+        system_prompt: Optional[str] = None,
     ):
-        if persona is None:
-            persona = create_persona()
-
         self.persona = persona
         self.task = task
         self.llm_pipeline = llm_pipeline
@@ -65,11 +64,15 @@ class HumanAgent(vLLM_LLM):
         if system_template is not None:
             self.system_prompt_template = system_template
 
-        self.system_prompt = self.system_prompt_template.format(
-            mood=self.persona.mood,
-            tone=self.persona.tone,
-            **self.task.__state_dict__(),  # Adds desc, subject, topic
-        )
+        self.system_prompt = system_prompt
+        if self.system_prompt is None:
+            if self.persona is None:
+                self.persona = create_persona()
+            self.system_prompt = self.system_prompt_template.format(
+                mood=self.persona.mood,
+                tone=self.persona.tone,
+                **self.task.__state_dict__(),  # Adds desc, subject, topic
+            )
 
         super().__init__(
             llm_pipeline=llm_pipeline,

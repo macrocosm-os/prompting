@@ -404,6 +404,106 @@ def add_validator_args(cls, parser):
         default=120,
     )
 
+    parser.add_argument(
+        "--neuron.organic_sample_size",
+        type=int,
+        help="The number of miners to organic query in a single step.",
+        default=5,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_sampling_mode",
+        type=str,
+        help="The mode for sampling miners using organic queries. Options include 'random' for random selection, "
+            "'top_incentive' for selecting based on highest incentives.",
+        default="random",
+    )
+
+    parser.add_argument(
+        "--neuron.organic_disabled",
+        action="store_true",
+        help="Set this flag to disable organic scoring.",
+        default=False,
+    )
+
+    # TODO: Set organic weight setting enabled by default after Aug 1, 2024.
+    parser.add_argument(
+        "--neuron.organic_set_weights_enabled",
+        action="store_true",
+        help="Set this flag to enable organic scoring weight setting.",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_synth_reward_scale",
+        type=float,
+        help="Scale factor for synthetic organic rewards.",
+        default=0.1,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_reuse_response_disabled",
+        action="store_true",
+        help="If set, miner responses will be re-generated during reward generation. "
+             "The default behavior is to reuse responses.",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_timeout",
+        type=int,
+        help="Organic query timeout for each call in seconds.",
+        default=30,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_reference_max_tokens",
+        type=int,
+        help="Organic query timeout for each call in seconds.",
+        default=1024,
+    )
+
+    # TODO: Increase sampling rate after after Aug 1, 2024.
+    parser.add_argument(
+        "--neuron.organic_trigger_frequency",
+        type=float,
+        help="Organic query sampling frequency (seconds or steps value).",
+        default=120.0,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_trigger_frequency_min",
+        type=float,
+        help="Minimum organic query sampling frequency (seconds or steps value).",
+        default=5.0,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_scaling_factor",
+        type=float,
+        help=(
+            "The scaling factor to adjust the trigger frequency based on the size of the organic queue. "
+            "A higher value means the trigger frequency adjusts more slowly to the increase of organic queue size."
+        ),
+        default=1.0,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_trigger",
+        type=str,
+        help="Organic query validation trigger mode (seconds or steps).",
+        default="seconds",
+    )
+
+    parser.add_argument(
+        "--neuron.organic_whitelist_hotkey",
+        type=str,
+        help="Allow request from specific hotkey. Defaults to OTF hotkey.",
+        # OTF hotkey.
+        default="5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+    )
+
+
 
 def config(cls):
     """

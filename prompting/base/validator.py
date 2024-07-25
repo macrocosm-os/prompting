@@ -15,19 +15,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import sys
-import copy
-import torch
-import asyncio
 import argparse
+import asyncio
+import copy
+import sys
 import threading
-import bittensor as bt
-
-from typing import List
 from traceback import print_exception
+from typing import Optional
+
+import bittensor as bt
+import torch
+from organic_scoring.synth_dataset import SynthDatasetConversation
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
+from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
 
@@ -64,9 +66,9 @@ class BaseValidatorNeuron(BaseNeuron):
         # Init sync with the network. Updates the metagraph.
         self.sync()
 
-        # Serve axon to enable external connections.
+        self.axon: Optional[bt.axon] = None
         if not self.config.neuron.axon_off:
-            self.serve_axon()
+            self.axon = bt.axon(wallet=self.wallet, config=self.config)
         else:
             bt.logging.warning("axon off, not serving ip to chain.")
 
@@ -79,23 +81,39 @@ class BaseValidatorNeuron(BaseNeuron):
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
 
-    def serve_axon(self):
-        """Serve axon to enable external connections."""
-
-        bt.logging.info("serving ip to chain...")
-        try:
-            self.axon = bt.axon(wallet=self.wallet, config=self.config)
-
-            try:
-                self.subtensor.serve_axon(
-                    netuid=self.config.netuid,
-                    axon=self.axon,
+        self._organic_scoring: Optional[OrganicScoringPrompting] = None
+        if self.axon is not None and not self.config.neuron.organic_disabled:
+            dataset = SynthDatasetConversation()
+            if dataset.exception is not None:
+                bt.logging.error(
+                    f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}"
                 )
-            except Exception as e:
-                bt.logging.error(f"Failed to serve Axon with exception: {e}")
+                dataset = None
+            self._organic_scoring = OrganicScoringPrompting(
+                axon=self.axon,
+                synth_dataset=dataset,
+                trigger_frequency=self.config.neuron.organic_trigger_frequency,
+                trigger_frequency_min=self.config.neuron.organic_trigger_frequency_min,
+                trigger=self.config.neuron.organic_trigger,
+                trigger_scaling_factor=self.config.neuron.organic_scaling_factor,
+                validator=self,
+            )
+        else:
+            bt.logging.warning(
+                "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
+            )
+        
+        if self.axon is not None:
+            self._serve_axon()
 
-        except Exception as e:
-            bt.logging.error(f"Failed to create Axon initialize with exception: {e}")
+        if self._organic_scoring is not None:
+            self.loop.create_task(self._organic_scoring.start_loop())
+
+    def _serve_axon(self):
+        """Serve axon to enable external connections"""
+        validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+        bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
+        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor).start()
 
     def run(self):
         """
@@ -116,7 +134,6 @@ class BaseValidatorNeuron(BaseNeuron):
             KeyboardInterrupt: If the miner is stopped by a manual interruption.
             Exception: For unforeseen errors during the miner's operation, which are logged for diagnosis.
         """
-
         # Check that validator is registered on the network.
         self.sync()
 
@@ -313,7 +330,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
-    def update_scores(self, rewards: torch.FloatTensor, uids: List[int]):
+    def update_scores(self, rewards: torch.FloatTensor, uids: list[int]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
 
         # Check if rewards contains NaN values.
@@ -327,6 +344,7 @@ class BaseValidatorNeuron(BaseNeuron):
         step_rewards = self.scores.scatter(
             0, torch.tensor(uids).to(self.device), rewards.to(self.device)
         ).to(self.device)
+
         bt.logging.debug(f"Scattered rewards: {rewards}")
 
         # Update scores with rewards produced by this step.
