@@ -40,7 +40,8 @@ async def mock_dendrite_call(delay=1, **kwargs):
     "generate_reference_time, dendrite_time, expected_forward_time",
     [(0.5, 0.5, 0.5), (0.5, 0.4, 0.5), (0.4, 0.5, 0.5)],
 )
-def test_generate_reference_parallel_to_dendrite(
+@pytest.mark.asyncio
+async def test_generate_reference_parallel_to_dendrite(
     generate_reference_time, dendrite_time, expected_forward_time
 ):
     task.generate_reference = partial(generate_reference, delay=generate_reference_time)
@@ -48,7 +49,7 @@ def test_generate_reference_parallel_to_dendrite(
 
     mock_neuron.dendrite = partial(mock_dendrite_call, delay=dendrite_time)
 
-    event = asyncio.run(run_step(self=mock_neuron, agent=mock_agent, roles=[], messages=[], k=4, timeout=0.1))
+    event = await run_step(self=mock_neuron, agent=mock_agent, roles=[], messages=[], k=4, timeout=0.1)
 
     step_time = event["step_time"]
     reward_pipeline_time = sum(
