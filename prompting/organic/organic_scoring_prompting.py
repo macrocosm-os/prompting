@@ -283,7 +283,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         agent = HumanAgent(
             task=task,
             llm_pipeline=self._val.llm_pipeline,
-            begin_conversation=True,
+            begin_conversation=False,
             system_prompt=make_system_prompt(),
         )
         reward_result = RewardResult(
