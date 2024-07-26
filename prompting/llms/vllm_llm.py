@@ -29,11 +29,11 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
 
     try:
-        from vllm import LLM, SamplingParams
+        from vllm import LLM
     except ImportError:
         raise ImportError(
             "Could not import vllm library.  Please install via poetry: "
-            "poetry install --extras \"vllm\" "
+            "poetry install --extras \"validator\" "
         )
     if mock or model_id == "mock":
         return MockPipeline(model_id)
@@ -77,6 +77,14 @@ class vLLMPipeline(BasePipeline):
         self.tokenizer = self.llm.llm_engine.tokenizer.tokenizer
 
     def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:
+        try:
+            from vllm import SamplingParams
+        except ImportError:
+            raise ImportError(
+                "Could not import vllm library.  Please install via poetry: "
+                "poetry install --extras \"validator\" "
+            )
+    
         if self.mock:
             return self.llm(composed_prompt, **model_kwargs)
 
