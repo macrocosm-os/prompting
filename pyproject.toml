@@ -125,7 +125,6 @@ rouge = "^1.0.1"
 torch = "2.3.0"
 wandb = "^0.17.4"
 starlette = "^0.37.2"
-angle-emb = "^0.4.6"
 openai = "^1.35.13"
 bs4 = "^0.0.2"
 wikipedia = "^1.4.0"
@@ -144,9 +143,10 @@ pytest = "^8.3.1"
 
 # optional dependencies for some services to run
 vllm = { version = "^0.5.1", optional = true }
+angle-emb = { version = "^0.4.6", optional = true }
 
 [tool.poetry.extras]
-validator = ["vllm"]
+validator = ["vllm", "angle-emb"]
 
 [build-system]
 requires = ["poetry-core"]
