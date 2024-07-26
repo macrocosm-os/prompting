@@ -41,8 +41,6 @@ def create_task(
     dataset = DATASETS.get(dataset_name, None)
     if dataset is None:
         raise ValueError(f"Dataset {dataset_name} not found")
-    elif task_name == SummarizationTask.name:
-        dataset = dataset(selector = "all")
     else:
         dataset = dataset()
         
@@ -50,6 +48,12 @@ def create_task(
         return task(            
             translation_pipeline=translation_pipeline,
             context=dataset.next()
+        )
+    elif task_name == SummarizationTask.name:
+        return task(
+        llm_pipeline=llm_pipeline,
+        context=dataset.next(selector = "all"),
+        create_reference=create_reference,
         )
 
     return task(

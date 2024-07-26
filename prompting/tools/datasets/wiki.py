@@ -116,7 +116,11 @@ def process_page(
         return ("Full Page", "\n\n".join(sections.values())) , sections.keys()
 
     valid_sections = [(key, value) for key, value in sections.items() if not valid_section or valid_section(sections[key])]
-    return selector(valid_sections), sections.keys()
+
+    if valid_sections:
+        return selector(valid_sections), sections.keys()
+    else:
+        return None, sections.keys()
 
 
 def most_relevant_links(page: wiki.WikipediaPage, num_links=10, num_summary_words=50, return_scores=False) -> List:

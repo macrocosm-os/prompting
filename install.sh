@@ -6,6 +6,9 @@ pip uninstall mathgenerator -y
 # Installing package from the current directory
 pip install -e .
 
+# Uninstall uvloop
+pip uninstall uvloop -y
+
 # Updating the package list and installing jq and npm
 apt update && apt install -y jq npm
 
