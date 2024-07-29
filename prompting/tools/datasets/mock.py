@@ -1,9 +1,9 @@
-from .base import Dataset
+from .base import BaseDataset
 
 # from ..selector import Selector
 
 
-class MockDataset(Dataset):
+class MockDataset(BaseDataset):
     name: str = "mock"
 
     def get(self, name, exclude=None, selector=None):

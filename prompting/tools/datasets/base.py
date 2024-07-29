@@ -28,7 +28,7 @@ from pydantic import BaseModel
 from typing import ClassVar
 
 
-class Dataset(ABC, BaseModel):
+class BaseDataset(ABC, BaseModel):
     """Base class for datasets."""
 
     name: ClassVar[str] = "base"

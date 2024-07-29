@@ -1,10 +1,13 @@
 import torch
 import time
-from typing import List
+from typing import Optional
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from enum import Enum
 from prompting.dendrite import DendriteResponseEvent
+from pydantic import BaseModel
+from prompting.rewards import BaseRewardModel
+from prompting.agent import HumanAgent
+from pydantic import model_validator
 
 
 class RewardModelTypeEnum(Enum):
@@ -13,8 +16,7 @@ class RewardModelTypeEnum(Enum):
     PENALTY = "penalty"
 
 
-@dataclass
-class RewardEvent:
+class RewardEvent(BaseModel):
     """Contains rewards for all the responses in a batch"""
 
     model_name: str
@@ -40,43 +42,36 @@ class RewardEvent:
         return [round(float(element), decimals) for element in tensor]
 
 
-class RewardResult:
-    def __init__(self, reward_pipeline, agent, response_event, device):
-        """Passes the responses through the reward models and calculates the total reward
+class RewardResult(BaseModel):
+    reward_pipeline: list[BaseRewardModel]
+    agent: HumanAgent
+    response_event: DendriteResponseEvent
+    device: str
+    task_rewards: Optional[list[BaseRewardModel]]
+    task_penalties: Optional[list[BaseRewardModel]]
+    reward_events: Optional[list[RewardEvent]]
+    penalty_events: Optional[list[RewardEvent]]
+    rewards: torch.FloatTensor
 
-        Args:
-            reward_pipeline (RewardPipeline): List of all loaded/ative reward models
-            task (Task): Task instance which contains reward_definition (list of reward model requirements) and a reference answer (str)
-            response_event (DendriteResponseEvent): Network responses to the prompt
-            device (str): Device to run the reward models on
-        """
-
-        self.reward_pipeline = reward_pipeline
-        self.response_event = response_event
-        self.device = device
-        self.task_rewards = agent.task.reward_definition
-        self.task_penalties = agent.task.penalty_definition + agent.task.global_penalty_definition
+    @model_validator(mode="after")
+    def compute_rewards(self) -> "RewardResult":
+        self.task_rewards = self.agent.task.reward_definition
+        self.task_penalties = self.agent.task.penalty_definition + self.agent.task.global_penalty_definition
         self.reward_events = self.reward_responses(
-            reference=agent.task.reference,
+            reference=self.agent.task.reference,
             models=self.task_rewards,
             reward_type=RewardModelTypeEnum.WEIGHTED_REWARD,
         )
         self.penalty_events = self.reward_responses(
-            reference=agent.challenge,
+            reference=self.agent.challenge,
             models=self.task_penalties,
             reward_type=RewardModelTypeEnum.PENALTY,
         )
         self.rewards = self.total_reward()
 
-    def __state_dict__(self, full=False):
-        state = {"rewards": self.rewards.tolist()}
-        for event in self.reward_events + self.penalty_events:
-            state.update(event.asdict())
-        return state
-
     def reward_responses(
-        self, reference: str, models: List[dict], reward_type: RewardModelTypeEnum
-    ) -> List[RewardEvent]:
+        self, reference: str, models: list[BaseRewardModel], reward_type: RewardModelTypeEnum
+    ) -> list[RewardEvent]:
         """Calculates the rewards for the responses given the task and returns a RewardEvent for each reward model
         reward_events: List[RewardEvent] = [
             RewardEvent(model_name='rouge', rewards=torch.zeros(50), timings=torch.zeros(50), ...),
@@ -85,13 +80,7 @@ class RewardResult:
         """
         reward_events = []
 
-        for reward_info in models:
-            # Select the reward model from preloaded reward model pipeline
-            reward_model = self.reward_pipeline.get(reward_info["name"])
-            if not reward_model:
-                raise ValueError(
-                    f"Reward model {reward_info['name']} not supported. Please choose from {self.reward_pipeline.keys()}"
-                )
+        for reward_model in models:
             # Compute the rewards for the responses given the prompt
             reward_event = reward_model.apply(reference, self.response_event, reward_type=reward_type)
             reward_events.append(reward_event)
@@ -119,8 +108,7 @@ class RewardResult:
         return f"{self.__class__.__name__}(rewards={self.rewards!r}, reward_events={self.reward_events!r}, penalty_events={self.penalty_events!r})"
 
 
-@dataclass
-class BatchRewardOutput:
+class BatchRewardOutput(BaseModel):
     rewards: torch.FloatTensor
     timings: torch.FloatTensor
     extra_info: dict
@@ -132,14 +120,10 @@ class BatchRewardOutput:
         self.rewards_normalized = (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min() + 1e-6)
 
 
-class BaseRewardModel(ABC):
+class BaseRewardModel(ABC, BaseModel):
     @property
     @abstractmethod
     def name(self) -> str: ...
-
-    @abstractmethod
-    def __init__(self, **kwargs):
-        pass
 
     @abstractmethod
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:

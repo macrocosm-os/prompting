@@ -1,11 +1,5 @@
 from .datasets import (
-    WikiDataset,
-    WikiDateDataset,
+    WikiDataset as WikiDataset,
+    WikiDateDataset as WikiDateDataset,
 )
-
-DATASETS = {
-    # HFCodingDataset.name: HFCodingDataset,
-    WikiDataset.name: WikiDataset,
-    # StackOverflowDataset.name: StackOverflowDataset,
-    WikiDateDataset.name: WikiDateDataset,
-}
+from .selector import Selector as Selector

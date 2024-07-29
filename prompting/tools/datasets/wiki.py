@@ -23,7 +23,7 @@ import bittensor as bt
 import wikipedia
 from queue import Queue, Full, Empty
 from functools import lru_cache
-from prompting.tools.datasets.base import Dataset
+from prompting.tools.datasets.base import BaseDataset
 from prompting.tools.selector import Selector
 from prompting.shared.context import Context
 from typing import ClassVar
@@ -134,7 +134,7 @@ def filter_categories(categories, exclude=None, include=None):
     return categories
 
 
-class wikipediaDataset(Dataset):
+class WikiDataset(BaseDataset):
     """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
 
     name: ClassVar[str] = "wikipedia"
@@ -216,7 +216,7 @@ class wikipediaDataset(Dataset):
         return self.get(title, selector=selector)
 
 
-class wikipediaDateDataset(Dataset):
+class WikiDateDataset(BaseDataset):
     name: str = "wikipedia_date"
     INCLUDE_HEADERS: tuple = ("Events", "Births", "Deaths")
     MONTHS: tuple = (
@@ -240,7 +240,7 @@ class wikipediaDateDataset(Dataset):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="after")
-    def create_rng(self) -> "wikipediaDateDataset":
+    def create_rng(self) -> "WikiDateDataset":
         self.rng = random.Random(self.seed)
         return self
 

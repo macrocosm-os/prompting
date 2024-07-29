@@ -27,17 +27,14 @@ class BaseLLM(ABC):
         self,
         message: str,
         role: str = "user",
-        disregard_system_prompt: bool = False,
         cleaner: CleanerPipeline = None,
     ) -> str: ...
 
     def forward(self, messages: List[Dict[str, str]]): ...
 
     def clean_response(self, cleaner: CleanerPipeline, response: str) -> str:
-        if cleaner is not None:
-            clean_response = cleaner.apply(generation=response)
-            if clean_response != response:
-                bt.logging.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
+        clean_response = cleaner.apply(generation=response)
+        if clean_response != response:
+            bt.logging.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
 
-            return clean_response
-        return response
+        return clean_response

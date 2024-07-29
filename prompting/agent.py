@@ -20,7 +20,6 @@ import bittensor as bt
 from dataclasses import asdict
 from prompting.tasks import Task
 from prompting.llms import vLLM_LLM
-from prompting.cleaners.cleaner import CleanerPipeline
 
 from prompting.persona import Persona, create_persona
 
@@ -50,7 +49,7 @@ class HumanAgent(vLLM_LLM):
         task: Task,
         llm_pipeline: Pipeline,
         system_template: str = None,
-        persona: Persona = None,
+        persona: Persona | None = None,
         begin_conversation=True,
     ):
         if persona is None:
@@ -84,11 +83,8 @@ class HumanAgent(vLLM_LLM):
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
         t0 = time.time()
 
-        cleaner = None
-        if hasattr(self.task, "cleaning_pipeline"):
-            cleaner = CleanerPipeline(cleaning_pipeline=self.task.cleaning_pipeline)
         if self.task.challenge_type == "inference":
-            self.challenge = super().query(message="Ask a question related to your goal", cleaner=cleaner)
+            self.challenge = super().query(message="Ask a question related to your goal", cleaner=self.task.cleaner)
         elif self.task.challenge_type == "paraphrase":
             self.challenge = self.task.challenge_template.next(self.task.query)
         elif self.task.challenge_type == "query":
@@ -97,7 +93,6 @@ class HumanAgent(vLLM_LLM):
             bt.logging.error(
                 f"Task {self.task.name} has challenge type of: {self.task.challenge_type} which is not supported."
             )
-        self.challenge = self.task.format_challenge(self.challenge)
         self.challenge_time = time.time() - t0
 
         return self.challenge

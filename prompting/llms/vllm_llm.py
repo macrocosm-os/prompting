@@ -117,8 +117,7 @@ class vLLM_LLM(BaseLLM):
         self,
         message: str,
         role: str = "user",
-        disregard_system_prompt: bool = False,
-        cleaner: CleanerPipeline = None,
+        cleaner: CleanerPipeline = CleanerPipeline(),
     ):
         # Adds the message to the list of messages for tracking purposes, even though it's not used downstream
         messages = self.messages + [{"content": message, "role": role}]

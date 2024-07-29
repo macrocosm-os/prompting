@@ -216,9 +216,9 @@ async def run_step(
         "block": self.block,
         "step": self.step,
         "step_time": time.time() - start_time,
-        **agent.__state_dict__(full=self.config.neuron.log_full),
-        **reward_result.__state_dict__(full=self.config.neuron.log_full),
-        **response_event.__state_dict__(),
+        **agent.__dict__(full=self.config.neuron.log_full),
+        **reward_result.__dict__(full=self.config.neuron.log_full),
+        **response_event.__dict__(),
     }
 
     return event

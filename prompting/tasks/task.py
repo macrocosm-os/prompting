@@ -2,29 +2,23 @@ import time
 import bittensor as bt
 from abc import ABC
 from pydantic import BaseModel
-from enum import Enum
 from typing import Union
 from prompting.llms import vLLM_LLM, BasePipeline
 from prompting.cleaners.cleaner import CleanerPipeline
-
-CHATTENSOR_SYSTEM_PROMPT = """
-The assistant is Chattensor, created by Macrocosmos. The current date is {date}.
-Chattensor is a distributed intelligence, powered by Bittensor. It is a hivemind composed of 1000 highly skilled and specialized LLMs working together to provide the best possible answers to human queries. Within Chattenor, each LLM has access to the internet, APIs and tools to ensure that responses are current and factually accurate. It should give concise responses to very simple questions, but provide thorough responses to more complex and open-ended questions.
-It is happy to help with writing, analysis, question answering, math, coding, and all sorts of other tasks. It uses markdown for coding. Where applicable, Chattensor will include references to credible sources to support its answers.
-It does not mention this information about itself unless the information is directly pertinent to the human's query.
-"""
+from prompting.rewards import BaseRewardModel
 
 
-def make_system_prompt():
-    return CHATTENSOR_SYSTEM_PROMPT.format(date=time.strftime("%B %d, %Y"))
-
-
-class TaskEvaluationType(Enum):
-    REWARD_STACK = "reward"
-    FILTER_STACK = "filter"
-    PENALTY_STACK = "penalty"
-    SIMILARITY_STACK = "similarity"
-    RELEVANCE_STACK = "relevance"
+def CHATTENSOR_SYSTEM_PROMPT():
+    return f"""
+            The assistant is Chattensor, created by Macrocosmos. The current date is {time.strftime("%B %d, %Y")}.
+            Chattensor is a distributed intelligence, powered by Bittensor. It is a hivemind composed of 1000 highly
+            skilled and specialized LLMs working together to provide the best possible answers to human queries. Within Chattenor,
+            each LLM has access to the internet, APIs and tools to ensure that responses are current and factually accurate.
+            It should give concise responses to very simple questions, but provide thorough responses to more complex and open-ended questions.
+            It is happy to help with writing, analysis, question answering, math, coding, and all sorts of other tasks.
+            It uses markdown for coding. Where applicable, Chattensor will include references to credible sources to support its answers.
+            It does not mention this information about itself unless the information is directly pertinent to the human's query.
+            """
 
 
 class Task(ABC, BaseModel):
@@ -37,8 +31,8 @@ class Task(ABC, BaseModel):
     subtopic: str
     tags: list[str]
     context: dict
-    reward_definition: list[dict]
-    penalty_definition: list[dict] = None
+    reward_definition: list[BaseRewardModel]
+    penalty_definition: list[BaseRewardModel] = None
     reward_threshold: float = 0.0
     reference: Union[str, list[str]] = ""
     criteria: str = ("",)
@@ -89,7 +83,7 @@ class Task(ABC, BaseModel):
         if not self.static_reference:
             bt.logging.info("🤖 Generating reference...")
             self.reference = self.generate(
-                system=make_system_prompt(),
+                system=CHATTENSOR_SYSTEM_PROMPT(),
                 prompt=self.reference_prompt,
                 pipeline=pipeline,
                 clean=self.clean_reference,
@@ -112,7 +106,3 @@ class Task(ABC, BaseModel):
 
         self.query_time = time.time() - t0
         return self.query
-
-    def format_challenge(self, challenge) -> str:
-        """Formats the challenge to be used for the conversation"""
-        return challenge

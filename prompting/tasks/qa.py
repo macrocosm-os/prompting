@@ -1,3 +1,4 @@
+from prompting.rewards.rouge import RougeRewardModel
 import bittensor as bt
 from prompting.tasks import Task
 from prompting.cleaners.all_cleaners import RemoveRoles, RemoveQuotes, PruneEnding
@@ -70,13 +71,15 @@ class QuestionAnsweringTask(Task):
     desc = "get help on answering a question"
     goal = "to get the answer to the following question"
 
-    reward_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
-        dict(name="relevance", weight=0.5),
-    ]
-    penalty_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
-    ]
+    reward_definition = [RougeRewardModel()]
+    # reward_definition = [
+    #     dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
+    #     dict(name="relevance", weight=0.5),
+    # ]
+    penalty_definition = [RougeRewardModel()]
+    # penalty_definition = [
+    #     dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
+    # ]
 
     cleaning_pipeline = [
         RemoveQuotes,
