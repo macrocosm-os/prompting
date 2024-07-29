@@ -6192,5 +6192,5 @@ validator = ["angle-emb", "organic-scoring", "vllm"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.9 <3.11"
-content-hash = "46db3b7138f2ab117e4d67a40f8637d33ed172db6867059ca9d092675026c096"
+python-versions = ">=3.9 <=3.10.12"
+content-hash = "86e04622a50025be7d6567e6eae11a497c9655efa1e3211d001a6105cf70baae"

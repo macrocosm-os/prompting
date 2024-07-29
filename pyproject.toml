@@ -112,7 +112,7 @@ docstring-code-format = false
 docstring-code-line-length = "dynamic"
 
 [tool.poetry.dependencies]
-python = ">=3.9 <3.11"
+python = ">=3.9 <=3.10.12"
 transformers = "4.41.2"
 mathgenerator = {git = "https://github.com/synapse-alpha/mathgenerator.git", rev = "main"}
 sympy = "^1.13.0"
