@@ -25,6 +25,7 @@ jobs:
         python -m pip install flake8 pytest black
         bash install.sh
         poetry install --all-extras
+        poetry run pip uninstall -y uvloop
 
     - name: Debug Environment
       run: |

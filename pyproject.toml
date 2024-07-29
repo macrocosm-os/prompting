@@ -113,12 +113,12 @@ docstring-code-line-length = "dynamic"
 
 [tool.poetry.dependencies]
 python = ">=3.9 <3.11"
-transformers = "^4.42.4"
+transformers = "4.41.2"
 mathgenerator = {git = "https://github.com/synapse-alpha/mathgenerator.git", rev = "main"}
 sympy = "^1.13.0"
 tqdm = "^4.66.4"
 requests = "^2.32.3"
-numpy = "1.26.4"
+numpy = "1.22.4"
 bittensor = "^7.3.0"
 pydantic = "^2.8.2"
 rouge = "^1.0.1"
@@ -127,13 +127,13 @@ wandb = "^0.17.4"
 starlette = "^0.37.2"
 openai = "^1.35.13"
 bs4 = "^0.0.2"
-wikipedia = "^1.4.0"
+wikipedia = "1.4.0"
 deprecated = "^1.2.14"
-pandas = "^2.2.2"
-datasets = "^2.20.0"
-langchain = "^0.2.7"
+pandas = "2.2.1"
+datasets = "2.14.6"
+langchain = "0.2.3"
 argostranslate = "^1.9.6"
-langchain-core = "^0.2.19"
+langchain-core = "0.2.19"
 python-dotenv = "^1.0.1"
 pre-commit = "^3.7.1"
 ruff = "^0.5.2"
@@ -142,8 +142,8 @@ black = "^24.4.2"
 pytest = "^8.3.1"
 
 # optional dependencies for some services to run
-vllm = { version = "^0.5.1", optional = true }
-angle-emb = { version = "^0.4.6", optional = true }
+vllm = { version = "0.4.3", optional = true }
+angle-emb = { version = "0.4.3", optional = true }
 organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main", optional = true}
 
 [tool.poetry.extras]
