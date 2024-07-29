@@ -1,7 +1,8 @@
 import bittensor as bt
+
+from prompting.base.validator import BaseValidatorNeuron
 from prompting.forward import forward
 from prompting.llms import vLLMPipeline
-from prompting.base.validator import BaseValidatorNeuron
 from prompting.rewards import RewardPipeline
 from prompting.tasks.translate import TranslationPipeline
 

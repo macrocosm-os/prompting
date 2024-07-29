@@ -17,6 +17,7 @@
 
 import copy
 import sys
+import threading
 
 import bittensor as bt
 
@@ -56,7 +57,9 @@ class BaseNeuron(ABC):
 
     @property
     def block(self):
-        return ttl_get_block(self)
+        self._block = ttl_get_block(self)
+        self.latest_block = self._block
+        return self._block
 
     def __init__(self, config=None):
         base_config = copy.deepcopy(config or BaseNeuron._config())
