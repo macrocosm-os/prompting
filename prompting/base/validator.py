@@ -57,9 +57,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
-        self.scores = torch.zeros(
-            self.metagraph.n, dtype=torch.float32, device=self.device
-        )
+        self.scores = torch.zeros(self.metagraph.n, dtype=torch.float32, device=self.device)
 
         # Init sync with the network. Updates the metagraph.
         self.sync()
@@ -139,9 +137,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 forward_timeout = self.config.neuron.forward_max_time
                 try:
                     task = self.loop.create_task(self.forward())
-                    self.loop.run_until_complete(
-                        asyncio.wait_for(task, timeout=forward_timeout)
-                    )
+                    self.loop.run_until_complete(asyncio.wait_for(task, timeout=forward_timeout))
                 except torch.cuda.OutOfMemoryError as e:
                     bt.logging.error(f"Out of memory error: {e}")
                     continue
@@ -293,9 +289,7 @@ class BaseValidatorNeuron(BaseNeuron):
         if previous_metagraph.axons == self.metagraph.axons:
             return
 
-        bt.logging.info(
-            "Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages"
-        )
+        bt.logging.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
         # Zero out all hotkeys that have been replaced.
         for uid, hotkey in enumerate(self.hotkeys):
             if hotkey != self.metagraph.hotkeys[uid]:
@@ -324,9 +318,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Compute forward pass rewards, assumes uids are mutually exclusive.
         # shape: [ metagraph.n ]
-        step_rewards = self.scores.scatter(
-            0, torch.tensor(uids).to(self.device), rewards.to(self.device)
-        ).to(self.device)
+        step_rewards = self.scores.scatter(0, torch.tensor(uids).to(self.device), rewards.to(self.device)).to(
+            self.device
+        )
         bt.logging.debug(f"Scattered rewards: {rewards}")
 
         # Update scores with rewards produced by this step.

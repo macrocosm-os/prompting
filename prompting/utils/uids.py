@@ -28,9 +28,7 @@ def check_uid_availability(
 
     # Filter validator permit > 1024 stake.
     if metagraph.validator_permit[uid] and metagraph.S[uid] > vpermit_tao_limit:
-        bt.logging.debug(
-            f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}"
-        )
+        bt.logging.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}")
         return False
 
     if coldkeys and metagraph.axons[uid].coldkey in coldkeys:

@@ -9,7 +9,7 @@ from prompting.rewards import (
     FloatDiffModel,
     DateRewardModel,
     OrdinalRewardModel,
-    StreamingRewardModel
+    StreamingRewardModel,
 )
 
 REWARD_MODELS = {
@@ -42,9 +42,7 @@ class RewardPipeline:
     def validate_tasks(self):
         for task in self.selected_tasks:
             if task not in TASKS:
-                raise ValueError(
-                    f"Task {task} not supported. Please choose from {TASKS.keys()}"
-                )
+                raise ValueError(f"Task {task} not supported. Please choose from {TASKS.keys()}")
             # Check that the reward_definition and penalty_definition are lists of dictionaries whose weights sum to one
             self._check_weights(task, "reward_definition", expected_weight=1)
             self._check_weights(task, "penalty_definition", expected_weight=None)
@@ -56,31 +54,19 @@ class RewardPipeline:
 
         for model_info in model_infos:
             if not isinstance(model_info, dict):
-                raise ValueError(
-                    f"{definition} model {model_info} is not a dictionary."
-                )
+                raise ValueError(f"{definition} model {model_info} is not a dictionary.")
             if "weight" not in model_info:
-                raise ValueError(
-                    f"{definition} model {model_info} does not have a weight."
-                )
+                raise ValueError(f"{definition} model {model_info} does not have a weight.")
 
             weight = model_info["weight"]
             if not isinstance(weight, (float, int)):
-                raise ValueError(
-                    f"{definition} model {model_info} weight is not a float."
-                )
+                raise ValueError(f"{definition} model {model_info} weight is not a float.")
             if not 0 <= weight <= 1:
-                raise ValueError(
-                    f"{definition} model {model_info} weight is not between 0 and 1."
-                )
+                raise ValueError(f"{definition} model {model_info} weight is not between 0 and 1.")
 
             total_weight += weight
 
-        if (
-            model_infos
-            and expected_weight is not None
-            and total_weight != expected_weight
-        ):
+        if model_infos and expected_weight is not None and total_weight != expected_weight:
             raise ValueError(
                 f"{definition} model {model_infos} weights do not sum to {expected_weight} (sum={total_weight})"
             )
@@ -101,9 +87,7 @@ class RewardPipeline:
             if not name:
                 raise ValueError(f"Reward model {model} does not have a name. ")
             if name not in REWARD_MODELS:
-                raise ValueError(
-                    f"Reward model {name} not supported. Please choose from {REWARD_MODELS.keys()}"
-                )
+                raise ValueError(f"Reward model {name} not supported. Please choose from {REWARD_MODELS.keys()}")
             elif name in reward_models:  # Prevents duplicate reward models
                 continue
 

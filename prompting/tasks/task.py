@@ -1,10 +1,10 @@
 import time
 import bittensor as bt
 from abc import ABC
-from dataclasses import dataclass, asdict
+from pydantic import BaseModel
 from enum import Enum
-from typing import List, Union, Dict
-from prompting.llms import HuggingFaceLLM, vLLM_LLM, BasePipeline
+from typing import Union
+from prompting.llms import vLLM_LLM, BasePipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 
 CHATTENSOR_SYSTEM_PROMPT = """
@@ -17,6 +17,8 @@ It does not mention this information about itself unless the information is dire
 
 def make_system_prompt():
     return CHATTENSOR_SYSTEM_PROMPT.format(date=time.strftime("%B %d, %Y"))
+
+
 class TaskEvaluationType(Enum):
     REWARD_STACK = "reward"
     FILTER_STACK = "filter"
@@ -25,8 +27,7 @@ class TaskEvaluationType(Enum):
     RELEVANCE_STACK = "relevance"
 
 
-@dataclass
-class Task(ABC):
+class Task(ABC, BaseModel):
     # topics: dict
     name: str
     desc: str
@@ -34,27 +35,25 @@ class Task(ABC):
     query: str
     topic: str
     subtopic: str
-    tags: List[str]
+    tags: list[str]
     context: dict
-    reward_definition: List[dict]
-    penalty_definition: List[dict] = None
+    reward_definition: list[dict]
+    penalty_definition: list[dict] = None
     reward_threshold: float = 0.0
-    reference: Union[str, List[str]] = ""
+    reference: Union[str, list[str]] = ""
     criteria: str = ("",)
     delimiter: str = ""
     complete: bool = False
     static_reference: bool = False
     static_query: bool = False
-    reference_prompt = ""
-    query_system_prompt = ""
-    query_prompt = ""
-    cleaner = None
-    clean_reference = True
-    challenge_type = 'inference'
-    
-    global_penalty_definition = [
-        dict(name="streaming", max_tokens_per_chunk=200, weight=0.2)
-    ]
+    reference_prompt: str = ""
+    query_system_prompt: str = ""
+    query_prompt: str = ""
+    cleaner: CleanerPipeline = CleanerPipeline()
+    clean_reference: bool = True
+    challenge_type: str = "inference"
+
+    global_penalty_definition = [dict(name="streaming", max_tokens_per_chunk=200, weight=0.2)]
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
@@ -62,48 +61,38 @@ class Task(ABC):
     def __repr__(self):
         return str(self)
 
-    def __state_dict__(self, full=False):
-        state = {
-            "task": self.name,
-            "desc": self.desc,
-            "goal": self.goal,
-            "query": self.query,  # For now we just use the raw query but should add delimiters again
-            "query_time": getattr(self, "query_time", 0),
-            "reference": self.reference,
-            "reference_time": getattr(self, "reference_time", 0),
-            "topic": self.topic,
-            "subtopic": self.subtopic,
-            "context_time": self.context.stats.get("fetch_time", 0.0),
-        }
-        if full:
-            state.update(asdict(self.context))
+    # def __state_dict__(self, full=False):
+    #     state = {
+    #         "task": self.name,
+    #         "desc": self.desc,
+    #         "goal": self.goal,
+    #         "query": self.query,  # For now we just use the raw query but should add delimiters again
+    #         "query_time": getattr(self, "query_time", 0),
+    #         "reference": self.reference,
+    #         "reference_time": getattr(self, "reference_time", 0),
+    #         "topic": self.topic,
+    #         "subtopic": self.subtopic,
+    #         "context_time": self.context.stats.get("fetch_time", 0.0),
+    #     }
+    #     if full:
+    #         state.update(asdict(self.context))
 
-        return state
+    #     return state
 
-    def generate(
-        self, system: str, prompt: str, pipeline: BasePipeline, clean=True
-    ) -> str:
+    def generate(self, system: str, prompt: str, pipeline: BasePipeline, clean=True) -> str:
         """Uses the llm to generate a response to a prompt"""
-
-        cleaner = (
-            CleanerPipeline(cleaning_pipeline=self.cleaning_pipeline) if clean else None
-        )
-        return vLLM_LLM(pipeline, system_prompt=system).query(
-            message=prompt, cleaner=cleaner
-        )
+        return vLLM_LLM(pipeline, system_prompt=system).query(message=prompt, cleaner=self.cleaner)
 
     def generate_reference(self, pipeline: BasePipeline, clean=True) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         t0 = time.time()
         if not self.static_reference:
-            if not self.clean_reference:
-                clean = False
             bt.logging.info("🤖 Generating reference...")
             self.reference = self.generate(
                 system=make_system_prompt(),
                 prompt=self.reference_prompt,
                 pipeline=pipeline,
-                clean=clean,
+                clean=self.clean_reference,
             )
 
         self.reference_time = time.time() - t0
@@ -115,7 +104,7 @@ class Task(ABC):
         if not self.static_query:
             bt.logging.info("🤖 Generating query...")
             self.query = self.generate(
-                system=self.query_system_prompt, #Could possibly add the chattensor system prompt to query but I don't think it adds anything
+                system=self.query_system_prompt,  # Could possibly add the chattensor system prompt to query but I don't think it adds anything
                 prompt=self.query_prompt,
                 pipeline=pipeline,
                 clean=clean,

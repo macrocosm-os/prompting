@@ -1,9 +1,4 @@
 from prompting.cleaners import CleanerPipeline
+from prompting.cleaners.all_cleaners import RemoveQuotes, PruneEnding, RemoveRoles
 
-DEFAULT_CLEANER_PIPELINE = CleanerPipeline(
-    [
-        dict(name="remove_quotes"),
-        dict(name="prune_ending"),
-        dict(name="remove_roles"),
-    ]
-)
+DEFAULT_CLEANER_PIPELINE = CleanerPipeline([RemoveQuotes, PruneEnding, RemoveRoles])

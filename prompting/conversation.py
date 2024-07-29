@@ -43,12 +43,9 @@ def create_task(
         raise ValueError(f"Dataset {dataset_name} not found")
     else:
         dataset = dataset()
-        
+
     if task_name == TranslationTask.name:
-        return task(            
-            translation_pipeline=translation_pipeline,
-            context=dataset.next()
-        )
+        return task(translation_pipeline=translation_pipeline, context=dataset.next())
 
     return task(
         llm_pipeline=llm_pipeline,

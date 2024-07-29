@@ -1,17 +1,15 @@
-from typing import List
-from dataclasses import dataclass
+from pydantic import BaseModel
 
 
-@dataclass
-class Context:
+class Context(BaseModel):
     # TODO: Pydantic model
     title: str
     topic: str
     subtopic: str
     content: str
-    internal_links: List[str]
-    external_links: List[str]
+    internal_links: list[str]
+    external_links: list[str]
     source: str
-    tags: List[str] = None
+    tags: list[str] = None
     extra: dict = None  # additional non-essential information
     stats: dict = None  # retrieval stats such as fetch time, number of tries, etc.

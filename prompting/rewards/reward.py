@@ -1,11 +1,11 @@
 import torch
 import time
-import bittensor as bt
 from typing import List
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from prompting.dendrite import DendriteResponseEvent
+
 
 class RewardModelTypeEnum(Enum):
     WEIGHTED_REWARD = "reward"
@@ -34,7 +34,7 @@ class RewardEvent:
             f"{self.model_name}_{self.model_type.value}_batch_time": self.batch_time,
             f"{self.model_name}_{self.model_type.value}_extra_info": self.extra_info,
         }
-            
+
     def tensor_to_rounded_list(self, tensor, decimals=6):
         # Convert the tensor elements to floats and round them to 6 decimal places
         return [round(float(element), decimals) for element in tensor]
@@ -93,9 +93,7 @@ class RewardResult:
                     f"Reward model {reward_info['name']} not supported. Please choose from {self.reward_pipeline.keys()}"
                 )
             # Compute the rewards for the responses given the prompt
-            reward_event = reward_model.apply(
-                reference, self.response_event, reward_type=reward_type
-            )
+            reward_event = reward_model.apply(reference, self.response_event, reward_type=reward_type)
             reward_events.append(reward_event)
 
         return reward_events
@@ -104,21 +102,15 @@ class RewardResult:
         """Combines the rewards from all the reward models into a single reward tensor"""
 
         # TODO: How would using the Agent as a reward model fit into this flow?
-        # Compute the rewards for the responses given the prompt        
-        rewards = torch.zeros_like(
-            self.response_event.uids, dtype=torch.float32, device=self.device
-        )
+        # Compute the rewards for the responses given the prompt
+        rewards = torch.zeros_like(self.response_event.uids, dtype=torch.float32, device=self.device)
 
         for event in self.reward_events:
-            for reward_info in filter(
-                lambda x: x["name"] == event.model_name, self.task_rewards
-            ):
+            for reward_info in filter(lambda x: x["name"] == event.model_name, self.task_rewards):
                 rewards += reward_info["weight"] * event.rewards.to(self.device)
 
         for event in self.penalty_events:
-            for reward_info in filter(
-                lambda x: x["name"] == event.model_name, self.task_penalties
-            ):
+            for reward_info in filter(lambda x: x["name"] == event.model_name, self.task_penalties):
                 rewards *= 1 - reward_info["weight"] * event.rewards.to(self.device)
 
         return rewards
@@ -135,20 +127,15 @@ class BatchRewardOutput:
 
     def __post_init__(self):
         if self.rewards.shape != self.timings.shape:
-            raise ValueError(
-                f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}"
-            )
+            raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
 
-        self.rewards_normalized = (self.rewards - self.rewards.min()) / (
-            self.rewards.max() - self.rewards.min() + 1e-6
-        )
+        self.rewards_normalized = (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min() + 1e-6)
 
 
 class BaseRewardModel(ABC):
     @property
     @abstractmethod
-    def name(self) -> str:
-        ...
+    def name(self) -> str: ...
 
     @abstractmethod
     def __init__(self, **kwargs):
@@ -158,7 +145,9 @@ class BaseRewardModel(ABC):
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         pass
 
-    def apply(self, reference: str, response_event: DendriteResponseEvent, reward_type: RewardModelTypeEnum) -> RewardEvent:
+    def apply(
+        self, reference: str, response_event: DendriteResponseEvent, reward_type: RewardModelTypeEnum
+    ) -> RewardEvent:
         t0 = time.time()
         batch_rewards_output = self.reward(reference, response_event)
         batch_rewards_time = time.time() - t0

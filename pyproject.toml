@@ -5,6 +5,9 @@ description = "Subnetwork 1 runs on Bittensor and is maintained by Macrocosmos. 
 authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz"]
 readme = "README.md"
 
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+
 [tool.black]
 line-length = 120
 target-version = ['py310']

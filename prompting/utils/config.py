@@ -48,9 +48,7 @@ def check_config(cls, config: "bt.Config"):
 
     if not config.neuron.dont_save_events:
         # Add custom event logger for the events.
-        event_handler = logging.FileHandler(
-            os.path.join(config.neuron.full_path, "events.log")
-        )
+        event_handler = logging.FileHandler(os.path.join(config.neuron.full_path, "events.log"))
         event_handler.setLevel(38)  # Custom level
         formatter = logging.Formatter("{asctime} | {levelname} | {message}", style="{")
         event_handler.setFormatter(formatter)
@@ -128,9 +126,7 @@ def add_args(cls, parser):
         default=True,
     )
 
-    parser.add_argument(
-        "--wandb.off", action="store_true", help="Turn off wandb.", default=False
-    )
+    parser.add_argument("--wandb.off", action="store_true", help="Turn off wandb.", default=False)
 
     parser.add_argument(
         "--wandb.offline",

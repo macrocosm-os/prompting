@@ -17,36 +17,34 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import random
-import functools
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, Literal
 import bittensor as bt
 
 from ..selector import Selector
 from prompting.shared.context import Context
 from prompting.utils.exceptions import MaxRetryError
+from pydantic import BaseModel
+from typing import ClassVar
 
 
-class Dataset(ABC):
+class Dataset(ABC, BaseModel):
     """Base class for datasets."""
 
+    name: ClassVar[str] = "base"
     max_tries: int = 10
 
     @abstractmethod
-    def search(self, name):
-        ...
+    def search(self, name): ...
 
     @abstractmethod
-    def random(self, name):
-        ...
+    def random(self, name): ...
 
     @abstractmethod
-    def get(self, name):
-        ...
+    def get(self, name): ...
 
     def next(
-        self, method: str = "random", selector: Selector = Selector(), **kwargs
+        self, method: Literal["random", "search", "get"] = "get", selector: Selector = Selector(), **kwargs
     ) -> Dict:
         tries = 1
         t0 = time.time()
@@ -60,8 +58,6 @@ class Dataset(ABC):
                 info = self.search(selector=selector, **kwargs)
             elif method == "get":
                 info = self.get(selector=selector, **kwargs)
-            else:
-                raise ValueError(f"Unknown dataset get method {method!r}")
 
             if info:
                 break
@@ -84,43 +80,3 @@ class Dataset(ABC):
             "next_kwargs": kwargs,
         }
         return Context(**info)
-
-
-class TemplateDataset(Dataset):
-    """Base class for datasets based on a template."""
-
-    @property
-    def size(self):
-        return functools.reduce(
-            lambda x, y: x * y, [len(v) for v in self.params.values()], 1
-        )
-
-    def __repr__(self):
-        return f"{self.__class__.__name__} with template: {self.query_template!r} and {self.size} possible phrases"
-
-    def get(self, params: dict):
-        content = self.query_template.format(**params)
-        keys, values = list(zip(*params.items()))
-
-        return {
-            "title": params.get(
-                "title", keys[0]
-            ),  # Use the first key as the title if no field called title is present
-            "topic": params.get("topic", keys[min(1, len(keys) - 1)]),  # Same for topic
-            "subtopic": params.get(
-                "subtopic", keys[min(2, len(keys) - 2)]
-            ),  # Same for subtopic
-            "content": content,  # content
-            "internal_links": values,  # internal links
-            "external_links": values,  # external links
-            "tags": values,  # tags
-            "extra": {},
-        }
-
-    def random(self, selector: Selector = None):
-        selected = {k: selector(v) for k, v in self.params.items()}
-        return self.get(selected)
-
-    def search(self, params: dict, selector: Selector = None):
-        selected = {k: params.get(k, selector(v)) for k, v in self.params.items()}
-        return self.get(selected)

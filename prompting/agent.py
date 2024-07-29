@@ -19,7 +19,7 @@ import time
 import bittensor as bt
 from dataclasses import asdict
 from prompting.tasks import Task
-from prompting.llms import HuggingFaceLLM, vLLM_LLM
+from prompting.llms import vLLM_LLM
 from prompting.cleaners.cleaner import CleanerPipeline
 
 from prompting.persona import Persona, create_persona
@@ -88,15 +88,15 @@ class HumanAgent(vLLM_LLM):
         if hasattr(self.task, "cleaning_pipeline"):
             cleaner = CleanerPipeline(cleaning_pipeline=self.task.cleaning_pipeline)
         if self.task.challenge_type == "inference":
-            self.challenge = super().query(
-                message="Ask a question related to your goal", cleaner=cleaner
-            )
-        elif self.task.challenge_type == 'paraphrase':
+            self.challenge = super().query(message="Ask a question related to your goal", cleaner=cleaner)
+        elif self.task.challenge_type == "paraphrase":
             self.challenge = self.task.challenge_template.next(self.task.query)
-        elif self.task.challenge_type == 'query':
+        elif self.task.challenge_type == "query":
             self.challenge = self.task.query
         else:
-            bt.logging.error(f"Task {self.task.name} has challenge type of: {self.task.challenge_type} which is not supported.")
+            bt.logging.error(
+                f"Task {self.task.name} has challenge type of: {self.task.challenge_type} which is not supported."
+            )
         self.challenge = self.task.format_challenge(self.challenge)
         self.challenge_time = time.time() - t0
 
@@ -123,9 +123,7 @@ class HumanAgent(vLLM_LLM):
         # Updates current prompt with new state of conversation
         # self.prompt = self.get_history_prompt()
 
-    def update_progress(
-        self, top_reward: float, top_response: str, continue_conversation=False
-    ):
+    def update_progress(self, top_reward: float, top_response: str, continue_conversation=False):
         if top_reward > self.task.reward_threshold:
             self.task.complete = True
             self.messages.append({"content": top_response, "role": "user"})
@@ -134,7 +132,5 @@ class HumanAgent(vLLM_LLM):
             return
 
         if continue_conversation:
-            bt.logging.info(
-                "↪ Agent did not finish its goal, continuing conversation..."
-            )
+            bt.logging.info("↪ Agent did not finish its goal, continuing conversation...")
             self.continue_conversation(miner_response=top_response)
