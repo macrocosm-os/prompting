@@ -7,9 +7,6 @@ pip install poetry
 # pip install -e .
 poetry install
 
-# Uninstall uvloop
-pip uninstall uvloop -y
-
 # Updating the package list and installing jq and npm
 apt update && apt install -y jq npm
 

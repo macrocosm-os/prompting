@@ -41,6 +41,7 @@ bash install.sh
 If you are running a validator, you will need to install the extras via poetry.  Linux is required to run a validator.
 ```bash
 poetry install --extras validator
+poetry run pip uninstall uvloop
 ```
 
 If you are running a validator, logging in to Hugging Face is required:
