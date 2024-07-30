@@ -55,10 +55,6 @@ class BatchRewardOutput(BaseModel):
 
 
 class BaseRewardModel(ABC, BaseModel):
-    @property
-    @abstractmethod
-    def name(self) -> str: ...
-
     @abstractmethod
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         pass
@@ -79,9 +75,6 @@ class BaseRewardModel(ABC, BaseModel):
             extra_info=batch_rewards_output.extra_info,
             timings=batch_rewards_output.timings,
         )
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(name={self.name})"
 
 
 class RewardResult(BaseModel):

@@ -7,9 +7,9 @@ from prompting.llms.base_llm import BasePipeline
 from prompting.llms.vllm_llm import vLLM_LLM
 from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.rewards.reward import BaseRewardModel, RewardEvent
-from prompting.rewards.streaming import StreamingRewardModel
 from pydantic import model_validator
 from prompting.dendrite import DendriteResponseEvent
+import numpy as np
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -57,25 +57,19 @@ class BaseRewardConfig(ABC, BaseModel):
     penalty_events: list[WeightedRewardEvent] | None = None
 
     @property
-    def total_reward(self):
-        total_reward = 0
+    def total_reward(self) -> list[float]:
         if not self.reward_events:
             raise Exception("Rewards have not yet been calculated")
-        for weighted_reward_event in self.reward_events:
-            total_reward += weighted_reward_event.weight * sum(weighted_reward_event.reward_event.rewards)
-        return total_reward
+        return np.sum([r.reward_event.rewards for r in self.reward_events], axis=0)
 
     @property
-    def total_penalty(self):
+    def total_penalty(self) -> list[float]:
         if not self.penalty_events:
             return 0
-        total_penalty = 0
-        for weighted_reward_event in self.penalty_events:
-            total_penalty += weighted_reward_event.weight * sum(weighted_reward_event.reward_event.rewards)
-        return total_penalty
+        return np.sum([r.reward_event.rewards for r in self.penalty_events], axis=0)
 
     @property
-    def final_reward(self):
+    def final_reward(self) -> list[float]:
         return self.total_reward - self.total_penalty
 
     @model_validator(mode="after")
@@ -128,33 +122,11 @@ class Task(ABC, BaseModel):
     query_time: int | None = None
     reference_time: int | None = None
 
-    global_penalty_definition: list[BaseRewardModel] = [
-        StreamingRewardModel(max_tokens_per_chunk=200)
-    ]  # [dict(name="streaming", max_tokens_per_chunk=200, weight=0.2)]
-
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
 
     def __repr__(self):
         return str(self)
-
-    # def __state_dict__(self, full=False):
-    #     state = {
-    #         "task": self.name,
-    #         "desc": self.desc,
-    #         "goal": self.goal,
-    #         "query": self.query,  # For now we just use the raw query but should add delimiters again
-    #         "query_time": getattr(self, "query_time", 0),
-    #         "reference": self.reference,
-    #         "reference_time": getattr(self, "reference_time", 0),
-    #         "topic": self.topic,
-    #         "subtopic": self.subtopic,
-    #         "context_time": self.context.stats.get("fetch_time", 0.0),
-    #     }
-    #     if full:
-    #         state.update(asdict(self.context))
-
-    #     return state
 
     def generate(self, system: str, prompt: str, pipeline: BasePipeline, clean=True) -> str:
         """Uses the llm to generate a response to a prompt"""

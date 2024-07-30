@@ -1,4 +1,5 @@
 from prompting.rewards.rouge import RougeRewardModel
+from prompting.rewards.relevance import RelevanceRewardModel
 import bittensor as bt
 from prompting.tasks.task import Task, WeightedRewardModel
 
@@ -73,7 +74,10 @@ Ensure your answer references relevant parts of the conversation history. Use th
 
 
 class QARewardConfig(BaseRewardConfig):
-    reward_definitions: list[WeightedRewardModel] = [WeightedRewardModel(weight=1, reward_model=RougeRewardModel())]
+    reward_definitions: list[WeightedRewardModel] = [
+        WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
+        WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
+    ]
 
 
 class QuestionAnsweringTask(Task):
@@ -111,3 +115,4 @@ class QuestionAnsweringTask(Task):
         self.topic = self.context.title
         self.subtopic = self.context.topic
         self.tags = self.context.tags
+        return self

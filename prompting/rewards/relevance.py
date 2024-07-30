@@ -3,25 +3,30 @@ import torch
 from typing import List
 from angle_emb import AnglE
 from torch.nn.functional import cosine_similarity
-from prompting.rewards import (
+from prompting.rewards.reward import (
     BaseRewardModel,
     BatchRewardOutput,
 )
 from prompting.dendrite import DendriteResponseEvent
+from pydantic import model_validator, ConfigDict
 
 
 class RelevanceRewardModel(BaseRewardModel):
-    @property
-    def name(self) -> str:
-        return "relevance"
+    threshold: float | None = None
+    model: AnglE | None = None
+    pooling_strategy: str = "cls"
+    device: str = "cuda"
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __init__(self, threshold=None, device=None, pooling_strategy="cls"):
-        super().__init__()
-        self.threshold = threshold
-        self.model = AnglE.from_pretrained("WhereIsAI/UAE-Large-V1", pooling_strategy=pooling_strategy, device=device)
-        if device.startswith("cuda"):
+    @model_validator(mode="after")
+    def init_model(self) -> "RelevanceRewardModel":
+        self.model = AnglE.from_pretrained(
+            "WhereIsAI/UAE-Large-V1", pooling_strategy=self.pooling_strategy, device=self.device
+        )
+        if self.device.startswith("cuda"):
             # This line is necessary to pass the model to the device defined at its initialization
             self.model = self.model.cuda()
+        return self
 
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         """Calculates the cosine similarity between sentence embeddings of the reference and completions.

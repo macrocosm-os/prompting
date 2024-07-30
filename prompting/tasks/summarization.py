@@ -1,6 +1,13 @@
-from dataclasses import dataclass
 from prompting.tasks.task import Task
-
+from prompting.rewards.rouge import RougeRewardModel
+from prompting.rewards.relevance import RelevanceRewardModel
+from prompting.tasks.task import WeightedRewardModel
+from prompting.tasks.task import BaseRewardConfig
+from prompting.cleaners.all_cleaners import RemoveRoles, RemoveQuotes, PruneEnding
+from prompting.cleaners.cleaner import BaseCleaner
+from prompting.shared import Context
+from pydantic import model_validator
+from prompting.llms.base_llm import BasePipeline
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 
@@ -16,38 +23,32 @@ Summarize the following context in a concise and accurate manner:
 """
 
 
-@dataclass
+class SummarizationRewardConfig(BaseRewardConfig):
+    reward_definitions: list[WeightedRewardModel] = [
+        WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
+        WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
+    ]
+    penalty_definition: list[WeightedRewardModel] = [WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel())]
+
+
 class SummarizationTask(Task):
-    name = "summarization"
-    desc = "get help with summarization"
-    goal = "summarize the following topic"
+    context: Context
+    llm_pipeline: BasePipeline
 
-    reward_definition = [
-        dict(name="rouge", ngram="rouge-l", metric="f", weight=0.5),
-        dict(name="relevance", weight=0.5),
+    reference_prompt: str | None = None
+    query: str | None = None
+    create_reference: bool = True
+
+    cleaning_pipeline: list[BaseCleaner] = [
+        RemoveQuotes,
+        PruneEnding,
+        RemoveRoles,
     ]
-    penalty_definition = [dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5)]
+    static_query: bool = True
 
-    # This is where you define cleaning procedures for the generation.
-    # Can be used when wanting to clean the challenge.
-    cleaning_pipeline = [
-        dict(name="remove_quotes"),
-        dict(name="prune_ending"),
-        dict(name="remove_roles"),
-    ]
-
-    static_query = True
-
-    def __init__(self, llm_pipeline, context, create_reference=True):
-        self.context = context
-
-        # Query is just the article title and section name
-        self.query = context.title + ", " + context.topic
-
-        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content)
-        if create_reference:
-            self.reference = self.generate_reference(llm_pipeline)
-
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
+    @model_validator(mode="after")
+    def create_query_reference_prompt(self) -> "SummarizationTask":
+        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=self.context.content)
+        if self.create_reference:
+            self.reference = self.generate_reference(self.llm_pipeline)
+        return self
