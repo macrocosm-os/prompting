@@ -3,9 +3,13 @@ import bittensor as bt
 from abc import ABC
 from pydantic import BaseModel
 from typing import Union
-from prompting.llms import vLLM_LLM, BasePipeline
+from prompting.llms.base_llm import BasePipeline
+from prompting.llms.vllm_llm import vLLM_LLM
 from prompting.cleaners.cleaner import CleanerPipeline
-from prompting.rewards import BaseRewardModel
+from prompting.rewards.reward import BaseRewardModel, RewardEvent
+from prompting.rewards.streaming import StreamingRewardModel
+from pydantic import model_validator
+from prompting.dendrite import DendriteResponseEvent
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -21,18 +25,93 @@ def CHATTENSOR_SYSTEM_PROMPT():
             """
 
 
+class WeightedRewardModel(BaseModel):
+    weight: float
+    reward_model: BaseRewardModel
+
+
+class WeightedRewardEvent(BaseModel):
+    weight: float
+    reward_event: RewardEvent
+
+
+class BaseRewardConfig(ABC, BaseModel):
+    """This class takes in a dictionary of rewards and penalties that should be applied. On apply(),
+    it then applies all the reward models based on query & reference and returns the reward.
+
+    both reward_definition and penalty_definition must be a list of tuples of type:
+
+    weighting: RewardModel, e.g.
+
+    [ (0.2, RougeRewardModel), (0.8, CosineDistanceRewardModel) ]
+
+    Note that for all the rewards, the percentages must sum up to 1 (100%). For penalties,
+    this is not the case, e.g. you may want to only apply a single penalty very lightly
+    and weight it with <1.
+    """
+
+    reward_definitions: list[WeightedRewardModel]
+    penalty_definitions: list[WeightedRewardModel] = []
+
+    reward_events: list[WeightedRewardEvent] | None = None
+    penalty_events: list[WeightedRewardEvent] | None = None
+
+    @property
+    def total_reward(self):
+        total_reward = 0
+        if not self.reward_events:
+            raise Exception("Rewards have not yet been calculated")
+        for weighted_reward_event in self.reward_events:
+            total_reward += weighted_reward_event.weight * sum(weighted_reward_event.reward_event.rewards)
+        return total_reward
+
+    @property
+    def total_penalty(self):
+        if not self.penalty_events:
+            return 0
+        total_penalty = 0
+        for weighted_reward_event in self.penalty_events:
+            total_penalty += weighted_reward_event.weight * sum(weighted_reward_event.reward_event.rewards)
+        return total_penalty
+
+    @property
+    def final_reward(self):
+        return self.total_reward - self.total_penalty
+
+    @model_validator(mode="after")
+    def check_summation(self) -> "BaseRewardConfig":
+        assert sum([r.weight for r in self.reward_definitions]) == 1, "All rewards must sum to one"
+
+    def apply(self, reference, response_event: DendriteResponseEvent):
+        for weighted_reward in self.reward_definitions:
+            self.reward_events = []
+            self.reward_events.append(
+                WeightedRewardEvent(
+                    weight=weighted_reward.weight,
+                    reward_event=weighted_reward.reward_model.apply(
+                        reference=reference, response_event=response_event, reward_type="reward"
+                    ),
+                )
+            )
+
+        for weighted_reward in self.penalty_definitions:
+            self.penalty_events = []
+            self.penalty_events.append(
+                WeightedRewardEvent(
+                    weight=weighted_reward.weight,
+                    reward_event=weighted_reward.reward_model.apply(
+                        reference=reference, response_event=response_event, reward_type="penalty"
+                    ),
+                )
+            )
+        return self.final_reward
+
+
 class Task(ABC, BaseModel):
-    # topics: dict
-    name: str
-    desc: str
-    goal: str
-    query: str
-    topic: str
-    subtopic: str
-    tags: list[str]
     context: dict
-    reward_definition: list[BaseRewardModel]
-    penalty_definition: list[BaseRewardModel] = None
+    reward_config: BaseRewardConfig
+
+    query: str | None = None
     reward_threshold: float = 0.0
     reference: Union[str, list[str]] = ""
     criteria: str = ("",)
@@ -46,8 +125,12 @@ class Task(ABC, BaseModel):
     cleaner: CleanerPipeline = CleanerPipeline()
     clean_reference: bool = True
     challenge_type: str = "inference"
+    query_time: int | None = None
+    reference_time: int | None = None
 
-    global_penalty_definition = [dict(name="streaming", max_tokens_per_chunk=200, weight=0.2)]
+    global_penalty_definition: list[BaseRewardModel] = [
+        StreamingRewardModel(max_tokens_per_chunk=200)
+    ]  # [dict(name="streaming", max_tokens_per_chunk=200, weight=0.2)]
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
@@ -77,29 +160,31 @@ class Task(ABC, BaseModel):
         """Uses the llm to generate a response to a prompt"""
         return vLLM_LLM(pipeline, system_prompt=system).query(message=prompt, cleaner=self.cleaner)
 
-    def generate_reference(self, pipeline: BasePipeline, clean=True) -> str:
+    def generate_reference(self, pipeline: BasePipeline, reference_prompt: str, clean=True) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         t0 = time.time()
         if not self.static_reference:
             bt.logging.info("🤖 Generating reference...")
             self.reference = self.generate(
                 system=CHATTENSOR_SYSTEM_PROMPT(),
-                prompt=self.reference_prompt,
+                prompt=reference_prompt,
                 pipeline=pipeline,
-                clean=self.clean_reference,
+                clean=clean,
             )
 
         self.reference_time = time.time() - t0
         return self.reference
 
-    def generate_query(self, pipeline: BasePipeline, clean=True) -> str:
+    def generate_query(
+        self, pipeline: BasePipeline, query_prompt: str, query_system_prompt: str | None = None, clean=True
+    ) -> str:
         """Generates a query to be used for generating the challenge"""
         t0 = time.time()
         if not self.static_query:
             bt.logging.info("🤖 Generating query...")
             self.query = self.generate(
-                system=self.query_system_prompt,  # Could possibly add the chattensor system prompt to query but I don't think it adds anything
-                prompt=self.query_prompt,
+                system=query_system_prompt,  # Could possibly add the chattensor system prompt to query but I don't think it adds anything
+                prompt=query_prompt,
                 pipeline=pipeline,
                 clean=clean,
             )

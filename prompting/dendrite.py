@@ -16,7 +16,7 @@ class SynapseStreamResult:
 
 
 class DendriteResponseEvent:
-    def __init__(self, stream_results: SynapseStreamResult, uids: torch.LongTensor, timeout: float):
+    def __init__(self, stream_results: list[SynapseStreamResult], uids: torch.LongTensor, timeout: float):
         self.uids = uids
         self.completions = []
         self.status_messages = []

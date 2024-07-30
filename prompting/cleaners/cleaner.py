@@ -4,7 +4,7 @@ from prompting.cleaners.all_cleaners import BaseCleaner
 
 
 class CleanerPipeline(BaseModel):
-    cleaning_pipeline: list[BaseCleaner]
+    cleaning_pipeline: list[BaseCleaner] = []
 
     def apply(self, generation: str) -> str:
         """Apply cleaning steps to generation listed in cleaning_pipeline.

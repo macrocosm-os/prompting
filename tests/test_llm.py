@@ -1,6 +1,7 @@
 import pytest
 
-from prompting.llms import BaseLLM, BasePipeline, load_vllm_pipeline
+from prompting.llms.base_llm import BaseLLM, BasePipeline
+from prompting.llms.vllm_llm import load_vllm_pipeline
 from prompting.llms.utils import (
     contains_gpu_index_in_device,
     calculate_gpu_requirements,

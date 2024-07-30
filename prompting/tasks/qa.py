@@ -1,8 +1,14 @@
 from prompting.rewards.rouge import RougeRewardModel
 import bittensor as bt
-from prompting.tasks import Task
-from prompting.cleaners.all_cleaners import RemoveRoles, RemoveQuotes, PruneEnding
-from prompting.cleaners.all_cleaners import RemovePostQuestionText
+from prompting.tasks.task import Task, WeightedRewardModel
+
+# from prompting.rewards.reward import BaseRewardModel
+from prompting.cleaners.all_cleaners import RemoveRoles, RemoveQuotes, PruneEnding, RemovePostQuestionText
+from prompting.cleaners.cleaner import BaseCleaner
+from prompting.llms.base_llm import BasePipeline
+from prompting.shared import Context
+from pydantic import model_validator
+from prompting.tasks.task import BaseRewardConfig
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 
@@ -66,49 +72,42 @@ Ensure your answer references relevant parts of the conversation history. Use th
 """
 
 
+class QARewardConfig(BaseRewardConfig):
+    reward_definitions: list[WeightedRewardModel] = [WeightedRewardModel(weight=1, reward_model=RougeRewardModel())]
+
+
 class QuestionAnsweringTask(Task):
-    name = "qa"
-    desc = "get help on answering a question"
-    goal = "to get the answer to the following question"
+    """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
+    context from a dataset to base the query on"""
 
-    reward_definition = [RougeRewardModel()]
-    # reward_definition = [
-    #     dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
-    #     dict(name="relevance", weight=0.5),
-    # ]
-    penalty_definition = [RougeRewardModel()]
-    # penalty_definition = [
-    #     dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
-    # ]
-
-    cleaning_pipeline = [
+    context: Context
+    llm_pipeline: BasePipeline
+    query: str | None = None
+    reference: str | None = None
+    cleaning_pipeline: list[BaseCleaner] = [
         RemoveQuotes,
         PruneEnding,
         RemoveRoles,
         RemovePostQuestionText,
     ]
+    create_reference: bool = True
+    history: str | None = None
 
-    def __init__(self, llm_pipeline, context, create_reference=True, history=None):
-        self.context = context
-
-        self.query_system_prompt = QUERY_SYSTEM_PROMPT
-        if history:
-            self.query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(context=context.content, history=history)
-            bt.logging.warning(f"Using history!!\n{history=}\n\n{context=}\n\n{self.query_prompt=}")
-        else:
-            self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
-
-        self.query = self.generate_query(llm_pipeline)
-
-        if history:
-            self.reference_prompt = FOLLOWUP_REFERENCE_PROMPT_TEMPLATE.format(
-                context=context.content, question=self.query, history=history
+    @model_validator(mode="after")
+    def make_query(self) -> "QuestionAnsweringTask":
+        if self.history:
+            query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(context=self.context.content, history=self.history)
+            reference_prompt = FOLLOWUP_REFERENCE_PROMPT_TEMPLATE.format(
+                context=self.context.content, question=self.query, history=self.history
             )
+            bt.logging.warning(f"Using history!!\n{self.history=}\n\n{self.context=}\n\n{self.query_prompt=}")
         else:
-            self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content, question=self.query)
-        if create_reference:
-            self.reference = self.generate_reference(llm_pipeline)
+            query_prompt = QUERY_PROMPT_TEMPLATE.format(context=self.context.content)
+            reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=self.context.content, question=self.query)
 
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
+        self.query = self.generate_query(self.llm_pipeline, query_prompt=query_prompt)
+        if self.create_reference:
+            self.reference = self.generate_reference(self.llm_pipeline, reference_prompt=reference_prompt)
+        self.topic = self.context.title
+        self.subtopic = self.context.topic
+        self.tags = self.context.tags

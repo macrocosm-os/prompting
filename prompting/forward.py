@@ -27,8 +27,8 @@ from prompting.agent import HumanAgent
 from prompting.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.conversation import create_task
 from prompting.protocol import StreamPromptingSynapse
-from prompting.rewards import RewardResult
-from prompting.tasks import QuestionAnsweringTask
+from prompting.rewards.reward import RewardResult
+from prompting.tasks.qa import QuestionAnsweringTask
 from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
@@ -242,7 +242,6 @@ async def forward(self):
         try:
             task = create_task(
                 llm_pipeline=self.llm_pipeline,
-                translation_pipeline=self.translation_pipeline,
                 task_name=task_name,
                 create_reference=False,
             )

@@ -18,8 +18,8 @@ import textwrap
 import time
 import bittensor as bt
 from dataclasses import asdict
-from prompting.tasks import Task
-from prompting.llms import vLLM_LLM
+from prompting.tasks.task import Task
+from prompting.llms.vllm_llm import vLLM_LLM
 
 from prompting.persona import Persona, create_persona
 

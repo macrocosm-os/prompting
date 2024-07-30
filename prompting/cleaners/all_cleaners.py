@@ -2,9 +2,10 @@ from abc import ABC, abstractmethod
 from typing import Union
 import bittensor as bt
 import re
+from pydantic import BaseModel
 
 
-class BaseCleaner(ABC):
+class BaseCleaner(ABC, BaseModel):
     @abstractmethod
     def __init__(self, **kwargs):
         pass

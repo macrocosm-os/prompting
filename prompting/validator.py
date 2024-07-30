@@ -2,8 +2,8 @@ import bittensor as bt
 from prompting.forward import forward
 from prompting.llms import vLLMPipeline
 from prompting.base.validator import BaseValidatorNeuron
-from prompting.rewards import RewardPipeline
-from prompting.tasks.translate import TranslationPipeline
+
+# from prompting.tasks.translate import TranslationPipeline
 
 
 class Validator(BaseValidatorNeuron):
@@ -24,7 +24,7 @@ class Validator(BaseValidatorNeuron):
             device=self.device,
             mock=self.config.mock,
         )
-        self.translation_pipeline = TranslationPipeline()
+        # self.translation_pipeline = TranslationPipeline()
 
         if abs(1 - sum(self.config.neuron.task_p)) > 0.001:
             raise ValueError("Task probabilities do not sum to 1.")
@@ -32,7 +32,7 @@ class Validator(BaseValidatorNeuron):
         # Filter out tasks with 0 probability
         self.active_tasks = [task for task, p in zip(self.config.neuron.tasks, self.config.neuron.task_p) if p > 0]
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
+        # self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
 
     async def forward(self):
         """

@@ -1,15 +1,24 @@
 import bittensor as bt
 from abc import ABC, abstractmethod
 from prompting.cleaners.cleaner import CleanerPipeline
-from typing import Any, Dict, List
+from typing import Any
+from pydantic import BaseModel
+from vllm import LLM
 
 
-class BasePipeline(ABC):
+class BasePipeline(ABC, BaseModel):
     @abstractmethod
     def __call__(self, composed_prompt: str, **kwargs: dict) -> Any: ...
 
 
 class BaseLLM(ABC):
+    llm_pipeline: LLM
+    system_prompt: str
+    model_kwargs: dict
+    messages: list[dict] = []
+    times: list[int] = []
+    tokenizer: Any = None
+
     def __init__(
         self,
         llm_pipeline: BasePipeline,
@@ -30,7 +39,7 @@ class BaseLLM(ABC):
         cleaner: CleanerPipeline = None,
     ) -> str: ...
 
-    def forward(self, messages: List[Dict[str, str]]): ...
+    def forward(self, messages: list[dict[str, str]]): ...
 
     def clean_response(self, cleaner: CleanerPipeline, response: str) -> str:
         clean_response = cleaner.apply(generation=response)

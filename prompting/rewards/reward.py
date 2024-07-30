@@ -1,19 +1,13 @@
 import torch
 import time
-from typing import Optional
+from typing import Optional, Literal
 from abc import ABC, abstractmethod
-from enum import Enum
 from prompting.dendrite import DendriteResponseEvent
-from pydantic import BaseModel
-from prompting.rewards import BaseRewardModel
-from prompting.agent import HumanAgent
+from pydantic import BaseModel, ConfigDict
+from prompting.llms.base_llm import BaseLLM
 from pydantic import model_validator
 
-
-class RewardModelTypeEnum(Enum):
-    WEIGHTED_REWARD = "reward"
-    FILTER_REWARD = "filter"
-    PENALTY = "penalty"
+RewardTypeLiteral = Literal["reward", "penalty"]
 
 
 class RewardEvent(BaseModel):
@@ -23,9 +17,10 @@ class RewardEvent(BaseModel):
     rewards: torch.FloatTensor
     rewards_normalized: torch.FloatTensor
     timings: torch.FloatTensor
-    model_type: RewardModelTypeEnum
+    model_type: RewardTypeLiteral
     batch_time: float
     extra_info: dict
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
@@ -42,9 +37,56 @@ class RewardEvent(BaseModel):
         return [round(float(element), decimals) for element in tensor]
 
 
+class BatchRewardOutput(BaseModel):
+    rewards: torch.FloatTensor
+    timings: torch.FloatTensor
+    extra_info: dict
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @property
+    def rewards_normalized(self) -> torch.FloatTensor:
+        return self.rewards / sum(self.rewards)
+
+    def __post_init__(self):
+        if self.rewards.shape != self.timings.shape:
+            raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
+
+        self.rewards_normalized = (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min() + 1e-6)
+
+
+class BaseRewardModel(ABC, BaseModel):
+    @property
+    @abstractmethod
+    def name(self) -> str: ...
+
+    @abstractmethod
+    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+        pass
+
+    def apply(
+        self, reference: str, response_event: DendriteResponseEvent, reward_type: Literal["reward", "penalty"]
+    ) -> RewardEvent:
+        t0 = time.time()
+        batch_rewards_output: BatchRewardOutput = self.reward(reference, response_event)
+        batch_rewards_time = time.time() - t0
+
+        return RewardEvent(
+            model_name=self.__class__.__name__,
+            rewards=batch_rewards_output.rewards,
+            rewards_normalized=batch_rewards_output.rewards_normalized,
+            model_type=reward_type,
+            batch_time=batch_rewards_time,
+            extra_info=batch_rewards_output.extra_info,
+            timings=batch_rewards_output.timings,
+        )
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(name={self.name})"
+
+
 class RewardResult(BaseModel):
     reward_pipeline: list[BaseRewardModel]
-    agent: HumanAgent
+    agent: BaseLLM
     response_event: DendriteResponseEvent
     device: str
     task_rewards: Optional[list[BaseRewardModel]]
@@ -52,6 +94,7 @@ class RewardResult(BaseModel):
     reward_events: Optional[list[RewardEvent]]
     penalty_events: Optional[list[RewardEvent]]
     rewards: torch.FloatTensor
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="after")
     def compute_rewards(self) -> "RewardResult":
@@ -60,17 +103,17 @@ class RewardResult(BaseModel):
         self.reward_events = self.reward_responses(
             reference=self.agent.task.reference,
             models=self.task_rewards,
-            reward_type=RewardModelTypeEnum.WEIGHTED_REWARD,
+            reward_type="reward",
         )
         self.penalty_events = self.reward_responses(
             reference=self.agent.challenge,
             models=self.task_penalties,
-            reward_type=RewardModelTypeEnum.PENALTY,
+            reward_type="penalty",
         )
         self.rewards = self.total_reward()
 
     def reward_responses(
-        self, reference: str, models: list[BaseRewardModel], reward_type: RewardModelTypeEnum
+        self, reference: str, models: list[BaseRewardModel], reward_type: RewardTypeLiteral
     ) -> list[RewardEvent]:
         """Calculates the rewards for the responses given the task and returns a RewardEvent for each reward model
         reward_events: List[RewardEvent] = [
@@ -106,45 +149,3 @@ class RewardResult(BaseModel):
 
     def __str__(self):
         return f"{self.__class__.__name__}(rewards={self.rewards!r}, reward_events={self.reward_events!r}, penalty_events={self.penalty_events!r})"
-
-
-class BatchRewardOutput(BaseModel):
-    rewards: torch.FloatTensor
-    timings: torch.FloatTensor
-    extra_info: dict
-
-    def __post_init__(self):
-        if self.rewards.shape != self.timings.shape:
-            raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
-
-        self.rewards_normalized = (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min() + 1e-6)
-
-
-class BaseRewardModel(ABC, BaseModel):
-    @property
-    @abstractmethod
-    def name(self) -> str: ...
-
-    @abstractmethod
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
-        pass
-
-    def apply(
-        self, reference: str, response_event: DendriteResponseEvent, reward_type: RewardModelTypeEnum
-    ) -> RewardEvent:
-        t0 = time.time()
-        batch_rewards_output = self.reward(reference, response_event)
-        batch_rewards_time = time.time() - t0
-
-        return RewardEvent(
-            model_name=self.name,
-            rewards=batch_rewards_output.rewards,
-            rewards_normalized=batch_rewards_output.rewards_normalized,
-            model_type=reward_type,
-            batch_time=batch_rewards_time,
-            extra_info=batch_rewards_output.extra_info,
-            timings=batch_rewards_output.timings,
-        )
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(name={self.name})"
