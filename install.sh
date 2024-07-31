@@ -26,6 +26,3 @@ if ! command -v pm2 &> /dev/null
 then
     npm install pm2 -g
 fi
-
-# Updating PM2
-pm2 update
