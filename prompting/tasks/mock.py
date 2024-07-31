@@ -1,4 +1,4 @@
-from prompting.tasks.task import Task, WeightedRewardModel
+from prompting.tasks.task import BaseTask, WeightedRewardModel
 from prompting.rewards.float_diff import FloatDiffModel
 from prompting.shared import Context
 from prompting.tasks.task import BaseRewardConfig
@@ -9,7 +9,7 @@ class MockRewardConfig(BaseRewardConfig):
     reward_definitions: list[WeightedRewardModel] = [WeightedRewardModel(weight=1, reward_model=FloatDiffModel())]
 
 
-class MockTask(Task):
+class MockTask(BaseTask):
     static_reference: bool = True
     static_query: bool = True
     context: Context

@@ -7,27 +7,17 @@ from pydantic import BaseModel
 
 class BaseCleaner(ABC, BaseModel):
     @abstractmethod
-    def __init__(self, **kwargs):
-        pass
-
-    @abstractmethod
     def apply(self, generation: str) -> str:
         pass
 
 
 class RemoveQuotes(BaseCleaner):
-    def __init__(self, **kwargs) -> None:
-        pass
-
     def apply(self, generation: str) -> str:
         bt.logging.debug("Pruning unfinished sentence.")
         return generation.strip("\"'")
 
 
 class PruneEnding(BaseCleaner):
-    def __init__(self, **kwargs):
-        pass
-
     def apply(self, generation: str) -> str:
         punctuation_chars = [".", "?", "!"]
 
@@ -42,9 +32,6 @@ class PruneEnding(BaseCleaner):
 
 
 class RemoveRoles(BaseCleaner):
-    def __init__(self, **kwargs):
-        pass
-
     def capitalize_sentences(self, input_string):
         """capitalize the first character after .!?"""
         sentences = re.split(r"(?<=[.!?])\s+", input_string)
@@ -79,9 +66,6 @@ class RemoveRoles(BaseCleaner):
 
 
 class RemovePostQuestionText(BaseCleaner):
-    def __init__(self, **kwargs):
-        pass
-
     def apply(
         self,
         generation: str,
@@ -107,9 +91,6 @@ class RemovePostQuestionText(BaseCleaner):
 
 
 class RemoveTags(BaseCleaner):
-    def __init__(self, **kwargs):
-        pass
-
     def apply(self, generation: str) -> str:
         tags = [
             "<date>",
@@ -121,9 +102,6 @@ class RemoveTags(BaseCleaner):
 
 
 class FirstQuestion(BaseCleaner):
-    def __init__(self, **kwargs):
-        pass
-
     def apply(self, generation: str) -> str:
         if "?" in generation:
             if ":" in generation:

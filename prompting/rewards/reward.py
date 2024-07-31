@@ -60,10 +60,15 @@ class BaseRewardModel(ABC, BaseModel):
         pass
 
     def apply(
-        self, reference: str, response_event: DendriteResponseEvent, reward_type: Literal["reward", "penalty"]
+        self,
+        response_event: DendriteResponseEvent,
+        reference: str | None = None,
+        challenge: str | None = None,
+        reward_type: Literal["reward", "penalty"] = "reward",
     ) -> RewardEvent:
         t0 = time.time()
-        batch_rewards_output: BatchRewardOutput = self.reward(reference, response_event)
+        comparator = reference if reward_type == "reward" else challenge
+        batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event)
         batch_rewards_time = time.time() - t0
 
         return RewardEvent(

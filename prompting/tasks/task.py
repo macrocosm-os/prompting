@@ -1,4 +1,5 @@
 import time
+import textwrap
 import bittensor as bt
 from abc import ABC
 from pydantic import BaseModel
@@ -10,6 +11,7 @@ from prompting.rewards.reward import BaseRewardModel, RewardEvent
 from pydantic import model_validator
 from prompting.dendrite import DendriteResponseEvent
 import numpy as np
+from prompting.persona import Persona
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -76,7 +78,7 @@ class BaseRewardConfig(ABC, BaseModel):
     def check_summation(self) -> "BaseRewardConfig":
         assert sum([r.weight for r in self.reward_definitions]) == 1, "All rewards must sum to one"
 
-    def apply(self, reference, response_event: DendriteResponseEvent):
+    def apply(self, response_event: DendriteResponseEvent, reference: str, query: str) -> list[float]:
         for weighted_reward in self.reward_definitions:
             self.reward_events = []
             self.reward_events.append(
@@ -94,25 +96,25 @@ class BaseRewardConfig(ABC, BaseModel):
                 WeightedRewardEvent(
                     weight=weighted_reward.weight,
                     reward_event=weighted_reward.reward_model.apply(
-                        reference=reference, response_event=response_event, reward_type="penalty"
+                        reference=query, response_event=response_event, reward_type="penalty"
                     ),
                 )
             )
         return self.final_reward
 
 
-class Task(ABC, BaseModel):
+class BaseTask(ABC, BaseModel):
     context: dict
-    reward_config: BaseRewardConfig
+    augment: bool = False
 
     query: str | None = None
+    augmented_query: str | None = None
+
     reward_threshold: float = 0.0
     reference: Union[str, list[str]] = ""
     criteria: str = ("",)
     delimiter: str = ""
     complete: bool = False
-    static_reference: bool = False
-    static_query: bool = False
     reference_prompt: str = ""
     query_system_prompt: str = ""
     query_prompt: str = ""
@@ -123,43 +125,69 @@ class Task(ABC, BaseModel):
     reference_time: int | None = None
 
     def __str__(self):
-        return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
+        return f"{self.__class__.__name__}(name={self.__class__.__name__!r}, query={self.query!r}, reference={self.reference!r})"
 
     def __repr__(self):
         return str(self)
 
-    def generate(self, system: str, prompt: str, pipeline: BasePipeline, clean=True) -> str:
-        """Uses the llm to generate a response to a prompt"""
-        return vLLM_LLM(pipeline, system_prompt=system).query(message=prompt, cleaner=self.cleaner)
-
-    def generate_reference(self, pipeline: BasePipeline, reference_prompt: str, clean=True) -> str:
+    def generate_reference(self, pipeline: BasePipeline) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
-        t0 = time.time()
-        if not self.static_reference:
-            bt.logging.info("🤖 Generating reference...")
-            self.reference = self.generate(
-                system=CHATTENSOR_SYSTEM_PROMPT(),
-                prompt=reference_prompt,
-                pipeline=pipeline,
-                clean=clean,
-            )
+        if len(self.reference_prompt) == 0:
+            bt.logging.error("Reference prompt is empty. Please provide a reference prompt.")
 
+        t0 = time.time()
+        bt.logging.info("🤖 Generating reference...")
+        self.reference = vLLM_LLM(pipeline, system_prompt=CHATTENSOR_SYSTEM_PROMPT()).query(
+            message=self.reference_prompt, cleaner=self.cleaner
+        )
         self.reference_time = time.time() - t0
         return self.reference
 
     def generate_query(
-        self, pipeline: BasePipeline, query_prompt: str, query_system_prompt: str | None = None, clean=True
+        self,
+        pipeline: BasePipeline,
+        query_system_prompt: str | None = None,
+        persona: Persona | None = None,
     ) -> str:
         """Generates a query to be used for generating the challenge"""
         t0 = time.time()
-        if not self.static_query:
-            bt.logging.info("🤖 Generating query...")
-            self.query = self.generate(
-                system=query_system_prompt,  # Could possibly add the chattensor system prompt to query but I don't think it adds anything
-                prompt=query_prompt,
-                pipeline=pipeline,
-                clean=clean,
-            )
+        bt.logging.info("🤖 Generating query...")
+        self.query = vLLM_LLM(pipeline, system_prompt=query_system_prompt).query(
+            message=self.query_prompt, cleaner=self.cleaner
+        )
+
+        if self.augment and persona:
+            self.augmented_query = self.augment_query(llm_pipeline=pipeline, persona=persona)
 
         self.query_time = time.time() - t0
         return self.query
+
+    def _system_prompt_template(self, persona: Persona) -> str:
+        return textwrap.dedent(
+            f"""This is a roleplaying game where you are impersonating a {persona.mood} human user who is using an AI to help you with a task.
+
+            The task is: {self.query}
+
+            Rephrase this query in a {persona.tone} tone, and ask the AI to help you with it. Be creative and have fun with testing the AI!
+        """
+        )
+
+    def augment_query(
+        self,
+        llm_pipeline: BasePipeline,
+        persona: Persona,
+    ) -> str:
+        """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
+
+        if self.challenge_type == "inference":
+            challenge = vLLM_LLM(
+                llm_pipeline=llm_pipeline, max_new_tokens=256, system_prompt=self._system_prompt_template(persona)
+            )
+        elif self.challenge_type == "query":
+            challenge = self.query
+        else:
+            bt.logging.error(
+                f"Task {self.__class__.__name__} has challenge type of: {self.challenge_type} which is not supported."
+            )
+
+        return challenge
