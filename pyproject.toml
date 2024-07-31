@@ -113,16 +113,16 @@ docstring-code-line-length = "dynamic"
 
 [tool.poetry.dependencies]
 python = ">=3.9 <3.11"
-transformers = "4.41.2"
+transformers = "4.43.3"
 mathgenerator = {git = "https://github.com/synapse-alpha/mathgenerator.git", rev = "main"}
 sympy = "^1.13.0"
 tqdm = "^4.66.4"
 requests = "^2.32.3"
 numpy = "1.22.4"
-bittensor = {git = "https://github.com/opentensor/bittensor.git", rev = "release/7.3.1"}
+bittensor = {git = "https://github.com/opentensor/bittensor.git", rev = "release/7.1.2"}
 pydantic = "^2.8.2"
 rouge = "^1.0.1"
-torch = "2.3.0"
+torch = "2.3.1"
 wandb = "^0.17.4"
 starlette = "^0.37.2"
 openai = "^1.35.13"
@@ -143,7 +143,8 @@ pytest = "^8.3.1"
 angle-emb = "0.4.3"
 
 # optional dependencies for some services to run
-vllm = { version = "0.4.3", optional = true }
+vllm = { version = "0.5.3.post1", optional = true }
+
 organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main", optional = true}
 
 [tool.poetry.extras]
