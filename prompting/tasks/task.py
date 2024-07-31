@@ -135,31 +135,23 @@ class BaseTask(ABC, BaseModel):
         if len(self.reference_prompt) == 0:
             bt.logging.error("Reference prompt is empty. Please provide a reference prompt.")
 
-        t0 = time.time()
         bt.logging.info("🤖 Generating reference...")
         self.reference = vLLM_LLM(pipeline, system_prompt=CHATTENSOR_SYSTEM_PROMPT()).query(
             message=self.reference_prompt, cleaner=self.cleaner
         )
-        self.reference_time = time.time() - t0
         return self.reference
 
     def generate_query(
         self,
         pipeline: BasePipeline,
-        query_system_prompt: str | None = None,
         persona: Persona | None = None,
     ) -> str:
         """Generates a query to be used for generating the challenge"""
-        t0 = time.time()
         bt.logging.info("🤖 Generating query...")
-        self.query = vLLM_LLM(pipeline, system_prompt=query_system_prompt).query(
-            message=self.query_prompt, cleaner=self.cleaner
-        )
+        self.query = vLLM_LLM(pipeline).query(message=self.query_prompt, cleaner=self.cleaner)
 
         if self.augment and persona:
             self.augmented_query = self.augment_query(llm_pipeline=pipeline, persona=persona)
-
-        self.query_time = time.time() - t0
         return self.query
 
     def _system_prompt_template(self, persona: Persona) -> str:
