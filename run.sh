@@ -3,7 +3,7 @@
 # Initialize variables
 script="neurons/validator.py"
 autoRunLoc=$(readlink -f "$0")
-proc_name="s1_validator_main_process" 
+proc_name="s1_validator_main_process"
 args=()
 version_location="./prompting/__init__.py"
 version="__version__"
@@ -18,20 +18,20 @@ then
 fi
 
 # Checks if $1 is smaller than $2
-# If $1 is smaller than or equal to $2, then true. 
+# If $1 is smaller than or equal to $2, then true.
 # else false.
 version_less_than_or_equal() {
     [  "$1" = "`echo -e "$1\n$2" | sort -V | head -n1`" ]
 }
 
 # Checks if $1 is smaller than $2
-# If $1 is smaller than $2, then true. 
+# If $1 is smaller than $2, then true.
 # else false.
 version_less_than() {
     [ "$1" = "$2" ] && return 1 || version_less_than_or_equal $1 $2
 }
 
-# Returns the difference between 
+# Returns the difference between
 # two versions as a numerical value.
 get_version_difference() {
     local tag1="$1"
@@ -80,7 +80,7 @@ read_version_value() {
 check_package_installed() {
     local package_name="$1"
     os_name=$(uname -s)
-    
+
     if [[ "$os_name" == "Linux" ]]; then
         # Use dpkg-query to check if the package is installed
         if dpkg-query -W -f='${Status}' "$package_name" 2>/dev/null | grep -q "installed"; then
@@ -208,7 +208,8 @@ echo "module.exports = {
   apps : [{
     name   : '$proc_name',
     script : '$script',
-    interpreter: 'python3',
+    interpreter: 'poetry',
+    interpreter_args: ['run', 'python3'],
     min_uptime: '5m',
     max_restarts: '5',
     args: [$joined_args]
@@ -237,8 +238,8 @@ if [ "$?" -eq 1 ]; then
                 echo "current version $current_version"
                 diff=$(get_version_difference $latest_version $current_version)
                 if [ "$diff" -eq 1 ]; then
-                    echo "current validator version:" "$current_version" 
-                    echo "latest validator version:" "$latest_version" 
+                    echo "current validator version:" "$current_version"
+                    echo "latest validator version:" "$latest_version"
 
                     # Pull latest changes
                     # Failed git pull will return a non-zero output
@@ -247,7 +248,9 @@ if [ "$?" -eq 1 ]; then
                         echo "New version published. Updating the local copy."
 
                         # Install latest changes just in case.
-                        pip install -e .
+                        pip install poetry -y
+                        poetry install --extras "validator"
+                        poetry run pip uninstall uvloop -y
 
                         # # Run the Python script with the arguments using pm2
                         # TODO (shib): Remove this pm2 del in the next spec version update.
@@ -267,7 +270,7 @@ if [ "$?" -eq 1 ]; then
                         echo "It appears you have made changes on your local copy. Please stash your changes using git stash."
                     fi
                 else
-                    # current version is newer than the latest on git. This is likely a local copy, so do nothing. 
+                    # current version is newer than the latest on git. This is likely a local copy, so do nothing.
                     echo "**Will not update**"
                     echo "The local version is $diff versions behind. Please manually update to the latest version and re-run this script."
                 fi
@@ -278,7 +281,7 @@ if [ "$?" -eq 1 ]; then
         else
             echo "The installation does not appear to be done through Git. Please install from source at https://github.com/macrocosm-os/validators and rerun this script."
         fi
-        
+
         # Wait about 30 minutes
         # This should be plenty of time for validators to catch up
         # and should prevent any rate limitations by GitHub.
