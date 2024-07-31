@@ -24,7 +24,7 @@ fi
 # Check if pm2 is installed and install it if not
 if ! command -v pm2 &> /dev/null
 then
-    npm install pm2
+    npm install pm2 -g
 fi
 
 # Updating PM2
