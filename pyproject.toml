@@ -138,7 +138,7 @@ python-dotenv = "^1.0.1"
 pre-commit = "^3.7.1"
 ruff = "^0.5.2"
 flake8 = "^7.1.0"
-black = "^24.4.2"
+black = "23.7.0"
 pytest = "^8.3.1"
 angle-emb = "0.4.3"
 
