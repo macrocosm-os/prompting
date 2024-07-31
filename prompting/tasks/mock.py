@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from prompting.tasks import Task
 
+
 @dataclass
 class MockTask(Task):
     name = "mock"
@@ -18,11 +19,7 @@ class MockTask(Task):
     def __init__(self, llm_pipeline, context, create_reference=True):
         self.context = context
 
-        self.query = (
-            "How can I solve the following problem, "
-            + context.content
-            + "?"
-        )
+        self.query = "How can I solve the following problem, " + context.content + "?"
         self.reference = "This is the reference answer"
         self.topic = context.title
         self.subtopic = context.topic

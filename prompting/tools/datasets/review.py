@@ -1,16 +1,12 @@
-import random
-import functools
-
-import bittensor as bt
-from typing import Dict, Union, List, Tuple
 from .base import TemplateDataset
 
 
 class ReviewDataset(TemplateDataset):
     "Review dataset, which creates LLM prompts for writing reviews."
-    name = 'review'
+
+    name = "review"
     SENTIMENTS = ["positive", "neutral", "negative"]
-    # TODO: Expand the params to create a larger dataset, while maintaining the same quality. 
+    # TODO: Expand the params to create a larger dataset, while maintaining the same quality.
     query_template = "Create a {topic} review of a {title}. The review must be of {subtopic} sentiment."
     params = dict(
         topic=[
@@ -35,4 +31,3 @@ class ReviewDataset(TemplateDataset):
         ],
         subtopic=SENTIMENTS,
     )
-    

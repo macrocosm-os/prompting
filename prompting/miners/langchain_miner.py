@@ -38,6 +38,7 @@ from dotenv import load_dotenv, find_dotenv
 from langchain_core.runnables.base import RunnableSequence
 from deprecated import deprecated
 
+
 @deprecated(version="2.4.1+", reason="Class is deprecated, use openai miner for reference on example miner.")
 class LangchainMiner(BaseStreamPromptingMiner, OpenAIUtils):
     """Langchain-based miner which uses OpenAI's API as the LLM.
@@ -97,7 +98,7 @@ class LangchainMiner(BaseStreamPromptingMiner, OpenAIUtils):
                     buffer.append(token)
 
                     if time.time() - init_time > timeout_threshold:
-                        bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
+                        bt.logging.debug("⏰ Timeout reached, stopping streaming")
                         timeout_reached = True
                         break
 
@@ -115,9 +116,7 @@ class LangchainMiner(BaseStreamPromptingMiner, OpenAIUtils):
                         )
                         buffer = []
 
-                if (
-                    buffer and not timeout_reached
-                ):  # Don't send the last buffer of data if timeout.
+                if buffer and not timeout_reached:  # Don't send the last buffer of data if timeout.
                     joined_buffer = "".join(buffer)
                     await send(
                         {
@@ -144,9 +143,7 @@ class LangchainMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
         bt.logging.debug(f"📧 Message received, forwarding synapse: {synapse}")
 
-        prompt = ChatPromptTemplate.from_messages(
-            [("system", self.system_prompt), ("user", "{input}")]
-        )
+        prompt = ChatPromptTemplate.from_messages([("system", self.system_prompt), ("user", "{input}")])
         chain = prompt | self.model | StrOutputParser()
 
         role = synapse.roles[-1]

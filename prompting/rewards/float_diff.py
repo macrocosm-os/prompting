@@ -2,8 +2,9 @@ import time
 import torch
 from typing import List
 from sympy.parsing.sympy_parser import parse_expr
-from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
+from prompting.rewards import BaseRewardModel, BatchRewardOutput
 from prompting.dendrite import DendriteResponseEvent
+
 
 class FloatDiffModel(BaseRewardModel):
     @property

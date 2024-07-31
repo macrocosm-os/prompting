@@ -23,9 +23,7 @@ def test_mock_subtensor(netuid, n, wallet):
     assert len(neurons) == (n + 1 if wallet is not None else n)
     # Check wallet
     if wallet is not None:
-        assert subtensor.is_hotkey_registered(
-            netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address
-        )
+        assert subtensor.is_hotkey_registered(netuid=netuid, hotkey_ss58=wallet.hotkey.ss58_address)
 
     for neuron in neurons:
         assert type(neuron) == bt.NeuronInfo
@@ -70,9 +68,7 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
     async def run():
         return await mock_dendrite(
             axons,
-            synapse=StreamPromptingSynapse(
-                roles=["user"], messages=["What is the capital of France?"]
-            ),
+            synapse=StreamPromptingSynapse(roles=["user"], messages=["What is the capital of France?"]),
             timeout=timeout,
             deserialize=False,
         )
@@ -80,9 +76,7 @@ def test_mock_dendrite_timings(timeout, min_time, max_time, n):
     eps = 0.2
     responses = asyncio.run(run())
     for synapse in responses:
-        assert (
-            hasattr(synapse, "dendrite") and type(synapse.dendrite) == bt.TerminalInfo
-        )
+        assert hasattr(synapse, "dendrite") and type(synapse.dendrite) == bt.TerminalInfo
 
         dendrite = synapse.dendrite
         # check synapse.dendrite has (process_time, status_code, status_message)
