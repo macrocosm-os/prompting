@@ -284,7 +284,7 @@ def add_validator_args(cls, parser):
         "--neuron.model_id",
         type=str,
         help="The model to use for the validator.",
-        default="casperhansen/llama-3-70b-instruct-awq",
+        default="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
     )
 
     parser.add_argument(
@@ -508,7 +508,7 @@ def add_validator_args(cls, parser):
         type=str,
         help="Allow request from specific hotkey. Defaults to OTF hotkey.",
         # OTF hotkey.
-        default="5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
+        default="5EjqaAQfxp7vo3ss9Gpovp2nnguu1fVmGw5QfW3Ri8TWfCQZ",
     )
 
 

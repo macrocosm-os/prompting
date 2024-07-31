@@ -13,9 +13,15 @@ old_args=$@
 # Check if pm2 is installed
 if ! command -v pm2 &> /dev/null
 then
-    echo "pm2 could not be found. To install see: https://pm2.keymetrics.io/docs/usage/quick-start/"
+    echo "pm2 could not be found. Please run the install.sh script first."
     exit 1
 fi
+
+# Install poetry extras for the validator
+poetry install --extras "validator"
+
+# Uninstall uvloop
+poetry run pip uninstall -y uvloop
 
 # Checks if $1 is smaller than $2
 # If $1 is smaller than or equal to $2, then true. 
@@ -207,11 +213,18 @@ joined_args=${joined_args%,}
 echo "module.exports = {
   apps : [{
     name   : '$proc_name',
-    script : '$script',
+    script : 'poetry',
     interpreter: 'python3',
     min_uptime: '5m',
     max_restarts: '5',
-    args: [$joined_args]
+    args: ['run', 'python', 'neurons/validator.py', $joined_args]
+  }]
+}, {
+    name   : 'check_updates',
+    script : './scripts/check_updates.sh',
+    interpreter: '/bin/bash',
+    min_uptime: '5m',
+    max_restarts: '5'
   }]
 }" > app.config.js
 
@@ -219,71 +232,3 @@ echo "module.exports = {
 cat app.config.js
 
 pm2 start app.config.js
-
-# Check if packages are installed.
-check_package_installed "jq"
-if [ "$?" -eq 1 ]; then
-    while true; do
-
-        # First ensure that this is a git installation
-        if [ -d "./.git" ]; then
-
-            # check value on github remotely
-            latest_version=$(check_variable_value_on_github "macrocosm-os/prompting" "prompting/__init__.py" "__version__ ")
-
-            # If the file has been updated
-            if version_less_than $current_version $latest_version; then
-                echo "latest version $latest_version"
-                echo "current version $current_version"
-                diff=$(get_version_difference $latest_version $current_version)
-                if [ "$diff" -eq 1 ]; then
-                    echo "current validator version:" "$current_version" 
-                    echo "latest validator version:" "$latest_version" 
-
-                    # Pull latest changes
-                    # Failed git pull will return a non-zero output
-                    if git pull origin $branch; then
-                        # latest_version is newer than current_version, should download and reinstall.
-                        echo "New version published. Updating the local copy."
-
-                        # Install latest changes just in case.
-                        pip install -e .
-
-                        # # Run the Python script with the arguments using pm2
-                        # TODO (shib): Remove this pm2 del in the next spec version update.
-                        pm2 del auto_run_validator
-                        echo "Restarting PM2 process"
-                        pm2 restart $proc_name
-
-                        # Update current version:
-                        current_version=$(read_version_value)
-                        echo ""
-
-                        # Restart autorun script
-                        echo "Restarting script..."
-                        ./$(basename $0) $old_args && exit
-                    else
-                        echo "**Will not update**"
-                        echo "It appears you have made changes on your local copy. Please stash your changes using git stash."
-                    fi
-                else
-                    # current version is newer than the latest on git. This is likely a local copy, so do nothing. 
-                    echo "**Will not update**"
-                    echo "The local version is $diff versions behind. Please manually update to the latest version and re-run this script."
-                fi
-            else
-                echo "**Skipping update **"
-                echo "$current_version is the same as or more than $latest_version. You are likely running locally."
-            fi
-        else
-            echo "The installation does not appear to be done through Git. Please install from source at https://github.com/macrocosm-os/validators and rerun this script."
-        fi
-        
-        # Wait about 30 minutes
-        # This should be plenty of time for validators to catch up
-        # and should prevent any rate limitations by GitHub.
-        sleep 1800
-    done
-else
-    echo "Missing package 'jq'. Please install it for your system first."
-fi
