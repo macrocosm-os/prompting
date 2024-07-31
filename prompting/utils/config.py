@@ -294,15 +294,7 @@ def add_validator_args(cls, parser):
         help="The tasks to use for the validator.",
         default=list(TASKS.keys()),
     )
-    import argparse
-
-    def parse_probabilities(prob_list):
-        try:
-            # Convert each item in the list to a float
-            return [float(p) for p in prob_list]
-        except ValueError:
-            raise argparse.ArgumentTypeError("All probabilities must be floats.")
-        
+       
     import argparse
 
     def parse_probabilities(prob_list):
