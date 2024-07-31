@@ -140,14 +140,15 @@ ruff = "^0.5.2"
 flake8 = "^7.1.0"
 black = "^24.4.2"
 pytest = "^8.3.1"
+angle-emb = "0.4.3"
 
 # optional dependencies for some services to run
 vllm = { version = "0.5.3.post1", optional = true }
-angle-emb = { version = "0.4.3", optional = true }
+
 organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main", optional = true}
 
 [tool.poetry.extras]
-validator = ["vllm", "angle-emb", "organic-scoring"]
+validator = ["vllm", "organic-scoring"]
 
 [build-system]
 requires = ["poetry-core"]

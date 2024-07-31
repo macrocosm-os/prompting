@@ -3,7 +3,7 @@
 # Initialize variables
 script="neurons/validator.py"
 autoRunLoc=$(readlink -f "$0")
-proc_name="s1_validator_main_process" 
+proc_name="s1_validator_main_process"
 args=()
 version_location="./prompting/__init__.py"
 version="__version__"
@@ -24,20 +24,20 @@ poetry install --extras "validator"
 poetry run pip uninstall -y uvloop
 
 # Checks if $1 is smaller than $2
-# If $1 is smaller than or equal to $2, then true. 
+# If $1 is smaller than or equal to $2, then true.
 # else false.
 version_less_than_or_equal() {
     [  "$1" = "`echo -e "$1\n$2" | sort -V | head -n1`" ]
 }
 
 # Checks if $1 is smaller than $2
-# If $1 is smaller than $2, then true. 
+# If $1 is smaller than $2, then true.
 # else false.
 version_less_than() {
     [ "$1" = "$2" ] && return 1 || version_less_than_or_equal $1 $2
 }
 
-# Returns the difference between 
+# Returns the difference between
 # two versions as a numerical value.
 get_version_difference() {
     local tag1="$1"
@@ -86,7 +86,7 @@ read_version_value() {
 check_package_installed() {
     local package_name="$1"
     os_name=$(uname -s)
-    
+
     if [[ "$os_name" == "Linux" ]]; then
         # Use dpkg-query to check if the package is installed
         if dpkg-query -W -f='${Status}' "$package_name" 2>/dev/null | grep -q "installed"; then
@@ -211,6 +211,7 @@ joined_args=${joined_args%,}
 
 # Create the pm2 config file
 echo "module.exports = {
+
   apps: [
     {
       name: '$proc_name',
@@ -234,3 +235,4 @@ echo "module.exports = {
 cat app.config.js
 
 pm2 start app.config.js
+

@@ -63,7 +63,7 @@ If you have any questions please reach out in the SN1 channel in the Bittensor D
 </div>
 
 # How to Run
-You can use the following command to run a miner or a validator.
+You can use the following command to run a miner or a validator.  Since this is using [Poetry](https://python-poetry.org/docs/basic-usage/), you should run this either from the `poetry shell` (run this before running the python command) or you can add `poetry run` to the front of the `python` command.
 
 ```bash
 python <SCRIPT_PATH>
