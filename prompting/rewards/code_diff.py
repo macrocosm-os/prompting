@@ -4,7 +4,6 @@ from typing import List
 from prompting.rewards import (
     BaseRewardModel,
     BatchRewardOutput,
-    RewardModelTypeEnum,
 )
 from prompting.dendrite import DendriteResponseEvent
 import time
@@ -21,9 +20,7 @@ class DiffRewardModel(BaseRewardModel):
         self.threshold = threshold
 
     def unified_diff(self, reference, completion):
-        return len(
-            difflib.unified_diff(reference.splitlines(), completion.splitlines())
-        )
+        return len(difflib.unified_diff(reference.splitlines(), completion.splitlines()))
 
     def seq_match(self, reference, completion):
         return difflib.SequenceMatcher(None, reference, completion).ratio()

@@ -48,9 +48,7 @@ def check_config(cls, config: "bt.Config"):
 
     if not config.neuron.dont_save_events:
         # Add custom event logger for the events.
-        event_handler = logging.FileHandler(
-            os.path.join(config.neuron.full_path, "events.log")
-        )
+        event_handler = logging.FileHandler(os.path.join(config.neuron.full_path, "events.log"))
         event_handler.setLevel(38)  # Custom level
         formatter = logging.Formatter("{asctime} | {levelname} | {message}", style="{")
         event_handler.setFormatter(formatter)
@@ -128,9 +126,7 @@ def add_args(cls, parser):
         default=True,
     )
 
-    parser.add_argument(
-        "--wandb.off", action="store_true", help="Turn off wandb.", default=False
-    )
+    parser.add_argument("--wandb.off", action="store_true", help="Turn off wandb.", default=False)
 
     parser.add_argument(
         "--wandb.offline",
@@ -302,7 +298,7 @@ def add_validator_args(cls, parser):
             return [float(p) for p in prob_list]
         except ValueError:
             raise argparse.ArgumentTypeError("All probabilities must be floats.")
-        
+
     parser.add_argument(
         "--neuron.task_p",
         type=parse_probabilities,  # Use the custom parsing function
@@ -423,7 +419,7 @@ def add_validator_args(cls, parser):
         "--neuron.organic_sampling_mode",
         type=str,
         help="The mode for sampling miners using organic queries. Options include 'random' for random selection, "
-            "'top_incentive' for selecting based on highest incentives.",
+        "'top_incentive' for selecting based on highest incentives.",
         default="random",
     )
 
@@ -453,7 +449,7 @@ def add_validator_args(cls, parser):
         "--neuron.organic_reuse_response_disabled",
         action="store_true",
         help="If set, miner responses will be re-generated during reward generation. "
-             "The default behavior is to reuse responses.",
+        "The default behavior is to reuse responses.",
         default=False,
     )
 
@@ -510,7 +506,6 @@ def add_validator_args(cls, parser):
         # OTF hotkey.
         default="5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
     )
-
 
 
 def config(cls):

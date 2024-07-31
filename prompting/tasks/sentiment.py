@@ -11,7 +11,7 @@ class SentimentAnalysisTask(Task):
     name = "sentiment"
     desc = "get help analyzing the sentiment of a review"
     goal = "to get the sentiment to the following review"
-    challenge_type = 'paraphrase'
+    challenge_type = "paraphrase"
     challenge_template = SentimentChallengeTemplate()
 
     reward_definition = [
@@ -33,4 +33,4 @@ class SentimentAnalysisTask(Task):
         self.tags = context.tags
 
     def format_challenge(self, challenge) -> str:
-        return challenge.format(context = self.query)
+        return challenge.format(context=self.query)

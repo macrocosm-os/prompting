@@ -34,9 +34,7 @@ Things to test:
 def test_agent_creation_with_dataset_context(task: Task):
     context = CONTEXTS[task]
     task = task(llm_pipeline=mock_llm_pipeline(), context=context)
-    agent = HumanAgent(
-        llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True
-    )
+    agent = HumanAgent(llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True)
     assert agent is not None
 
 
@@ -44,9 +42,7 @@ def test_agent_creation_with_dataset_context(task: Task):
 def test_agent_contains_persona(task: Task):
     context = CONTEXTS[task]
     task = task(llm_pipeline=mock_llm_pipeline(), context=context)
-    agent = HumanAgent(
-        llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True
-    )
+    agent = HumanAgent(llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True)
     assert agent.persona is not None
 
 
@@ -68,9 +64,7 @@ def test_user_can_set_agent_persona(task: Task):
 def test_agent_contains_task(task: Task):
     context = CONTEXTS[task]
     task = task(llm_pipeline=mock_llm_pipeline(), context=context)
-    agent = HumanAgent(
-        llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True
-    )
+    agent = HumanAgent(llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True)
     assert agent.task is not None
 
 
@@ -78,9 +72,7 @@ def test_agent_contains_task(task: Task):
 def test_agent_has_system_prompt(task: Task):
     context = CONTEXTS[task]
     task = task(llm_pipeline=mock_llm_pipeline(), context=context)
-    agent = HumanAgent(
-        llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True
-    )
+    agent = HumanAgent(llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True)
     assert agent.system_prompt is not None
 
 
@@ -119,9 +111,7 @@ def test_agent_can_make_challenges(task: Task, begin_conversation: bool):
 def test_agent_progress_is_zero_on_init(task: Task):
     context = CONTEXTS[task]
     task = task(llm_pipeline=mock_llm_pipeline(), context=context)
-    agent = HumanAgent(
-        llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True
-    )
+    agent = HumanAgent(llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True)
     assert agent.progress == 0
 
 
@@ -130,9 +120,7 @@ def test_agent_progress_is_one_when_task_is_complete(task: Task):
     context = CONTEXTS[task]
     task = task(llm_pipeline=mock_llm_pipeline(), context=context)
     task.complete = True
-    agent = HumanAgent(
-        llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True
-    )
+    agent = HumanAgent(llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True)
     assert agent.progress == 1
 
 
@@ -141,9 +129,7 @@ def test_agent_finished_is_true_when_task_is_complete(task: Task):
     context = CONTEXTS[task]
     task = task(llm_pipeline=mock_llm_pipeline(), context=context)
     task.complete = True
-    agent = HumanAgent(
-        llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True
-    )
+    agent = HumanAgent(llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True)
     assert agent.finished == True
 
 
@@ -152,7 +138,5 @@ def test_agent_finished_is_false_when_task_is_not_complete(task: Task):
     context = CONTEXTS[task]
     task = task(llm_pipeline=mock_llm_pipeline(), context=context)
     task.complete = False
-    agent = HumanAgent(
-        llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True
-    )
+    agent = HumanAgent(llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True)
     assert agent.finished == False

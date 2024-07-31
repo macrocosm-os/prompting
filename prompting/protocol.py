@@ -84,9 +84,7 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
         description="Completion status of the current PromptingSynapse object. This attribute is mutable and can be updated.",
     )
 
-    async def process_streaming_response(
-        self, response: StreamingResponse
-    ) -> AsyncIterator[str]:
+    async def process_streaming_response(self, response: StreamingResponse) -> AsyncIterator[str]:
         """
         `process_streaming_response` is an asynchronous method designed to process the incoming streaming response from the
         Bittensor network. It's the heart of the StreamPromptingSynapse class, ensuring that streaming tokens, which represent
@@ -141,17 +139,10 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
                 - Roles and Messages pertaining to the current StreamPromptingSynapse instance.
                 - The accumulated completion.
         """
-        headers = {
-            k.decode("utf-8"): v.decode("utf-8")
-            for k, v in response.__dict__["_raw_headers"]
-        }
+        headers = {k.decode("utf-8"): v.decode("utf-8") for k, v in response.__dict__["_raw_headers"]}
 
         def extract_info(prefix):
-            return {
-                key.split("_")[-1]: value
-                for key, value in headers.items()
-                if key.startswith(prefix)
-            }
+            return {key.split("_")[-1]: value for key, value in headers.items() if key.startswith(prefix)}
 
         return {
             "name": headers.get("name", ""),

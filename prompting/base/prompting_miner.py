@@ -23,7 +23,8 @@ import prompting
 from prompting.protocol import StreamPromptingSynapse
 from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
-from typing import List, Dict
+from typing import List
+
 
 class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     """
@@ -41,9 +42,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         super().__init__(config=config)
         self.identity_tags = None
 
-    async def blacklist(
-        self, synapse: StreamPromptingSynapse
-    ) -> typing.Tuple[bool, str]:
+    async def blacklist(self, synapse: StreamPromptingSynapse) -> typing.Tuple[bool, str]:
         """
         Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
         define the logic for blacklisting requests based on your needs and desired security parameters.
@@ -75,14 +74,10 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         """
         if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
             # Ignore requests from unrecognized entities.
-            bt.logging.trace(
-                f"Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}"
-            )
+            bt.logging.trace(f"Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}")
             return True, "Unrecognized hotkey"
 
-        bt.logging.trace(
-            f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}"
-        )
+        bt.logging.trace(f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}")
         return False, "Hotkey recognized!"
 
     async def priority(self, synapse: StreamPromptingSynapse) -> float:
@@ -105,15 +100,9 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         Example priority logic:
         - A higher stake results in a higher priority value.
         """
-        caller_uid = self.metagraph.hotkeys.index(
-            synapse.dendrite.hotkey
-        )  # Get the caller index.
-        priority = float(
-            self.metagraph.S[caller_uid]
-        )  # Return the stake as the priority.
-        bt.logging.trace(
-            f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority
-        )
+        caller_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)  # Get the caller index.
+        priority = float(self.metagraph.S[caller_uid])  # Return the stake as the priority.
+        bt.logging.trace(f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority)
         return priority
 
     def init_wandb(self):
@@ -168,8 +157,8 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
     ):
         if not getattr(self, "wandb_run", None):
             self.init_wandb()
-                
-        dendrite_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)        
+
+        dendrite_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
         step_log = {
             "epoch_time": timing,
             # TODO: add block to logs in the future in a way that doesn't impact performance

@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from prompting.tasks import Task
 
 
-
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 
 # TODO: Also add a query system prompt and a query prompt template
@@ -45,9 +44,7 @@ class SummarizationTask(Task):
         # Query is just the article title and section name
         self.query = context.title
 
-        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
-            context=context.content
-        )
+        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content)
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
 

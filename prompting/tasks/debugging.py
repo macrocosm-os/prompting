@@ -41,11 +41,7 @@ def corrupt(
 
         # select n random chunks to remove
         indices = random.sample(
-            [
-                i
-                for i, chunk in enumerate(chunks)
-                if min_length <= len(chunk) <= max_length
-            ],
+            [i for i, chunk in enumerate(chunks) if min_length <= len(chunk) <= max_length],
             n,
         )
         bt.logging.info(
@@ -60,11 +56,7 @@ def corrupt(
 
         # select 2 random chunks to swap
         indices = random.sample(
-            [
-                i
-                for i, chunk in enumerate(chunks)
-                if min_length <= len(chunk) <= max_length
-            ],
+            [i for i, chunk in enumerate(chunks) if min_length <= len(chunk) <= max_length],
             2,
         )
 
@@ -81,13 +73,7 @@ def corrupt(
 
     # Do this at your peril. It doesn't catch multiline comments or strings.
     if remove_comment_lines:
-        code = "\n".join(
-            [
-                line
-                for line in code.splitlines()
-                if not line.strip() or line.strip().startswith("#", "//")
-            ]
-        )
+        code = "\n".join([line for line in code.splitlines() if not line.strip() or line.strip().startswith("#", "//")])
 
     # spread n corruptions across the code
     for i in range(n_remove):
