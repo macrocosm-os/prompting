@@ -294,7 +294,7 @@ def add_validator_args(cls, parser):
         help="The tasks to use for the validator.",
         default=list(TASKS.keys()),
     )
-       
+
     import argparse
 
     def parse_probabilities(prob_list):

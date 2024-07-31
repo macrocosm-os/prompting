@@ -14,7 +14,6 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
-
 import threading
 import time
 import bittensor as bt
@@ -86,6 +85,7 @@ class vLLMPipeline(BasePipeline):
         max_tokens = model_kwargs.get("max_tokens", 256)
 
         sampling_params = SamplingParams(temperature=temperature, top_p=top_p, max_tokens=max_tokens)
+
         with self._LOCK:
             output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
         response = output[0].outputs[0].text

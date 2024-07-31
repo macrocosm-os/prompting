@@ -28,6 +28,7 @@ import torch
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
+from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
 
@@ -110,7 +111,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
         if self.axon is not None:
             self._serve_axon()
-
         if self._organic_scoring is not None:
             self.loop.create_task(self._organic_scoring.start_loop())
 

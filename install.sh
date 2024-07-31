@@ -9,6 +9,9 @@ poetry config virtualenvs.in-project true
 # Install the project dependencies
 poetry install
 
+# Updating the package list and installing jq and npm
+apt update && apt install -y jq npm
+
 # Check if jq is installed and install it if not
 if ! command -v jq &> /dev/null
 then
