@@ -5,17 +5,19 @@ from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
 
 from prompting.tools.datasets.wiki import WikiDataset
 from prompting.tools.datasets.base import BaseDataset
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 import random
 from typing import ClassVar
 import bittensor as bt
 
 
 class TaskConfig(BaseModel):
-    task: ClassVar[BaseTask]
-    probability: ClassVar[float]
-    datasets: ClassVar[list[BaseDataset]]
-    reward_model: ClassVar[BaseRewardModel]
+    task: BaseTask.__class__
+    probability: float
+    datasets: list[BaseDataset.__class__]
+    reward_model: BaseRewardModel.__class__
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class TaskRegistry(BaseModel):
@@ -34,21 +36,21 @@ class TaskRegistry(BaseModel):
         return selected_task
 
     @classmethod
-    def get_task_datasets(cls, task: BaseTask):
+    def get_task_datasets(cls, task: BaseTask.__class__):
         try:
-            return [t.datasets for t in cls.tasks if isinstance(task, t.__class__)][0]
+            return [t.datasets for t in cls.tasks if task is t.task][0]
         except Exception:
             bt.logging.error("Tried accessing non-registered task")
             return []
 
     @classmethod
-    def get_random_task_dataset(cls, task: BaseTask) -> BaseDataset:
+    def get_random_task_dataset(cls, task: BaseTask.__class__) -> BaseDataset.__class__:
         return random.choice(cls.get_task_datasets(task))
 
     @classmethod
     def get_task_reward(cls, task: BaseTask) -> BaseRewardModel:
         try:
-            return [t.reward_model for t in cls.tasks if isinstance(task, t.__class__)][0]
+            return [t.reward_model for t in cls.tasks if task is t.task][0]
         except Exception:
             bt.logging.error("Tried accessing non-registered task")
             return []
@@ -58,5 +60,5 @@ class TaskRegistry(BaseModel):
         task_config = cls.random()
         dataset = cls.get_random_task_dataset(task_config.task)
         return task_config.task(
-            llm_pipeline=llm_pipeline, context=dataset.next(), reward_config=task_config.reward_model()
+            llm_pipeline=llm_pipeline, context=dataset().next(), reward_config=task_config.reward_model()
         )

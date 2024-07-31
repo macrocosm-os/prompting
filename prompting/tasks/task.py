@@ -148,7 +148,9 @@ class BaseTask(ABC, BaseModel):
     ) -> str:
         """Generates a query to be used for generating the challenge"""
         bt.logging.info("🤖 Generating query...")
-        self.query = vLLM_LLM(pipeline).query(message=self.query_prompt, cleaner=self.cleaner)
+        self.query = vLLM_LLM(pipeline, system_prompt=self._system_prompt_template(persona=persona)).query(
+            message=self.query_prompt, cleaner=self.cleaner
+        )
 
         if self.augment and persona:
             self.augmented_query = self.augment_query(llm_pipeline=pipeline, persona=persona)

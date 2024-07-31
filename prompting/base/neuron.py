@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import copy
 import sys
 
 import bittensor as bt
@@ -23,11 +22,12 @@ import bittensor as bt
 from abc import ABC, abstractmethod
 
 # Sync calls set weights and also resyncs the metagraph.
-from prompting.utils.config import check_config, add_args, config
+from prompting.utils.config import config
 from prompting.utils.misc import ttl_get_block
 from prompting import __spec_version__ as spec_version
 
 from prompting.mock import MockSubtensor, MockMetagraph
+from prompting import settings
 
 
 class BaseNeuron(ABC):
@@ -36,14 +36,6 @@ class BaseNeuron(ABC):
 
     In addition to creating a wallet, subtensor, and metagraph, this class also handles the synchronization of the network state via a basic checkpointing mechanism based on epoch length.
     """
-
-    @classmethod
-    def check_config(cls, config: "bt.Config"):
-        check_config(cls, config)
-
-    @classmethod
-    def add_args(cls, parser):
-        add_args(cls, parser)
 
     @classmethod
     def _config(cls):
@@ -59,16 +51,10 @@ class BaseNeuron(ABC):
         return ttl_get_block(self)
 
     def __init__(self, config=None):
-        base_config = copy.deepcopy(config or BaseNeuron._config())
         self.config = self._config()
-        self.config.merge(base_config)
-        self.check_config(self.config)
-
-        # Set up logging with the provided configuration and directory.
-        bt.logging(config=self.config, logging_dir=self.config.full_path)
 
         # If a gpu is required, set the device to cuda:N (e.g. cuda:0)
-        self.device = self.config.neuron.device
+        self.device = settings.NEURON_DEVICE
 
         # Log the configuration for reference.
         bt.logging.info(self.config)
@@ -78,14 +64,14 @@ class BaseNeuron(ABC):
         bt.logging.info("Setting up bittensor objects.")
 
         # The wallet holds the cryptographic key pairs for the miner.
-        if self.config.mock:
+        if settings.MOCK:
             self.wallet = bt.MockWallet(config=self.config)
-            self.subtensor = MockSubtensor(self.config.netuid, wallet=self.wallet)
-            self.metagraph = MockMetagraph(netuid=self.config.netuid, subtensor=self.subtensor)
+            self.subtensor = MockSubtensor(settings.NETUID, wallet=self.wallet)
+            self.metagraph = MockMetagraph(netuid=settings.NETUID, subtensor=self.subtensor)
         else:
             self.wallet = bt.wallet(config=self.config)
             self.subtensor = bt.subtensor(config=self.config)
-            self.metagraph = self.subtensor.metagraph(self.config.netuid)
+            self.metagraph = self.subtensor.metagraph(settings.NETUID)
 
         bt.logging.info(f"Wallet: {self.wallet}")
         bt.logging.info(f"Subtensor: {self.subtensor}")
@@ -97,7 +83,7 @@ class BaseNeuron(ABC):
         # Each miner gets a unique identity (UID) in the network for differentiation.
         self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         bt.logging.info(
-            f"Running neuron on subnet: {self.config.netuid} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
+            f"Running neuron on subnet: {settings.NETUID} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
         )
         self.step = 0
 
@@ -126,11 +112,11 @@ class BaseNeuron(ABC):
     def check_registered(self):
         # --- Check for registration.
         if not self.subtensor.is_hotkey_registered(
-            netuid=self.config.netuid,
+            netuid=settings.NETUID,
             hotkey_ss58=self.wallet.hotkey.ss58_address,
         ):
             bt.logging.error(
-                f"Wallet: {self.wallet} is not registered on netuid {self.config.netuid}."
+                f"Wallet: {self.wallet} is not registered on netuid {settings.NETUID}."
                 f" Please register the hotkey using `btcli subnets register` before trying again"
             )
             sys.exit()
@@ -139,7 +125,7 @@ class BaseNeuron(ABC):
         """
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
-        return (self.block - self.metagraph.last_update[self.uid]) > self.config.neuron.epoch_length
+        return (self.block - self.metagraph.last_update[self.uid]) > settings.NEURON_EPOCH_LENGTH
 
     def should_set_weights(self) -> bool:
         # Don't set weights on initialization.
@@ -147,7 +133,7 @@ class BaseNeuron(ABC):
             return False
 
         # Check if enough epoch blocks have elapsed since the last epoch.
-        if self.config.neuron.disable_set_weights:
+        if settings.NEURON_DISABLE_SET_WEIGHTS:
             return False
 
         # If neuron has validator permit we assume its running the validator code. If it is a dual permit neuron then we check that it also has a set_weights method (only true if it is running validator neuron)
@@ -155,7 +141,7 @@ class BaseNeuron(ABC):
             return False
 
         # Define appropriate logic for when set weights.
-        return (self.block - self.metagraph.last_update[self.uid]) > self.config.neuron.epoch_length
+        return (self.block - self.metagraph.last_update[self.uid]) > settings.NEURON_EPOCH_LENGTH
 
     def save_state(self):
         pass

@@ -2,6 +2,7 @@ import torch
 import random
 import bittensor as bt
 from typing import List
+from prompting import settings
 
 
 def check_uid_availability(
@@ -61,17 +62,17 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
         uid_is_available = check_uid_availability(
             self.metagraph,
             uid,
-            self.config.neuron.vpermit_tao_limit,
+            settings.NEURON_VPERMIT_TAO_LIMIT,
             coldkeys,
             ips,
         )
         if not uid_is_available:
             continue
 
-        if self.config.neuron.query_unique_coldkeys:
+        if settings.NEURON_QUERY_UNIQUE_COLDKEYS:
             coldkeys.add(self.metagraph.axons[uid].coldkey)
 
-        if self.config.neuron.query_unique_ips:
+        if settings.NEURON_QUERY_UNIQUE_IPS:
             ips.add(self.metagraph.axons[uid].ip)
 
         if exclude is None or uid not in exclude:

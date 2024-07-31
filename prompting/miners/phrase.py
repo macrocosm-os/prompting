@@ -15,7 +15,6 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 import typing
-import argparse
 from functools import partial
 from starlette.types import Send
 
@@ -31,17 +30,6 @@ class PhraseMiner(BaseStreamPromptingMiner):
     This little fella responds with whatever phrase you give it.
     """
 
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
-        super().add_args(parser)
-
-        parser.add_argument(
-            "--neuron.phrase",
-            type=str,
-            help="The phrase to use when running a phrase (test) miner.",
-            default="Can you please repeat that?",
-        )
-
     def __init__(self, config=None):
         super().__init__(config=config)
 
@@ -55,7 +43,7 @@ class PhraseMiner(BaseStreamPromptingMiner):
                 }
             )
 
-        token_streamer = partial(_forward, self.config.neuron.phrase)
+        token_streamer = partial(_forward, "This is the phrase I'm saying!")
         return synapse.create_streaming_response(token_streamer)
 
     async def blacklist(self, synapse: StreamPromptingSynapse) -> typing.Tuple[bool, str]:

@@ -24,6 +24,7 @@ from prompting.protocol import StreamPromptingSynapse
 from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
 from typing import List
+from prompting import settings
 
 
 class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
@@ -109,7 +110,7 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         bt.logging.info("Initializing wandb...")
 
         uid = f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
-        net_uid = f"netuid_{self.config.netuid}"
+        net_uid = f"netuid_{settings.NETUID}"
         tags = [
             self.wallet.hotkey.ss58_address,
             net_uid,
@@ -139,10 +140,10 @@ class BaseStreamPromptingMiner(BaseStreamMinerNeuron):
         # inits wandb in case it hasn't been inited yet
         self.wandb_run = wandb.init(
             name=run_name,
-            project=self.config.wandb.project_name,
-            entity=self.config.wandb.entity,
-            config=self.config,
-            mode="online" if self.config.wandb.on else "offline",
+            project=settings.WANDB_PROJECT_NAME_MINER,
+            entity=settings.WANDB_ENTITY,
+            config=self.config,  # TODO: Check whether we really want this
+            mode="online" if settings.WANDB_ON else "offline",
             tags=tags,
         )
 

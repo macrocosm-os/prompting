@@ -19,7 +19,6 @@ import sys
 import copy
 import torch
 import asyncio
-import argparse
 import threading
 import bittensor as bt
 
@@ -28,19 +27,15 @@ from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
-from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
+
+from prompting import settings
 
 
 class BaseValidatorNeuron(BaseNeuron):
     """
     Base class for Bittensor validators. Your validator should inherit from this class.
     """
-
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
-        super().add_args(parser)
-        add_validator_args(cls, parser)
 
     def __init__(self, config=None):
         super().__init__(config=config)
@@ -49,7 +44,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
         # Dendrite lets us send messages to other nodes (axons) in the network.
-        if self.config.mock:
+        if settings.MOCK:
             self.dendrite = MockDendrite(wallet=self.wallet)
         else:
             self.dendrite = bt.dendrite(wallet=self.wallet)
@@ -63,7 +58,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.sync()
 
         # Serve axon to enable external connections.
-        if not self.config.neuron.axon_off:
+        if not settings.NEURON_AXON_OFF:
             self.serve_axon()
         else:
             bt.logging.warning("axon off, not serving ip to chain.")
@@ -86,7 +81,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
             try:
                 self.subtensor.serve_axon(
-                    netuid=self.config.netuid,
+                    netuid=settings.NETUID,
                     axon=self.axon,
                 )
             except Exception as e:
@@ -118,13 +113,13 @@ class BaseValidatorNeuron(BaseNeuron):
         # Check that validator is registered on the network.
         self.sync()
 
-        if not self.config.neuron.axon_off:
+        if not settings.NEURON_AXON_OFF:
             bt.logging.info(
-                f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
+                f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {settings.NETUID}"
             )
         else:
             bt.logging.info(
-                f"Running validator on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
+                f"Running validator on network: {self.config.subtensor.chain_endpoint} with netuid: {settings.NETUID}"
             )
 
         bt.logging.info(f"Validator starting at block: {self.block}")
@@ -134,10 +129,10 @@ class BaseValidatorNeuron(BaseNeuron):
             while True:
                 bt.logging.info(f"step({self.step}) block({self.block})")
 
-                forward_timeout = self.config.neuron.forward_max_time
+                forward_timeout = settings.NEURON_FORWARD_MAX_TIME
                 try:
-                    task = self.loop.create_task(self.forward())
-                    self.loop.run_until_complete(asyncio.wait_for(task, timeout=forward_timeout))
+                    forward = self.loop.create_task(self.forward())
+                    self.loop.run_until_complete(asyncio.wait_for(forward, timeout=forward_timeout))
                 except torch.cuda.OutOfMemoryError as e:
                     bt.logging.error(f"Out of memory error: {e}")
                     continue
@@ -243,7 +238,7 @@ class BaseValidatorNeuron(BaseNeuron):
         ) = bt.utils.weight_utils.process_weights_for_netuid(
             uids=self.metagraph.uids,
             weights=raw_weights.to("cpu").numpy(),
-            netuid=self.config.netuid,
+            netuid=settings.NETUID,
             subtensor=self.subtensor,
             metagraph=self.metagraph,
         )
@@ -263,7 +258,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Set the weights on chain via our subtensor connection.
         result = self.subtensor.set_weights(
             wallet=self.wallet,
-            netuid=self.config.netuid,
+            netuid=settings.NETUID,
             uids=uint_uids,
             weights=uint_weights,
             wait_for_finalization=False,
@@ -325,9 +320,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
-        alpha = self.config.neuron.moving_average_alpha
+        alpha = settings.NEURON_MOVING_AVERAGE_ALPHA
         self.scores = alpha * step_rewards + (1 - alpha) * self.scores
-        self.scores = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)
+        self.scores = (self.scores - settings.NEURON_DECAY_ALPHA).clamp(min=0)
         bt.logging.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):
@@ -341,7 +336,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 "scores": self.scores,
                 "hotkeys": self.hotkeys,
             },
-            self.config.neuron.full_path + "/state.pt",
+            settings.SAVE_PATH + "/state.pt",
         )
 
     def load_state(self):
@@ -349,7 +344,7 @@ class BaseValidatorNeuron(BaseNeuron):
         bt.logging.info("Loading validator state.")
 
         # Load the state of the validator from file.
-        state = torch.load(self.config.neuron.full_path + "/state.pt")
+        state = torch.load(settings.SAVE_PATH + "/state.pt")
         self.step = state["step"]
         self.scores = state["scores"]
         self.hotkeys = state["hotkeys"]

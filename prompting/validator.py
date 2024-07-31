@@ -1,13 +1,13 @@
-import bittensor as bt
 from prompting.llms.vllm_llm import vLLMPipeline
 from prompting.base.validator import BaseValidatorNeuron
-from prompting.forward import log_stream_results, log_event, handle_response
+from prompting.forward import log_stream_results, handle_response
 from prompting.dendrite import DendriteResponseEvent, StreamPromptingSynapse
 from prompting.task_registry import TaskRegistry
 import time
-import sys
 from prompting.utils.uids import get_random_uids
 from prompting.tasks.task import BaseTask
+from prompting import settings
+from loguru import logger
 
 
 class Validator(BaseValidatorNeuron):
@@ -18,25 +18,19 @@ class Validator(BaseValidatorNeuron):
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)
 
-        bt.logging.info("load_state()")
+        logger.info("load_state()")
         self.load_state()
 
         self.llm_pipeline = vLLMPipeline(
-            model_id=self.config.neuron.model_id,
-            gpus=self.config.neuron.gpus,
-            llm_max_allowed_memory_in_gb=self.config.neuron.llm_max_allowed_memory_in_gb,
+            llm_model_id=settings.NEURON_MODEL_ID_VALIDATOR,
+            gpus=settings.NEURON_GPUS,
+            llm_max_allowed_memory_in_gb=settings.NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB,
             device=self.device,
-            mock=self.config.mock,
+            mock=settings.MOCK,
         )
         # self.translation_pipeline = TranslationPipeline()
 
-        if abs(1 - sum(self.config.neuron.task_p)) > 0.001:
-            raise ValueError("Task probabilities do not sum to 1.")
-
         # Filter out tasks with 0 probability
-        self.active_tasks = [task for task, p in zip(self.config.neuron.tasks, self.config.neuron.task_p) if p > 0]
-        # Load the reward pipeline
-        # self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
 
     async def run_step(self, task: BaseTask, k: int, timeout: float, exclude: list = None):
         """Executes a single step of the agent, which consists of:
@@ -54,11 +48,11 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        bt.logging.debug("run_step", task.__class__.__name__)
+        logger.debug("run_step", task.__class__.__name__)
 
         # Generate the query and reference for the task
-        task.generate_query()
-        task.generate_reference()
+        task.generate_query(self.llm_pipeline)
+        task.generate_reference(self.llm_pipeline)
 
         # Record event start time.
         start_time = time.time()
@@ -88,14 +82,14 @@ class Validator(BaseValidatorNeuron):
         # Encapsulate the responses in a response event (dataclass)
         response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
 
-        bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
+        logger.info(f"Created DendriteResponseEvent:\n {response_event}")
 
         # Reward the responses and get the reward result (dataclass)
         # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
         reward_pipeline = TaskRegistry.get_task_reward(task)
         reward_event = reward_pipeline.apply(response_event, task.reference, task.augmented_query)
 
-        bt.logging.info(f"Created RewardResult:\n {reward_event}")
+        logger.info(f"Created RewardResult:\n {reward_event}")
 
         best_response = response_event.completions[reward_event.rewards.argmax()]
 
@@ -107,7 +101,7 @@ class Validator(BaseValidatorNeuron):
             "block": self.block,
             "step": self.step,
             "step_time": time.time() - start_time,
-            **reward_event.__dict__(full=self.config.neuron.log_full),
+            **reward_event.__dict__(full=settings.NEURON_LOG_FULL),
             **response_event.__dict__(),
         }
 
@@ -118,25 +112,18 @@ class Validator(BaseValidatorNeuron):
         Encapsulates a full conversation between the validator and miners. Contains one or more rounds of request-response.
 
         """
-        bt.logging.info("🚀 Starting forward loop...")
+        logger.info("🚀 Starting forward loop...")
         forward_start_time = time.time()
 
         while True:
-            bt.logging.info(
-                f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
-            )
-            # Create a specific task
-            # task_name = np.random.choice(self.config.neuron.tasks, p=self.config.neuron.task_p)
+            logger.info(f"📋 Selecting task... from {TaskRegistry.tasks}")
             task_config = TaskRegistry.random()
-            bt.logging.info(f"📋 Creating {task_config.task.__class__.__name__} task... ")
+            logger.info(f"📋 Creating {task_config.task.__name__} task... ")
             try:
                 task = TaskRegistry.create_random_task(llm_pipeline=self.llm_pipeline)
                 break
-            except Exception:
-                bt.logging.error(
-                    f"Failed to create {task_config.task.__class__.__name__} task. {sys.exc_info()}. Skipping to next task."
-                )
-                continue
+            except Exception as ex:
+                logger.exception(ex)
 
         turn = 0
         exclude_uids = []
@@ -144,31 +131,29 @@ class Validator(BaseValidatorNeuron):
         try:
             # when run_step is called, the agent updates its progress
             event = await self.run_step(
-                self,
                 task=task,
-                k=self.config.neuron.sample_size,
-                timeout=self.config.neuron.timeout,
+                k=settings.NEURON_SAMPLE_SIZE,
+                timeout=settings.NEURON_TIMEOUT,
                 exclude=exclude_uids,
             )
 
             # Adds forward time to event and logs it to wandb
             event["forward_time"] = time.time() - forward_start_time
             event["turn"] = turn
-            log_event(self, event)
             task.complete = True
 
             # accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
 
         except Exception as e:
-            bt.logging.error(f"Error in run_step: Skipping to next round. \n {e}")
+            logger.exception(f"{e}")
+            # logger.error(f"Error in run_step: Skipping to next round. \n {e}")
             event = {"unexpected_errors": e}
-            log_event(self, event)
 
         del task
 
     def __enter__(self):
-        if self.config.no_background_thread:
-            bt.logging.warning("Running validator in main thread.")
+        if settings.NO_BACKGROUND_THREAD:
+            logger.warning("Running validator in main thread.")
             self.run()
         else:
             self.run_in_background_thread()
@@ -189,8 +174,8 @@ class Validator(BaseValidatorNeuron):
                        None if the context was exited without an exception.
         """
         if self.is_running:
-            bt.logging.debug("Stopping validator in background thread.")
+            logger.debug("Stopping validator in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False
-            bt.logging.debug("Stopped")
+            logger.debug("Stopped")

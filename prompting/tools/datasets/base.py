@@ -35,31 +35,31 @@ class BaseDataset(ABC, BaseModel):
     max_tries: int = 10
 
     @abstractmethod
-    def search(self, name): ...
+    def search(self, name) -> Context: ...
 
     @abstractmethod
-    def random(self, name): ...
+    def random(self, name) -> Context: ...
 
     @abstractmethod
-    def get(self, name): ...
+    def get(self, name) -> Context: ...
 
     def next(
-        self, method: Literal["random", "search", "get"] = "get", selector: Selector = Selector(), **kwargs
+        self, method: Literal["random", "search", "get"] = "random", selector: Selector = Selector(), **kwargs
     ) -> Dict:
         tries = 1
         t0 = time.time()
 
+        context: Context  # for some reason the ls doesn't understand it's of type Context without this
         while True:
             # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
-            info = {}
             if method == "random":
-                info = self.random(selector=selector, **kwargs)
+                context = self.random(selector=selector, **kwargs)
             elif method == "search":
-                info = self.search(selector=selector, **kwargs)
+                context = self.search(selector=selector, **kwargs)
             elif method == "get":
-                info = self.get(selector=selector, **kwargs)
+                context = self.get(selector=selector, **kwargs)
 
-            if info:
+            if context:
                 break
 
             bt.logging.debug(
@@ -72,11 +72,11 @@ class BaseDataset(ABC, BaseModel):
                     f"Could not find any samples which meet {self.__class__.__name__} requirements after {tries} tries."
                 )
 
-        info["source"] = self.__class__.__name__
-        info["stats"] = {
+        context.source = self.__class__.__name__
+        context.stats = {
             "fetch_time": time.time() - t0,
             "num_tries": tries,
             "fetch_method": method,
             "next_kwargs": kwargs,
         }
-        return Context(**info)
+        return context

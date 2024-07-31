@@ -18,7 +18,6 @@
 import time
 import os
 import bittensor as bt
-import argparse
 from starlette.types import Send
 from functools import partial
 from typing import Awaitable
@@ -34,7 +33,7 @@ from dotenv import load_dotenv, find_dotenv
 from openai import OpenAI
 from traceback import print_exception
 
-# Define the type for a list of dictionaries
+from prompting import settings
 
 
 class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
@@ -43,20 +42,13 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
         You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
     """
 
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
-        """
-        Adds OpenAI-specific arguments to the command line parser.
-        """
-        super().add_args(parser)
-
     def __init__(self, config=None):
         super().__init__(config=config)
 
-        bt.logging.info(f"Initializing with model {self.config.neuron.model_id}...")
+        bt.logging.info(f"Initializing with model {settings.NEURON_MODEL_ID_MINER}...")
 
-        if self.config.wandb.on:
-            self.identity_tags = ("openai_miner",) + (self.config.neuron.model_id,)
+        if settings.WANDB_ON:
+            self.identity_tags = ("openai_miner",) + (settings.NEURON_MODEL_ID_MINER)
 
         _ = load_dotenv(find_dotenv())
         api_key = os.environ.get("OPENAI_API_KEY")
@@ -64,7 +56,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
         # Set openai key and other args
         self.model = OpenAI(api_key=api_key)
 
-        self.system_prompt = self.config.neuron.system_prompt
+        self.system_prompt = settings.NEURON_SYSTEM_PROMPT
         self.accumulated_total_tokens = 0
         self.accumulated_prompt_tokens = 0
         self.accumulated_completion_tokens = 0
@@ -95,10 +87,10 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
                 start_time = time.time()
                 stream_response = self.model.chat.completions.create(
-                    model=self.config.neuron.model_id,
+                    model=settings.NEURON_MODEL_ID_MINER,
                     messages=messages,
-                    temperature=self.config.neuron.temperature,
-                    max_tokens=self.config.neuron.max_tokens,
+                    temperature=settings.NEURON_TEMPERATURE,
+                    max_tokens=settings.NEURON_MAX_TOKENS,
                     stream=True,
                 )
 
@@ -119,7 +111,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                         timeout_reached = True
                         break
 
-                    if len(buffer) == self.config.neuron.streaming_batch_size:
+                    if len(buffer) == settings.NEURON_STREAMING_BATCH_SIZE:
                         joined_buffer = "".join(buffer)
                         temp_completion += joined_buffer
                         bt.logging.debug(f"Streamed tokens: {joined_buffer}")
@@ -146,12 +138,12 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             except Exception as e:
                 bt.logging.error(f"Error in forward: {e}")
                 bt.logging.error(print_exception(type(e), e, e.__traceback__))
-                if self.config.neuron.stop_on_forward_exception:
+                if settings.NEURON_STOP_ON_FORWARD_EXCEPTION:
                     self.should_exit = True
 
             finally:
                 synapse_latency = time.time() - init_time
-                if self.config.wandb.on:
+                if settings.WANDB_ON:
                     self.log_event(
                         synapse=synapse,
                         timing=synapse_latency,
