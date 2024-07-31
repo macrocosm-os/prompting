@@ -25,11 +25,9 @@ from typing import Optional
 
 import bittensor as bt
 import torch
-from organic_scoring.synth_dataset import SynthDatasetConversation
 
 from prompting.base.neuron import BaseNeuron
 from prompting.mock import MockDendrite
-from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
 from prompting.utils.config import add_validator_args
 from prompting.utils.exceptions import MaxRetryError
 
@@ -59,9 +57,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Set up initial scoring weights for validation
         bt.logging.info("Building validation weights.")
-        self.scores = torch.zeros(
-            self.metagraph.n, dtype=torch.float32, device=self.device
-        )
+        self.scores = torch.zeros(self.metagraph.n, dtype=torch.float32, device=self.device)
 
         # Init sync with the network. Updates the metagraph.
         self.sync()
@@ -80,6 +76,15 @@ class BaseValidatorNeuron(BaseNeuron):
         self.is_running: bool = False
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
+
+        try:
+            from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
+            from organic_scoring.synth_dataset import SynthDatasetConversation
+        except ImportError:
+            raise ImportError(
+                "Could not import organic-scoring library.  Please install via poetry: "
+                'poetry install --extras "validator" '
+            )
 
         self._organic_scoring: Optional[OrganicScoringPrompting] = None
         if self.axon is not None and not self.config.neuron.organic_disabled:
@@ -102,7 +107,7 @@ class BaseValidatorNeuron(BaseNeuron):
             bt.logging.warning(
                 "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
             )
-        
+
         if self.axon is not None:
             self._serve_axon()
 
@@ -156,9 +161,7 @@ class BaseValidatorNeuron(BaseNeuron):
                 forward_timeout = self.config.neuron.forward_max_time
                 try:
                     task = self.loop.create_task(self.forward())
-                    self.loop.run_until_complete(
-                        asyncio.wait_for(task, timeout=forward_timeout)
-                    )
+                    self.loop.run_until_complete(asyncio.wait_for(task, timeout=forward_timeout))
                 except torch.cuda.OutOfMemoryError as e:
                     bt.logging.error(f"Out of memory error: {e}")
                     continue
@@ -310,9 +313,7 @@ class BaseValidatorNeuron(BaseNeuron):
         if previous_metagraph.axons == self.metagraph.axons:
             return
 
-        bt.logging.info(
-            "Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages"
-        )
+        bt.logging.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
         # Zero out all hotkeys that have been replaced.
         for uid, hotkey in enumerate(self.hotkeys):
             if hotkey != self.metagraph.hotkeys[uid]:
@@ -341,9 +342,9 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Compute forward pass rewards, assumes uids are mutually exclusive.
         # shape: [ metagraph.n ]
-        step_rewards = self.scores.scatter(
-            0, torch.tensor(uids).to(self.device), rewards.to(self.device)
-        ).to(self.device)
+        step_rewards = self.scores.scatter(0, torch.tensor(uids).to(self.device), rewards.to(self.device)).to(
+            self.device
+        )
 
         bt.logging.debug(f"Scattered rewards: {rewards}")
 
