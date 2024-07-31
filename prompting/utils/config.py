@@ -308,8 +308,6 @@ def add_validator_args(cls, parser):
         "--neuron.task_p",
         type=parse_probabilities,  # Use the custom parsing function
         nargs="+",  # Allow multiple values
-        type=parse_probabilities,  # Use the custom parsing function
-        nargs="+",  # Allow multiple values
         help="The probability of sampling each task.",
         default=[1.0 / len(TASKS)] * len(TASKS),
     )
