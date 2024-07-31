@@ -14,11 +14,11 @@
 # THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
+
 import threading
 import time
 import bittensor as bt
 from typing import List, Dict, Optional, Any
-from vllm import LLM, SamplingParams
 from prompting.cleaners.cleaner import CleanerPipeline
 from prompting.llms import BasePipeline, BaseLLM
 from prompting.mock import MockPipeline
@@ -27,19 +27,27 @@ from prompting.llms.utils import calculate_gpu_requirements
 
 def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory_in_gb: int, mock=False):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
+
+    try:
+        from vllm import LLM
+    except ImportError:
+        raise ImportError(
+            "Could not import vllm library.  Please install via poetry: " 'poetry install --extras "validator" '
+        )
     if mock or model_id == "mock":
         return MockPipeline(model_id)
 
     # Calculates the gpu memory utilization required to run the model.
     max_allowed_memory_allocation_in_bytes = max_allowed_memory_in_gb * 1e9
-    gpu_mem_utilization = calculate_gpu_requirements(
-        device, gpus, max_allowed_memory_allocation_in_bytes
-    )
+    gpu_mem_utilization = calculate_gpu_requirements(device, gpus, max_allowed_memory_allocation_in_bytes)
 
     try:
         # Attempt to initialize the LLM
         llm = LLM(
             model=model_id, gpu_memory_utilization=gpu_mem_utilization, quantization="AWQ", tensor_parallel_size=gpus, max_model_len = 16384,
+        )
+        llm = LLM(
+            model=model_id, gpu_memory_utilization=gpu_mem_utilization, quantization="AWQ", tensor_parallel_size=gpus
         )
         # This solution implemented by @bkb2135 sets the eos_token_id directly for efficiency in vLLM usage.
         # This approach avoids the overhead of loading a tokenizer each time the custom eos token is needed.
@@ -48,23 +56,15 @@ def load_vllm_pipeline(model_id: str, device: str, gpus: int, max_allowed_memory
         llm.llm_engine.tokenizer.eos_token_id = 128009
         return llm
     except Exception as e:
-        bt.logging.error(
-            f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}"
-        )
+        bt.logging.error(f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}")
         raise e
-        
 
 
 class vLLMPipeline(BasePipeline):
     _LOCK = threading.Lock()
 
     def __init__(
-        self,
-        model_id: str,
-        llm_max_allowed_memory_in_gb: int,
-        device: str = None,
-        gpus: int = 1,
-        mock: bool = False
+        self, model_id: str, llm_max_allowed_memory_in_gb: int, device: str = None, gpus: int = 1, mock: bool = False
     ):
         super().__init__()
         self.llm = load_vllm_pipeline(model_id, device, gpus, llm_max_allowed_memory_in_gb, mock)
@@ -73,6 +73,13 @@ class vLLMPipeline(BasePipeline):
         self.tokenizer = self.llm.llm_engine.tokenizer.tokenizer
 
     def __call__(self, composed_prompt: str, **model_kwargs: Dict) -> str:
+        try:
+            from vllm import SamplingParams
+        except ImportError:
+            raise ImportError(
+                "Could not import vllm library.  Please install via poetry: " 'poetry install --extras "validator" '
+            )
+
         if self.mock:
             return self.llm(composed_prompt, **model_kwargs)
 
@@ -81,9 +88,7 @@ class vLLMPipeline(BasePipeline):
         top_p = model_kwargs.get("top_p", 0.95)
         max_tokens = model_kwargs.get("max_tokens", 256)
 
-        sampling_params = SamplingParams(
-            temperature=temperature, top_p=top_p, max_tokens=max_tokens
-        )
+        sampling_params = SamplingParams(temperature=temperature, top_p=top_p, max_tokens=max_tokens)
         with self._LOCK:
             output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
         response = output[0].outputs[0].text
@@ -123,7 +128,7 @@ class vLLM_LLM(BaseLLM):
         cleaner: Optional[CleanerPipeline] = None,
     ):
         """Query LLM with the given lists of conversation history and roles
-        
+
         Args:
             messages (list[str]): List of messages in the conversation.
             roles (list[str]): List of roles for each message.
@@ -179,9 +184,7 @@ class vLLM_LLM(BaseLLM):
         composed_prompt = self._make_prompt(messages)
         response = self.llm_pipeline(composed_prompt, **self.model_kwargs)
 
-        bt.logging.info(
-            f"{self.__class__.__name__} generated the following output:\n{response}"
-        )
+        bt.logging.info(f"{self.__class__.__name__} generated the following output:\n{response}")
 
         return response
 

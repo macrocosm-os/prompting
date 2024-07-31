@@ -303,8 +303,19 @@ def add_validator_args(cls, parser):
         except ValueError:
             raise argparse.ArgumentTypeError("All probabilities must be floats.")
         
+    import argparse
+
+    def parse_probabilities(prob_list):
+        try:
+            # Convert each item in the list to a float
+            return [float(p) for p in prob_list]
+        except ValueError:
+            raise argparse.ArgumentTypeError("All probabilities must be floats.")
+        
     parser.add_argument(
         "--neuron.task_p",
+        type=parse_probabilities,  # Use the custom parsing function
+        nargs="+",  # Allow multiple values
         type=parse_probabilities,  # Use the custom parsing function
         nargs="+",  # Allow multiple values
         help="The probability of sampling each task.",
@@ -508,7 +519,7 @@ def add_validator_args(cls, parser):
         type=str,
         help="Allow request from specific hotkey. Defaults to OTF hotkey.",
         # OTF hotkey.
-        default="5EjqaAQfxp7vo3ss9Gpovp2nnguu1fVmGw5QfW3Ri8TWfCQZ",
+        default="5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
     )
 
 
