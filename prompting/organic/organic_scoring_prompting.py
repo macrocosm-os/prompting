@@ -358,7 +358,6 @@ class OrganicScoringPrompting(OrganicScoringBase):
         logs.update(rewards["reward"].__state_dict__(full=self._val.config.neuron.log_full))
         log_event(self._val, logs)
 
-
         # === Debugging CSV ===
         def write(file: str):
             with open(file, mode="a", newline="") as file:
