@@ -211,22 +211,24 @@ joined_args=${joined_args%,}
 
 # Create the pm2 config file
 echo "module.exports = {
-  apps : [{
-    name   : '$proc_name',
-    script : 'poetry',
-    interpreter: 'python3',
-    min_uptime: '5m',
-    max_restarts: '5',
-    args: ['run', 'python', 'neurons/validator.py', $joined_args]
-  }]
-}, {
-    name   : 'check_updates',
-    script : './scripts/check_updates.sh',
-    interpreter: '/bin/bash',
-    min_uptime: '5m',
-    max_restarts: '5'
-  }]
-}" > app.config.js
+  apps: [
+    {
+      name: '$proc_name',
+      script: 'poetry',
+      interpreter: 'python3',
+      min_uptime: '5m',
+      max_restarts: '5',
+      args: ['run', 'python', 'neurons/validator.py', $joined_args]
+    },
+    {
+      name: 'check_updates',
+      script: './scripts/check_updates.sh',
+      interpreter: '/bin/bash',
+      min_uptime: '5m',
+      max_restarts: '5'
+    }
+  ]
+};" > app.config.js
 
 # Print configuration to be used
 cat app.config.js
