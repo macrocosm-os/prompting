@@ -14,12 +14,15 @@ DATASETS = [
     MathDataset,
 ]
 
+def select_first(list):
+    return list[0]
 
 MOCK_CONTEXT = MockDataset().next()
-WIKI_CONTEXT = WikiDataset().next(name="Emilio Alvarez (bishop)", method="get")
+WIKI_CONTEXT= WikiDataset().next(name="Emilio Alvarez (bishop)", method="get", selector=select_first)
 CODING_CONTEXT = HFCodingDataset(buffer_size=1, seed=42).next()
 MATH_CONTEXT = MathDataset(seed=123).next()
 DATEQA_CONTEXT = WikiDateDataset(seed=123).next()
+
 
 CONTEXTS = {
     MockDataset: MOCK_CONTEXT,

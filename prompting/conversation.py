@@ -1,6 +1,6 @@
 import random
 from transformers import Pipeline
-from prompting.tasks import Task, TASKS, TranslationPipeline, TranslationTask
+from prompting.tasks import Task, TASKS, TranslationPipeline, TranslationTask, SummarizationTask
 from prompting.tools import Selector, DATASETS
 from prompting.task_registry import TASK_REGISTRY
 
@@ -48,6 +48,12 @@ def create_task(
         return task(            
             translation_pipeline=translation_pipeline,
             context=dataset.next()
+        )
+    elif task_name == SummarizationTask.name:
+        return task(
+        llm_pipeline=llm_pipeline,
+        context=dataset.next(selector = "all"),
+        create_reference=create_reference,
         )
 
     return task(

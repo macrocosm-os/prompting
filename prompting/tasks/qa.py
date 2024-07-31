@@ -92,7 +92,7 @@ class QuestionAnsweringTask(Task):
             self.query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(context=context.content, history=history)
             bt.logging.warning(f'Using history!!\n{history=}\n\n{context=}\n\n{self.query_prompt=}')
         else:
-            self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)            
+            self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
             
         self.query = self.generate_query(llm_pipeline)
 

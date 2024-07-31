@@ -1,9 +1,5 @@
 <picture>
     <source srcset="./assets/macrocosmos-white.png"  media="(prefers-color-scheme: dark)">
-    <img src="macrocosmos-white.png">
-</picture>
-
-<picture>
     <source srcset="./assets/macrocosmos-black.png"  media="(prefers-color-scheme: light)">
     <img src="macrocosmos-black.png">
 </picture>
@@ -46,6 +42,12 @@ If you are running a miner, you will also need to uninstall uvloop.
 ```bash
 pip uninstall uvloop -y
 ```
+
+If you are running a validator, logging in to Hugging Face is required:
+```shell
+huggingface-cli login
+```
+You also need to accept the License Agreement for the LMSYS-Chat-1M dataset: https://huggingface.co/datasets/lmsys/lmsys-chat-1m
 
 </div>
 
