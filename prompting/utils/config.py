@@ -83,7 +83,7 @@ def add_args(cls, parser):
         "--neuron.llm_max_allowed_memory_in_gb",
         type=int,
         help="The max gpu memory utilization set for initializing the model. This parameter currently reflects on the property `gpu_memory_utilization` of vllm",
-        default=62,
+        default=70,
     )
 
     parser.add_argument(
@@ -284,7 +284,7 @@ def add_validator_args(cls, parser):
         "--neuron.model_id",
         type=str,
         help="The model to use for the validator.",
-        default="casperhansen/llama-3-70b-instruct-awq",
+        default="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
     )
 
     parser.add_argument(
@@ -294,6 +294,7 @@ def add_validator_args(cls, parser):
         help="The tasks to use for the validator.",
         default=list(TASKS.keys()),
     )
+
     import argparse
 
     def parse_probabilities(prob_list):

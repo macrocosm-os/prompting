@@ -8,7 +8,7 @@
 
 # **Bittensor SN1** <!-- omit in toc -->
 [![Discord Chat](https://img.shields.io/discord/308323056592486420.svg)](https://discord.gg/bittensor)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
@@ -24,9 +24,9 @@ This repository is the **official codebase for Bittensor Subnet 1 (SN1) v1.0.0+,
 
 # Introduction
 
-This repo defines an incentive mechanism to create a distributed conversational AI for Subnet 1 (SN1). 
+This repo defines an incentive mechanism to create a distributed conversational AI for Subnet 1 (SN1).
 
-Validators and miners are based on large language models (LLM). The validation process uses **internet-scale datasets and goal-driven behaviour to drive human-like conversations**. 
+Validators and miners are based on large language models (LLM). The validation process uses **internet-scale datasets and goal-driven behaviour to drive human-like conversations**.
 
 
 </div>
@@ -38,9 +38,10 @@ git clone https://github.com/opentensor/prompting.git
 cd prompting
 bash install.sh
 ```
-If you are running a miner, you will also need to uninstall uvloop.
+If you are running a validator, you will need to install the extras via poetry.  Linux is required to run a validator.
 ```bash
-pip uninstall uvloop -y
+poetry install --extras validator
+poetry run pip uninstall uvloop
 ```
 
 If you are running a validator, logging in to Hugging Face is required:
@@ -53,16 +54,16 @@ You also need to accept the License Agreement for the LMSYS-Chat-1M dataset: htt
 
 # Compute Requirements
 
-1. To run a **validator**, you will need at least 62GB of VRAM. 
+1. To run a **validator**, you will need at least 62GB of VRAM.
 2. To run the default huggingface **miner**, you will need at least 62GB of VRAM.
 
-   
+
 **It is important to note that the baseminers are not recommended for main, and exist purely as an example. Running a base miner on main will result in no emissions and a loss in your registration fee.**
 If you have any questions please reach out in the SN1 channel in the Bittensor Discord.
 </div>
 
 # How to Run
-You can use the following command to run a miner or a validator. 
+You can use the following command to run a miner or a validator.  Since this is using [Poetry](https://python-poetry.org/docs/basic-usage/), you should run this either from the `poetry shell` (run this before running the python command) or you can add `poetry run` to the front of the `python` command.
 
 ```bash
 python <SCRIPT_PATH>
@@ -75,20 +76,20 @@ python <SCRIPT_PATH>
     --axon.port # VERY IMPORTANT: set the port to be one of the open TCP ports on your machine
 ```
 
-where `SCRIPT_PATH` is either: 
+where `SCRIPT_PATH` is either:
 1. neurons/miners/openai/miner.py
 2. neurons/validator.py
 
-For ease of use, you can run the scripts as well with PM2. Installation of PM2 is: 
+For ease of use, you can run the scripts as well with PM2. Installation of PM2 is:
 **On Linux**:
 ```bash
 sudo apt update && sudo apt install jq && sudo apt install npm && sudo npm install pm2 -g && pm2 update
-``` 
+```
 
 Example of running an Openai miner on Main:
 
 ```bash
-pm2 start neurons/miners/openai/miner.py --interpreter python --name openai_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey my_hotkey --neuron.model_id gpt-3.5-turbo-1106 --axon.port 8091 
+pm2 start neurons/miners/openai/miner.py --interpreter python --name openai_miner -- --netuid 1  --subtensor.network finney --wallet.name my_wallet --wallet.hotkey my_hotkey --neuron.model_id gpt-3.5-turbo-1106 --axon.port 8091
 ```
 
 ## Running with autoupdate
@@ -100,10 +101,10 @@ pm2 start run.sh --name s1_validator_autoupdate -- --wallet.name <your-wallet-na
 
 > Note: this is not an end solution, major releases or changes in requirements will still require you to manually restart the processes. Regularly monitor the health of your validator to ensure optimal performance.
 
-# Testnet 
-We highly recommend that you run your miners on testnet before deploying on main. This is give you an opportunity to debug your systems, and ensure that you will not lose valuable immunity time. The SN1 testnet is **netuid 61**. 
+# Testnet
+We highly recommend that you run your miners on testnet before deploying on main. This is give you an opportunity to debug your systems, and ensure that you will not lose valuable immunity time. The SN1 testnet is **netuid 61**.
 
-In order to run on testnet, you will need to go through the same hotkey registration proceure as on main, but using **testtao**. You will need to ask for some in the community discord if you do not have any. 
+In order to run on testnet, you will need to go through the same hotkey registration proceure as on main, but using **testtao**. You will need to ask for some in the community discord if you do not have any.
 
 To run:
 
@@ -115,7 +116,7 @@ pm2 start neurons/miners/openai/miner.py --interpreter python3 --name openai_min
 > Important: vLLM currently faces a [notable limitation](https://github.com/vllm-project/vllm/issues/3012) in designating a specific GPU for model execution via code. Consequently, to employ a particular CUDA device for your model's operations, it's necessary to manually adjust your environment variable `CUDA_VISIBLE_DEVICES`. For instance, setting `export CUDA_VISIBLE_DEVICES=1,2` will explicitly define the CUDA devices available for use.
 
 # Resources
-The archiecture and methodology of SN1 is complex, and as such we have created a comprehensive resource to outline our design. Furthermore, we have strict requirements for how miners should interact with the network. Below are the currently available resources for additional information: 
+The archiecture and methodology of SN1 is complex, and as such we have created a comprehensive resource to outline our design. Furthermore, we have strict requirements for how miners should interact with the network. Below are the currently available resources for additional information:
 
 1. [SN1 architecture details](docs/SN1_validation.md)
 2. [StreamMiner requirements](docs/stream_miner_template.md)
