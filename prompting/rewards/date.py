@@ -1,5 +1,4 @@
 import time
-import torch
 import re
 import pandas as pd
 import numpy as np
@@ -104,8 +103,8 @@ class DateRewardModel(BaseRewardModel):
             rewards.append(reward)
 
         output = BatchRewardOutput(
-            rewards=torch.FloatTensor(rewards),
-            timings=torch.FloatTensor(timings),
+            rewards=np.array(rewards),
+            timings=np.array(timings),
             extra_info={
                 "type": "date",
             },

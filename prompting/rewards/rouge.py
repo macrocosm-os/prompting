@@ -1,5 +1,5 @@
 import time
-import torch
+import numpy as np
 from typing import List
 from rouge import Rouge
 from prompting.rewards.reward import (
@@ -35,8 +35,8 @@ class RougeRewardModel(BaseRewardModel):
             timings.append(time.time() - t0)
 
         output = BatchRewardOutput(
-            rewards=torch.FloatTensor(rewards),
-            timings=torch.FloatTensor(timings),
+            rewards=np.array(rewards),
+            timings=np.array(timings),
             extra_info={
                 "ngram": self.ngram,
                 "metric": self.metric,

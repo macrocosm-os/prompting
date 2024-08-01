@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 import time
 from typing import Optional, Literal
 from abc import ABC, abstractmethod
@@ -14,9 +14,9 @@ class RewardEvent(BaseModel):
     """Contains rewards for all the responses in a batch"""
 
     model_name: str
-    rewards: torch.FloatTensor
-    rewards_normalized: torch.FloatTensor
-    timings: torch.FloatTensor
+    rewards: np.ndarray
+    rewards_normalized: np.ndarray
+    timings: np.ndarray
     model_type: RewardTypeLiteral
     batch_time: float
     extra_info: dict
@@ -38,13 +38,13 @@ class RewardEvent(BaseModel):
 
 
 class BatchRewardOutput(BaseModel):
-    rewards: torch.FloatTensor
-    timings: torch.FloatTensor
+    rewards: np.ndarray
+    timings: np.ndarray
     extra_info: dict
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @property
-    def rewards_normalized(self) -> torch.FloatTensor:
+    def rewards_normalized(self) -> np.ndarray:
         return self.rewards / sum(self.rewards)
 
     def __post_init__(self):
@@ -91,7 +91,7 @@ class RewardResult(BaseModel):
     task_penalties: Optional[list[BaseRewardModel]]
     reward_events: Optional[list[RewardEvent]]
     penalty_events: Optional[list[RewardEvent]]
-    rewards: torch.FloatTensor
+    rewards: np.ndarray
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="after")
@@ -128,20 +128,20 @@ class RewardResult(BaseModel):
 
         return reward_events
 
-    def total_reward(self) -> torch.FloatTensor:
+    def total_reward(self) -> np.ndarray:
         """Combines the rewards from all the reward models into a single reward tensor"""
 
         # TODO: How would using the Agent as a reward model fit into this flow?
         # Compute the rewards for the responses given the prompt
-        rewards = torch.zeros_like(self.response_event.uids, dtype=torch.float32, device=self.device)
+        rewards = np.zeros_like(self.response_event.uids, dtype=np.float32)
 
         for event in self.reward_events:
             for reward_info in filter(lambda x: x["name"] == event.model_name, self.task_rewards):
-                rewards += reward_info["weight"] * event.rewards.to(self.device)
+                rewards += reward_info["weight"] * event.rewards
 
         for event in self.penalty_events:
             for reward_info in filter(lambda x: x["name"] == event.model_name, self.task_penalties):
-                rewards *= 1 - reward_info["weight"] * event.rewards.to(self.device)
+                rewards *= 1 - reward_info["weight"] * event.rewards
 
         return rewards
 

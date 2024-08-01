@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 import random
 import bittensor as bt
 from typing import List
@@ -42,7 +42,7 @@ def check_uid_availability(
     return True
 
 
-def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor:
+def get_random_uids(self, k: int, exclude: List[int] = None) -> np.ndarray:
     """Returns k available random uids from the metagraph.
     Args:
         k (int): Number of uids to return.
@@ -83,8 +83,8 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> torch.LongTensor
         bt.logging.warning(
             f"Requested {k} uids but only {len(candidate_uids)} were available. To disable this warning reduce the sample size (--neuron.sample_size)"
         )
-        return torch.tensor(candidate_uids)
+        return np.array(candidate_uids)
     elif len(candidate_uids) >= k:
-        return torch.tensor(random.sample(candidate_uids, k))
+        return np.array(random.sample(candidate_uids, k))
     else:
         raise ValueError(f"No eligible uids were found. Cannot return {k} uids")

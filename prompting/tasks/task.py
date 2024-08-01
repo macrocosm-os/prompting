@@ -59,33 +59,33 @@ class BaseRewardConfig(ABC, BaseModel):
     penalty_events: list[WeightedRewardEvent] | None = None
 
     @property
-    def total_reward(self) -> list[float]:
+    def total_rewards(self) -> list[float]:
         if not self.reward_events:
             raise Exception("Rewards have not yet been calculated")
         return np.sum([r.reward_event.rewards for r in self.reward_events], axis=0)
 
     @property
-    def total_penalty(self) -> list[float]:
+    def total_penalties(self) -> list[float]:
         if not self.penalty_events:
             return 0
         return np.sum([r.reward_event.rewards for r in self.penalty_events], axis=0)
 
     @property
-    def final_reward(self) -> list[float]:
-        return self.total_reward - self.total_penalty
+    def final_rewards(self) -> list[float]:
+        return self.total_rewards - self.total_penalties
 
     @model_validator(mode="after")
     def check_summation(self) -> "BaseRewardConfig":
         assert sum([r.weight for r in self.reward_definitions]) == 1, "All rewards must sum to one"
 
-    def apply(self, response_event: DendriteResponseEvent, reference: str, query: str) -> list[float]:
+    def apply(self, response_event: DendriteResponseEvent, reference: str, challenge: str) -> list[float]:
         for weighted_reward in self.reward_definitions:
             self.reward_events = []
             self.reward_events.append(
                 WeightedRewardEvent(
                     weight=weighted_reward.weight,
                     reward_event=weighted_reward.reward_model.apply(
-                        reference=reference, response_event=response_event, reward_type="reward"
+                        reference=reference, response_event=response_event, challenge=challenge, reward_type="reward"
                     ),
                 )
             )
@@ -96,11 +96,11 @@ class BaseRewardConfig(ABC, BaseModel):
                 WeightedRewardEvent(
                     weight=weighted_reward.weight,
                     reward_event=weighted_reward.reward_model.apply(
-                        reference=query, response_event=response_event, reward_type="penalty"
+                        reference=challenge, response_event=response_event, reward_type="penalty"
                     ),
                 )
             )
-        return self.final_reward
+        return self.final_rewards
 
 
 class BaseTask(ABC, BaseModel):
@@ -144,7 +144,7 @@ class BaseTask(ABC, BaseModel):
     def generate_query(
         self,
         pipeline: BasePipeline,
-        persona: Persona | None = None,
+        persona: Persona = Persona(),
     ) -> str:
         """Generates a query to be used for generating the challenge"""
         bt.logging.info("🤖 Generating query...")
@@ -152,8 +152,7 @@ class BaseTask(ABC, BaseModel):
             message=self.query_prompt, cleaner=self.cleaner
         )
 
-        if self.augment and persona:
-            self.augmented_query = self.augment_query(llm_pipeline=pipeline, persona=persona)
+        self.augmented_query = self.augment_query(llm_pipeline=pipeline, persona=persona)
         return self.query
 
     def _system_prompt_template(self, persona: Persona) -> str:
@@ -172,6 +171,8 @@ class BaseTask(ABC, BaseModel):
         persona: Persona,
     ) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
+        if not self.augment:
+            return self.query
 
         if self.challenge_type == "inference":
             challenge = vLLM_LLM(

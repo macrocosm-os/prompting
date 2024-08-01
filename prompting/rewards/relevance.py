@@ -1,8 +1,7 @@
 import time
-import torch
+import numpy as np
 from typing import List
 from angle_emb import AnglE
-from torch.nn.functional import cosine_similarity
 from prompting.rewards.reward import (
     BaseRewardModel,
     BatchRewardOutput,
@@ -33,29 +32,26 @@ class RelevanceRewardModel(BaseRewardModel):
         We subtract a baseline score which is what an empty string would get (a failed completion). This is usually around 0.35
         We also clip the rewards between 0 and 1. The maximum effective score is around 0.65
         """
-        reference_embedding = self.model.encode(reference, to_numpy=False)
+        reference_embedding = self.model.encode(reference, to_numpy=True)
         rewards = []
         timings = []
         completions: List[str] = response_event.completions
         # baseline is the cosine similarity between the reference and an empty string
-        baseline = cosine_similarity(
-            reference_embedding.reshape(1, -1),
-            self.model.encode("", to_numpy=False).reshape(1, -1),
-        )
+        baseline = float(reference_embedding.reshape(1, -1) @ self.model.encode("", to_numpy=True).reshape(-1, 1))
 
         for comp in completions:
             t0 = time.time()
 
-            emb = self.model.encode(comp, to_numpy=False)
+            emb = self.model.encode(comp, to_numpy=True)
             # Calculate cosine similarity between reference and completion embeddings, and subtract baseline
-            score = cosine_similarity(reference_embedding.reshape(1, -1), emb.reshape(1, -1)) - baseline
+            score = float(reference_embedding.reshape(1, -1) @ emb.reshape(-1, 1) - baseline)
 
             rewards.append(score)
             timings.append(time.time() - t0)
 
         output = BatchRewardOutput(
-            rewards=torch.FloatTensor(rewards).clip(min=0, max=1),
-            timings=torch.FloatTensor(timings),
+            rewards=np.clip(np.array(rewards), 0, 1),
+            timings=np.array(timings),
             extra_info={"threshold": self.threshold},
         )
 

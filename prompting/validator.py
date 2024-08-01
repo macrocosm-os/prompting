@@ -8,6 +8,7 @@ from prompting.utils.uids import get_random_uids
 from prompting.tasks.task import BaseTask
 from prompting import settings
 from loguru import logger
+import numpy as np
 
 
 class Validator(BaseValidatorNeuron):
@@ -58,8 +59,7 @@ class Validator(BaseValidatorNeuron):
         start_time = time.time()
 
         # Get the list of uids to query for this step.
-        uids = get_random_uids(self, k=k, exclude=exclude or []).to(self.device)
-        uids_cpu = uids.cpu().tolist()
+        uids = get_random_uids(self, k=k, exclude=exclude or [])
 
         axons = [self.metagraph.axons[uid] for uid in uids]
 
@@ -73,7 +73,7 @@ class Validator(BaseValidatorNeuron):
         )
 
         # Prepare the task for handling stream responses
-        stream_results_dict = dict(zip(uids_cpu, streams_responses))
+        stream_results_dict = dict(zip(uids, streams_responses))
         tokenizer = self.llm_pipeline.tokenizer
         stream_results = await handle_response(stream_results_dict, tokenizer)
 
@@ -86,14 +86,14 @@ class Validator(BaseValidatorNeuron):
 
         # Reward the responses and get the reward result (dataclass)
         # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
-        reward_pipeline = TaskRegistry.get_task_reward(task)
-        reward_event = reward_pipeline.apply(response_event, task.reference, task.augmented_query)
+        reward_pipeline = TaskRegistry.get_task_reward(task)()
+        reward_pipeline.apply(response_event=response_event, reference=task.reference, challenge=task.augmented_query)
 
-        logger.info(f"Created RewardResult:\n {reward_event}")
+        logger.info(f"Created RewardResult:\n {reward_pipeline.reward_events}")
 
-        best_response = response_event.completions[reward_event.rewards.argmax()]
+        best_response = response_event.completions[np.argmax(reward_pipeline.final_rewards)]
 
-        self.update_scores(reward_event.rewards, uids)
+        self.update_scores(reward_pipeline.final_rewards, uids)
 
         # Log the step event.
         event = {
@@ -101,8 +101,8 @@ class Validator(BaseValidatorNeuron):
             "block": self.block,
             "step": self.step,
             "step_time": time.time() - start_time,
-            **reward_event.__dict__(full=settings.NEURON_LOG_FULL),
-            **response_event.__dict__(),
+            "reward_events": [reward_event.__dict__ for reward_event in reward_pipeline.reward_events],
+            "response_event": response_event.__dict__,
         }
 
         return event

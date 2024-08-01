@@ -1,5 +1,5 @@
 import time
-import torch
+import numpy as np
 from prompting.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import (
     BaseRewardModel,
@@ -38,6 +38,6 @@ class StreamingRewardModel(BaseRewardModel):
 
         # Create the output object with rewards, timings, and extra information
         output = BatchRewardOutput(
-            rewards=torch.FloatTensor(rewards), timings=torch.FloatTensor(timings), extra_info={"type": "streaming"}
+            rewards=np.array(rewards), timings=np.array(timings), extra_info={"type": "streaming"}
         )
         return output

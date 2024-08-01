@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 from typing import List
 from dataclasses import dataclass
 from prompting.protocol import StreamPromptingSynapse
@@ -16,7 +16,7 @@ class SynapseStreamResult:
 
 
 class DendriteResponseEvent:
-    def __init__(self, stream_results: list[SynapseStreamResult], uids: torch.LongTensor, timeout: float):
+    def __init__(self, stream_results: list[SynapseStreamResult], uids: np.ndarray, timeout: float):
         self.uids = uids
         self.completions = []
         self.status_messages = []
@@ -55,7 +55,7 @@ class DendriteResponseEvent:
 
     def __state_dict__(self):
         return {
-            "uids": self.uids.tolist(),
+            "uids": self.uids,
             "completions": self.completions,
             "timings": self.timings,
             "status_messages": self.status_messages,

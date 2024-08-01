@@ -1,5 +1,4 @@
 import time
-import torch
 import asyncio
 import random
 import bittensor as bt
@@ -26,10 +25,8 @@ class MockTokenizer:
         return "\n".join(prompt)
 
 
-class MockModel(torch.nn.Module):
+class MockModel:
     def __init__(self, phrase):
-        super().__init__()
-
         self.tokenizer = SimpleNamespace(tokenizer=MockTokenizer())
         self.phrase = phrase
 

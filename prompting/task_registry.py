@@ -1,5 +1,5 @@
 # from prompting.tasks.date_qa import DateQuestionAnsweringTask
-from prompting.tasks.task import BaseTask, BaseRewardModel
+from prompting.tasks.task import BaseTask, BaseRewardConfig
 from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
 from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
 
@@ -15,7 +15,7 @@ class TaskConfig(BaseModel):
     task: BaseTask.__class__
     probability: float
     datasets: list[BaseDataset.__class__]
-    reward_model: BaseRewardModel.__class__
+    reward_model: BaseRewardConfig.__class__
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -36,7 +36,7 @@ class TaskRegistry(BaseModel):
         return selected_task
 
     @classmethod
-    def get_task_datasets(cls, task: BaseTask.__class__):
+    def get_task_datasets(cls, task: BaseTask.__class__) -> BaseDataset.__class__:
         try:
             return [t.datasets for t in cls.tasks if task is t.task][0]
         except Exception:
@@ -48,9 +48,10 @@ class TaskRegistry(BaseModel):
         return random.choice(cls.get_task_datasets(task))
 
     @classmethod
-    def get_task_reward(cls, task: BaseTask) -> BaseRewardModel:
+    def get_task_reward(cls, task: BaseTask | BaseTask.__class__) -> BaseRewardConfig.__class__:
+        task_class = task.__class__ if isinstance(task, BaseTask) else task
         try:
-            return [t.reward_model for t in cls.tasks if task is t.task][0]
+            return [t.reward_model for t in cls.tasks if task_class is t.task][0]
         except Exception:
             bt.logging.error("Tried accessing non-registered task")
             return []

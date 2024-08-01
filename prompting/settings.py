@@ -3,7 +3,11 @@ import torch
 import dotenv
 from loguru import logger
 
+# from pydantic import BaseModel, Field
+# from typing import ClassVar
 
+# class Settings(BaseModel):
+#     TASK_P: ClassVar[list[float]] = Field([0.5, 0.5], description="TODO: Dynamically load based on number of tasks")
 if not dotenv.load_dotenv():
     logger.warning("No .env file found")
 
@@ -18,6 +22,7 @@ SAVE_PATH = "./storage"
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
+AXON_PORT = os.environ.get("AXON_PORT")
 # Constants
 TASK_P = [0.5, 0.5]  # TODO: Dynamically load based on number of tasks
 SUBTENSOR_NETWORK = "test" if test else None
@@ -36,8 +41,6 @@ WANDB_NOTES = ""
 
 NEURON_MODEL_ID_MINER = "gpt-3.5-turbo-1106"
 NEURON_MODEL_ID_VALIDATOR = "casperhansen/llama-3-8b-instruct-awq" if test else "casperhansen/llama-3-70b-instruct-awq"
-NEURON_LOAD_IN_8BIT = False
-NEURON_LOAD_IN_4BIT = False
 BLACKLIST_FORCE_VALIDATOR_PERMIT = False
 BLACKLIST_ALLOW_NON_REGISTERED = False
 NEURON_SYSTEM_PROMPT = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
