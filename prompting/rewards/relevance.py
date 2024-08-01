@@ -8,6 +8,7 @@ from prompting.rewards.reward import (
 )
 from prompting.dendrite import DendriteResponseEvent
 from pydantic import model_validator, ConfigDict
+from scipy import spatial
 
 
 class RelevanceRewardModel(BaseRewardModel):
@@ -37,14 +38,16 @@ class RelevanceRewardModel(BaseRewardModel):
         timings = []
         completions: List[str] = response_event.completions
         # baseline is the cosine similarity between the reference and an empty string
-        baseline = float(reference_embedding.reshape(1, -1) @ self.model.encode("", to_numpy=True).reshape(-1, 1))
+        baseline = 1 - float(
+            spatial.distance.cosine(reference_embedding.flatten(), self.model.encode("", to_numpy=True).flatten())
+        )
 
         for comp in completions:
             t0 = time.time()
 
             emb = self.model.encode(comp, to_numpy=True)
             # Calculate cosine similarity between reference and completion embeddings, and subtract baseline
-            score = float(reference_embedding.reshape(1, -1) @ emb.reshape(-1, 1) - baseline)
+            score = 1 - float(spatial.distance.cosine(reference_embedding.flatten(), emb.flatten() - baseline))
 
             rewards.append(score)
             timings.append(time.time() - t0)

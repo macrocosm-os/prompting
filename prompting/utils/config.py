@@ -35,7 +35,7 @@ def add_args(parser):
     parser.add_argument("--wallet.name", type=str, help="Wallet name", default=settings.WALLET_NAME)
     parser.add_argument("--wallet.hotkey", type=str, help="Hotkey name", default=settings.HOTKEY)
     parser.add_argument("--subtensor.network", type=str, help="Subtensor network", default=settings.SUBTENSOR_NETWORK)
-    parser.add_argument("--axon.port", type=str, help="The open port to run on", default=int(settings.AXON_PORT))
+    parser.add_argument("--axon.port", type=int, help="The open port to run on", default=int(settings.AXON_PORT))
 
 
 def config(cls):

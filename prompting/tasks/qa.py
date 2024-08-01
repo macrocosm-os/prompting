@@ -4,8 +4,8 @@ import bittensor as bt
 from prompting.tasks.task import BaseTask, WeightedRewardModel
 
 # from prompting.rewards.reward import BaseRewardModel
-from prompting.cleaners.all_cleaners import RemoveRoles, RemoveQuotes, PruneEnding, RemovePostQuestionText
-from prompting.cleaners.cleaner import CleanerPipeline
+from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding, RemovePostQuestionText
+from prompting.utils.cleaners import CleanerPipeline
 from prompting.shared import Context
 from pydantic import model_validator
 from prompting.tasks.task import BaseRewardConfig

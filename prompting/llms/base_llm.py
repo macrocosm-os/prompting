@@ -1,6 +1,6 @@
 import bittensor as bt
 from abc import ABC, abstractmethod
-from prompting.cleaners.cleaner import CleanerPipeline
+from prompting.utils.cleaners import CleanerPipeline
 from typing import Any
 from pydantic import BaseModel
 from vllm import LLM

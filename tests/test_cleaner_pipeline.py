@@ -1,5 +1,5 @@
-from prompting.cleaners.cleaner import CleanerPipeline
-from prompting.cleaners.all_cleaners import RemoveQuotes, PruneEnding, RemoveRoles
+from prompting.utils.cleaners import CleanerPipeline
+from prompting.utils.cleaners import RemoveQuotes, PruneEnding, RemoveRoles
 
 
 def test_cleaning_pipeline():

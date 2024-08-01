@@ -52,6 +52,8 @@ def get_random_uids(self, k: int, exclude: List[int] = None) -> np.ndarray:
     Notes:
         If `k` is larger than the number of available `uids`, set `k` to the number of available `uids`.
     """
+    if settings.test and settings.TEST_MINER_IDS:
+        return np.array(random.sample(settings.TEST_MINER_IDS, min(len(settings.TEST_MINER_IDS), k)))
     candidate_uids = []
     coldkeys = set()
     ips = set()

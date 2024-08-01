@@ -22,6 +22,7 @@ SAVE_PATH = "./storage"
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
+TEST_MINER_IDS = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")] if test else None
 AXON_PORT = os.environ.get("AXON_PORT")
 # Constants
 TASK_P = [0.5, 0.5]  # TODO: Dynamically load based on number of tasks

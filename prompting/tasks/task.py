@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import Union
 from prompting.llms.base_llm import BasePipeline
 from prompting.llms.vllm_llm import vLLM_LLM
-from prompting.cleaners.cleaner import CleanerPipeline
+from prompting.utils.cleaners import CleanerPipeline
 from prompting.rewards.reward import BaseRewardModel, RewardEvent
 from pydantic import model_validator
 from prompting.dendrite import DendriteResponseEvent

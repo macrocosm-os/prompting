@@ -17,12 +17,12 @@
 import time
 import bittensor as bt
 from typing import Optional
-from prompting.cleaners.cleaner import CleanerPipeline
+from prompting.utils.cleaners import CleanerPipeline
 from prompting.llms.base_llm import BasePipeline, BaseLLM
 from prompting.mock import MockPipeline
 from prompting.llms.utils import calculate_gpu_requirements
 from vllm import LLM
-from vllm.transformers_utils.tokenizer_group.base_tokenizer_group import BaseTokenizerGroup
+from transformers import PreTrainedTokenizerFast
 from pydantic import model_validator, ConfigDict
 
 try:
@@ -79,7 +79,7 @@ class vLLMPipeline(BasePipeline):
     quantization: bool = True
 
     llm: Optional[LLM] = None
-    tokenizer: Optional[BaseTokenizerGroup] = None
+    tokenizer: Optional[PreTrainedTokenizerFast] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="after")
@@ -92,7 +92,7 @@ class vLLMPipeline(BasePipeline):
             mock=self.mock,
             quantization=self.quantization,
         )
-        self.tokenizer = self.llm.llm_engine.tokenizer
+        self.tokenizer = self.llm.llm_engine.get_tokenizer()
 
     def __call__(self, composed_prompt: str, **model_kwargs: dict) -> str:
         if self.mock:

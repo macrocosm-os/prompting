@@ -3,10 +3,10 @@ from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.tasks.task import WeightedRewardModel
 from prompting.tasks.task import BaseRewardConfig
-from prompting.cleaners.all_cleaners import RemoveRoles, RemoveQuotes, PruneEnding
+from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding
 from prompting.shared import Context
 from pydantic import model_validator
-from prompting.cleaners.cleaner import CleanerPipeline
+from prompting.utils.cleaners import CleanerPipeline
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 

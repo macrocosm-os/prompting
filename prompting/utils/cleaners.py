@@ -11,6 +11,26 @@ class BaseCleaner(ABC, BaseModel):
         pass
 
 
+class CleanerPipeline(BaseModel):
+    cleaning_pipeline: list[BaseCleaner] = []
+
+    def apply(self, generation: str) -> str:
+        """Apply cleaning steps to generation listed in cleaning_pipeline.
+
+        Args:
+            generation (str): string generated from LLM or otherwise.
+        Returns:
+            str: Clean generated string.
+        """
+        try:
+            for cleaner in self.cleaning_pipeline:
+                generation = cleaner(generation)
+            return generation
+        except Exception as e:
+            bt.logging.error(f"Failed to apply cleaning pipeline {cleaner['name']}. {e},")
+            return generation
+
+
 class RemoveQuotes(BaseCleaner):
     def apply(self, generation: str) -> str:
         bt.logging.debug("Pruning unfinished sentence.")
