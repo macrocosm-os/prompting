@@ -1,21 +1,3 @@
-# The MIT License (MIT)
-# Copyright © 2024 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import re
 import sys
 import random
@@ -23,9 +5,8 @@ import bittensor as bt
 import wikipedia
 from queue import Queue, Full, Empty
 from functools import lru_cache
-from prompting.tools.datasets.base import BaseDataset
-from prompting.tools.selector import Selector
-from prompting.shared.context import Context
+from prompting.datasets.base import BaseDataset
+from prompting.datasets.base import Context
 from typing import ClassVar
 from typing import Optional
 from pydantic import model_validator, ConfigDict
@@ -146,7 +127,6 @@ class WikiDataset(BaseDataset):
     def get(
         self,
         name: str,
-        selector: Selector = Selector(),
         include: list = None,
         exclude: list = None,
         **kwargs,
@@ -180,7 +160,7 @@ class WikiDataset(BaseDataset):
         if not sections:
             return None
 
-        key = header, section_title = selector(list(sections.keys()))
+        key = header, section_title = random.choice(list(sections.keys()))
         content = "\n".join(sections[key])
         section_length = len(content.split())
 
@@ -205,15 +185,15 @@ class WikiDataset(BaseDataset):
             bt.logging.debug("Cache is full. Skipping article until cache is emptied.")
         return context
 
-    def search(self, name, results=3, selector: Selector = Selector()) -> Context:
+    def search(self, name, results=3) -> Context:
         titles = _wikipedia_search(name, results=results)
-        title = selector(titles)
-        return self.get(title, selector=selector)
+        title = random.choice(titles)
+        return self.get(title)
 
-    def random(self, pages=10, seed=None, selector: Selector = Selector(), **kwargs) -> Context:
+    def random(self, pages=10, seed=None) -> Context:
         titles = wikipedia.random(pages=pages) if seed is None else _get_random_titles(pages=pages, seed=seed)
-        title = selector(titles)
-        return self.get(title, selector=selector)
+        title = random.choice(titles)
+        return self.get(title)
 
 
 class WikiDateDataset(BaseDataset):
@@ -285,17 +265,12 @@ class WikiDateDataset(BaseDataset):
 
     def get(
         self,
-        name,
-        pageid=None,
-        auto_suggest=False,
-        redirect=False,
-        selector: Selector = None,
     ) -> dict:
         # TODO: Implement deterministic get method
-        return self.random()
-
-    def search(self, name, results=5, selector: Selector = None) -> dict:
         raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
 
-    def random(self, selector: Selector = None, **kwargs) -> dict:
+    def search(self, name: str, results: int = 5) -> dict:
+        raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
+
+    def random(self) -> dict:
         return self._random_date()

@@ -1,7 +1,5 @@
 from .base import BaseDataset
 
-# from ..selector import Selector
-
 
 class MockDataset(BaseDataset):
     name: str = "mock"

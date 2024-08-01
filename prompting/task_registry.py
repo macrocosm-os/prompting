@@ -3,8 +3,8 @@ from prompting.tasks.task import BaseTask, BaseRewardConfig
 from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
 from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
 
-from prompting.tools.datasets.wiki import WikiDataset
-from prompting.tools.datasets.base import BaseDataset
+from prompting.datasets.wiki import WikiDataset
+from prompting.datasets.base import BaseDataset
 from pydantic import BaseModel, ConfigDict
 import random
 from typing import ClassVar
