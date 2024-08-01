@@ -1,12 +1,10 @@
 from prompting.tasks import (
-    Task,
     MockTask,
     QuestionAnsweringTask,
     SummarizationTask,
     DebuggingTask,
     MathTask,
     DateQuestionAnsweringTask,
-    TranslationTask
 )
 from prompting.shared import Context
 from .dataset import WIKI_CONTEXT, CODING_CONTEXT, MATH_CONTEXT, DATEQA_CONTEXT, MOCK_CONTEXT
@@ -18,8 +16,8 @@ TASKS = [
     DebuggingTask,
     MathTask,
     DateQuestionAnsweringTask,
-    #TODO: Add proper separation for tranlation task tests
-    #TranslationTask
+    # TODO: Add proper separation for tranlation task tests
+    # TranslationTask
 ]
 
 CONTEXTS = {
@@ -29,7 +27,7 @@ CONTEXTS = {
     DebuggingTask: CODING_CONTEXT,
     MathTask: MATH_CONTEXT,
     DateQuestionAnsweringTask: DATEQA_CONTEXT,
-    #TranslationTask: WIKI_CONTEXT
+    # TranslationTask: WIKI_CONTEXT
 }
 
 TASK_FIELDS = {

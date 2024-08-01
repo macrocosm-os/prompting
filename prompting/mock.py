@@ -6,7 +6,7 @@ import bittensor as bt
 from prompting.protocol import StreamPromptingSynapse
 
 from functools import partial
-from typing import Dict, List, Union, AsyncGenerator, Any, Iterator
+from typing import List, Union, AsyncGenerator, Any, Iterator
 from types import SimpleNamespace
 
 
@@ -30,9 +30,7 @@ class MockModel(torch.nn.Module):
     def __init__(self, phrase):
         super().__init__()
 
-        self.tokenizer = SimpleNamespace(
-            tokenizer=MockTokenizer()
-        )
+        self.tokenizer = SimpleNamespace(tokenizer=MockTokenizer())
         self.phrase = phrase
 
     def __call__(self, messages):
@@ -47,12 +45,10 @@ class MockPipeline:
     @property
     def tokenizer(self):
         return self.model.tokenizer
-    
+
     @property
     def llm_engine(self):
-        return SimpleNamespace(
-            tokenizer=self.model.tokenizer
-        )
+        return SimpleNamespace(tokenizer=self.model.tokenizer)
 
     def __init__(
         self,
@@ -75,9 +71,7 @@ class MockPipeline:
         return self.postprocess(output)
 
     def postprocess(self, output, **kwargs):
-        output = output.split(self.model.tokenizer.tokenizer.role_expr.format(role="assistant"))[
-            -1
-        ].strip()
+        output = output.split(self.model.tokenizer.tokenizer.role_expr.format(role="assistant"))[-1].strip()
         return output
 
     def preprocess(self, **kwargs):
@@ -167,17 +161,12 @@ class MockStreamMiner:
                     buffer.append(token)
 
                     if time.time() - start_time > self.timeout:
-                        print(
-                            f"⏰ Timeout reached, stopping streaming. {time.time() - self.start_time}"
-                        )
+                        print(f"⏰ Timeout reached, stopping streaming. {time.time() - self.start_time}")
                         break
 
                     if len(buffer) == self.streaming_batch_size:
                         time.sleep(
-                            self.timeout
-                            * random.uniform(
-                                self.MIN_DELAY_PERCENTAGE, self.MAX_DELAY_PERCENTAGE
-                            )
+                            self.timeout * random.uniform(self.MIN_DELAY_PERCENTAGE, self.MAX_DELAY_PERCENTAGE)
                         )  # simulate some async processing time
                         yield buffer, continue_streaming
                         buffer = []
@@ -273,9 +262,7 @@ class MockDendrite(bt.dendrite):
                     break
 
                 elif process_time >= timeout:
-                    synapse.completion = " ".join(
-                        response_buffer
-                    )  # partially completed response buffer
+                    synapse.completion = " ".join(response_buffer)  # partially completed response buffer
                     synapse.dendrite.status_code = 408
                     synapse.dendrite.status_message = "Timeout"
                     synapse.dendrite.process_time = timeout
@@ -296,31 +283,23 @@ class MockDendrite(bt.dendrite):
         deserialize: bool = True,
         run_async: bool = True,
         streaming: bool = False,
-    ):        
+    ):
         assert isinstance(
             synapse, StreamPromptingSynapse
-        ), "Synapse must be a StreamPromptingSynapse object when is_stream is True."        
+        ), "Synapse must be a StreamPromptingSynapse object when is_stream is True."
 
         async def query_all_axons(is_stream: bool):
             """Queries all axons for responses."""
 
-            async def single_axon_response(
-                i: int, target_axon: Union[bt.AxonInfo, bt.axon]
-            ):
+            async def single_axon_response(i: int, target_axon: Union[bt.AxonInfo, bt.axon]):
                 """Queries a single axon for a response."""
 
                 s = synapse.copy()
 
-                target_axon = (
-                    target_axon.info()
-                    if isinstance(target_axon, bt.axon)
-                    else target_axon
-                )
+                target_axon = target_axon.info() if isinstance(target_axon, bt.axon) else target_axon
 
                 # Attach some more required data so it looks real
-                s = self.preprocess_synapse_for_request(
-                    target_axon_info=target_axon, synapse=s, timeout=timeout
-                )
+                s = self.preprocess_synapse_for_request(target_axon_info=target_axon, synapse=s, timeout=timeout)
 
                 if is_stream:
                     # If in streaming mode, return the async_generator
@@ -338,17 +317,10 @@ class MockDendrite(bt.dendrite):
                     )
 
             if not run_async:
-                return [
-                    await single_axon_response(target_axon) for target_axon in axons
-                ]
+                return [await single_axon_response(target_axon) for target_axon in axons]
 
             # If run_async flag is True, get responses concurrently using asyncio.gather().
-            return await asyncio.gather(
-                *(
-                    single_axon_response(i, target_axon)
-                    for i, target_axon in enumerate(axons)
-                )
-            )
+            return await asyncio.gather(*(single_axon_response(i, target_axon) for i, target_axon in enumerate(axons)))
 
         return await query_all_axons(is_stream=streaming)
 

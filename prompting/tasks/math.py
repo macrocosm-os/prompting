@@ -1,5 +1,3 @@
-import sys
-import bittensor as bt
 from dataclasses import dataclass
 from prompting.tasks import Task
 from .challenge_templates import MathChallengeTemplate
@@ -18,7 +16,7 @@ class MathTask(Task):
 
     static_reference = True
     static_query = True
-    challenge_type = 'paraphrase'
+    challenge_type = "paraphrase"
     challenge_template = MathChallengeTemplate()
 
     def __init__(self, llm_pipeline, context, create_reference=True):

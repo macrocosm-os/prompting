@@ -24,22 +24,16 @@ class Validator(BaseValidatorNeuron):
             llm_max_allowed_memory_in_gb=self.config.neuron.llm_max_allowed_memory_in_gb,
             device=self.device,
             mock=self.config.mock,
-        )        
+        )
         self.translation_pipeline = TranslationPipeline()
 
-        if abs(1-sum(self.config.neuron.task_p)) > 0.001:
+        if abs(1 - sum(self.config.neuron.task_p)) > 0.001:
             raise ValueError("Task probabilities do not sum to 1.")
 
         # Filter out tasks with 0 probability
-        self.active_tasks = [
-            task
-            for task, p in zip(self.config.neuron.tasks, self.config.neuron.task_p)
-            if p > 0
-        ]
+        self.active_tasks = [task for task, p in zip(self.config.neuron.tasks, self.config.neuron.task_p) if p > 0]
         # Load the reward pipeline
-        self.reward_pipeline = RewardPipeline(
-            selected_tasks=self.active_tasks, device=self.device
-        )
+        self.reward_pipeline = RewardPipeline(selected_tasks=self.active_tasks, device=self.device)
 
     async def forward(self):
         """

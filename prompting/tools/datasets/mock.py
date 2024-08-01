@@ -5,6 +5,7 @@ from .base import Dataset
 
 class MockDataset(Dataset):
     name = "mock"
+
     def get(self, name, exclude=None, selector=None):
         return {
             "title": name,

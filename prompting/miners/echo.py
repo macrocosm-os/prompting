@@ -46,9 +46,7 @@ class EchoMiner(BaseStreamPromptingMiner):
         token_streamer = partial(_forward, synapse.messages[-1])
         return synapse.create_streaming_response(token_streamer)
 
-    async def blacklist(
-        self, synapse: StreamPromptingSynapse
-    ) -> typing.Tuple[bool, str]:
+    async def blacklist(self, synapse: StreamPromptingSynapse) -> typing.Tuple[bool, str]:
         return False, "All good here"
 
     async def priority(self, synapse: StreamPromptingSynapse) -> float:

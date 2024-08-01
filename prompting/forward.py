@@ -36,7 +36,7 @@ from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from transformers import PreTrainedTokenizerFast as Tokenizer
 
-SINGLE_TURN_TASKS = ('sentiment', 'translation')
+SINGLE_TURN_TASKS = ("sentiment", "translation")
 
 
 @async_log
@@ -53,35 +53,29 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
     accumulated_chunks_timings = []
     accumulated_tokens_per_chunk = []
     start_time = time.time()
-    
+
     try:
         chunk = None
         async for chunk in async_iterator:  # most important loop, as this is where we acquire the final synapse.
             if isinstance(chunk, str):
                 accumulated_chunks.append(chunk)
                 accumulated_chunks_timings.append(time.time() - start_time)
-                
+
                 tokens_in_chunk = len(tokenizer.tokenize(chunk))
                 accumulated_tokens_per_chunk.append(tokens_in_chunk)
-                
+
                 bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
 
         # Assuming last chunk of async_iterator holds the last value yielded as a StreamingSynapse
         synapse = chunk
         if synapse is None or not isinstance(synapse, StreamPromptingSynapse):
-            raise ValueError(
-                f"Something went wrong with miner uid {uid}, Synapse is not StreamPromptingSynapse."
-            )
+            raise ValueError(f"Something went wrong with miner uid {uid}, Synapse is not StreamPromptingSynapse.")
     except Exception as e:
         exception = e
         traceback_details = traceback.format_exc()
-        bt.logging.error(
-            f"Error in generating reference or handling responses for uid {uid}: {e}\n{traceback_details}"
-        )
+        bt.logging.error(f"Error in generating reference or handling responses for uid {uid}: {e}\n{traceback_details}")
 
-        failed_synapse = StreamPromptingSynapse(
-            roles=["user"], messages=["failure"], completion=""
-        )
+        failed_synapse = StreamPromptingSynapse(roles=["user"], messages=["failure"], completion="")
 
         synapse = failed_synapse
     finally:
@@ -91,7 +85,7 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
             tokens_per_chunk=accumulated_tokens_per_chunk,
             synapse=synapse,
             uid=uid,
-            exception=exception
+            exception=exception,
         )
 
 
@@ -115,46 +109,34 @@ async def handle_response(stream_results_dict: Dict[int, Awaitable], tokenizer: 
 
     # Start tasks, preserving order and their associated UIDs
     process_stream_tasks = [process_stream(uid, resp, tokenizer) for uid, resp in tasks_with_uid]
-    processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True) 
-    
+    processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True)
+
     return processed_stream_results
 
 
 @async_log
 async def generate_reference(agent: HumanAgent):
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(
-        None, agent.task.generate_reference, agent.llm_pipeline
-    )
+    result = await loop.run_in_executor(None, agent.task.generate_reference, agent.llm_pipeline)
     return result
 
 
 def log_stream_results(stream_results: List[SynapseStreamResult]):
-    failed_responses = [
-        response for response in stream_results if response.exception is not None
-    ]
+    failed_responses = [response for response in stream_results if response.exception is not None]
     empty_responses = [
-        response
-        for response in stream_results
-        if response.exception is None and response.synapse.completion == ""
+        response for response in stream_results if response.exception is None and response.synapse.completion == ""
     ]
     non_empty_responses = [
-        response
-        for response in stream_results
-        if response.exception is None and response.synapse.completion != ""
+        response for response in stream_results if response.exception is None and response.synapse.completion != ""
     ]
 
     bt.logging.info(f"Total of non_empty responses: ({len(non_empty_responses)})")
     bt.logging.info(f"Total of empty responses: ({len(empty_responses)})")
-    bt.logging.info(
-        f"Total of failed responses: ({len(failed_responses)}):\n {failed_responses}"
-    )
+    bt.logging.info(f"Total of failed responses: ({len(failed_responses)}):\n {failed_responses}")
 
     for failed_response in failed_responses:
         formatted_exception = serialize_exception_to_string(failed_response.exception)
-        bt.logging.error(
-            f"Failed response for uid {failed_response.uid}: {formatted_exception}"
-        )
+        bt.logging.error(f"Failed response for uid {failed_response.uid}: {formatted_exception}")
 
 
 async def run_step(
@@ -202,18 +184,14 @@ async def run_step(
     if not agent.task.static_reference:
         async with self.lock:
             reference_generation_task = generate_reference(agent)
-            _, stream_results = await asyncio.gather(
-                reference_generation_task, handle_stream_responses_task
-            )
+            _, stream_results = await asyncio.gather(reference_generation_task, handle_stream_responses_task)
     else:
         stream_results = await handle_stream_responses_task
 
     log_stream_results(stream_results)
 
     # Encapsulate the responses in a response event (dataclass)
-    response_event = DendriteResponseEvent(
-        stream_results=stream_results, uids=uids, timeout=timeout
-    )
+    response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
 
     bt.logging.info(f"Created DendriteResponseEvent:\n {response_event}")
     # Reward the responses and get the reward result (dataclass)
@@ -235,7 +213,7 @@ async def run_step(
     )
 
     self.update_scores(reward_result.rewards, uids)
-    
+
     # Log the step event.
     event = {
         "best": best_response,
@@ -263,9 +241,7 @@ async def forward(self):
             f"📋 Selecting task... from {self.config.neuron.tasks} with distribution {self.config.neuron.task_p}"
         )
         # Create a specific task
-        task_name = np.random.choice(
-            self.config.neuron.tasks, p=self.config.neuron.task_p
-        )
+        task_name = np.random.choice(self.config.neuron.tasks, p=self.config.neuron.task_p)
         bt.logging.info(f"📋 Creating {task_name} task... ")
         try:
             task = create_task(
@@ -275,17 +251,13 @@ async def forward(self):
                 create_reference=False,
             )
             break
-        except Exception as e:
-            bt.logging.error(
-                f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task."
-            )
+        except Exception:
+            bt.logging.error(f"Failed to create {task_name} task. {sys.exc_info()}. Skipping to next task.")
             continue
 
     # Create random agent with task, topic, profile...
     bt.logging.info(f"🤖 Creating agent for {task_name} task... ")
-    agent = HumanAgent(
-        task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True
-    )
+    agent = HumanAgent(task=task, llm_pipeline=self.llm_pipeline, begin_conversation=True)
 
     turn = 0
     exclude_uids = []
@@ -323,10 +295,12 @@ async def forward(self):
             if task.name in SINGLE_TURN_TASKS:
                 break
 
-            history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])
+            history = "\n".join([f"{role}: {message}" for role, message in zip(roles, messages)])
 
             # Use PREVIOUS task context
-            agent.task = QuestionAnsweringTask(self.llm_pipeline, context=task.context, create_reference=False, history=history)
+            agent.task = QuestionAnsweringTask(
+                self.llm_pipeline, context=task.context, create_reference=False, history=history
+            )
 
             # overwrite the challenge with the followup query, which *should* continue the persona
             agent.challenge = agent.task.query
@@ -336,9 +310,7 @@ async def forward(self):
             turn += 1
         except BittensorError as e:
             bittensor_error = serialize_exception_to_string(e)
-            bt.logging.error(
-                f"An error was raised from the Bittensor package. Ending validator. \n {bittensor_error}"
-            )
+            bt.logging.error(f"An error was raised from the Bittensor package. Ending validator. \n {bittensor_error}")
             sys.exit(1)
         except BaseException as e:
             unexpected_errors = serialize_exception_to_string(e)

@@ -3,8 +3,8 @@ import bittensor as bt
 from abc import ABC
 from dataclasses import dataclass, asdict
 from enum import Enum
-from typing import List, Union, Dict
-from prompting.llms import HuggingFaceLLM, vLLM_LLM, BasePipeline
+from typing import List, Union
+from prompting.llms import vLLM_LLM, BasePipeline
 from prompting.cleaners.cleaner import CleanerPipeline
 
 CHATTENSOR_SYSTEM_PROMPT = """
@@ -17,6 +17,8 @@ It does not mention this information about itself unless the information is dire
 
 def make_system_prompt():
     return CHATTENSOR_SYSTEM_PROMPT.format(date=time.strftime("%B %d, %Y"))
+
+
 class TaskEvaluationType(Enum):
     REWARD_STACK = "reward"
     FILTER_STACK = "filter"
@@ -50,11 +52,9 @@ class Task(ABC):
     query_prompt = ""
     cleaner = None
     clean_reference = True
-    challenge_type = 'inference'
-    
-    global_penalty_definition = [
-        dict(name="streaming", max_tokens_per_chunk=200, weight=0.2)
-    ]
+    challenge_type = "inference"
+
+    global_penalty_definition = [dict(name="streaming", max_tokens_per_chunk=200, weight=0.2)]
 
     def __str__(self):
         return f"{self.__class__.__name__}(name={self.name!r}, desc={self.desc!r}, goal={self.goal!r}, query={self.query!r}, reference={self.reference!r}, topic={self.topic!r}, subtopic={self.subtopic!r}, tags={self.tags!r})"
@@ -80,17 +80,11 @@ class Task(ABC):
 
         return state
 
-    def generate(
-        self, system: str, prompt: str, pipeline: BasePipeline, clean=True
-    ) -> str:
+    def generate(self, system: str, prompt: str, pipeline: BasePipeline, clean=True) -> str:
         """Uses the llm to generate a response to a prompt"""
 
-        cleaner = (
-            CleanerPipeline(cleaning_pipeline=self.cleaning_pipeline) if clean else None
-        )
-        return vLLM_LLM(pipeline, system_prompt=system).query(
-            message=prompt, cleaner=cleaner
-        )
+        cleaner = CleanerPipeline(cleaning_pipeline=self.cleaning_pipeline) if clean else None
+        return vLLM_LLM(pipeline, system_prompt=system).query(message=prompt, cleaner=cleaner)
 
     def generate_reference(self, pipeline: BasePipeline, clean=True) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
@@ -115,7 +109,7 @@ class Task(ABC):
         if not self.static_query:
             bt.logging.info("🤖 Generating query...")
             self.query = self.generate(
-                system=self.query_system_prompt, #Could possibly add the chattensor system prompt to query but I don't think it adds anything
+                system=self.query_system_prompt,  # Could possibly add the chattensor system prompt to query but I don't think it adds anything
                 prompt=self.query_prompt,
                 pipeline=pipeline,
                 clean=clean,

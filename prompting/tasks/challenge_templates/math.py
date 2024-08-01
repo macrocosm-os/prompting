@@ -1,4 +1,3 @@
-import random
 from .base import ChallengeTemplate
 
 
@@ -187,5 +186,5 @@ class MathChallengeTemplate(ChallengeTemplate):
                 " ",
                 "\n",
                 "\n\n",
-            ]
+            ],
         }

@@ -22,7 +22,6 @@ import bittensor as bt
 from transformers import BitsAndBytesConfig, pipeline, AutoTokenizer, TextIteratorStreamer
 from prompting.mock import MockPipeline
 from prompting.cleaners.cleaner import CleanerPipeline
-from transformers import pipeline, TextIteratorStreamer, AutoTokenizer
 from prompting.llms import BasePipeline, BaseLLM
 
 
@@ -63,9 +62,7 @@ def load_hf_pipeline(
         bt.logging.warning("Only crazy people run this on CPU. It is not recommended.")
 
     try:
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_id
-        )  # model_id is usually the name of the tokenizer.
+        tokenizer = AutoTokenizer.from_pretrained(model_id)  # model_id is usually the name of the tokenizer.
     except Exception as e:
         bt.logging.error(f"Failed to load tokenizer from model_id: {model_id}.")
         raise e
@@ -110,7 +107,7 @@ class HuggingFacePipeline(BasePipeline):
         model_kwargs: dict = None,
         return_streamer: bool = False,
         gpus: int = 1,
-        llm_max_allowed_memory_in_gb: int = 0
+        llm_max_allowed_memory_in_gb: int = 0,
     ):
         super().__init__()
         self.model = model_id
@@ -218,15 +215,11 @@ class HuggingFaceLLM(BaseLLM):
     def forward(self, messages: List[Dict[str, str]]):
         composed_prompt = self._make_prompt(messages)
         # System prompt is composed in the prompt
-        response = self.llm_pipeline(
-            composed_prompt=composed_prompt, **self.model_kwargs
-        )
+        response = self.llm_pipeline(composed_prompt=composed_prompt, **self.model_kwargs)
 
         response = response.replace(composed_prompt, "").strip()
 
-        bt.logging.info(
-            f"{self.__class__.__name__} generated the following output:\n{response}"
-        )
+        bt.logging.info(f"{self.__class__.__name__} generated the following output:\n{response}")
         return response
 
 
@@ -237,9 +230,7 @@ if __name__ == "__main__":
     torch_dtype = "float16"
     mock = True
 
-    llm_pipeline = HuggingFacePipeline(
-        model_id=model_id, device=device, torch_dtype=torch_dtype, mock=mock
-    )
+    llm_pipeline = HuggingFacePipeline(model_id=model_id, device=device, torch_dtype=torch_dtype, mock=mock)
 
     llm = HuggingFaceLLM(llm_pipeline, "You are a helpful AI assistant")
 

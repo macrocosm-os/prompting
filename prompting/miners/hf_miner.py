@@ -24,11 +24,12 @@ from typing import Awaitable
 
 # Bittensor Miner Template:
 from prompting.protocol import StreamPromptingSynapse
-from prompting.llms import HuggingFaceLLM, HuggingFacePipeline, load_hf_pipeline
+from prompting.llms import HuggingFaceLLM, HuggingFacePipeline
 
 # import base miner class which takes care of most of the boilerplate
 from prompting.base.prompting_miner import BaseStreamPromptingMiner
 from deprecated import deprecated
+
 
 @deprecated(version="2.4.1+", reason="Class is deprecated, use openai miner for reference on example miner.")
 class HuggingFaceMiner(BaseStreamPromptingMiner):
@@ -74,9 +75,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                 self.identity_tags += ("4bit_quantization",)
 
         # Forces model loading behaviour over mock flag
-        mock = (
-            False if self.config.neuron.should_force_model_loading else self.config.mock
-        )
+        mock = False if self.config.neuron.should_force_model_loading else self.config.mock
 
         self.llm_pipeline = HuggingFacePipeline(
             model_id=self.config.neuron.model_id,
@@ -135,15 +134,13 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
 
                     if synapse_message in system_message:
                         # Cleans system message and challenge from model response
-                        bt.logging.warning(
-                            f"Discarding initial system_prompt / user prompt inputs from generation..."
-                        )
+                        bt.logging.warning("Discarding initial system_prompt / user prompt inputs from generation...")
                         buffer = []
                         system_message = ""
                         continue
 
                     if time.time() - init_time > timeout_threshold:
-                        bt.logging.debug(f"⏰ Timeout reached, stopping streaming")
+                        bt.logging.debug("⏰ Timeout reached, stopping streaming")
                         timeout_reached = True
                         break
 
@@ -161,9 +158,7 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                         )
                         buffer = []
 
-                if (
-                    buffer and not timeout_reached
-                ):  # Don't send the last buffer of data if timeout.
+                if buffer and not timeout_reached:  # Don't send the last buffer of data if timeout.
                     joined_buffer = "".join(buffer)
                     temp_completion += joined_buffer
                     # bt.logging.debug(f"Streamed tokens: {joined_buffer}")
@@ -185,10 +180,10 @@ class HuggingFaceMiner(BaseStreamPromptingMiner):
                 # _ = task.result() # wait for thread to finish
                 bt.logging.debug("Finishing streaming loop...")
                 bt.logging.debug("-" * 50)
-                bt.logging.debug(f"---->>> Received message:")
+                bt.logging.debug("---->>> Received message:")
                 bt.logging.debug(synapse.messages[0])
                 bt.logging.debug("-" * 50)
-                bt.logging.debug(f"<<<----- Returned message:")
+                bt.logging.debug("<<<----- Returned message:")
                 bt.logging.debug(temp_completion)
                 bt.logging.debug("-" * 50)
 

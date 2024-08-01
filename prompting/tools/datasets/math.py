@@ -16,13 +16,11 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import time
 import random
 import itertools
 import mathgenerator
 import bittensor as bt
-from sympy.parsing.latex import parse_latex
-from typing import Dict, Union, List, Tuple
+from typing import Dict, List
 
 
 from .base import Dataset
@@ -30,7 +28,7 @@ from ..selector import Selector
 
 
 class MathDataset(Dataset):
-    name = 'math'
+    name = "math"
     topics_list = mathgenerator.getGenList()
 
     def __init__(self, seed=None):
@@ -60,7 +58,7 @@ class MathDataset(Dataset):
         max_tries = 10
         for _ in range(max_tries):
             info = mathgenerator.generate_context(name, **kwargs)
-            if info["reward_type"] != "float" or info["topic"] == "computer_science":       
+            if info["reward_type"] != "float" or info["topic"] == "computer_science":
                 pass
             else:
                 math_words = [
@@ -89,12 +87,8 @@ class MathDataset(Dataset):
                     "extra": {"reward_type": info["reward_type"], "solution": info["solution"]},
                 }
 
-    def search(
-        self, name, selector: Selector, include: List = None, exclude: List = None
-    ) -> Dict:
-        raise NotImplementedError(
-            f"Search is not implemented for {self.__class__.__name__}"
-        )
+    def search(self, name, selector: Selector, include: List = None, exclude: List = None) -> Dict:
+        raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
 
     def random(self, selector: Selector, **kwargs):
         """Create a random math problem."""

@@ -10,7 +10,6 @@ from prompting.rewards import (
 from prompting.dendrite import DendriteResponseEvent
 
 
-
 class RelevanceRewardModel(BaseRewardModel):
     @property
     def name(self) -> str:
@@ -19,9 +18,7 @@ class RelevanceRewardModel(BaseRewardModel):
     def __init__(self, threshold=None, device=None, pooling_strategy="cls"):
         super().__init__()
         self.threshold = threshold
-        self.model = AnglE.from_pretrained(
-            "WhereIsAI/UAE-Large-V1", pooling_strategy=pooling_strategy, device=device
-        )
+        self.model = AnglE.from_pretrained("WhereIsAI/UAE-Large-V1", pooling_strategy=pooling_strategy, device=device)
         if device.startswith("cuda"):
             # This line is necessary to pass the model to the device defined at its initialization
             self.model = self.model.cuda()
@@ -46,12 +43,7 @@ class RelevanceRewardModel(BaseRewardModel):
 
             emb = self.model.encode(comp, to_numpy=False)
             # Calculate cosine similarity between reference and completion embeddings, and subtract baseline
-            score = (
-                cosine_similarity(
-                    reference_embedding.reshape(1, -1), emb.reshape(1, -1)
-                )
-                - baseline
-            )
+            score = cosine_similarity(reference_embedding.reshape(1, -1), emb.reshape(1, -1)) - baseline
 
             rewards.append(score)
             timings.append(time.time() - t0)

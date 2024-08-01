@@ -30,9 +30,7 @@ async def handle_response(responses) -> List[StreamPromptingSynapse]:
             print(f"\nchunk {ii} for resp {resp_idx}: {chunk}", end="", flush=True)
             ii += 1
 
-        synapse = (
-            chunk  # last object yielded is the synapse itself with completion filled
-        )
+        synapse = chunk  # last object yielded is the synapse itself with completion filled
 
         synapses.append(synapse)
     return synapses
@@ -57,9 +55,7 @@ def test_mock_streaming(timeout: float):
         messages=messages,
     )
 
-    async def get_responses(
-        synapse: StreamPromptingSynapse, timeout: float
-    ) -> List[AsyncGenerator]:
+    async def get_responses(synapse: StreamPromptingSynapse, timeout: float) -> List[AsyncGenerator]:
         return await mock_dendrite(  # responses is an async generator that yields the response tokens
             axons=mock_metagraph.axons,
             synapse=synapse,

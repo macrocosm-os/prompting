@@ -47,9 +47,7 @@ def test_context_contains_expected_field(dataset: Dataset, field: str):
 
 @pytest.mark.parametrize("dataset", DATASETS)
 @pytest.mark.parametrize("field, expected_type", list(CONTEXT_FIELDS.items()))
-def test_context_field_has_expected_types(
-    dataset: Dataset, field: str, expected_type: type
-):
+def test_context_field_has_expected_types(dataset: Dataset, field: str, expected_type: type):
     assert isinstance(getattr(CONTEXTS[dataset], field), expected_type)
 
 
@@ -60,8 +58,6 @@ def test_context_field_is_not_null(dataset: Dataset, field: str):
 
 
 @pytest.mark.parametrize("dataset", DATASETS)
-@pytest.mark.parametrize(
-    "field", ("fetch_time", "num_tries", "fetch_method", "next_kwargs")
-)
+@pytest.mark.parametrize("field", ("fetch_time", "num_tries", "fetch_method", "next_kwargs"))
 def test_context_stats_field_contains_expected_keys(dataset: Dataset, field: str):
     assert field in CONTEXTS[dataset].stats

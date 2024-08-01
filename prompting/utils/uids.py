@@ -1,7 +1,7 @@
 import torch
 import random
 import bittensor as bt
-from typing import List, Union
+from typing import List
 
 from prompting.base.neuron import BaseNeuron
 
@@ -30,9 +30,7 @@ def check_uid_availability(
 
     # Filter validator permit > 1024 stake.
     if metagraph.validator_permit[uid] and metagraph.S[uid] > vpermit_tao_limit:
-        bt.logging.debug(
-            f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}"
-        )
+        bt.logging.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}")
         return False
 
     if coldkeys and metagraph.axons[uid].coldkey in coldkeys:
@@ -95,15 +93,16 @@ def get_random_uids(self: BaseNeuron, k: int, exclude: List[int] = None) -> torc
 
 def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> torch.LongTensor:
     metagraph = self.metagraph
-    miners_uids = list(map(int, filter(lambda uid: check_uid_availability(metagraph, uid, vpermit_tao_limit),
-        metagraph.uids)))
-    
+    miners_uids = list(
+        map(int, filter(lambda uid: check_uid_availability(metagraph, uid, vpermit_tao_limit), metagraph.uids))
+    )
+
     # Builds a dictionary of uids and their corresponding incentives.
     all_miners_incentives = {
         "miners_uids": miners_uids,
-        "incentives": list(map(lambda uid: metagraph.I[uid], miners_uids))
+        "incentives": list(map(lambda uid: metagraph.I[uid], miners_uids)),
     }
-    
+
     # Zip the uids and their corresponding incentives into a list of tuples.
     uid_incentive_pairs = list(zip(all_miners_incentives["miners_uids"], all_miners_incentives["incentives"]))
 
@@ -112,7 +111,7 @@ def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> torch.LongTe
 
     # Extract the top uids.
     top_k_uids = [uid for uid, incentive in uid_incentive_pairs_sorted[:k]]
-    
+
     return torch.tensor(top_k_uids)
 
 

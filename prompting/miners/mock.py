@@ -43,13 +43,13 @@ class MockMiner(BaseStreamPromptingMiner):
                 }
             )
 
-        message = f"Hey you reached mock miner {self.config.wallet.hotkey!r}. Please leave a message after the tone.. Beep!"
+        message = (
+            f"Hey you reached mock miner {self.config.wallet.hotkey!r}. Please leave a message after the tone.. Beep!"
+        )
         token_streamer = partial(_forward, message)
         return synapse.create_streaming_response(token_streamer)
 
-    async def blacklist(
-        self, synapse: StreamPromptingSynapse
-    ) -> typing.Tuple[bool, str]:
+    async def blacklist(self, synapse: StreamPromptingSynapse) -> typing.Tuple[bool, str]:
         return False, "All good here"
 
     async def priority(self, synapse: StreamPromptingSynapse) -> float:

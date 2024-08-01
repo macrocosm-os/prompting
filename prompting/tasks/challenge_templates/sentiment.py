@@ -1,4 +1,3 @@
-import random
 from .base import ChallengeTemplate
 
 
@@ -182,5 +181,5 @@ class SentimentChallengeTemplate(ChallengeTemplate):
                 " ",
                 "\n",
                 "\n\n",
-            ]
+            ],
         }

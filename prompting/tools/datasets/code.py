@@ -510,10 +510,7 @@ def filter_comments(code, language):
     lines = []
     for line in code.splitlines():
         # TODO: use regex
-        if any(
-            line.strip().startswith(symbol)
-            for symbol in LANGUAGES[language]["comments"]
-        ):
+        if any(line.strip().startswith(symbol) for symbol in LANGUAGES[language]["comments"]):
             continue
 
         lines.append(line.lower())
@@ -524,6 +521,7 @@ def filter_comments(code, language):
 # TODO: why not define the chain_in, chain_out logic in the class itself?
 class HFCodingDataset(Dataset):
     name = "hf_coding"
+
     def __init__(
         self,
         dataset_id="codeparrot/github-code",
@@ -555,9 +553,7 @@ class HFCodingDataset(Dataset):
         if not (min_lines <= len(info["code"].splitlines()) <= max_lines):
             return None
 
-        present_keywords, present_libraries = self.get_special_contents(
-            info["code"], info["language"]
-        )
+        present_keywords, present_libraries = self.get_special_contents(info["code"], info["language"])
         keywords = list(present_keywords) + list(present_libraries)
         code_words = [
             "code",
@@ -584,13 +580,9 @@ class HFCodingDataset(Dataset):
             "extra": {"size": info["size"], "license": info["license"]},
         }
 
-    def search(
-        self, query, min_lines=5, max_lines=100, selector: Selector = None, **kwargs
-    ):
+    def search(self, query, min_lines=5, max_lines=100, selector: Selector = None, **kwargs):
         # TODO: Would be great to be able to get other files from the same repo
-        raise NotImplementedError(
-            f"Search is not implemented for {self.__class__.__name__}"
-        )
+        raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
 
     def random(self, min_lines=5, max_lines=100, selector: Selector = None, **kwargs):
         return self.get(min_lines, max_lines, selector)
@@ -617,6 +609,7 @@ class HFCodingDataset(Dataset):
 
 class StackOverflowDataset:
     name = "stack_overflow"
+
     def __init__(self):
         # Stack Overflow API endpoint for a random article
         self.url = "https://api.stackexchange.com/2.3/questions"
@@ -658,9 +651,7 @@ class StackOverflowDataset:
 
     def get_stack_answer(self, question):
         question_id = question["question_id"]
-        url_answers = (
-            f"https://api.stackexchange.com/2.3/questions/{question_id}/answers"
-        )
+        url_answers = f"https://api.stackexchange.com/2.3/questions/{question_id}/answers"
         params_answers = {
             "order": "desc",
             "sort": "votes",

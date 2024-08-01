@@ -19,7 +19,6 @@
 import re
 import sys
 import random
-import datetime
 import requests
 from bs4 import BeautifulSoup
 import bittensor as bt
@@ -37,14 +36,10 @@ CACHED_ARTICLES = Queue(maxsize=300)
 
 # speed up page loading
 @lru_cache(maxsize=1000)
-def _get_page(
-    title, pageid=None, auto_suggest=False, redirect=True, seed=None
-) -> wiki.WikipediaPage:
+def _get_page(title, pageid=None, auto_suggest=False, redirect=True, seed=None) -> wiki.WikipediaPage:
     """Cached Wikipedia page loading."""
     try:
-        page = wiki.page(
-            title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect
-        )
+        page = wiki.page(title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
         return page
 
     except wiki.DisambiguationError as e:
@@ -76,6 +71,7 @@ def _wiki_search(name: str, results: wiki.WikipediaPage) -> List:
     """Cached Wikipedia search."""
     return wiki.search(name, results=results)
 
+
 def get_article_sections(title: str) -> Dict:
     # Fetch the HTML content of the Wikipedia article
     url = f"https://en.wikipedia.org/wiki/{title}"
@@ -83,7 +79,7 @@ def get_article_sections(title: str) -> Dict:
     html_content = response.text
 
     # Parse the HTML using BeautifulSoup
-    soup = BeautifulSoup(html_content, 'html.parser')
+    soup = BeautifulSoup(html_content, "html.parser")
 
     sections = {}
     for section in soup.find_all("h2"):
@@ -91,6 +87,7 @@ def get_article_sections(title: str) -> Dict:
             sections[section.text] = p_tag.text
 
     return sections
+
 
 def process_page(
     page, exclude_sections: Optional[list] = None, valid_section: callable = None, selector: Selector = None
@@ -107,15 +104,17 @@ def process_page(
     title = page.title
 
     sections = get_article_sections(title)
-    
+
     # Filter out the section keys that are in the exclude list
     if exclude_sections:
         sections = {k: v for k, v in sections.items() if k not in exclude_sections}
-    
-    if selector == "all":
-        return ("Full Page", "\n\n".join(sections.values())) , sections.keys()
 
-    valid_sections = [(key, value) for key, value in sections.items() if not valid_section or valid_section(sections[key])]
+    if selector == "all":
+        return ("Full Page", "\n\n".join(sections.values())), sections.keys()
+
+    valid_sections = [
+        (key, value) for key, value in sections.items() if not valid_section or valid_section(sections[key])
+    ]
 
     if valid_sections:
         return selector(valid_sections), sections.keys()
@@ -129,9 +128,7 @@ def most_relevant_links(page: wiki.WikipediaPage, num_links=10, num_summary_word
     summary_words = set(page.summary.split()[:num_summary_words])
     for link in page.links:
         link_words = set(link.split())
-        iou = len(summary_words.intersection(link_words)) / len(
-            summary_words.union(link_words)
-        )
+        iou = len(summary_words.intersection(link_words)) / len(summary_words.union(link_words))
         link_scores[link] = iou / len(link.split())
 
     sorted_links = sorted(link_scores.items(), key=lambda x: x[1], reverse=True)
@@ -144,22 +141,15 @@ def most_relevant_links(page: wiki.WikipediaPage, num_links=10, num_summary_word
 def filter_categories(categories, exclude=None, include=None):
     """Filter categories based on a list of categories to exclude and/or include."""
     if exclude:
-        categories = [
-            cat
-            for cat in categories
-            if not re.search("|".join(exclude), cat, re.IGNORECASE)
-        ]
+        categories = [cat for cat in categories if not re.search("|".join(exclude), cat, re.IGNORECASE)]
     if include:
-        categories = [
-            cat
-            for cat in categories
-            if re.search("|".join(include), cat, re.IGNORECASE)
-        ]
+        categories = [cat for cat in categories if re.search("|".join(include), cat, re.IGNORECASE)]
     return categories
 
 
 class WikiDataset(Dataset):
     """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
+
     name = "wiki"
     EXCLUDE_HEADERS = ("See also", "References", "Further reading", "External links")
     EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
@@ -204,12 +194,12 @@ class WikiDataset(Dataset):
             return None
         # Only return a sections with a minimum number of words
         exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
-        selected_section, all_sections= process_page(
+        selected_section, all_sections = process_page(
             page,
             exclude_sections=exclude,
             valid_section=lambda x: len(x.split()) >= self.min_length_words,
             selector=selector,
-        ) # Returns a tuple of (section_name, content)
+        )  # Returns a tuple of (section_name, content)
         if not selected_section:
             return None
 
@@ -241,11 +231,7 @@ class WikiDataset(Dataset):
         return self.get(title, selector=selector)
 
     def random(self, pages=10, seed=None, selector: Selector = None, **kwargs) -> Dict:
-        titles = (
-            wiki.random(pages=pages)
-            if seed is None
-            else _get_random_titles(pages=pages, seed=seed)
-        )
+        titles = wiki.random(pages=pages) if seed is None else _get_random_titles(pages=pages, seed=seed)
         title = selector(titles)
         return self.get(title, selector=selector)
 
@@ -273,16 +259,16 @@ class WikiDateDataset(Dataset):
         self.max_tries = max_tries
         self.seed = seed
         self.rng = random.Random(seed)
-        
+
     def extract_dates_and_sentences(self, text: str) -> Tuple[str, str]:
         # Regular expression to find dates in various formats
-        date_pattern = r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b'
+        date_pattern = r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b"
 
         # Compile the regex pattern
         date_regex = re.compile(date_pattern)
 
         # Split text into sentences
-        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
+        sentences = re.split(r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s", text)
 
         # Iterate through sentences and find dates
         for sentence in sentences:
@@ -292,10 +278,10 @@ class WikiDateDataset(Dataset):
             if dates:
                 for date in dates:
                     # Return the first date found
-                    return (str(date), sentence.replace(str(date), '<date>').strip())
+                    return (str(date), sentence.replace(str(date), "<date>").strip())
 
         # If no dates are found, search for dates in the form of "Month DD"
-        secondary_date_pattern = r'\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?\b'
+        secondary_date_pattern = r"\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?\b"
         secondary_date_regex = re.compile(secondary_date_pattern)
 
         for sentence in sentences:
@@ -308,15 +294,15 @@ class WikiDateDataset(Dataset):
                     return (str(date), sentence.replace(str(date), "<date>").strip())
 
         return None
-    
+
     def _random_date(self) -> str:
         for _ in range(self.max_tries):
             try:
                 context = CACHED_ARTICLES.get(block=False)
-                date_sentence = self.extract_dates_and_sentences(context['content'])
-                context['content'] = date_sentence[1]
-                context['extra']['date'] = date_sentence[0]
-                if context['content'] is None:
+                date_sentence = self.extract_dates_and_sentences(context["content"])
+                context["content"] = date_sentence[1]
+                context["extra"]["date"] = date_sentence[0]
+                if context["content"] is None:
                     continue
                 else:
                     return context
@@ -333,13 +319,11 @@ class WikiDateDataset(Dataset):
         redirect=False,
         selector: Selector = None,
     ) -> Dict:
-        #TODO: Implement deterministic get method
+        # TODO: Implement deterministic get method
         return self.random()
 
     def search(self, name, results=5, selector: Selector = None) -> Dict:
-        raise NotImplementedError(
-            f"Search is not implemented for {self.__class__.__name__}"
-        )
+        raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
 
     def random(self, selector: Selector = None, **kwargs) -> Dict:
         return self._random_date()
