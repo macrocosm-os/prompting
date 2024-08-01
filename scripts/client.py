@@ -5,7 +5,7 @@ import bittensor as bt
 import time
 
 from typing import List, Awaitable
-from prompting.protocol import StreamPromptingSynapse
+from prompting.base.protocol import StreamPromptingSynapse
 
 """
 This has assumed you have:

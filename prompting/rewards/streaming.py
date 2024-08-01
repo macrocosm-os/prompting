@@ -1,6 +1,6 @@
 import time
 import numpy as np
-from prompting.dendrite import DendriteResponseEvent
+from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import (
     BaseRewardModel,
     BatchRewardOutput,

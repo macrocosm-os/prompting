@@ -1,14 +1,15 @@
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
 import bittensor as bt
-from prompting.tasks.task import BaseTask, WeightedRewardModel
+from prompting.tasks.base_task import BaseTask
+from prompting.rewards.reward import WeightedRewardModel
 
 # from prompting.rewards.reward import BaseRewardModel
 from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding, RemovePostQuestionText
 from prompting.utils.cleaners import CleanerPipeline
-from prompting.shared import Context
+from prompting.datasets.base import Context
 from pydantic import model_validator
-from prompting.tasks.task import BaseRewardConfig
+from prompting.rewards.reward import BaseRewardConfig
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 

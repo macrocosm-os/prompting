@@ -6,7 +6,7 @@ from prompting.rewards.reward import (
     BaseRewardModel,
     BatchRewardOutput,
 )
-from prompting.dendrite import DendriteResponseEvent
+from prompting.base.dendrite import DendriteResponseEvent
 from pydantic import ConfigDict
 
 

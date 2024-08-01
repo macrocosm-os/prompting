@@ -7,7 +7,7 @@ from typing import Awaitable
 
 # Bittensor Miner Template:
 from prompting.base.prompting_miner import BaseStreamPromptingMiner
-from prompting.protocol import StreamPromptingSynapse
+from prompting.base.protocol import StreamPromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
 

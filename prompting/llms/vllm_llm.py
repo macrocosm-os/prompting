@@ -3,7 +3,6 @@ import bittensor as bt
 from typing import Optional
 from prompting.utils.cleaners import CleanerPipeline
 from prompting.llms.base_llm import BasePipeline, BaseLLM
-from prompting.mock import MockPipeline
 from prompting.llms.utils import calculate_gpu_requirements
 from vllm import LLM
 from transformers import PreTrainedTokenizerFast
@@ -28,8 +27,6 @@ def load_vllm_pipeline(
         raise ImportError(
             "Could not import vllm library.  Please install via poetry: " 'poetry install --extras "validator" '
         )
-    if mock or model_id == "mock":
-        return MockPipeline(model_id)
 
     # Calculates the gpu memory utilization required to run the model.
     max_allowed_memory_allocation_in_bytes = max_allowed_memory_in_gb * 1e9

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from typing import List
 from prompting.rewards import BaseRewardModel, BatchRewardOutput
-from prompting.dendrite import DendriteResponseEvent
+from prompting.base.dendrite import DendriteResponseEvent
 
 
 class DateRewardModel(BaseRewardModel):

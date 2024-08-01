@@ -1,10 +1,10 @@
-from prompting.tasks.task import BaseTask
+from prompting.tasks.base_task import BaseTask
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
-from prompting.tasks.task import WeightedRewardModel
-from prompting.tasks.task import BaseRewardConfig
+from prompting.rewards.reward import WeightedRewardModel
+from prompting.rewards.reward import BaseRewardConfig
 from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding
-from prompting.shared import Context
+from prompting.datasets.base import Context
 from pydantic import model_validator
 from prompting.utils.cleaners import CleanerPipeline
 

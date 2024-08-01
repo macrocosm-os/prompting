@@ -2,7 +2,7 @@ import time
 import asyncio
 import threading
 import bittensor as bt
-from prompting.protocol import StreamPromptingSynapse
+from prompting.base.protocol import StreamPromptingSynapse
 from prompting.base.neuron import BaseNeuron
 from traceback import print_exception
 from prompting import settings

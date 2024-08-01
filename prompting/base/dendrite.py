@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List
 from dataclasses import dataclass
-from prompting.protocol import StreamPromptingSynapse
+from prompting.base.protocol import StreamPromptingSynapse
 from prompting.utils.misc import serialize_exception_to_string
 
 

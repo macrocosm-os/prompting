@@ -1,7 +1,7 @@
-from prompting.tasks.task import BaseTask, WeightedRewardModel
+from prompting.tasks.base_task import BaseTask, WeightedRewardModel
 from prompting.rewards.float_diff import FloatDiffModel
-from prompting.shared import Context
-from prompting.tasks.task import BaseRewardConfig
+from prompting.datasets.base import Context
+from prompting.rewards.reward import BaseRewardConfig
 from pydantic import model_validator
 
 

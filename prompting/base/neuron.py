@@ -9,7 +9,6 @@ from prompting.utils.config import config
 from prompting.utils.misc import ttl_get_block
 from prompting import __spec_version__ as spec_version
 
-from prompting.mock import MockSubtensor, MockMetagraph
 from prompting import settings
 
 
@@ -47,14 +46,9 @@ class BaseNeuron(ABC):
         bt.logging.info("Setting up bittensor objects.")
 
         # The wallet holds the cryptographic key pairs for the miner.
-        if settings.MOCK:
-            self.wallet = bt.MockWallet(config=self.config)
-            self.subtensor = MockSubtensor(settings.NETUID, wallet=self.wallet)
-            self.metagraph = MockMetagraph(netuid=settings.NETUID, subtensor=self.subtensor)
-        else:
-            self.wallet = bt.wallet(config=self.config)
-            self.subtensor = bt.subtensor(config=self.config)
-            self.metagraph = self.subtensor.metagraph(settings.NETUID)
+        self.wallet = bt.wallet(config=self.config)
+        self.subtensor = bt.subtensor(config=self.config)
+        self.metagraph = self.subtensor.metagraph(settings.NETUID)
 
         bt.logging.info(f"Wallet: {self.wallet}")
         bt.logging.info(f"Subtensor: {self.subtensor}")

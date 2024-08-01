@@ -1,5 +1,6 @@
 # from prompting.tasks.date_qa import DateQuestionAnsweringTask
-from prompting.tasks.task import BaseTask, BaseRewardConfig
+from prompting.tasks.base_task import BaseTask
+from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
 from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
 

@@ -3,11 +3,11 @@ import asyncio
 import traceback
 import bittensor as bt
 from typing import List, Dict, Awaitable
-from prompting.dendrite import SynapseStreamResult
-from prompting.protocol import StreamPromptingSynapse
+from prompting.base.dendrite import SynapseStreamResult
+from prompting.base.protocol import StreamPromptingSynapse
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from transformers import PreTrainedTokenizerFast as Tokenizer
-from prompting.tasks.task import BaseTask
+from prompting.tasks.base_task import BaseTask
 from prompting.llms.base_llm import BasePipeline
 
 

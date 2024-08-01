@@ -2,7 +2,7 @@ import numpy as np
 import time
 from typing import Optional, Literal
 from abc import ABC, abstractmethod
-from prompting.dendrite import DendriteResponseEvent
+from prompting.base.dendrite import DendriteResponseEvent
 from pydantic import BaseModel, ConfigDict
 from prompting.llms.base_llm import BaseLLM
 from pydantic import model_validator
@@ -83,7 +83,7 @@ class BaseRewardModel(ABC, BaseModel):
 
 
 class RewardResult(BaseModel):
-    reward_pipeline: list[BaseRewardModel]
+    reward_model: list[BaseRewardModel]
     agent: BaseLLM
     response_event: DendriteResponseEvent
     device: str
@@ -147,3 +147,79 @@ class RewardResult(BaseModel):
 
     def __str__(self):
         return f"{self.__class__.__name__}(rewards={self.rewards!r}, reward_events={self.reward_events!r}, penalty_events={self.penalty_events!r})"
+
+
+class WeightedRewardModel(BaseModel):
+    weight: float
+    reward_model: BaseRewardModel
+
+
+class WeightedRewardEvent(BaseModel):
+    weight: float
+    reward_event: RewardEvent
+
+
+class BaseRewardConfig(ABC, BaseModel):
+    """This class takes in a dictionary of rewards and penalties that should be applied. On apply(),
+    it then applies all the reward models based on query & reference and returns the reward.
+
+    both reward_definition and penalty_definition must be a list of tuples of type:
+
+    weighting: RewardModel, e.g.
+
+    [ (0.2, RougeRewardModel), (0.8, CosineDistanceRewardModel) ]
+
+    Note that for all the rewards, the percentages must sum up to 1 (100%). For penalties,
+    this is not the case, e.g. you may want to only apply a single penalty very lightly
+    and weight it with <1.
+    """
+
+    reward_definitions: list[WeightedRewardModel]
+    penalty_definitions: list[WeightedRewardModel] = []
+
+    reward_events: list[WeightedRewardEvent] | None = None
+    penalty_events: list[WeightedRewardEvent] | None = None
+
+    @property
+    def total_rewards(self) -> list[float]:
+        if not self.reward_events:
+            raise Exception("Rewards have not yet been calculated")
+        return np.sum([r.reward_event.rewards for r in self.reward_events], axis=0)
+
+    @property
+    def total_penalties(self) -> list[float]:
+        if not self.penalty_events:
+            return 0
+        return np.sum([r.reward_event.rewards for r in self.penalty_events], axis=0)
+
+    @property
+    def final_rewards(self) -> list[float]:
+        return self.total_rewards - self.total_penalties
+
+    @model_validator(mode="after")
+    def check_summation(self) -> "BaseRewardConfig":
+        assert sum([r.weight for r in self.reward_definitions]) == 1, "All rewards must sum to one"
+
+    def apply(self, response_event: DendriteResponseEvent, reference: str, challenge: str) -> list[float]:
+        for weighted_reward in self.reward_definitions:
+            self.reward_events = []
+            self.reward_events.append(
+                WeightedRewardEvent(
+                    weight=weighted_reward.weight,
+                    reward_event=weighted_reward.reward_model.apply(
+                        reference=reference, response_event=response_event, challenge=challenge, reward_type="reward"
+                    ),
+                )
+            )
+
+        for weighted_reward in self.penalty_definitions:
+            self.penalty_events = []
+            self.penalty_events.append(
+                WeightedRewardEvent(
+                    weight=weighted_reward.weight,
+                    reward_event=weighted_reward.reward_model.apply(
+                        reference=challenge, response_event=response_event, reward_type="penalty"
+                    ),
+                )
+            )
+        return self.final_rewards

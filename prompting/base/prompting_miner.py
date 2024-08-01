@@ -4,7 +4,7 @@ import bittensor as bt
 
 # Bittensor Miner Template:
 import prompting
-from prompting.protocol import StreamPromptingSynapse
+from prompting.base.protocol import StreamPromptingSynapse
 from prompting.base.miner import BaseStreamMinerNeuron
 from datetime import datetime
 from typing import List

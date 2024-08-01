@@ -9,7 +9,6 @@ from typing import List
 from traceback import print_exception
 
 from prompting.base.neuron import BaseNeuron
-from prompting.mock import MockDendrite
 from prompting.utils.exceptions import MaxRetryError
 
 from prompting import settings
@@ -29,10 +28,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
         # Dendrite lets us send messages to other nodes (axons) in the network.
-        if settings.MOCK:
-            self.dendrite = MockDendrite(wallet=self.wallet)
-        else:
-            self.dendrite = bt.dendrite(wallet=self.wallet)
+        self.dendrite = bt.dendrite(wallet=self.wallet)
         bt.logging.info(f"Dendrite: {self.dendrite}")
 
         # Set up initial scoring weights for validation
