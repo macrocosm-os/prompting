@@ -16,7 +16,6 @@
 # DEALINGS IN THE SOFTWARE.
 import typing
 import argparse
-import bittensor as bt
 from functools import partial
 from starlette.types import Send
 
@@ -59,9 +58,7 @@ class PhraseMiner(BaseStreamPromptingMiner):
         token_streamer = partial(_forward, self.config.neuron.phrase)
         return synapse.create_streaming_response(token_streamer)
 
-    async def blacklist(
-        self, synapse: StreamPromptingSynapse
-    ) -> typing.Tuple[bool, str]:
+    async def blacklist(self, synapse: StreamPromptingSynapse) -> typing.Tuple[bool, str]:
         return False, "All good here"
 
     async def priority(self, synapse: StreamPromptingSynapse) -> float:

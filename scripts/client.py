@@ -20,9 +20,7 @@ Steps:
 """
 
 
-async def handle_response(
-    uids: List[int], responses: List[Awaitable]
-) -> tuple[str, str]:
+async def handle_response(uids: List[int], responses: List[Awaitable]) -> tuple[str, str]:
     synapses = []
 
     for uid_num, resp in enumerate(responses):
@@ -33,29 +31,21 @@ async def handle_response(
         chunk_start_time = time.time()
         async for chunk in resp:
             chunk_time = round(time.time() - chunk_start_time, 3)
-            bt.logging.info(
-                f"UID: {uids[uid_num]}. chunk {ii}({chunk_time}s) for resp: {chunk} "
-            )
+            bt.logging.info(f"UID: {uids[uid_num]}. chunk {ii}({chunk_time}s) for resp: {chunk} ")
             ii += 1
 
             chunk_times.append(chunk_time)
             chunk_start_time = time.time()
 
-        bt.logging.success(
-            f"UID {uids[uid_num]} took {(time.time() - start_time):.3f} seconds\n"
-        )
+        bt.logging.success(f"UID {uids[uid_num]} took {(time.time() - start_time):.3f} seconds\n")
 
-        synapse = (
-            chunk  # last object yielded is the synapse itself with completion filled
-        )
+        synapse = chunk  # last object yielded is the synapse itself with completion filled
         synapses.append(synapse)
 
     return synapses
 
 
-async def query_stream_miner(
-    args, synapse_protocol, wallet_name, hotkey, network, netuid, message=None
-):
+async def query_stream_miner(args, synapse_protocol, wallet_name, hotkey, network, netuid, message=None):
     if message is None:
         message = "Give me some information about the night sky."
 
@@ -97,9 +87,7 @@ async def query_stream_miner(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Query a Bittensor synapse with given parameters."
-    )
+    parser = argparse.ArgumentParser(description="Query a Bittensor synapse with given parameters.")
 
     parser.add_argument(
         "--uids",
@@ -110,12 +98,8 @@ if __name__ == "__main__":
         type=int,
     )
     parser.add_argument("--netuid", type=int, default=102, help="Network Unique ID")
-    parser.add_argument(
-        "--wallet_name", type=str, default="default", help="Name of the wallet"
-    )
-    parser.add_argument(
-        "--hotkey", type=str, default="default", help="Hotkey for the wallet"
-    )
+    parser.add_argument("--wallet_name", type=str, default="default", help="Name of the wallet")
+    parser.add_argument("--hotkey", type=str, default="default", help="Hotkey for the wallet")
     parser.add_argument(
         "--network",
         type=str,

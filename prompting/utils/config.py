@@ -48,9 +48,7 @@ def check_config(cls, config: "bt.Config"):
 
     if not config.neuron.dont_save_events:
         # Add custom event logger for the events.
-        event_handler = logging.FileHandler(
-            os.path.join(config.neuron.full_path, "events.log")
-        )
+        event_handler = logging.FileHandler(os.path.join(config.neuron.full_path, "events.log"))
         event_handler.setLevel(38)  # Custom level
         formatter = logging.Formatter("{asctime} | {levelname} | {message}", style="{")
         event_handler.setFormatter(formatter)
@@ -83,7 +81,7 @@ def add_args(cls, parser):
         "--neuron.llm_max_allowed_memory_in_gb",
         type=int,
         help="The max gpu memory utilization set for initializing the model. This parameter currently reflects on the property `gpu_memory_utilization` of vllm",
-        default=62,
+        default=70,
     )
 
     parser.add_argument(
@@ -128,9 +126,7 @@ def add_args(cls, parser):
         default=True,
     )
 
-    parser.add_argument(
-        "--wandb.off", action="store_true", help="Turn off wandb.", default=False
-    )
+    parser.add_argument("--wandb.off", action="store_true", help="Turn off wandb.", default=False)
 
     parser.add_argument(
         "--wandb.offline",
@@ -284,7 +280,7 @@ def add_validator_args(cls, parser):
         "--neuron.model_id",
         type=str,
         help="The model to use for the validator.",
-        default="casperhansen/llama-3-70b-instruct-awq",
+        default="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
     )
 
     parser.add_argument(
@@ -295,10 +291,19 @@ def add_validator_args(cls, parser):
         default=list(TASKS.keys()),
     )
 
+    import argparse
+
+    def parse_probabilities(prob_list):
+        try:
+            # Convert each item in the list to a float
+            return [float(p) for p in prob_list]
+        except ValueError:
+            raise argparse.ArgumentTypeError("All probabilities must be floats.")
+
     parser.add_argument(
         "--neuron.task_p",
-        type=float,
-        nargs="+",
+        type=parse_probabilities,  # Use the custom parsing function
+        nargs="+",  # Allow multiple values
         help="The probability of sampling each task.",
         default=[1.0 / len(TASKS)] * len(TASKS),
     )
@@ -402,6 +407,105 @@ def add_validator_args(cls, parser):
         type=int,
         help="Max time to wait for a forward call to complete in seconds.",
         default=120,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_sample_size",
+        type=int,
+        help="The number of miners to organic query in a single step.",
+        default=5,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_sampling_mode",
+        type=str,
+        help="The mode for sampling miners using organic queries. Options include 'random' for random selection, "
+        "'top_incentive' for selecting based on highest incentives.",
+        default="random",
+    )
+
+    parser.add_argument(
+        "--neuron.organic_disabled",
+        action="store_true",
+        help="Set this flag to disable organic scoring.",
+        default=False,
+    )
+
+    # TODO: Set organic weight setting enabled by default after Aug 1, 2024.
+    parser.add_argument(
+        "--neuron.organic_set_weights_enabled",
+        action="store_true",
+        help="Set this flag to enable organic scoring weight setting.",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_synth_reward_scale",
+        type=float,
+        help="Scale factor for synthetic organic rewards.",
+        default=0.1,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_reuse_response_disabled",
+        action="store_true",
+        help="If set, miner responses will be re-generated during reward generation. "
+        "The default behavior is to reuse responses.",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_timeout",
+        type=int,
+        help="Organic query timeout for each call in seconds.",
+        default=30,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_reference_max_tokens",
+        type=int,
+        help="Organic query timeout for each call in seconds.",
+        default=1024,
+    )
+
+    # TODO: Increase sampling rate after after Aug 1, 2024.
+    parser.add_argument(
+        "--neuron.organic_trigger_frequency",
+        type=float,
+        help="Organic query sampling frequency (seconds or steps value).",
+        default=120.0,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_trigger_frequency_min",
+        type=float,
+        help="Minimum organic query sampling frequency (seconds or steps value).",
+        default=5.0,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_scaling_factor",
+        type=float,
+        help=(
+            "The scaling factor to adjust the trigger frequency based on the size of the organic queue. "
+            "A higher value means the trigger frequency adjusts more slowly to the increase of organic queue size."
+        ),
+        default=1.0,
+    )
+
+    parser.add_argument(
+        "--neuron.organic_trigger",
+        type=str,
+        help="Organic query validation trigger mode (seconds or steps).",
+        default="seconds",
+    )
+
+    parser.add_argument(
+        "--neuron.organic_whitelist_hotkey",
+        type=str,
+        help="Allow request from specific hotkey. Defaults to OTF hotkey.",
+        # OTF hotkey.
+        default="5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
     )
 
 

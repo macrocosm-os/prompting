@@ -3,8 +3,8 @@ from typing import List
 from dataclasses import dataclass
 from prompting.protocol import StreamPromptingSynapse
 from prompting.utils.misc import serialize_exception_to_string
- 
- 
+
+
 @dataclass
 class SynapseStreamResult:
     exception: BaseException = None
@@ -16,9 +16,7 @@ class SynapseStreamResult:
 
 
 class DendriteResponseEvent:
-    def __init__(
-        self, stream_results: SynapseStreamResult, uids: torch.LongTensor, timeout: float
-    ):
+    def __init__(self, stream_results: SynapseStreamResult, uids: torch.LongTensor, timeout: float):
         self.uids = uids
         self.completions = []
         self.status_messages = []
@@ -29,7 +27,7 @@ class DendriteResponseEvent:
         self.stream_results_all_chunks = []
         self.stream_results_all_chunks_timings = []
         self.stream_results_all_tokens_per_chunk = []
-        
+
         for stream_result in stream_results:
             synapse = stream_result.synapse
 

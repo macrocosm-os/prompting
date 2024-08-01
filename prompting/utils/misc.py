@@ -23,6 +23,7 @@ import bittensor as bt
 from math import floor
 from typing import Callable, Any
 from functools import lru_cache, update_wrapper
+from prompting.utils.exceptions import BittensorError
 
 
 # LRU Cache with TTL
@@ -110,7 +111,10 @@ def ttl_get_block(self) -> int:
 
     Note: self here is the miner or validator instance
     """
-    return self.subtensor.get_current_block()
+    try:
+        return self.subtensor.get_current_block()
+    except Exception as e:
+        raise BittensorError(f"Bittensor error: {str(e)}") from e
 
 
 def async_log(func):
@@ -125,21 +129,19 @@ def async_log(func):
 
         end_time = time.time()
         execution_time = end_time - start_time
-        bt.logging.debug(
-            f"Completed {func_name} on task {task_id} in {execution_time} seconds"
-        )
+        bt.logging.debug(f"Completed {func_name} on task {task_id} in {execution_time} seconds")
 
         return result
 
     return wrapper
 
 
-def serialize_exception_to_string(e):    
+def serialize_exception_to_string(e):
     if isinstance(e, BaseException):
         # Format the traceback
-        tb_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+        tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
         # Combine type, message, and traceback into one string
         serialized_str = f"Exception Type: {type(e).__name__}, Message: {str(e)}, Traceback: {tb_str}"
         return serialized_str
-    else:        
+    else:
         return e

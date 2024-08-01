@@ -1,5 +1,4 @@
-from typing import List
-
+from typing import Type, Optional
 from prompting.tasks import TASKS
 from prompting.rewards import (
     BaseRewardModel,
@@ -9,8 +8,9 @@ from prompting.rewards import (
     FloatDiffModel,
     DateRewardModel,
     OrdinalRewardModel,
-    StreamingRewardModel
+    StreamingRewardModel,
 )
+from prompting.tasks.task import Task
 
 REWARD_MODELS = {
     "rouge": RougeRewardModel,
@@ -24,7 +24,10 @@ REWARD_MODELS = {
 
 
 class RewardPipeline:
-    def __init__(self, selected_tasks: List[str], device):
+    def __init__(self, selected_tasks: list[str], device, available_tasks: Optional[dict[str, Type[Task]]] = None):
+        self.available_tasks = available_tasks
+        if self.available_tasks is None:
+            self.available_tasks = TASKS
         self.selected_tasks = selected_tasks
         self.device = device
         self.validate_tasks()
@@ -41,10 +44,8 @@ class RewardPipeline:
 
     def validate_tasks(self):
         for task in self.selected_tasks:
-            if task not in TASKS:
-                raise ValueError(
-                    f"Task {task} not supported. Please choose from {TASKS.keys()}"
-                )
+            if task not in self.available_tasks:
+                raise ValueError(f"Task {task} not supported. Please choose from {self.available_tasks.keys()}")
             # Check that the reward_definition and penalty_definition are lists of dictionaries whose weights sum to one
             self._check_weights(task, "reward_definition", expected_weight=1)
             self._check_weights(task, "penalty_definition", expected_weight=None)
@@ -52,35 +53,23 @@ class RewardPipeline:
     def _check_weights(self, task, definition, expected_weight):
         total_weight = 0
 
-        model_infos = getattr(TASKS[task], definition)
+        model_infos = getattr(self.available_tasks[task], definition)
 
         for model_info in model_infos:
             if not isinstance(model_info, dict):
-                raise ValueError(
-                    f"{definition} model {model_info} is not a dictionary."
-                )
+                raise ValueError(f"{definition} model {model_info} is not a dictionary.")
             if "weight" not in model_info:
-                raise ValueError(
-                    f"{definition} model {model_info} does not have a weight."
-                )
+                raise ValueError(f"{definition} model {model_info} does not have a weight.")
 
             weight = model_info["weight"]
             if not isinstance(weight, (float, int)):
-                raise ValueError(
-                    f"{definition} model {model_info} weight is not a float."
-                )
+                raise ValueError(f"{definition} model {model_info} weight is not a float.")
             if not 0 <= weight <= 1:
-                raise ValueError(
-                    f"{definition} model {model_info} weight is not between 0 and 1."
-                )
+                raise ValueError(f"{definition} model {model_info} weight is not between 0 and 1.")
 
             total_weight += weight
 
-        if (
-            model_infos
-            and expected_weight is not None
-            and total_weight != expected_weight
-        ):
+        if model_infos and expected_weight is not None and total_weight != expected_weight:
             raise ValueError(
                 f"{definition} model {model_infos} weights do not sum to {expected_weight} (sum={total_weight})"
             )
@@ -90,9 +79,9 @@ class RewardPipeline:
         active_reward_models = []
 
         for task in self.selected_tasks:
-            active_reward_models += TASKS[task].reward_definition
-            active_reward_models += TASKS[task].penalty_definition
-            active_reward_models += TASKS[task].global_penalty_definition
+            active_reward_models += self.available_tasks[task].reward_definition
+            active_reward_models += self.available_tasks[task].penalty_definition
+            active_reward_models += self.available_tasks[task].global_penalty_definition
 
         # Instantiate only the required reward models
         reward_models = {}
@@ -101,9 +90,7 @@ class RewardPipeline:
             if not name:
                 raise ValueError(f"Reward model {model} does not have a name. ")
             if name not in REWARD_MODELS:
-                raise ValueError(
-                    f"Reward model {name} not supported. Please choose from {REWARD_MODELS.keys()}"
-                )
+                raise ValueError(f"Reward model {name} not supported. Please choose from {REWARD_MODELS.keys()}")
             elif name in reward_models:  # Prevents duplicate reward models
                 continue
 

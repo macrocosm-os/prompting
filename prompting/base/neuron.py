@@ -56,7 +56,9 @@ class BaseNeuron(ABC):
 
     @property
     def block(self):
-        return ttl_get_block(self)
+        self._block = ttl_get_block(self)
+        self.latest_block = self._block
+        return self._block
 
     def __init__(self, config=None):
         base_config = copy.deepcopy(config or BaseNeuron._config())
@@ -102,12 +104,10 @@ class BaseNeuron(ABC):
         self.step = 0
 
     @abstractmethod
-    def forward(self, synapse: bt.Synapse) -> bt.Synapse:
-        ...
+    def forward(self, synapse: bt.Synapse) -> bt.Synapse: ...
 
     @abstractmethod
-    def run(self):
-        ...
+    def run(self): ...
 
     def sync(self):
         """
@@ -141,9 +141,7 @@ class BaseNeuron(ABC):
         """
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
-        return (
-            self.block - self.metagraph.last_update[self.uid]
-        ) > self.config.neuron.epoch_length
+        return (self.block - self.metagraph.last_update[self.uid]) > self.config.neuron.epoch_length
 
     def should_set_weights(self) -> bool:
         # Don't set weights on initialization.
@@ -155,15 +153,11 @@ class BaseNeuron(ABC):
             return False
 
         # If neuron has validator permit we assume its running the validator code. If it is a dual permit neuron then we check that it also has a set_weights method (only true if it is running validator neuron)
-        if not self.metagraph.validator_permit[self.uid] or not hasattr(
-            self, "set_weights"
-        ):
+        if not self.metagraph.validator_permit[self.uid] or not hasattr(self, "set_weights"):
             return False
 
         # Define appropriate logic for when set weights.
-        return (
-            self.block - self.metagraph.last_update[self.uid]
-        ) > self.config.neuron.epoch_length
+        return (self.block - self.metagraph.last_update[self.uid]) > self.config.neuron.epoch_length
 
     def save_state(self):
         pass

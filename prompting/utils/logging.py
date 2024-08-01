@@ -55,11 +55,7 @@ def export_logs(logs: List[Log]):
 
 def should_reinit_wandb(self):
     # Check if wandb run needs to be rolled over.
-    return (
-        not self.config.wandb.off
-        and self.step
-        and self.step % self.config.wandb.run_step_length == 0
-    )
+    return not self.config.wandb.off and self.step and self.step % self.config.wandb.run_step_length == 0
 
 
 def init_wandb(self, reinit=False):
@@ -78,10 +74,7 @@ def init_wandb(self, reinit=False):
     if self.config.neuron.disable_set_weights:
         tags.append("disable_set_weights")
 
-    wandb_config = {
-        key: copy.deepcopy(self.config.get(key, None))
-        for key in ("neuron", "reward", "netuid", "wandb")
-    }
+    wandb_config = {key: copy.deepcopy(self.config.get(key, None)) for key in ("neuron", "reward", "netuid", "wandb")}
     wandb_config["neuron"].pop("full_path", None)
 
     self.wandb = wandb.init(

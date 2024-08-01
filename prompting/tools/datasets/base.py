@@ -17,7 +17,6 @@
 # DEALINGS IN THE SOFTWARE.
 
 import time
-import random
 import functools
 from abc import ABC, abstractmethod
 from typing import Dict
@@ -34,20 +33,15 @@ class Dataset(ABC):
     max_tries: int = 10
 
     @abstractmethod
-    def search(self, name):
-        ...
+    def search(self, name): ...
 
     @abstractmethod
-    def random(self, name):
-        ...
+    def random(self, name): ...
 
     @abstractmethod
-    def get(self, name):
-        ...
+    def get(self, name): ...
 
-    def next(
-        self, method: str = "random", selector: Selector = Selector(), **kwargs
-    ) -> Dict:
+    def next(self, method: str = "random", selector: Selector = Selector(), **kwargs) -> Dict:
         tries = 1
         t0 = time.time()
 
@@ -73,7 +67,7 @@ class Dataset(ABC):
             tries += 1
             if tries >= self.max_tries:
                 raise MaxRetryError(
-                    f"Could not find any samples which meet {self.__class__.__name__} requirements after {tries} tries."
+                    f"Could not find any samples which meet {self.__class__.__name__} requirements after {info} tries."
                 )
 
         info["source"] = self.__class__.__name__
@@ -91,9 +85,7 @@ class TemplateDataset(Dataset):
 
     @property
     def size(self):
-        return functools.reduce(
-            lambda x, y: x * y, [len(v) for v in self.params.values()], 1
-        )
+        return functools.reduce(lambda x, y: x * y, [len(v) for v in self.params.values()], 1)
 
     def __repr__(self):
         return f"{self.__class__.__name__} with template: {self.query_template!r} and {self.size} possible phrases"
@@ -103,13 +95,9 @@ class TemplateDataset(Dataset):
         keys, values = list(zip(*params.items()))
 
         return {
-            "title": params.get(
-                "title", keys[0]
-            ),  # Use the first key as the title if no field called title is present
+            "title": params.get("title", keys[0]),  # Use the first key as the title if no field called title is present
             "topic": params.get("topic", keys[min(1, len(keys) - 1)]),  # Same for topic
-            "subtopic": params.get(
-                "subtopic", keys[min(2, len(keys) - 2)]
-            ),  # Same for subtopic
+            "subtopic": params.get("subtopic", keys[min(2, len(keys) - 2)]),  # Same for subtopic
             "content": content,  # content
             "internal_links": values,  # internal links
             "external_links": values,  # external links
