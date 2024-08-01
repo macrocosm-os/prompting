@@ -32,6 +32,7 @@ class BaseLLM(ABC):
         self.times = []
         self.tokenizer = None
 
+    @abstractmethod
     def query(
         self,
         message: str,
@@ -39,7 +40,8 @@ class BaseLLM(ABC):
         cleaner: CleanerPipeline = None,
     ) -> str: ...
 
-    def forward(self, messages: list[dict[str, str]]): ...
+    @abstractmethod
+    def _forward(self, messages: list[dict[str, str]]): ...
 
     def clean_response(self, cleaner: CleanerPipeline, response: str) -> str:
         clean_response = cleaner.apply(generation=response)

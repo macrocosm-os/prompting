@@ -126,7 +126,7 @@ class vLLM_LLM(BaseLLM):
         messages = self.messages + [{"content": message, "role": role}]
 
         t0 = time.time()
-        response = self.forward(messages=messages)
+        response = self._forward(messages=messages)
         response = self.clean_response(cleaner, response)
 
         self.messages = messages
@@ -149,7 +149,7 @@ class vLLM_LLM(BaseLLM):
         composed_prompt.append(self._role_template["end"])
         return "".join(composed_prompt)
 
-    def forward(self, messages: list[dict[str, str]]):
+    def _forward(self, messages: list[dict[str, str]]):
         # make composed prompt from messages
         composed_prompt = self._make_prompt(messages)
         response = self.llm_pipeline(composed_prompt, **self.model_kwargs)
