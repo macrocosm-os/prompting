@@ -5,6 +5,8 @@ __pycache__/
 .DS_Store
 **/.DS_Store
 
+*.npz
+prompting/storage/
 
 # C extensions
 *.so
@@ -169,4 +171,3 @@ core
 app.config.js
 wandb
 .vscode
-storage/*
