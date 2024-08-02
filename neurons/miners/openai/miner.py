@@ -12,7 +12,6 @@ from prompting.base.protocol import StreamPromptingSynapse
 # import base miner class which takes care of most of the boilerplate
 
 from neurons.miners.openai.utils import OpenAIUtils
-from dotenv import load_dotenv, find_dotenv
 from openai import OpenAI
 from traceback import print_exception
 
@@ -32,8 +31,6 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
 
         if settings.WANDB_ON:
             self.identity_tags = ("openai_miner",) + (settings.NEURON_MODEL_ID_MINER)
-
-        _ = load_dotenv(find_dotenv())
         api_key = os.environ.get("OPENAI_API_KEY")
 
         # Set openai key and other args
