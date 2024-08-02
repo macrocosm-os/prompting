@@ -1,9 +1,5 @@
 <picture>
     <source srcset="./assets/macrocosmos-white.png"  media="(prefers-color-scheme: dark)">
-    <img src="macrocosmos-white.png">
-</picture>
-
-<picture>
     <source srcset="./assets/macrocosmos-black.png"  media="(prefers-color-scheme: light)">
     <img src="macrocosmos-black.png">
 </picture>
@@ -49,7 +45,14 @@ If you are running a validator, you will need to install the extras via poetry. 
 
 ```bash
 poetry install --extras validator
+poetry run pip uninstall uvloop
 ```
+
+If you are running a validator, logging in to Hugging Face is required:
+```shell
+huggingface-cli login
+```
+You also need to accept the License Agreement for the LMSYS-Chat-1M dataset: https://huggingface.co/datasets/lmsys/lmsys-chat-1m
 
 </div>
 

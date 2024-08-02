@@ -1,6 +1,8 @@
 import re
 import sys
 import random
+import requests
+from bs4 import BeautifulSoup
 import bittensor as bt
 import wikipedia
 from queue import Queue, Full, Empty
@@ -53,12 +55,29 @@ def _get_random_titles(pages=10, seed=42) -> list:
 
 
 @lru_cache(maxsize=1000)
-def _wikipedia_search(name, results) -> list:
+def _wikipedia_search(name: str, results: wikipedia.WikipediaPage) -> list:
     """Cached Wikipedia search."""
     return wikipedia.search(name, results=results)
 
 
-def process_page(page, valid_header: callable = None, valid_content: callable = None) -> dict:
+def get_article_sections(title: str) -> dict:
+    # Fetch the HTML content of the Wikipedia article
+    url = f"https://en.wikipedia.org/wiki/{title}"
+    response = requests.get(url)
+    html_content = response.text
+
+    # Parse the HTML using BeautifulSoup
+    soup = BeautifulSoup(html_content, "html.parser")
+
+    sections = {}
+    for section in soup.find_all("h2"):
+        if (p_tag := section.find_next("p")) is not None:
+            sections[section.text] = p_tag.text
+
+    return sections
+
+
+def process_page(page, exclude_sections: Optional[list] = None, valid_section: callable = None) -> dict:
     """Process a Wikipedia page and return a dictionary of sections with their content.
 
     Args:
@@ -68,29 +87,25 @@ def process_page(page, valid_header: callable = None, valid_content: callable = 
     Returns:
         dict: dictionary of sections and their content. Note that keys are tuples (header, section_title)
     """
-    header = ""
-    sections = {}
+    title = page.title
 
-    for section_title in page.sections:
-        content = page.section(section_title)
-        if not content:
-            header = section_title
-            continue
+    sections = get_article_sections(title)
 
-        # Filter out sections that don't match the headers and/or are not valid
-        if (valid_header and not valid_header(header)) or (valid_content and not valid_content(content)):
-            continue
+    # Filter out the section keys that are in the exclude list
+    if exclude_sections:
+        sections = {k: v for k, v in sections.items() if k not in exclude_sections}
 
-        key = (header, section_title)
-        sections[key] = content.splitlines()
+    valid_sections = [
+        (key, value) for key, value in sections.items() if not valid_section or valid_section(sections[key])
+    ]
 
-    if not sections:
-        bt.logging.debug(f"No valid sections found in page {page.title!r} ({page.url})")
-
-    return sections
+    if valid_sections:
+        return random.choice(valid_sections), sections.keys()
+    else:
+        return None, sections.keys()
 
 
-def most_relevant_links(page, num_links=10, num_summary_words=50, return_scores=False):
+def most_relevant_links(page: wikipedia.WikipediaPage, num_links=10, num_summary_words=50, return_scores=False) -> list:
     """Return the most relevant links to a Wikipedia page based on the intersection over union (IOU) of the link and the page summary."""
     link_scores = {}
     summary_words = set(page.summary.split()[:num_summary_words])
@@ -121,13 +136,12 @@ class WikiDataset(BaseDataset):
     name: ClassVar[str] = "wikipedia"
     EXCLUDE_HEADERS: tuple = ("See also", "References", "Further reading", "External links")
     EXCLUDE_CATEGORIES: tuple = ("articles", "wikipedia", "pages", "cs1")
-    min_length_words: int = 50
+    min_length_words: int = 20
     max_links: int = 10
 
     def get(
         self,
         name: str,
-        include: list = None,
         exclude: list = None,
         **kwargs,
     ) -> Context:
@@ -149,20 +163,18 @@ class WikiDataset(BaseDataset):
         page = _get_page(title=name, **kwargs)
         if page is None:
             return None
-
         # Only return a sections with a minimum number of words
         exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
-        sections = process_page(
+        selected_section, _ = process_page(
             page,
-            valid_header=lambda x: x not in exclude and (not include or x in include),
-            valid_content=lambda x: len(x.split()) >= self.min_length_words,
-        )
-        if not sections:
+            exclude_sections=exclude,
+            valid_section=lambda x: len(x.split()) >= self.min_length_words,
+        )  # Returns a tuple of (section_name, content)
+        header, section_title = selected_section
+        if not selected_section:
             return None
 
-        key = header, section_title = random.choice(list(sections.keys()))
-        content = "\n".join(sections[key])
-        section_length = len(content.split())
+        section_length = len(selected_section[1].split())
 
         context = Context(
             title=name,
@@ -243,6 +255,20 @@ class WikiDateDataset(BaseDataset):
                 for date in dates:
                     # Return the first date found
                     return (str(date), sentence.replace(str(date), "<date>").strip())
+
+        # If no dates are found, search for dates in the form of "Month DD"
+        secondary_date_pattern = r"\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?\b"
+        secondary_date_regex = re.compile(secondary_date_pattern)
+
+        for sentence in sentences:
+            # Find all dates in the sentence
+            dates = secondary_date_regex.findall(sentence)
+            # If dates are found, add them to the result dictionary with the corresponding sentence
+            if dates:
+                for date in dates:
+                    # Return the first date found
+                    return (str(date), sentence.replace(str(date), "<date>").strip())
+
         return None
 
     def _random_date(self) -> str:

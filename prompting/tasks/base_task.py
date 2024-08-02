@@ -1,13 +1,13 @@
 import time
-import textwrap
 import bittensor as bt
 from abc import ABC
 from pydantic import BaseModel
-from typing import Union
 from prompting.llms.base_llm import BasePipeline
-from prompting.llms.vllm_llm import vLLM_LLM
+from prompting.llms.vllm_llm import vLLM_LLM, vLLMPipeline
 from prompting.utils.cleaners import CleanerPipeline
-from prompting.tasks.persona import Persona
+from typing import ClassVar
+from prompting.datasets.base import Context
+from abc import abstractmethod
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -28,81 +28,50 @@ class BaseTask(ABC, BaseModel):
     augment: bool = False
 
     query: str | None = None
-    augmented_query: str | None = None
 
-    reward_threshold: float = 0.0
-    reference: Union[str, list[str]] = ""
-    criteria: str = ("",)
-    delimiter: str = ""
-    complete: bool = False
-    reference_prompt: str = ""
-    query_system_prompt: str = ""
-    query_prompt: str = ""
-    cleaner: CleanerPipeline = CleanerPipeline()
-    clean_reference: bool = True
-    challenge_type: str = "inference"
-    query_time: int | None = None
-    reference_time: int | None = None
+    query_system_prompt: ClassVar[str] = ""
+    reference_system_prompt: ClassVar[str] = ""
+    augmentation_system_prompt: ClassVar[str] = ""
 
-    def __str__(self):
-        return f"{self.__class__.__name__}(name={self.__class__.__name__!r}, query={self.query!r}, reference={self.reference!r})"
+    cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
 
-    def __repr__(self):
-        return str(self)
+    @abstractmethod
+    def generate_query_reference(llm_pipeline: vLLMPipeline, context: Context, **kwargs) -> [str, str]:
+        raise NotImplementedError("Method generate_query_reference must be implemented")
 
-    def generate_reference(self, pipeline: BasePipeline) -> str:
+    @classmethod
+    def generate_reference(cls, llm_pipeline: BasePipeline, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
-        if len(self.reference_prompt) == 0:
+        if len(cls.reference_system_prompt) == 0:
             bt.logging.error("Reference prompt is empty. Please provide a reference prompt.")
 
         bt.logging.info("🤖 Generating reference...")
-        self.reference = vLLM_LLM(pipeline, system_prompt=CHATTENSOR_SYSTEM_PROMPT()).query(
-            message=self.reference_prompt, cleaner=self.cleaner
+        reference = vLLM_LLM(llm_pipeline, system_prompt=cls.reference_system_prompt).query(
+            cleaner=cls.cleaner, message=messages
         )
-        return self.reference
+        return reference
 
+    @classmethod
     def generate_query(
-        self,
-        pipeline: BasePipeline,
-        persona: Persona = Persona(),
+        cls,
+        messages: str,
+        llm_pipeline: BasePipeline,
     ) -> str:
         """Generates a query to be used for generating the challenge"""
         bt.logging.info("🤖 Generating query...")
-        self.query = vLLM_LLM(pipeline, system_prompt=self._system_prompt_template(persona=persona)).query(
-            message=self.query_prompt, cleaner=self.cleaner
-        )
+        query = vLLM_LLM(llm_pipeline, system_prompt=cls.query_system_prompt).query(message=messages)
+        return query
 
-        self.augmented_query = self.augment_query(llm_pipeline=pipeline, persona=persona)
-        return self.query
-
-    def _system_prompt_template(self, persona: Persona) -> str:
-        return textwrap.dedent(
-            f"""This is a roleplaying game where you are impersonating a {persona.mood} human user who is using an AI to help you with a task.
-
-            The task is: {self.query}
-
-            Rephrase this query in a {persona.tone} tone, and ask the AI to help you with it. Be creative and have fun with testing the AI!
-        """
-        )
-
+    @classmethod
     def augment_query(
-        self,
+        cls,
+        query: str,
         llm_pipeline: BasePipeline,
-        persona: Persona,
     ) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
-        if not self.augment:
-            return self.query
-
-        if self.challenge_type == "inference":
-            challenge = vLLM_LLM(
-                llm_pipeline=llm_pipeline, max_new_tokens=256, system_prompt=self._system_prompt_template(persona)
-            )
-        elif self.challenge_type == "query":
-            challenge = self.query
-        else:
-            bt.logging.error(
-                f"Task {self.__class__.__name__} has challenge type of: {self.challenge_type} which is not supported."
-            )
-
+        challenge = vLLM_LLM(
+            llm_pipeline=llm_pipeline,
+            max_new_tokens=256,
+            system_prompt=cls.augmentation_system_prompt,
+        ).query(message=query)
         return challenge

@@ -1,12 +1,29 @@
-import sys
-import copy
-import numpy as np
-import asyncio
-import threading
-import bittensor as bt
+# The MIT License (MIT)
+# Copyright © 2024 Yuma Rao
 
-from typing import List
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software.
+
+# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
+import asyncio
+import copy
+import sys
+import threading
 from traceback import print_exception
+import numpy as np
+
+import bittensor as bt
+import torch
 
 from prompting.base.neuron import BaseNeuron
 from prompting.utils.exceptions import MaxRetryError
@@ -53,12 +70,16 @@ class BaseValidatorNeuron(BaseNeuron):
         self.is_running: bool = False
         self.thread: threading.Thread = None
         self.lock = asyncio.Lock()
+        if self.axon is not None:
+            self._serve_axon()
+        if self._organic_scoring is not None:
+            self.loop.create_task(self._organic_scoring.start_loop())
 
     def _serve_axon(self):
         """Serve axon to enable external connections"""
         validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
-        self.axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR_NETWORK).start()
+        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor).start()
 
     def run(self):
         """
@@ -79,30 +100,28 @@ class BaseValidatorNeuron(BaseNeuron):
             KeyboardInterrupt: If the miner is stopped by a manual interruption.
             Exception: For unforeseen errors during the miner's operation, which are logged for diagnosis.
         """
-
         # Check that validator is registered on the network.
         self.sync()
 
         if not settings.NEURON_AXON_OFF:
-            bt.logging.info(
-                f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {settings.NETUID}"
-            )
+            bt.logging.info(f"Running validator {self.axon} with netuid: {settings.NETUID}")
         else:
-            bt.logging.info(
-                f"Running validator on network: {self.config.subtensor.chain_endpoint} with netuid: {settings.NETUID}"
-            )
+            bt.logging.info(f"Running validator with netuid: {settings.NETUID}")
 
-        bt.logging.info(f"Validator starting at block: {self.block}")
+        bt.logging.info(f"Validator starting at block: {self.latest_block}")
 
         # This loop maintains the validator's operations until intentionally stopped.
         try:
             while True:
-                bt.logging.info(f"step({self.step}) block({self.block})")
+                bt.logging.info(f"step({self.step}) block({self.latest_block})")
 
                 forward_timeout = settings.NEURON_FORWARD_MAX_TIME
                 try:
-                    forward = self.loop.create_task(self.forward())
-                    self.loop.run_until_complete(asyncio.wait_for(forward, timeout=forward_timeout))
+                    task = self.loop.create_task(self.forward())
+                    self.loop.run_until_complete(asyncio.wait_for(task, timeout=forward_timeout))
+                except torch.cuda.OutOfMemoryError as e:
+                    bt.logging.error(f"Out of memory error: {e}")
+                    continue
                 except MaxRetryError as e:
                     bt.logging.error(f"MaxRetryError: {e}")
                     continue
@@ -254,6 +273,7 @@ class BaseValidatorNeuron(BaseNeuron):
             return
 
         bt.logging.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
+        bt.logging.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
         # Zero out all hotkeys that have been replaced.
         for uid, hotkey in enumerate(self.hotkeys):
             if hotkey != self.metagraph.hotkeys[uid]:
@@ -271,7 +291,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
-    def update_scores(self, rewards: np.ndarray, uids: List[int]):
+    def update_scores(self, rewards: np.ndarray, uids: list[int]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
 
         # Check if rewards contains NaN values.
@@ -283,7 +303,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Compute forward pass rewards, assumes uids are mutually exclusive.
         # shape: [ metagraph.n ]
-        # step_rewards = self.scores.scatter(0, np.array(uids), rewards)
         step_rewards = np.copy(self.scores)
         step_rewards[uids] = rewards
         bt.logging.debug(f"Scattered rewards: {rewards}")

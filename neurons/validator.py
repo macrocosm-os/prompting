@@ -7,8 +7,22 @@ from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynaps
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_random_uids
 from prompting.tasks.base_task import BaseTask
+from prompting.datasets.base import BaseDataset
 from prompting import settings
 import numpy as np
+from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
+
+try:
+    from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
+    from organic_scoring.synth_dataset import SynthDatasetConversation
+except ImportError:
+    raise ImportError(
+        "Could not import organic-scoring library.  Please install via poetry: " 'poetry install --extras "validator" '
+    )
+else:
+    logger.warning(
+        "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
+    )
 
 
 class Validator(BaseValidatorNeuron):
@@ -18,6 +32,8 @@ class Validator(BaseValidatorNeuron):
 
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)
+        if self._organic_scoring is not None:
+            self.loop.create_task(self._organic_scoring.start_loop())
 
         logger.info("load_state()")
         self.load_state()
@@ -29,11 +45,32 @@ class Validator(BaseValidatorNeuron):
             device=self.device,
             mock=settings.MOCK,
         )
-        # self.translation_pipeline = TranslationPipeline()
+        self._organic_scoring: OrganicScoringPrompting | None = None
 
-        # Filter out tasks with 0 probability
+        if self.axon is None or settings.ORGANIC_DISABLED:
+            return
 
-    async def run_step(self, task: BaseTask, k: int, timeout: float, exclude: list = None):
+        dataset = SynthDatasetConversation()
+        if dataset.exception is not None:
+            logger.error(f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}")
+            dataset = None
+        self._organic_scoring = OrganicScoringPrompting(
+            axon=self.axon,
+            synth_dataset=dataset,
+            trigger_frequency=settings.ORGANIC_TRIGGER_FREQUENCY,
+            trigger_frequency_min=settings.ORGANIC_TRIGGER_FREQUENCY_MIN,
+            trigger=settings.ORGANIC_TRIGGER,
+            trigger_scaling_factor=settings.ORGANIC_SCALING_FACTOR,
+            validator=self,
+        )
+        if self._organic_scoring is not None:
+            self.loop.create_task(
+                self._organic_scoring.start_loop(
+                    llm_pipeline=self.llm_pipeline, dendrite=self.dendrite, update_scores=self.update_scores
+                )
+            )
+
+    async def run_step(self, task: BaseTask, dataset: BaseDataset, k: int, timeout: float, exclude: list = None):
         """Executes a single step of the agent, which consists of:
         - Getting a list of uids to query
         - Querying the network
@@ -52,8 +89,8 @@ class Validator(BaseValidatorNeuron):
         logger.debug("run_step", task.__class__.__name__)
 
         # Generate the query and reference for the task
-        task.generate_query(self.llm_pipeline)
-        task.generate_reference(self.llm_pipeline)
+        query, reference = task.generate_query_reference(self.llm_pipeline, dataset.random())
+        # task.generate_reference(self.llm_pipeline)
 
         # Record event start time.
         start_time = time.time()
@@ -66,7 +103,7 @@ class Validator(BaseValidatorNeuron):
         # Directly call dendrite and process responses in parallel
         streams_responses = await self.dendrite(
             axons=axons,
-            synapse=StreamPromptingSynapse(roles=["user"], messages=[task.augmented_query]),
+            synapse=StreamPromptingSynapse(roles=["user"], messages=[query]),
             timeout=timeout,
             deserialize=False,
             streaming=True,
@@ -87,7 +124,7 @@ class Validator(BaseValidatorNeuron):
         # Reward the responses and get the reward result (dataclass)
         # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
         reward_pipeline = TaskRegistry.get_task_reward(task)()
-        reward_pipeline.apply(response_event=response_event, reference=task.reference, challenge=task.augmented_query)
+        reward_pipeline.apply(response_event=response_event, reference=reference, challenge=query)
 
         logger.info(f"Created RewardResult:\n {reward_pipeline.reward_events}")
 
@@ -120,7 +157,7 @@ class Validator(BaseValidatorNeuron):
             task_config = TaskRegistry.random()
             logger.info(f"📋 Creating {task_config.task.__name__} task... ")
             try:
-                task = TaskRegistry.create_random_task(llm_pipeline=self.llm_pipeline)
+                task, dataset = TaskRegistry.create_random_task_with_dataset(llm_pipeline=self.llm_pipeline)
                 break
             except Exception as ex:
                 logger.exception(ex)
@@ -132,6 +169,7 @@ class Validator(BaseValidatorNeuron):
             # when run_step is called, the agent updates its progress
             event = await self.run_step(
                 task=task,
+                dataset=dataset,
                 k=settings.NEURON_SAMPLE_SIZE,
                 timeout=settings.NEURON_TIMEOUT,
                 exclude=exclude_uids,
@@ -140,7 +178,6 @@ class Validator(BaseValidatorNeuron):
             # Adds forward time to event and logs it to wandb
             event["forward_time"] = time.time() - forward_start_time
             event["turn"] = turn
-            task.complete = True
 
             # accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
 

@@ -23,6 +23,7 @@ import bittensor as bt
 from math import floor
 from typing import Callable, Any
 from functools import lru_cache, update_wrapper
+from prompting.utils.exceptions import BittensorError
 
 
 # LRU Cache with TTL
@@ -110,7 +111,10 @@ def ttl_get_block(self) -> int:
 
     Note: self here is the miner or validator instance
     """
-    return self.subtensor.get_current_block()
+    try:
+        return self.subtensor.get_current_block()
+    except Exception as e:
+        raise BittensorError(f"Bittensor error: {str(e)}") from e
 
 
 def async_log(func):

@@ -5,14 +5,21 @@ from prompting.rewards.reward import WeightedRewardModel
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding
 from prompting.datasets.base import Context
-from pydantic import model_validator
 from prompting.utils.cleaners import CleanerPipeline
+from typing import ClassVar
 
-# TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
+QUERY_SYSTEM_PROMPT = """\
+You are a question-generating expert, focusing on delivering comprehensive and accurate questions with depth and clarity. The questions you generate should be based on the context that is provided.
+You will maintain a neutral tone in your questions.
+You will adhere to a word limit of 50 words for each question.
+"""
 
-# TODO: Also add a query system prompt and a query prompt template
-# TODO: Add the option to generate the summary query from the context. e.g. "the childhood of Abraham Lincoln" which is more specific than summarizing the entire article (Abraham Lincoln)
+REFERENCE_SYSTEM_PROMPT = """\
+You are an expert question-answering LLM. You will receive context and a question, and you will generate a detailed and accurate answer to the question. Your answer should be based on the context provided.
+"""
 
+QUERY_PROMPT_TEMPLATE = """\
+    Provide an exhaustive summary about the topic \"{title}\""""
 # Used to obtain reference answer
 REFERENCE_PROMPT_TEMPLATE = """\
 Summarize the following context in a concise and accurate manner:
@@ -35,22 +42,21 @@ class SummarizationRewardConfig(BaseRewardConfig):
 
 
 class SummarizationTask(BaseTask):
-    context: Context | None = None
-    reference_prompt: str | None = None
-    query: str | None = None
-    create_reference: bool = True
-
-    cleaning_pipeline: CleanerPipeline = CleanerPipeline(
+    cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline(
         cleaning_pipeline=[
             RemoveQuotes(),
             PruneEnding(),
             RemoveRoles(),
         ]
     )
+    query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
+    reference_system_prompt: ClassVar[str] = REFERENCE_SYSTEM_PROMPT
+    augmentation_system_prompt: ClassVar[str] = ""
 
-    @model_validator(mode="after")
-    def create_query_reference_prompt(self) -> "SummarizationTask":
-        if not self.query or not self.reference:
-            assert self.context, "You must either initialise the task with context or both query and reference"
-            self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=self.context.content)
-            self.query_prompt = make_query_prompt(self.context)
+    @classmethod
+    def generate_query_reference(cls, llm_pipeline, context: Context):
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(title=context.title)
+        query = cls.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
+        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content, question=query)
+        reference = cls.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
+        return query, reference

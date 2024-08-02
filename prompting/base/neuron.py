@@ -30,7 +30,9 @@ class BaseNeuron(ABC):
 
     @property
     def block(self):
-        return ttl_get_block(self)
+        self._block = ttl_get_block(self)
+        self.latest_block = self._block
+        return self._block
 
     def __init__(self, config=None):
         self.config = self._config()
@@ -59,9 +61,7 @@ class BaseNeuron(ABC):
 
         # Each miner gets a unique identity (UID) in the network for differentiation.
         self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
-        bt.logging.info(
-            f"Running neuron on subnet: {settings.NETUID} with uid {self.uid} using network: {self.subtensor.chain_endpoint}"
-        )
+        bt.logging.info(f"Running neuron on subnet: {settings.NETUID} with uid {self.uid}")
         self.step = 0
 
     @abstractmethod

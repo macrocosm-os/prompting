@@ -67,3 +67,20 @@ NEURON_VPERMIT_TAO_LIMIT = 4096
 NEURON_QUERY_UNIQUE_COLDKEYS = False
 NEURON_QUERY_UNIQUE_IPS = False
 NEURON_FORWARD_MAX_TIME = 120
+
+
+ORGANIC_TIMEOUT = 15
+ORGANIC_WHITELIST_HOTKEY = os.environ.get("ORGANIC_WHITELIST_HOTKEY")  # Replace with the actual default value
+ORGANIC_SAMPLING_MODE = "default_sampling_mode"  # Replace with the actual default value
+ORGANIC_SAMPLE_SIZE = 10  # Replace with the actual default value
+ORGANIC_TIMEOUT = 30  # Replace with the actual default value in seconds
+ORGANIC_REUSE_RESPONSE_DISABLED = False  # Boolean default value
+ORGANIC_REFERENCE_MAX_TOKENS = 256  # Replace with the actual default value
+ORGANIC_SYNTH_REWARD_SCALE = 1.0  # Replace with the actual default value
+ORGANIC_SET_WEIGHTS_ENABLED = True  # Boolean default value
+ORGANIC_DISABLED = False
+ORGANIC_TRIGGER_FREQUENCY = 120
+ORGANIC_TRIGGER_FREQUENCY_MIN = 5
+ORGANIC_TRIGGER = "seconds"
+ORGANIC_SCALING_FACTOR = 1
+LOG_FULL = False  # Boolean default value
