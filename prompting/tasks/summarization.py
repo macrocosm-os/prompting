@@ -43,32 +43,6 @@ class SummarizationRewardConfig(BaseRewardConfig):
         WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
         WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
     ]
-    penalty_definition = [dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5)]
-
-    # This is where you define cleaning procedures for the generation.
-    # Can be used when wanting to clean the challenge.
-    cleaning_pipeline = [
-        dict(name="remove_quotes"),
-        dict(name="prune_ending"),
-        dict(name="remove_roles"),
-    ]
-
-    static_query = True
-
-    def __init__(self, llm_pipeline, context, create_reference=True):
-        self.context = context
-
-        # Query is just the article title and section name
-        self.query = context.title
-
-        self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content)
-        if create_reference:
-            self.reference = self.generate_reference(llm_pipeline)
-
-        self.topic = context.title
-        self.subtopic = context.topic
-        self.tags = context.tags
-
     penalty_definition: list[WeightedRewardModel] = [WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel())]
 
 

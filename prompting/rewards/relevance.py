@@ -16,6 +16,7 @@ class RelevanceRewardModel(BaseRewardModel):
     pooling_strategy: str = "cls"
     device: str = "cuda"
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    model: AnglE | None = None
 
     @model_validator(mode="after")
     def init_model(self) -> "RelevanceRewardModel":

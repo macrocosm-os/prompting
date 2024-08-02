@@ -66,16 +66,7 @@ class QARewardConfig(BaseRewardConfig):
         WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
         WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
     ]
-    penalty_definition = [
-        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
-    ]
-
-    cleaning_pipeline = [
-        dict(name="remove_quotes"),
-        dict(name="prune_ending"),
-        dict(name="remove_roles"),
-        dict(name="remove_post_question_text"),
-    ]
+    penalty_definition: list[WeightedRewardModel] = [WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel())]
 
 
 class QuestionAnsweringTask(BaseTask):
@@ -101,26 +92,3 @@ class QuestionAnsweringTask(BaseTask):
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content, question=query)
         reference = cls.generate_reference(lllm_pipeline=llm_pipeline, messages=[reference_prompt])
         return query, reference
-
-    # @model_validator(mode="after")
-    # def make_query_reference_prompts(self) -> "QuestionAnsweringTask":
-    #     if self.query and self.reference:
-    #         return self
-
-    #     if self.history:
-    #         self.query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(context=self.context.content, history=self.history)
-    #         self.reference_prompt = FOLLOWUP_REFERENCE_PROMPT_TEMPLATE.format(
-    #             context=self.context.content, question=self.query, history=self.history
-    #         )
-    #         bt.logging.warning(f"Using history!!\n{self.history=}\n\n{self.context=}\n\n{self.query_prompt=}")
-    #     else:
-    #         self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=self.context.content)
-    #         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=self.context.content, question=self.query)
-
-    #     # self.query = self.generate_query(llm_pipeline, query_prompt=query_prompt)
-    #     # if self.create_reference:
-    #     #     self.reference = self.generate_reference(llm_pipeline, reference_prompt=reference_prompt)
-    #     # self.topic = self.context.title
-    #     # self.subtopic = self.context.topic
-    #     # self.tags = self.context.tags
-    #     return self

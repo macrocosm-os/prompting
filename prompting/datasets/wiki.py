@@ -138,23 +138,8 @@ def filter_categories(categories, exclude=None, include=None):
 class WikiDataset(BaseDataset):
     """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
 
-    name = "wiki"
     EXCLUDE_HEADERS = ("See also", "References", "Further reading", "External links")
     EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
-
-    def __init__(
-        self,
-        min_length_words: int = 20,
-        max_links: int = 10,
-    ):
-        """
-        Args:
-            min_length_words (int, optional): Minimum section length. Defaults to 50.
-            max_links (int, optional): _description_. Defaults to 10.
-        """
-        self.min_length_words = min_length_words
-        self.max_links = max_links
-
     name: ClassVar[str] = "wikipedia"
     EXCLUDE_HEADERS: tuple = ("See also", "References", "Further reading", "External links")
     EXCLUDE_CATEGORIES: tuple = ("articles", "wikipedia", "pages", "cs1")
@@ -187,13 +172,11 @@ class WikiDataset(BaseDataset):
             return None
         # Only return a sections with a minimum number of words
         exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
-        selected_section, _ = (
-            process_page(
-                page,
-                exclude_sections=exclude,
-                valid_section=lambda x: len(x.split()) >= self.min_length_words,
-            ),
-        )  # Returns a tuple of (section_name, content)
+        selected_section, _ = process_page(
+            page,
+            exclude_sections=exclude,
+            valid_section=lambda x: len(x.split()) >= self.min_length_words,
+        )
         header, section_title = selected_section
         if not selected_section:
             return None
