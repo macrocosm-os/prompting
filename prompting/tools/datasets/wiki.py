@@ -232,7 +232,7 @@ class WikiDataset(Dataset):
 
     def random(self, pages=10, seed=None, selector: Selector = None, **kwargs) -> Dict:
         titles = wiki.random(pages=pages) if seed is None else _get_random_titles(pages=pages, seed=seed)
-        title = selector(titles)
+        title = random.choice(titles)
         return self.get(title, selector=selector)
 
 
