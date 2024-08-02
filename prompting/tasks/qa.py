@@ -66,6 +66,16 @@ class QARewardConfig(BaseRewardConfig):
         WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
         WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
     ]
+    penalty_definition = [
+        dict(name="rouge", ngram="rouge-1", metric="f", weight=0.5),
+    ]
+
+    cleaning_pipeline = [
+        dict(name="remove_quotes"),
+        dict(name="prune_ending"),
+        dict(name="remove_roles"),
+        dict(name="remove_post_question_text"),
+    ]
 
 
 class QuestionAnsweringTask(BaseTask):

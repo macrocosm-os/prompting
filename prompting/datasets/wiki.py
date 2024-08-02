@@ -23,6 +23,7 @@ def _get_page(title, pageid=None, auto_suggest=False, redirect=True, seed=None) 
     """Cached Wikipedia page loading."""
     try:
         page = wikipedia.page(title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
+        page = wikipedia.page(title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
         # create sections manually if not found
         if not page.sections:
             page._sections = [
@@ -68,6 +69,7 @@ def get_article_sections(title: str) -> dict:
 
     # Parse the HTML using BeautifulSoup
     soup = BeautifulSoup(html_content, "html.parser")
+    soup = BeautifulSoup(html_content, "html.parser")
 
     sections = {}
     for section in soup.find_all("h2"):
@@ -112,6 +114,7 @@ def most_relevant_links(page: wikipedia.WikipediaPage, num_links=10, num_summary
     for link in page.links:
         link_words = set(link.split())
         iou = len(summary_words.intersection(link_words)) / len(summary_words.union(link_words))
+        iou = len(summary_words.intersection(link_words)) / len(summary_words.union(link_words))
         link_scores[link] = iou / len(link.split())
 
     sorted_links = sorted(link_scores.items(), key=lambda x: x[1], reverse=True)
@@ -125,13 +128,32 @@ def filter_categories(categories, exclude=None, include=None):
     """Filter categories based on a list of categories to exclude and/or include."""
     if exclude:
         categories = [cat for cat in categories if not re.search("|".join(exclude), cat, re.IGNORECASE)]
+        categories = [cat for cat in categories if not re.search("|".join(exclude), cat, re.IGNORECASE)]
     if include:
+        categories = [cat for cat in categories if re.search("|".join(include), cat, re.IGNORECASE)]
         categories = [cat for cat in categories if re.search("|".join(include), cat, re.IGNORECASE)]
     return categories
 
 
 class WikiDataset(BaseDataset):
     """Wikipedia dataset. Uses the wikipedia python api to fetch articles and sections."""
+
+    name = "wiki"
+    EXCLUDE_HEADERS = ("See also", "References", "Further reading", "External links")
+    EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
+
+    def __init__(
+        self,
+        min_length_words: int = 20,
+        max_links: int = 10,
+    ):
+        """
+        Args:
+            min_length_words (int, optional): Minimum section length. Defaults to 50.
+            max_links (int, optional): _description_. Defaults to 10.
+        """
+        self.min_length_words = min_length_words
+        self.max_links = max_links
 
     name: ClassVar[str] = "wikipedia"
     EXCLUDE_HEADERS: tuple = ("See also", "References", "Further reading", "External links")
@@ -165,10 +187,12 @@ class WikiDataset(BaseDataset):
             return None
         # Only return a sections with a minimum number of words
         exclude = (exclude or []) + list(self.EXCLUDE_HEADERS)
-        selected_section, _ = process_page(
-            page,
-            exclude_sections=exclude,
-            valid_section=lambda x: len(x.split()) >= self.min_length_words,
+        selected_section, _ = (
+            process_page(
+                page,
+                exclude_sections=exclude,
+                valid_section=lambda x: len(x.split()) >= self.min_length_words,
+            ),
         )  # Returns a tuple of (section_name, content)
         header, section_title = selected_section
         if not selected_section:
@@ -202,7 +226,7 @@ class WikiDataset(BaseDataset):
         title = random.choice(titles)
         return self.get(title)
 
-    def random(self, pages=10, seed=None) -> Context:
+    def random(self, pages=10, seed=None, **kwargs) -> dict:
         titles = wikipedia.random(pages=pages) if seed is None else _get_random_titles(pages=pages, seed=seed)
         title = random.choice(titles)
         return self.get(title)
@@ -225,6 +249,13 @@ class WikiDateDataset(BaseDataset):
         "November",
         "December",
     )
+    EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
+
+    def __init__(self, max_tries: int = 10, seed=None):
+        self.max_tries = max_tries
+        self.seed = seed
+        self.rng = random.Random(seed)
+
     EXCLUDE_CATEGORIES: tuple = ("articles", "wikipedia", "pages", "cs1")
     max_tries: int = 10
     seed: int | None = None

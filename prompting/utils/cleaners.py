@@ -47,6 +47,7 @@ class PruneEnding(BaseCleaner):
         if not generation.endswith(".") and not generation.endswith("?") and not generation.endswith("!"):
             index = max(generation.rfind(char) for char in punctuation_chars)
             return generation[: index + 1]  # Go to the index of where the punctuation is, and include it (+1)
+            return generation[: index + 1]  # Go to the index of where the punctuation is, and include it (+1)
         else:
             return generation
 
@@ -62,6 +63,7 @@ class RemoveRoles(BaseCleaner):
         return result_string
 
     def apply(self, generation: str) -> str:
+        generation = re.sub(r"\n*\w+\s*:", "", generation)
         generation = re.sub(r"\n*\w+\s*:", "", generation)
         roles = [
             "User: ",
@@ -124,6 +126,8 @@ class RemoveTags(BaseCleaner):
 class FirstQuestion(BaseCleaner):
     def apply(self, generation: str) -> str:
         if "?" in generation:
+            if ":" in generation:
+                generation = generation.split(":")[1]
             if ":" in generation:
                 generation = generation.split(":")[1]
             generation = generation.split("?")[0] + "?"
