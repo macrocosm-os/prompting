@@ -13,11 +13,12 @@ from .tools import (
     WikiDateDataset,
     GenericInstructionDataset,
     ReviewDataset,
+    ArxivDataset,
 )
 
 # TODO: Expand this to include extra information beyond just the task and dataset names
-summarization_task, summarization_dataset = SummarizationTask.name, [WikiDataset.name]
-qa_task, qa_dataset = QuestionAnsweringTask.name, [WikiDataset.name]
+summarization_task, summarization_dataset = SummarizationTask.name, [WikiDataset.name, ArxivDataset.name]
+qa_task, qa_dataset = QuestionAnsweringTask.name, [WikiDataset.name, ArxivDataset.name]
 # debugging_task, debugging_dataset = DebuggingTask.name, [HFCodingDataset.name]
 math_task, math_dataset = MathTask.name, [MathDataset.name]
 date_qa_task, date_qa_dataset = DateQuestionAnsweringTask.name, [WikiDateDataset.name]
