@@ -246,7 +246,7 @@ class WikiDataset(Dataset):
             if seed is None
             else _get_random_titles(pages=pages, seed=seed)
         )
-        title = selector(titles)
+        title = random.choice(titles)
         return self.get(title, selector=selector)
 
 
@@ -316,7 +316,7 @@ class WikiDateDataset(Dataset):
                 date_sentence = self.extract_dates_and_sentences(context['content'])
                 context['content'] = date_sentence[1]
                 context['extra']['date'] = date_sentence[0]
-                if context['content'] is None:
+                if context['content'] is None or context['extra']['date'] is None:
                     continue
                 else:
                     return context
