@@ -19,7 +19,9 @@ CACHED_ARTICLES: Queue[Context] = Queue(maxsize=300)
 
 # speed up page loading
 @lru_cache(maxsize=1000)
-def _get_page(title, pageid=None, auto_suggest=False, redirect=True, seed=None) -> wikipedia.WikipediaPage:
+def _get_page(
+    title: str, pageid: str | None = None, auto_suggest: bool = False, redirect: bool = True, seed: int | None = None
+) -> wikipedia.WikipediaPage:
     """Cached Wikipedia page loading."""
     try:
         page = wikipedia.page(title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
@@ -48,7 +50,7 @@ def _get_page(title, pageid=None, auto_suggest=False, redirect=True, seed=None) 
 
 
 @lru_cache(maxsize=1000)
-def _get_random_titles(pages=10, seed=42) -> list:
+def _get_random_titles(pages: int = 10, seed: int = 42) -> list:
     """Cached wikipedia random page. Approximately deterministic random titles. This is useful for testing.
     NOTE: the actually cached result will change each session, but the result will be the same within a session.
     """
@@ -61,7 +63,7 @@ def _wikipedia_search(name: str, results: wikipedia.WikipediaPage) -> list:
     return wikipedia.search(name, results=results)
 
 
-def get_article_sections(title: str) -> dict:
+def get_article_sections(title: str) -> dict[str, str]:
     # Fetch the HTML content of the Wikipedia article
     url = f"https://en.wikipedia.org/wiki/{title}"
     response = requests.get(url)
@@ -79,7 +81,9 @@ def get_article_sections(title: str) -> dict:
     return sections
 
 
-def process_page(page, exclude_sections: Optional[list] = None, valid_section: callable = None) -> dict:
+def process_page(
+    page: wikipedia.WikipediaPage, exclude_sections: Optional[list] | None = None, valid_section: callable | None = None
+) -> dict:
     """Process a Wikipedia page and return a dictionary of sections with their content.
 
     Args:
@@ -107,7 +111,9 @@ def process_page(page, exclude_sections: Optional[list] = None, valid_section: c
         return None, sections.keys()
 
 
-def most_relevant_links(page: wikipedia.WikipediaPage, num_links=10, num_summary_words=50, return_scores=False) -> list:
+def most_relevant_links(
+    page: wikipedia.WikipediaPage, num_links: int = 10, num_summary_words: int = 50, return_scores: bool = False
+) -> list:
     """Return the most relevant links to a Wikipedia page based on the intersection over union (IOU) of the link and the page summary."""
     link_scores = {}
     summary_words = set(page.summary.split()[:num_summary_words])
@@ -124,7 +130,7 @@ def most_relevant_links(page: wikipedia.WikipediaPage, num_links=10, num_summary
     return [link for link, _ in sorted_links[:num_links]]
 
 
-def filter_categories(categories, exclude=None, include=None):
+def filter_categories(categories: list[str], exclude: list[str] = [], include: list[str] = []):
     """Filter categories based on a list of categories to exclude and/or include."""
     if exclude:
         categories = [cat for cat in categories if not re.search("|".join(exclude), cat, re.IGNORECASE)]

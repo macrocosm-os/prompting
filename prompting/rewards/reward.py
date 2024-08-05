@@ -121,7 +121,9 @@ class BaseRewardConfig(ABC, BaseModel):
         return cls.sum_rewards(reward_events) - cls.sum_rewards(penalty_events)
 
     @classmethod
-    def apply(cls, response_event: DendriteResponseEvent, reference: str, challenge: str | None = None) -> list[float]:
+    def apply(
+        cls, response_event: DendriteResponseEvent, reference: str, challenge: str | None = None
+    ) -> tuple[list[WeightedRewardEvent], list[WeightedRewardEvent], list[float]]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
             reward_events.append(

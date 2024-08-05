@@ -54,7 +54,7 @@ def get_random_uids(self: BaseNeuron, k: int, exclude: list[int] = None) -> np.n
     Notes:
         If `k` is larger than the number of available `uids`, set `k` to the number of available `uids`.
     """
-    if settings.test and settings.TEST_MINER_IDS:
+    if settings.TEST and settings.TEST_MINER_IDS:
         return np.array(random.sample(settings.TEST_MINER_IDS, min(len(settings.TEST_MINER_IDS), k)))
     candidate_uids = []
     coldkeys = set()

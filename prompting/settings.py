@@ -11,9 +11,15 @@ from loguru import logger
 if not dotenv.load_dotenv():
     logger.warning("No .env file found")
 
-test = os.environ.get("TEST", False)
+NETUID = os.environ.get("NETUID")
+TEST = NETUID != 1
+
 WALLET_NAME = os.environ.get("WALLET_NAME")
 HOTKEY = os.environ.get("HOTKEY")
+AXON_PORT = os.environ.get("AXON_PORT")
+ORGANIC_WHITELIST_HOTKEY = os.environ.get("ORGANIC_WHITELIST_HOTKEY")  # Replace with the actual default value
+TEST_MINER_IDS = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")] if TEST else None
+
 
 assert WALLET_NAME and HOTKEY, "You must provide you wallet and hotkey name in the .env file!"
 
@@ -22,15 +28,13 @@ SAVE_PATH = "./storage"
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
-TEST_MINER_IDS = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")] if test else None
-AXON_PORT = os.environ.get("AXON_PORT")
 # Constants
 TASK_P = [0.5, 0.5]  # TODO: Dynamically load based on number of tasks
-SUBTENSOR_NETWORK = "test" if test else None
-NETUID = 61 if test else 1
+
+SUBTENSOR_NETWORK = "test" if TEST else None
 NEURON_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 NEURON_GPUS = 1
-NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB = 24 if test else 70
+NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB = 24 if TEST else 70
 NEURON_EPOCH_LENGTH = 100
 MOCK = False
 NEURON_EVENTS_RETENTION_SIZE = "2 GB"
@@ -41,7 +45,7 @@ WANDB_OFFLINE = False
 WANDB_NOTES = ""
 
 NEURON_MODEL_ID_MINER = "gpt-3.5-turbo-1106"
-NEURON_MODEL_ID_VALIDATOR = "casperhansen/llama-3-8b-instruct-awq" if test else "casperhansen/llama-3-70b-instruct-awq"
+NEURON_MODEL_ID_VALIDATOR = "casperhansen/llama-3-8b-instruct-awq" if TEST else "casperhansen/llama-3-70b-instruct-awq"
 BLACKLIST_FORCE_VALIDATOR_PERMIT = False
 BLACKLIST_ALLOW_NON_REGISTERED = False
 NEURON_SYSTEM_PROMPT = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
@@ -70,7 +74,6 @@ NEURON_FORWARD_MAX_TIME = 120
 
 
 ORGANIC_TIMEOUT = 15
-ORGANIC_WHITELIST_HOTKEY = os.environ.get("ORGANIC_WHITELIST_HOTKEY")  # Replace with the actual default value
 ORGANIC_SAMPLING_MODE = "default_sampling_mode"  # Replace with the actual default value
 ORGANIC_SAMPLE_SIZE = 10  # Replace with the actual default value
 ORGANIC_TIMEOUT = 30  # Replace with the actual default value in seconds
