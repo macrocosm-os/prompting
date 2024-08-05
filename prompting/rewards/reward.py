@@ -1,10 +1,9 @@
 import numpy as np
 import time
-from typing import Literal
+from typing import Literal, ClassVar
 from abc import ABC, abstractmethod
 from prompting.base.dendrite import DendriteResponseEvent
 from pydantic import BaseModel, ConfigDict
-from pydantic import model_validator
 
 RewardTypeLiteral = Literal["reward", "penalty"]
 
@@ -81,73 +80,6 @@ class BaseRewardModel(ABC, BaseModel):
         )
 
 
-# class RewardResult(BaseModel):
-#     reward_model: list[BaseRewardModel]
-#     agent: BaseLLM
-#     response_event: DendriteResponseEvent
-#     device: str
-#     task_rewards: Optional[list[BaseRewardModel]]
-#     task_penalties: Optional[list[BaseRewardModel]]
-#     reward_events: Optional[list[RewardEvent]]
-#     penalty_events: Optional[list[RewardEvent]]
-#     rewards: np.ndarray
-#     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-#     @model_validator(mode="after")
-#     def compute_rewards(self) -> "RewardResult":
-#         self.task_rewards = self.agent.task.reward_definition
-#         self.task_penalties = self.agent.task.penalty_definition + self.agent.task.global_penalty_definition
-#         self.reward_events = self.reward_responses(
-#             reference=self.agent.task.reference,
-#             models=self.task_rewards,
-#             reward_type="reward",
-#         )
-#         self.penalty_events = self.reward_responses(
-#             reference=self.agent.challenge,
-#             models=self.task_penalties,
-#             reward_type="penalty",
-#         )
-#         self.rewards = self.total_reward()
-
-#     def reward_responses(
-#         self, reference: str, models: list[BaseRewardModel], reward_type: RewardTypeLiteral
-#     ) -> list[RewardEvent]:
-#         """Calculates the rewards for the responses given the task and returns a RewardEvent for each reward model
-#         reward_events: List[RewardEvent] = [
-#             RewardEvent(model_name='rouge', rewards=torch.zeros(50), timings=torch.zeros(50), ...),
-#             RewardEvent(model_name='relevance', rewards=torch.zeros(50), timings=torch.zeros(50), ...),
-#         ]
-#         """
-#         reward_events = []
-
-#         for reward_model in models:
-#             # Compute the rewards for the responses given the prompt
-#             reward_event = reward_model.apply(reference, self.response_event, reward_type=reward_type)
-#             reward_events.append(reward_event)
-
-#         return reward_events
-
-#     def total_reward(self) -> np.ndarray:
-#         """Combines the rewards from all the reward models into a single reward tensor"""
-
-#         # TODO: How would using the Agent as a reward model fit into this flow?
-#         # Compute the rewards for the responses given the prompt
-#         rewards = np.zeros_like(self.response_event.uids, dtype=np.float32)
-
-#         for event in self.reward_events:
-#             for reward_info in filter(lambda x: x["name"] == event.model_name, self.task_rewards):
-#                 rewards += reward_info["weight"] * event.rewards
-
-#         for event in self.penalty_events:
-#             for reward_info in filter(lambda x: x["name"] == event.model_name, self.task_penalties):
-#                 rewards *= 1 - reward_info["weight"] * event.rewards
-
-#         return rewards
-
-#     def __str__(self):
-#         return f"{self.__class__.__name__}(rewards={self.rewards!r}, reward_events={self.reward_events!r}, penalty_events={self.penalty_events!r})"
-
-
 class WeightedRewardModel(BaseModel):
     weight: float
     reward_model: BaseRewardModel
@@ -173,36 +105,26 @@ class BaseRewardConfig(ABC, BaseModel):
     and weight it with <1.
     """
 
-    reward_definitions: list[WeightedRewardModel]
-    penalty_definitions: list[WeightedRewardModel] = []
+    reward_definitions: ClassVar[list[WeightedRewardModel]]
+    penalty_definitions: ClassVar[list[WeightedRewardModel]] = []
 
-    reward_events: list[WeightedRewardEvent] | None = None
-    penalty_events: list[WeightedRewardEvent] | None = None
-
-    @property
-    def total_rewards(self) -> list[float]:
-        if not self.reward_events:
-            raise Exception("Rewards have not yet been calculated")
-        return np.sum([r.reward_event.rewards for r in self.reward_events], axis=0)
-
-    @property
-    def total_penalties(self) -> list[float]:
-        if not self.penalty_events:
+    @classmethod
+    def sum_rewards(cls, reward_events: list[WeightedRewardEvent]) -> list[float]:
+        if not reward_events:
             return 0
-        return np.sum([r.reward_event.rewards for r in self.penalty_events], axis=0)
+        return np.sum([r.reward_event.rewards for r in reward_events], axis=0)
 
-    @property
-    def final_rewards(self) -> list[float]:
-        return self.total_rewards - self.total_penalties
+    @classmethod
+    def final_rewards(
+        cls, reward_events: list[WeightedRewardEvent], penalty_events: list[WeightedRewardEvent]
+    ) -> list[float]:
+        return cls.sum_rewards(reward_events) - cls.sum_rewards(penalty_events)
 
-    @model_validator(mode="after")
-    def check_summation(self) -> "BaseRewardConfig":
-        assert sum([r.weight for r in self.reward_definitions]) == 1, "All rewards must sum to one"
-
-    def apply(self, response_event: DendriteResponseEvent, reference: str, challenge: str | None = None) -> list[float]:
-        for weighted_reward in self.reward_definitions:
-            self.reward_events = []
-            self.reward_events.append(
+    @classmethod
+    def apply(cls, response_event: DendriteResponseEvent, reference: str, challenge: str | None = None) -> list[float]:
+        reward_events = []
+        for weighted_reward in cls.reward_definitions:
+            reward_events.append(
                 WeightedRewardEvent(
                     weight=weighted_reward.weight,
                     reward_event=weighted_reward.reward_model.apply(
@@ -211,12 +133,12 @@ class BaseRewardConfig(ABC, BaseModel):
                 )
             )
 
-        if self.penalty_definitions and not challenge:
+        if cls.penalty_definitions and not challenge:
             raise Exception("You must be providing the challenge to apply penalties")
 
-        for weighted_reward in self.penalty_definitions:
-            self.penalty_events = []
-            self.penalty_events.append(
+        penalty_events = []
+        for weighted_reward in cls.penalty_definitions:
+            penalty_events.append(
                 WeightedRewardEvent(
                     weight=weighted_reward.weight,
                     reward_event=weighted_reward.reward_model.apply(
@@ -224,4 +146,4 @@ class BaseRewardConfig(ABC, BaseModel):
                     ),
                 )
             )
-        return self.final_rewards
+        return reward_events, penalty_events, cls.final_rewards(reward_events, penalty_events)

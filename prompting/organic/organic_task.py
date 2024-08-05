@@ -11,11 +11,13 @@ from typing import ClassVar, Any
 
 
 class OrganicRewardConfig(BaseRewardConfig):
-    reward_definitions: list[WeightedRewardModel] = [
+    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
         WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
         WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
     ]
-    penalty_definition: list[WeightedRewardModel] = [WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel())]
+    penalty_definition: ClassVar[list[WeightedRewardModel]] = [
+        WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel())
+    ]
 
 
 class OrganicTask(BaseTask):

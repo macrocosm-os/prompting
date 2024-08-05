@@ -39,11 +39,13 @@ def make_query_prompt(context: Context) -> str:
 
 
 class SummarizationRewardConfig(BaseRewardConfig):
-    reward_definitions: list[WeightedRewardModel] = [
+    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
         WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
         WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
     ]
-    penalty_definition: list[WeightedRewardModel] = [WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel())]
+    penalty_definition: ClassVar[list[WeightedRewardModel]] = [
+        WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel())
+    ]
 
 
 class SummarizationTask(BaseTask):

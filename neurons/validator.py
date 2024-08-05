@@ -128,12 +128,14 @@ class Validator(BaseValidatorNeuron):
 
         # Reward the responses and get the reward result (dataclass)
         # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
-        reward_pipeline = TaskRegistry.get_task_reward(task)()
-        reward_pipeline.apply(response_event=response_event, reference=reference, challenge=query)
+        reward_pipeline = TaskRegistry.get_task_reward(task)
+        reward_events, penalty_events, rewards = reward_pipeline.apply(
+            response_event=response_event, reference=reference, challenge=query
+        )
 
-        logger.info(f"Created RewardResult:\n {reward_pipeline.reward_events}")
+        logger.info(f"Created RewardResult:\n {rewards}")
 
-        best_response = response_event.completions[np.argmax(reward_pipeline.final_rewards)]
+        best_response = response_event.completions[np.argmax(rewards)]
 
         self.update_scores(reward_pipeline.final_rewards, uids)
 
@@ -143,7 +145,8 @@ class Validator(BaseValidatorNeuron):
             "block": self.block,
             "step": self.step,
             "step_time": time.time() - start_time,
-            "reward_events": [reward_event.__dict__ for reward_event in reward_pipeline.reward_events],
+            "reward_events": [reward_event.__dict__ for reward_event in reward_events],
+            "penalty_events": [penalty_event.__dict__ for penalty_event in penalty_events],
             "response_event": response_event.__dict__,
         }
 

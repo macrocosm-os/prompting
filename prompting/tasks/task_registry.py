@@ -9,7 +9,7 @@ from prompting.datasets.base import BaseDataset
 from pydantic import BaseModel, ConfigDict
 import random
 from typing import ClassVar
-import bittensor as bt
+from loguru import logger
 
 
 class TaskConfig(BaseModel):
@@ -41,7 +41,7 @@ class TaskRegistry(BaseModel):
         try:
             return [t.datasets for t in cls.tasks if task is t.task][0]
         except Exception:
-            bt.logging.error("Tried accessing non-registered task")
+            logger.error("Tried accessing non-registered task")
             return []
 
     @classmethod
@@ -54,7 +54,7 @@ class TaskRegistry(BaseModel):
         try:
             return [t.reward_model for t in cls.tasks if task_class is t.task][0]
         except Exception:
-            bt.logging.error("Tried accessing non-registered task")
+            logger.error("Tried accessing non-registered task")
             return []
 
     @classmethod

@@ -63,8 +63,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
     async def _generate_rewards(
         self, sample: SynthDatasetEntry, responses: dict[str, SynapseStreamResult], reference: str
     ):
+        _, _, rewards = OrganicRewardConfig.apply(responses=responses, reference=reference, query=sample.messages[-1])
         return {
-            "rewards": OrganicRewardConfig.apply(responses=responses, reference=reference, query=sample.messages[-1]),
+            "rewards": rewards,
             "uids": responses.keys(),
             "organic": sample.organic,
         }
