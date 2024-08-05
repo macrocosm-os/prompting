@@ -1,4 +1,5 @@
 import time
+from prompting import settings
 import typing
 from functools import partial
 from starlette.types import Send
@@ -28,9 +29,7 @@ class MockMiner(BaseStreamPromptingMiner):
                 }
             )
 
-        message = (
-            f"Hey you reached mock miner {self.config.wallet.hotkey!r}. Please leave a message after the tone.. Beep!"
-        )
+        message = f"Hey you reached mock miner {settings.HOTKEY}. Please leave a message after the tone.. Beep!"
         token_streamer = partial(_forward, message)
         return synapse.create_streaming_response(token_streamer)
 

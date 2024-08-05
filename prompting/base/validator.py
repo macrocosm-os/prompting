@@ -69,17 +69,15 @@ class BaseValidatorNeuron(BaseNeuron):
         self.should_exit: bool = False
         self.is_running: bool = False
         self.thread: threading.Thread = None
-        self.lock = asyncio.Lock()
+        # self.lock = asyncio.Lock()
         if self.axon is not None:
             self._serve_axon()
-        if self._organic_scoring is not None:
-            self.loop.create_task(self._organic_scoring.start_loop())
 
     def _serve_axon(self):
         """Serve axon to enable external connections"""
         validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
-        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor).start()
+        self.axon.serve(netuid=settings.NETUID, subtensor=self.subtensor).start()
 
     def run(self):
         """

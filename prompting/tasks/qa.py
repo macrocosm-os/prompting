@@ -90,5 +90,5 @@ class QuestionAnsweringTask(BaseTask):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
         query = cls.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content, question=query)
-        reference = cls.generate_reference(lllm_pipeline=llm_pipeline, messages=[reference_prompt])
+        reference = cls.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
         return query, reference

@@ -126,5 +126,5 @@ def get_uids(self: BaseNeuron, sampling_mode: str, k: int, exclude: List[int] = 
     if sampling_mode == "random":
         return get_random_uids(self, k=k, exclude=exclude or [])
     if sampling_mode == "top_incentive":
-        vpermit_tao_limit = self.config.neuron.vpermit_tao_limit
+        vpermit_tao_limit = settings.NEURON_VPERMIT_TAO_LIMIT
         return get_top_incentive_uids(self, k=k, vpermit_tao_limit=vpermit_tao_limit)

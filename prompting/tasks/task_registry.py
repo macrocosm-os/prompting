@@ -58,7 +58,7 @@ class TaskRegistry(BaseModel):
             return []
 
     @classmethod
-    def create_random_task_with_dataset(cls, llm_pipeline) -> tuple[BaseTask.__class__, BaseDataset]:
+    def create_random_task_with_dataset(cls) -> tuple[BaseTask.__class__, BaseDataset]:
         task_config = cls.random()
         dataset = cls.get_random_task_dataset(task_config.task)
-        return task_config.task, dataset
+        return task_config.task, dataset()

@@ -10,11 +10,13 @@ from prompting.tasks.base_task import BaseTask
 from prompting.datasets.base import BaseDataset
 from prompting import settings
 import numpy as np
+import asyncio
 from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
 
 try:
     from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
-    from organic_scoring.synth_dataset import SynthDatasetConversation
+
+    # from organic_scoring.synth_dataset import SynthDatasetConversation
 except ImportError:
     raise ImportError(
         "Could not import organic-scoring library.  Please install via poetry: " 'poetry install --extras "validator" '
@@ -32,11 +34,10 @@ class Validator(BaseValidatorNeuron):
 
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)
-        if self._organic_scoring is not None:
-            self.loop.create_task(self._organic_scoring.start_loop())
 
         logger.info("load_state()")
         self.load_state()
+        self._lock = asyncio.Lock()
 
         self.llm_pipeline = vLLMPipeline(
             llm_model_id=settings.NEURON_MODEL_ID_VALIDATOR,
@@ -50,25 +51,29 @@ class Validator(BaseValidatorNeuron):
         if self.axon is None or settings.ORGANIC_DISABLED:
             return
 
-        dataset = SynthDatasetConversation()
-        if dataset.exception is not None:
-            logger.error(f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}")
-            dataset = None
-        self._organic_scoring = OrganicScoringPrompting(
-            axon=self.axon,
-            synth_dataset=dataset,
-            trigger_frequency=settings.ORGANIC_TRIGGER_FREQUENCY,
-            trigger_frequency_min=settings.ORGANIC_TRIGGER_FREQUENCY_MIN,
-            trigger=settings.ORGANIC_TRIGGER,
-            trigger_scaling_factor=settings.ORGANIC_SCALING_FACTOR,
-            validator=self,
-        )
-        if self._organic_scoring is not None:
-            self.loop.create_task(
-                self._organic_scoring.start_loop(
-                    llm_pipeline=self.llm_pipeline, dendrite=self.dendrite, update_scores=self.update_scores
-                )
-            )
+        # dataset = SynthDatasetConversation()
+        # if dataset.exception is not None:
+        #     logger.error(f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}")
+        #     dataset = None
+
+        # self._organic_scoring = OrganicScoringPrompting(
+        #     axon=self.axon,
+        #     synth_dataset=SynthDatasetConversation(),
+        #     trigger_frequency=settings.ORGANIC_TRIGGER_FREQUENCY,
+        #     trigger_frequency_min=settings.ORGANIC_TRIGGER_FREQUENCY_MIN,
+        #     trigger=settings.ORGANIC_TRIGGER,
+        #     trigger_scaling_factor=settings.ORGANIC_SCALING_FACTOR,
+        #     llm_pipeline=self.llm_pipeline,
+        #     dendrite=self.dendrite,
+        #     metagraph=self.metagraph,
+        #     update_scores=self.update_scores,
+        #     tokenizer=self.llm_pipeline.tokenizer,
+        #     get_random_uids=lambda _: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
+        #     wallet=self.wallet,
+        #     _lock=self._lock,
+        # )
+        # if self._organic_scoring is not None:
+        #     self.loop.create_task(self._organic_scoring.start_loop())
 
     async def run_step(self, task: BaseTask, dataset: BaseDataset, k: int, timeout: float, exclude: list = None):
         """Executes a single step of the agent, which consists of:
@@ -157,7 +162,7 @@ class Validator(BaseValidatorNeuron):
             task_config = TaskRegistry.random()
             logger.info(f"📋 Creating {task_config.task.__name__} task... ")
             try:
-                task, dataset = TaskRegistry.create_random_task_with_dataset(llm_pipeline=self.llm_pipeline)
+                task, dataset = TaskRegistry.create_random_task_with_dataset()
                 break
             except Exception as ex:
                 logger.exception(ex)
@@ -167,13 +172,14 @@ class Validator(BaseValidatorNeuron):
 
         try:
             # when run_step is called, the agent updates its progress
-            event = await self.run_step(
-                task=task,
-                dataset=dataset,
-                k=settings.NEURON_SAMPLE_SIZE,
-                timeout=settings.NEURON_TIMEOUT,
-                exclude=exclude_uids,
-            )
+            async with self._lock:
+                event = await self.run_step(
+                    task=task,
+                    dataset=dataset,
+                    k=settings.NEURON_SAMPLE_SIZE,
+                    timeout=settings.NEURON_TIMEOUT,
+                    exclude=exclude_uids,
+                )
 
             # Adds forward time to event and logs it to wandb
             event["forward_time"] = time.time() - forward_start_time

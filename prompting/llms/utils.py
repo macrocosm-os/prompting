@@ -1,6 +1,7 @@
 import re
 import torch
 import bittensor as bt
+from loguru import logger
 
 
 def contains_gpu_index_in_device(device: str) -> bool:
@@ -21,9 +22,14 @@ def calculate_single_gpu_requirements(device: str, max_allowed_memory_allocation
     bt.logging.info(f"Total gpu memory {round(total_gpu_memory / 10e8, 2)} GB")
 
     if global_free < max_allowed_memory_allocation_in_bytes:
-        raise torch.cuda.CudaError(
+        # ex = torch.cuda.CudaError(
+        #     f"Not enough memory to allocate for the model. Please ensure you have at least {max_allowed_memory_allocation_in_bytes / 10e8} GB of free GPU memory."
+        # )
+        ex = Exception(
             f"Not enough memory to allocate for the model. Please ensure you have at least {max_allowed_memory_allocation_in_bytes / 10e8} GB of free GPU memory."
         )
+        logger.error(ex)
+        raise ex
 
     gpu_utilization = round(max_allowed_memory_allocation_in_bytes / global_free, 2)
     bt.logging.info(

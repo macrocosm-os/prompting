@@ -2,19 +2,18 @@ import asyncio
 import json
 import time
 from functools import partial
-from typing import Any, AsyncGenerator, Literal, Sequence, Tuple, Union
+from typing import Any, AsyncGenerator, Tuple
 
 import bittensor as bt
 from prompting import settings
 from organic_scoring import OrganicScoringBase
-from organic_scoring.synth_dataset import SynthDatasetBase, SynthDatasetEntry
+from organic_scoring.synth_dataset import SynthDatasetEntry
 from starlette.types import Send
 from typing_extensions import override
 from bittensor.dendrite import dendrite
 
 from prompting.base.dendrite import SynapseStreamResult
 from neurons.forward import handle_response
-from prompting.llms.vllm_llm import vLLMPipeline
 from prompting.organic.organic_task import OrganicTask, OrganicRewardConfig
 from prompting.base.protocol import StreamPromptingSynapse
 
@@ -22,128 +21,44 @@ from prompting.base.protocol import StreamPromptingSynapse
 
 # from prompting.tasks.task import make_system_prompt
 
-from transformers import PreTrainedTokenizerFast
-from pydantic import BaseModel
 
+class OrganicScoringPrompting(OrganicScoringBase):
+    # axon: bt.axon
+    # synth_dataset: Union[SynthDatasetBase, Sequence[SynthDatasetBase]]
+    # llm_pipeline: vLLMPipeline
+    # dendrite: bt.dendrite
+    # metagraph: bt.metagraph
+    # update_scores: callable
+    # dendrite: bt.dendrite
+    # tokenizer: PreTrainedTokenizerFast
+    # metagraph: bt.metagraph
+    # get_random_uids: callable
+    # wallet: bt.wallet
+    # _lock: asyncio.Lock
+    # trigger_frequency: Union[float, int]
 
-class OrganicScoringPrompting(OrganicScoringBase, BaseModel):
-    axon: bt.axon
-    synth_dataset: Union[SynthDatasetBase, Sequence[SynthDatasetBase]]
-    trigger_frequency: Union[float, int]
-    llm_pipeline: vLLMPipeline
-    dendrite: bt.dendrite
-    metagraph: bt.metagraph
-    update_scores: callable
-    dendrite: bt.dendrite
-    tokenizer: PreTrainedTokenizerFast
-    metagraph: bt.metagraph
-    get_random_uids: callable
-    wallet: bt.wallet
+    # model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    trigger_frequency_min: Union[float, int] = 5
-    trigger_scaling_factor: Union[float, int] = 5
-    trigger: Literal["seconds", "steps"]
-    #     """Organic Scoring implementation.
+    # trigger_frequency_min: Union[float, int] = 5
+    # trigger_scaling_factor: Union[float, int] = 5
+    # trigger: Literal["seconds", "steps"]
 
-    #     Organic scoring runs in a separate `asyncio` task and is triggered by a timer or a step counter.
-
-    #     Process Workflow:
-    #     1. Trigger Check: Upon triggering the rewarding process, the system checks if the organic queue is empty.
-    #         If the queue is empty, synthetic datasets are used to bootstrap the organic scoring mechanism.
-    #         Otherwise, samples from the organic queue are utilized.
-    #     2. Data Processing: The sampled data is concurrently passed to the `_query_miners` and `_generate_reference`
-    #         methods.
-    #     3. Reward Generation: After receiving responses from miners and any reference data, the information
-    #         is processed by the `_generate_rewards` method.
-    #     4. Weight Setting: The generated rewards are then applied through the `_set_weights` method.
-    #     5. Logging: Finally, the results can be logged using the `_log_results` method, along with all relevant data
-    #         provided as arguments, and default time elapsed on each step of rewarding process.
-    #     """
-
-    # @override
-    # async def start_loop(self, llm_pipeline: vLLMPipeline, dendrite: bt.dendrite, update_scores: callable):
-    #     """The main loop for running the organic scoring task, either based on a time interval or steps."""
-    #     while not self._should_exit:
-    #         if self._trigger == "steps":
-    #             while self._step_counter < self._trigger_frequency:
-    #                 await asyncio.sleep(0.1)
-
-    #         try:
-    #             logs = await self.loop_iteration(
-    #                 llm_pipeline=llm_pipeline, dendrite=dendrite, update_scores=update_scores
-    #             )
-    #             await self.wait_until_next(timer_elapsed=logs.get("organic_time_total", 0))
-    #         except Exception as e:
-    #             bt.logging.error(f"Error occured during organic scoring iteration:\n{e}")
-    #             await asyncio.sleep(1)
-
-    # @override
-    # async def loop_iteration(
-    #     self, llm_pipeline: vLLMPipeline, dendrite: bt.dendrite, metagraph: bt.metagraph, update_scores: callable
-    # ) -> dict[str, Any]:
-    #     timer_total = time.perf_counter()
-
-    #     timer_sample = time.perf_counter()
-    #     if is_organic_sample := (not self._organic_queue.is_empty()):
-    #         # Choose organic sample based on the organic queue logic.
-    #         sample = self._organic_queue.sample()
-    #     elif self._synth_dataset is not None:
-    #         # Choose if organic queue is empty, choose random sample from provided datasets.
-    #         sample = random.choice(self._synth_dataset).sample()
-    #     else:
-    #         return {}
-
-    #     if sample.get("organic", False):
-    #         task = OrganicTask(context=sample, reference=reference)
-    #     else:
-    #         task = SynthOrganicTask(context=sample, reference=reference)
-
-    #     timer_sample_elapsed = time.perf_counter() - timer_sample
-
-    #     # Concurrently generate reference and query miners.
-    #     timer_responses = time.perf_counter()
-    #     reference_task = task.generate_reference(sample, llm_pipeline)
-    #     responses_task = self._query_miners(
-    #         sample=sample, dendrite=dendrite, tokenizer=llm_pipeline.tokenizer, metagraph=metagraph
-    #     )
-    #     reference, responses = await asyncio.gather(reference_task, responses_task)
-    #     timer_responses_elapsed = time.perf_counter() - timer_responses
-
-    #     # Generate rewards.
-    #     timer_rewards = time.perf_counter()
-    #     reward_config = OrganicRewardConfig()
-    #     reward_config.apply(responses=responses, reference=reference)
-
-    #     # rewards = await self._generate_rewards(sample, responses, reference)
-    #     # rewards
-    #     timer_rewards_elapsed = time.perf_counter() - timer_rewards
-
-    #     # Set weights based on the generated rewards.
-    #     timer_weights = time.perf_counter()
-    #     # await self._set_weights(rewards)
-    #     await self._set_weights(
-    #         reward_config, is_organic=sample["organic"], uids=responses.keys(), update_scores=update_scores
-    #     )
-    #     timer_weights_elapsed = time.perf_counter() - timer_weights
-
-    #     # Log the metrics.
-    #     timer_elapsed = time.perf_counter() - timer_total
-    #     logs = {
-    #         "organic_time_sample": timer_sample_elapsed,
-    #         "organic_time_responses": timer_responses_elapsed,
-    #         "organic_time_rewards": timer_rewards_elapsed,
-    #         "organic_time_weights": timer_weights_elapsed,
-    #         "organic_time_total": timer_elapsed,
-    #         "organic_queue_size": self._organic_queue.size,
-    #         "is_organic_sample": is_organic_sample,
-    #     }
-    #     return await self._log_results(
-    #         logs=logs,
-    #         reference=reference,
-    #         responses=responses,
-    #         rewards=reward_config.final_rewards,
-    #         sample=sample,
-    #     )
+    def __init__(self, **data):
+        # super().__init__(**data)  # Pydantic init
+        self.axon = data["axon"]
+        self.synth_dataset = data["synth_dataset"]
+        self.llm_pipeline = data["llm_pipeline"]
+        self.dendrite = data["dendrite"]
+        self.metagraph = data["metagraph"]
+        self.update_scores = data["update_scores"]
+        self.tokenizer = data["tokenizer"]
+        self.get_random_uids = data["get_random_uids"]
+        self.wallet = data["wallet"]
+        self._lock = data["_lock"]
+        self.trigger_frequency = data["trigger_frequency"]
+        self.trigger_frequency_min = data["trigger_frequency_min"]
+        self.trigger_scaling_factor = data["trigger_scaling_factor"]
+        self.trigger = data["trigger"]
 
     async def _generate_rewards(
         self, sample: SynthDatasetEntry, responses: dict[str, SynapseStreamResult], reference: str
@@ -339,10 +254,11 @@ class OrganicScoringPrompting(OrganicScoringBase, BaseModel):
             reward_result["rewards"] *= settings.ORGANIC_SYNTH_REWARD_SCALE
 
         # uids_to_reward = dict(zip(reward_result["uids"], reward_result["rewards"]))
-        # self.update_scores(reward_result["rewards"], reward_result["uids"])
+        self.update_scores(reward_result["rewards"], reward_result["uids"])
 
     # @override
     async def _generate_reference(self, sample: dict[str, Any]) -> str:
         """Generate reference for the given organic or synthetic sample."""
-        _, reference = OrganicTask.generate_reference(sample, self.llm_pipeline)
+        async with self._lock:
+            _, reference = OrganicTask.generate_reference(sample, self.llm_pipeline)
         return reference

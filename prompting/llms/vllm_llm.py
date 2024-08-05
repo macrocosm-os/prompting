@@ -7,6 +7,7 @@ from prompting.llms.utils import calculate_gpu_requirements
 from vllm import LLM
 from transformers import PreTrainedTokenizerFast
 from pydantic import model_validator, ConfigDict
+from loguru import logger
 
 try:
     from vllm import SamplingParams
@@ -34,6 +35,7 @@ def load_vllm_pipeline(
 
     try:
         # Attempt to initialize the LLM
+        logger.info(f"Loading VLLM pipeline with model_id: {model_id}")
         llm = LLM(
             model=model_id,
             gpu_memory_utilization=gpu_mem_utilization,
@@ -53,6 +55,7 @@ def load_vllm_pipeline(
 
 
 class vLLMPipeline(BasePipeline):
+    # _LOCK: threading.Lock = threading.Lock()
     llm_model_id: str
     llm_max_allowed_memory_in_gb: int
     mock: bool = False
@@ -185,16 +188,16 @@ class vLLM_LLM(BaseLLM):
         return response
 
 
-if __name__ == "__main__":
-    # Example usage
-    llm_pipeline = vLLMPipeline(
-        llm_model_id="casperhansen/llama-3-70b-instruct-awq",
-        device="cuda",
-        llm_max_allowed_memory_in_gb=80,
-        gpus=1,
-    )
-    llm = vLLM_LLM(llm_pipeline, system_prompt="You are a helpful AI assistant")
+# if __name__ == "__main__":
+#     # Example usage
+#     llm_pipeline = vLLMPipeline(
+#         llm_model_id="casperhansen/llama-3-70b-instruct-awq",
+#         device="cuda",
+#         llm_max_allowed_memory_in_gb=80,
+#         gpus=1,
+#     )
+#     llm = vLLM_LLM(llm_pipeline, system_prompt="You are a helpful AI assistant")
 
-    message = "What is the capital of Texas?"
-    response = llm.query(message)
-    print(response)
+#     message = "What is the capital of Texas?"
+#     response = llm.query(message)
+#     print(response)

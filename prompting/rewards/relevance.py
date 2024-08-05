@@ -47,7 +47,7 @@ class RelevanceRewardModel(BaseRewardModel):
 
             emb = self.model.encode(comp, to_numpy=True)
             # Calculate cosine similarity between reference and completion embeddings, and subtract baseline
-            score = spatial.distance.cosine(reference_embedding.reshape(1, -1), emb.reshape(-1, 1)) - baseline
+            score = spatial.distance.cosine(reference_embedding.flatten(), emb.flatten()) - baseline
             score = 1 - float(spatial.distance.cosine(reference_embedding.flatten(), emb.flatten() - baseline))
 
             rewards.append(score)
