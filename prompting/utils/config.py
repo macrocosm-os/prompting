@@ -302,7 +302,7 @@ def add_validator_args(cls, parser):
             return [float(p) for p in prob_list]
         except ValueError:
             raise argparse.ArgumentTypeError("All probabilities must be floats.")
-        
+
     parser.add_argument(
         "--neuron.task_p",
         type=parse_probabilities,  # Use the custom parsing function
@@ -466,7 +466,7 @@ def add_validator_args(cls, parser):
     parser.add_argument(
         "--neuron.organic_reference_max_tokens",
         type=int,
-        help="Organic query timeout for each call in seconds.",
+        help="Organic reference max tokens.",
         default=1024,
     )
 
