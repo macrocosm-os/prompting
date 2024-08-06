@@ -326,6 +326,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         logs["step"] = self._val.step
         # Length of messages is incremented by 2 every step: query and response.
         logs["turn"] = len(sample["messages"]) // 2
+        logs["uids"] = logs["rewards"]["uids"]
         completions_len: list[int] = [len(response.synapse.completion) for response in responses.values()]
         logs["organic_response_mean_chars"] = np.mean(completions_len)
         logs["organic_response_std_chars"] = np.std(completions_len)
