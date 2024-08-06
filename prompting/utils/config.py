@@ -430,15 +430,14 @@ def add_validator_args(cls, parser):
     parser.add_argument(
         "--neuron.organic_disabled",
         action="store_true",
-        help="Set this flag to disable organic scoring.",
+        help="Disables organic scoring.",
         default=False,
     )
 
-    # TODO: Set organic weight setting enabled by default after Aug 1, 2024.
     parser.add_argument(
-        "--neuron.organic_set_weights_enabled",
+        "--neuron.organic_disable_set_weights",
         action="store_true",
-        help="Set this flag to enable organic scoring weight setting.",
+        help="Disables organic scoring weight setting.",
         default=False,
     )
 
@@ -471,7 +470,6 @@ def add_validator_args(cls, parser):
         default=1024,
     )
 
-    # TODO: Increase sampling rate after after Aug 1, 2024.
     parser.add_argument(
         "--neuron.organic_trigger_frequency",
         type=float,
