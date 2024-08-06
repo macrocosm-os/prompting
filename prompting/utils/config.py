@@ -302,7 +302,7 @@ def add_validator_args(cls, parser):
             return [float(p) for p in prob_list]
         except ValueError:
             raise argparse.ArgumentTypeError("All probabilities must be floats.")
-        
+
     parser.add_argument(
         "--neuron.task_p",
         type=parse_probabilities,  # Use the custom parsing function
@@ -430,15 +430,14 @@ def add_validator_args(cls, parser):
     parser.add_argument(
         "--neuron.organic_disabled",
         action="store_true",
-        help="Set this flag to disable organic scoring.",
+        help="Disables organic scoring.",
         default=False,
     )
 
-    # TODO: Set organic weight setting enabled by default after Aug 1, 2024.
     parser.add_argument(
-        "--neuron.organic_set_weights_enabled",
+        "--neuron.organic_disable_set_weights",
         action="store_true",
-        help="Set this flag to enable organic scoring weight setting.",
+        help="Disables organic scoring weight setting.",
         default=False,
     )
 
@@ -467,11 +466,10 @@ def add_validator_args(cls, parser):
     parser.add_argument(
         "--neuron.organic_reference_max_tokens",
         type=int,
-        help="Organic query timeout for each call in seconds.",
+        help="Organic reference max tokens.",
         default=1024,
     )
 
-    # TODO: Increase sampling rate after after Aug 1, 2024.
     parser.add_argument(
         "--neuron.organic_trigger_frequency",
         type=float,

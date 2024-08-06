@@ -246,7 +246,7 @@ class WikiDataset(Dataset):
             if seed is None
             else _get_random_titles(pages=pages, seed=seed)
         )
-        title = selector(titles)
+        title = random.choice(titles)
         return self.get(title, selector=selector)
 
 
@@ -316,7 +316,9 @@ class WikiDateDataset(Dataset):
                 date_sentence = self.extract_dates_and_sentences(context['content'])
                 context['content'] = date_sentence[1]
                 context['extra']['date'] = date_sentence[0]
-                if context['content'] is None:
+                if not context['content']:
+                    continue
+                elif not context['extra']['date']:
                     continue
                 else:
                     return context
@@ -324,6 +326,10 @@ class WikiDateDataset(Dataset):
             except Empty:
                 bt.logging.debug("Cache is empty. Skipping date until cache is filled.")
                 return None
+            
+            except Exception as e:
+                bt.logging.error(f"Error fetching date: {e}")
+                continue
 
     def get(
         self,
