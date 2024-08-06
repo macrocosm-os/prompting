@@ -113,8 +113,9 @@ def process_page(
         sections = {k: v for k, v in sections.items() if k not in exclude_sections}
     
     if selector == "all":
-        return ("Full Page", "\n\n".join(sections.values())) , sections.keys()
-
+        if not valid_section or valid_section("\n\n".join(sections.values()):
+            return ("Full Page", "\n\n".join(sections.values())) , sections.keys()
+        return None, []
     valid_sections = [(key, value) for key, value in sections.items() if not valid_section or valid_section(sections[key])]
 
     if valid_sections:
