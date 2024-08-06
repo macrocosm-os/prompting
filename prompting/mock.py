@@ -83,6 +83,10 @@ class MockPipeline:
     def preprocess(self, **kwargs):
         pass
 
+    def generate(self, *args, **kwargs) -> list[SimpleNamespace]:
+        mock_output = SimpleNamespace(outputs=[SimpleNamespace(text=self.model.phrase)])
+        return [mock_output]
+
 
 class MockSubtensor(bt.MockSubtensor):
     def __init__(self, netuid, n=16, wallet=None):
