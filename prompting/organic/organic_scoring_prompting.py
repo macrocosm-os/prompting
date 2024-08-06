@@ -305,8 +305,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
         uids_to_reward = dict(zip(uids, reward_result.rewards))
         bt.logging.info(f"[Organic] Rewards for miner's UIDs: {uids_to_reward}")
-        bt.logging.info(f"[Organic] Weight setting enabled: {self._val.config.neuron.organic_set_weights_enabled}")
-        if self._val.config.neuron.organic_set_weights_enabled:
+        bt.logging.info(f"[Organic] Weight setting disabled: {self._val.config.neuron.organic_disable_set_weights}")
+        if not self._val.config.neuron.organic_disable_set_weights:
             self._val.update_scores(reward_result.rewards, uids)
             # Sync is not needed as it's done in the benchmarks loop.
             # self._val.sync()
@@ -326,6 +326,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         logs["step"] = self._val.step
         # Length of messages is incremented by 2 every step: query and response.
         logs["turn"] = len(sample["messages"]) // 2
+        logs["uids"] = rewards["uids"]
         completions_len: list[int] = [len(response.synapse.completion) for response in responses.values()]
         logs["organic_response_mean_chars"] = np.mean(completions_len)
         logs["organic_response_std_chars"] = np.std(completions_len)
