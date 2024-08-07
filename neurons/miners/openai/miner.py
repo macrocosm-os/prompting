@@ -1,48 +1,37 @@
 import time
-import bittensor as bt
-import os
-from starlette.types import Send
 from functools import partial
-from typing import Awaitable
-
-# Bittensor Miner Template:
-from prompting.base.prompting_miner import BaseStreamPromptingMiner
-from prompting.base.protocol import StreamPromptingSynapse
-
-# import base miner class which takes care of most of the boilerplate
-
-from neurons.miners.openai.utils import OpenAIUtils
 from openai import OpenAI
 from traceback import print_exception
-
 from prompting import settings
+from loguru import logger
+from pydantic import model_validator
+from prompting.base.miner import BaseStreamMinerNeuron
+from prompting.base.protocol import StreamPromptingSynapse
+from neurons.miners.openai.utils import OpenAIUtils
+from starlette.types import Send
 
 
-class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
-    """Langchain-based miner which uses OpenAI's API as the LLM.
-    This miner does not use any tools or external APIs when processing requests - it relies entirely on the models' own representation and world model. In some cases, this can produce lower quality results.
-        You should also install the dependencies for this miner, which can be found in the requirements.txt file in this directory.
+SYSTEM_PROMPT = """You are a helpful agent that does it's best to answer all questions!"""
+
+
+class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
+    """Langchain-based miner using OpenAI's API as the LLM.
+    This miner relies entirely on the models' own representation and world model.
     """
 
-    def __init__(self, config=None):
-        super().__init__(config=config)
+    model: OpenAI | None = None
+    accumulated_total_tokens: int = 0
+    accumulated_prompt_tokens: int = 0
+    accumulated_completion_tokens: int = 0
+    accumulated_total_cost: float = 0
+    should_exit: bool = False
 
-        bt.logging.info(f"Initializing with model {settings.NEURON_MODEL_ID_MINER}...")
+    @model_validator(mode="after")
+    def init_openai(self) -> "OpenAIMiner":
+        self.model = OpenAI(api_key=settings.OPENAI_API_KEY)
+        return self
 
-        if settings.WANDB_ON:
-            self.identity_tags = ("openai_miner",) + (settings.NEURON_MODEL_ID_MINER)
-        api_key = os.environ.get("OPENAI_API_KEY")
-
-        # Set openai key and other args
-        self.model = OpenAI(api_key=api_key)
-
-        self.system_prompt = settings.NEURON_SYSTEM_PROMPT
-        self.accumulated_total_tokens = 0
-        self.accumulated_prompt_tokens = 0
-        self.accumulated_completion_tokens = 0
-        self.accumulated_total_cost = 0
-
-    def forward(self, synapse: StreamPromptingSynapse) -> Awaitable:
+    def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         async def _forward(
             self,
             synapse: StreamPromptingSynapse,
@@ -58,7 +47,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             timeout_reached = False
 
             try:
-                system_prompt_message = [{"role": "system", "content": self.system_prompt}]
+                system_prompt_message = [{"role": "system", "content": SYSTEM_PROMPT}]
                 synapse_messages = [
                     {"role": role, "content": message} for role, message in zip(synapse.roles, synapse.messages)
                 ]
@@ -69,7 +58,6 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                 stream_response = self.model.chat.completions.create(
                     model=settings.NEURON_MODEL_ID_MINER,
                     messages=messages,
-                    temperature=settings.NEURON_TEMPERATURE,
                     max_tokens=settings.NEURON_MAX_TOKENS,
                     stream=True,
                 )
@@ -78,7 +66,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                     chunk_content = chunk.choices[0].delta.content
 
                     if chunk_content is None:
-                        bt.logging.info("OpenAI returned chunk content with None")
+                        logger.info("OpenAI returned chunk content with None")
                         continue
 
                     accumulated_chunks.append(chunk_content)
@@ -87,14 +75,14 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                     buffer.append(chunk_content)
 
                     if time.time() - init_time > timeout_threshold:
-                        bt.logging.debug("⏰ Timeout reached, stopping streaming")
+                        logger.debug("⏰ Timeout reached, stopping streaming")
                         timeout_reached = True
                         break
 
                     if len(buffer) == settings.NEURON_STREAMING_BATCH_SIZE:
                         joined_buffer = "".join(buffer)
                         temp_completion += joined_buffer
-                        bt.logging.debug(f"Streamed tokens: {joined_buffer}")
+                        logger.debug(f"Streamed tokens: {joined_buffer}")
 
                         await send(
                             {
@@ -116,8 +104,8 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                     )
 
             except Exception as e:
-                bt.logging.error(f"Error in forward: {e}")
-                bt.logging.error(print_exception(type(e), e, e.__traceback__))
+                logger.error(f"Error in forward: {e}")
+                logger.error(print_exception(type(e), e, e.__traceback__))
                 if settings.NEURON_STOP_ON_FORWARD_EXCEPTION:
                     self.should_exit = True
 
@@ -132,7 +120,7 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
                         accumulated_chunks_timings=accumulated_chunks_timings,
                     )
 
-        bt.logging.debug(
+        logger.debug(
             f"📧 Message received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}; \nForwarding synapse: {synapse}"
         )
 
@@ -146,16 +134,22 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             init_time,
             timeout_threshold,
         )
-        return synapse.create_streaming_response(token_streamer)
+
+        # class CustomBTStreamingResponse(StreamPromptingSynapse.BTStreamingResponse):
+        #     def __init__(self, axon, model):
+        #         super().__init__(model=model)
+        #         self.axon = None
+        #         self.name = "Custom streaming response"
+
+        # model_instance = bt.stream.BTStreamingResponseModel(token_streamer=token_streamer)
+        # streaming_response = bt.stream.StreamingSynapse.BTStreamingResponse(model_instance)
+        streaming_response = synapse.create_streaming_response(token_streamer)
+        return streaming_response
 
 
-# This is the main function, which runs the miner.
 if __name__ == "__main__":
     with OpenAIMiner() as miner:
-        while True:
+        while not miner.should_exit:
             miner.log_status()
             time.sleep(5)
-
-            if miner.should_exit:
-                bt.logging.warning("Ending miner...")
-                break
+        logger.warning("Ending miner...")

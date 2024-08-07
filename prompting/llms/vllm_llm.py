@@ -55,7 +55,6 @@ def load_vllm_pipeline(
 
 
 class vLLMPipeline(BasePipeline):
-    # _LOCK: threading.Lock = threading.Lock()
     llm_model_id: str
     llm_max_allowed_memory_in_gb: int
     mock: bool = False

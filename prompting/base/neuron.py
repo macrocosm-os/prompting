@@ -2,6 +2,7 @@ import sys
 
 import bittensor as bt
 
+from loguru import logger
 from abc import ABC, abstractmethod
 
 # Sync calls set weights and also resyncs the metagraph.
@@ -75,6 +76,7 @@ class BaseNeuron(ABC):
         Wrapper for synchronizing the state of the network for the given miner or validator.
         """
         # Ensure miner or validator hotkey is still registered on the network.
+        logger.info("Syncing neuron...")
         self.check_registered()
 
         if self.should_sync_metagraph():
@@ -102,7 +104,9 @@ class BaseNeuron(ABC):
         """
         Check if enough epoch blocks have elapsed since the last checkpoint to sync.
         """
-        return (self.block - self.metagraph.last_update[self.uid]) > settings.NEURON_EPOCH_LENGTH
+        return (
+            self.subtensor.get_current_block() - self.metagraph.last_update[self.uid]
+        ) > settings.NEURON_EPOCH_LENGTH
 
     def should_set_weights(self) -> bool:
         # Don't set weights on initialization.
@@ -118,7 +122,6 @@ class BaseNeuron(ABC):
             return False
 
         # Define appropriate logic for when set weights.
-        return (self.block - self.metagraph.last_update[self.uid]) > self.config.neuron.epoch_length
         return (self.block - self.metagraph.last_update[self.uid]) > settings.NEURON_EPOCH_LENGTH
 
     def save_state(self):

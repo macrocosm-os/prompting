@@ -67,6 +67,8 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
         description="Completion status of the current PromptingSynapse object. This attribute is mutable and can be updated.",
     )
 
+    # streaming_response: Awaitable | None = None
+
     async def process_streaming_response(self, response: StreamingResponse) -> AsyncIterator[str]:
         """
         `process_streaming_response` is an asynchronous method designed to process the incoming streaming response from the
