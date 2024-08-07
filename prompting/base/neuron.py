@@ -32,7 +32,7 @@ class BaseNeuron(ABC):
     @property
     def block(self):
         self._block = ttl_get_block(self)
-        self.latest_block = self._block
+        self.latest_block = self._block or -1
         return self._block
 
     def __init__(self, config=None):

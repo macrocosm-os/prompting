@@ -40,16 +40,17 @@ class BaseValidatorNeuron(BaseNeuron):
     def __init__(self, config=None):
         super().__init__(config=config)
         self.axon: bt.axon | None = None
+        self.latest_block = -1
 
         # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
 
         # Dendrite lets us send messages to other nodes (axons) in the network.
         self.dendrite = bt.dendrite(wallet=self.wallet)
-        bt.logging.info(f"Dendrite: {self.dendrite}")
+        logger.info(f"Dendrite: {self.dendrite}")
 
         # Set up initial scoring weights for validation
-        bt.logging.info("Building validation weights.")
+        logger.info("Building validation weights.")
         self.scores = np.zeros(self.metagraph.n, dtype=np.float32)
 
         # Init sync with the network. Updates the metagraph.
@@ -60,7 +61,7 @@ class BaseValidatorNeuron(BaseNeuron):
         if self.axon is not None:
             self._serve_axon()
         else:
-            bt.logging.warning("axon off, not serving ip to chain.")
+            logger.warning("axon off, not serving ip to chain.")
 
         # Create asyncio event loop to manage async tasks.
         self.loop = asyncio.get_event_loop()
@@ -76,7 +77,7 @@ class BaseValidatorNeuron(BaseNeuron):
     def _serve_axon(self):
         """Serve axon to enable external connections"""
         validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
-        bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
+        logger.info(f"Serving validator IP of UID {validator_uid} to chain...")
         self.axon.serve(netuid=settings.NETUID, subtensor=self.subtensor).start()
 
     def run(self):
@@ -102,29 +103,29 @@ class BaseValidatorNeuron(BaseNeuron):
         self.sync()
 
         if not settings.NEURON_AXON_OFF:
-            bt.logging.info(f"Running validator {self.axon} with netuid: {settings.NETUID}")
+            logger.info(f"Running validator {self.axon} with netuid: {settings.NETUID}")
         else:
-            bt.logging.info(f"Running validator with netuid: {settings.NETUID}")
+            logger.info(f"Running validator with netuid: {settings.NETUID}")
 
-        bt.logging.info(f"Validator starting at block: {self.latest_block}")
+        logger.info(f"Validator starting at block: {self.latest_block}")
 
         # This loop maintains the validator's operations until intentionally stopped.
         try:
             while True:
-                bt.logging.info(f"step({self.step}) block({self.latest_block})")
+                logger.info(f"step({self.step}) block({self.latest_block})")
 
                 forward_timeout = settings.NEURON_FORWARD_MAX_TIME
                 try:
                     task = self.loop.create_task(self.forward())
                     self.loop.run_until_complete(asyncio.wait_for(task, timeout=forward_timeout))
                 except torch.cuda.OutOfMemoryError as e:
-                    bt.logging.error(f"Out of memory error: {e}")
+                    logger.error(f"Out of memory error: {e}")
                     continue
                 except MaxRetryError as e:
-                    bt.logging.error(f"MaxRetryError: {e}")
+                    logger.error(f"MaxRetryError: {e}")
                     continue
                 except asyncio.TimeoutError as e:
-                    bt.logging.error(
+                    logger.error(
                         f"Forward timeout: Task execution exceeded {forward_timeout} seconds and was cancelled.: {e}"
                     )
                     continue
@@ -143,13 +144,13 @@ class BaseValidatorNeuron(BaseNeuron):
         # If someone intentionally stops the validator, it'll safely terminate operations.
         except KeyboardInterrupt:
             self.axon.stop()
-            bt.logging.success("Validator killed by keyboard interrupt.")
+            logger.success("Validator killed by keyboard interrupt.")
             sys.exit()
 
         # In case of unforeseen errors, the validator will log the error and quit
         except Exception as err:
-            bt.logging.error("Error during validation", str(err))
-            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
+            logger.error("Error during validation", str(err))
+            logger.debug(print_exception(type(err), err, err.__traceback__))
             self.should_exit = True
 
     def run_in_background_thread(self):
@@ -158,23 +159,23 @@ class BaseValidatorNeuron(BaseNeuron):
         This method facilitates the use of the validator in a 'with' statement.
         """
         if not self.is_running:
-            bt.logging.debug("Starting validator in background thread.")
+            logger.debug("Starting validator in background thread.")
             self.should_exit = False
             self.thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
             self.is_running = True
-            bt.logging.debug("Started")
+            logger.debug("Started")
 
     def stop_run_thread(self):
         """
         Stops the validator's operations that are running in the background thread.
         """
         if self.is_running:
-            bt.logging.debug("Stopping validator in background thread.")
+            logger.debug("Stopping validator in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False
-            bt.logging.debug("Stopped")
+            logger.debug("Stopped")
 
     def __enter__(self):
         self.run_in_background_thread()
@@ -194,11 +195,11 @@ class BaseValidatorNeuron(BaseNeuron):
                        None if the context was exited without an exception.
         """
         if self.is_running:
-            bt.logging.debug("Stopping validator in background thread.")
+            logger.debug("Stopping validator in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False
-            bt.logging.debug("Stopped")
+            logger.debug("Stopped")
 
     def set_weights(self):
         """
@@ -207,7 +208,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Check if self.scores contains any NaN values and log a warning if it does.
         if any(np.isnan(self.scores).flatten()):
-            bt.logging.warning(
+            logger.warning(
                 "Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
             )
 
@@ -215,8 +216,8 @@ class BaseValidatorNeuron(BaseNeuron):
         # Replace any NaN values with 0.
         raw_weights = self.scores / np.linalg.norm(axis=0)
 
-        bt.logging.debug("raw_weights", raw_weights)
-        bt.logging.debug("raw_weight_uids", self.metagraph.uids)
+        logger.debug("raw_weights", raw_weights)
+        logger.debug("raw_weight_uids", self.metagraph.uids)
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
@@ -228,8 +229,8 @@ class BaseValidatorNeuron(BaseNeuron):
             subtensor=self.subtensor,
             metagraph=self.metagraph,
         )
-        bt.logging.debug("processed_weights", processed_weights)
-        bt.logging.debug("processed_weight_uids", processed_weight_uids)
+        logger.debug("processed_weights", processed_weights)
+        logger.debug("processed_weight_uids", processed_weight_uids)
 
         # Convert to uint16 weights and uids.
         (
@@ -238,8 +239,8 @@ class BaseValidatorNeuron(BaseNeuron):
         ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
             uids=processed_weight_uids, weights=processed_weights
         )
-        bt.logging.debug("uint_weights", uint_weights)
-        bt.logging.debug("uint_uids", uint_uids)
+        logger.debug("uint_weights", uint_weights)
+        logger.debug("uint_uids", uint_uids)
 
         # Set the weights on chain via our subtensor connection.
         result = self.subtensor.set_weights(
@@ -252,13 +253,13 @@ class BaseValidatorNeuron(BaseNeuron):
             version_key=self.spec_version,
         )
         if result is True:
-            bt.logging.info("set_weights on chain successfully!")
+            logger.info("set_weights on chain successfully!")
         else:
-            bt.logging.error("set_weights failed")
+            logger.error("set_weights failed")
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
-        bt.logging.info("resync_metagraph()")
+        logger.info("resync_metagraph()")
 
         # Copies state of metagraph before syncing.
         previous_metagraph = copy.deepcopy(self.metagraph)
@@ -270,8 +271,8 @@ class BaseValidatorNeuron(BaseNeuron):
         if previous_metagraph.axons == self.metagraph.axons:
             return
 
-        bt.logging.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
-        bt.logging.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
+        logger.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
+        logger.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
         # Zero out all hotkeys that have been replaced.
         for uid, hotkey in enumerate(self.hotkeys):
             if hotkey != self.metagraph.hotkeys[uid]:
@@ -295,7 +296,7 @@ class BaseValidatorNeuron(BaseNeuron):
         # Check if rewards contains NaN values.
         if any(np.isnan(rewards).flatten()):
             # if
-            bt.logging.warning(f"NaN values detected in rewards: {rewards}")
+            logger.warning(f"NaN values detected in rewards: {rewards}")
             # Replace any NaN values in rewards with 0.
             rewards = np.nan_to_num(rewards)
 
@@ -303,25 +304,25 @@ class BaseValidatorNeuron(BaseNeuron):
         # shape: [ metagraph.n ]
         step_rewards = np.copy(self.scores)
         step_rewards[uids] = rewards
-        bt.logging.debug(f"Scattered rewards: {rewards}")
+        logger.debug(f"Scattered rewards: {rewards}")
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
         alpha = settings.NEURON_MOVING_AVERAGE_ALPHA
         self.scores = alpha * step_rewards + (1 - alpha) * self.scores
         self.scores = np.clip(self.scores - settings.NEURON_DECAY_ALPHA, 0, 1)
-        bt.logging.debug(f"Updated moving avg scores: {self.scores}")
+        logger.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):
         """Saves the state of the validator to a file."""
-        bt.logging.info("Saving validator state.")
+        logger.info("Saving validator state.")
 
         # Save the state of the validator to file.
         np.savez(settings.SAVE_PATH + "/state.npz", step=self.step, scores=self.scores, hotkeys=self.hotkeys)
 
     def load_state(self):
         """Loads the state of the validator from a file."""
-        bt.logging.info("Loading validator state.")
+        logger.info("Loading validator state.")
 
         # Load the state of the validator from file.
         state = np.load(settings.SAVE_PATH + "/state.npz")

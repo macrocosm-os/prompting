@@ -42,19 +42,12 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
             blacklist_fn=self.blacklist,
             priority_fn=self.priority,
         )
-        # self.axon.attach(
-        #     forward_fn=self.test_log,
-        #     blacklist_fn=self.blacklist,
-        #     priority_fn=self.priority,
-        # )
         self.subtensor = bt.subtensor(network=settings.SUBTENSOR_NETWORK)
         self.metagraph = bt.metagraph(netuid=settings.NETUID, network=settings.SUBTENSOR_NETWORK, sync=True, lite=False)
         self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
         logger.info(f"Axon created: {self.axon}; running on uid: {self.uid}")
         self.axon.serve(netuid=settings.NETUID, subtensor=self.subtensor)
         return self
-
-        # self.lock = asyncio.Lock()
 
     def run(self):
         """

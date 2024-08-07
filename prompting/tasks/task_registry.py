@@ -2,9 +2,10 @@
 from prompting.tasks.base_task import BaseTask
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
+from prompting.tasks.date_qa import DateQuestionAnsweringTask, DateQARewardConfig
 from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
 
-from prompting.datasets.wiki import WikiDataset
+from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.datasets.base import BaseDataset
 from pydantic import BaseModel, ConfigDict
 import random
@@ -27,7 +28,9 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=SummarizationTask, probability=0.4, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
         ),
-        # TaskConfig(task=DateQuestionAnsweringTask, probability=0.2, datasets=[WikiDateDataset])
+        TaskConfig(
+            task=DateQuestionAnsweringTask, probability=0.2, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
+        ),
     ]
 
     @classmethod

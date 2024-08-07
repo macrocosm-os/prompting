@@ -9,23 +9,22 @@ from prompting.rewards.reward import (
 from prompting.base.dendrite import DendriteResponseEvent
 from pydantic import model_validator, ConfigDict
 from scipy import spatial
+from prompting import settings
+
+MODEL = AnglE.from_pretrained("WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=settings.NEURON_DEVICE)
+if settings.NEURON_DEVICE.startswith("cuda"):
+    # This line is necessary to pass the model to the device defined at its initialization
+    MODEL = MODEL.cuda()
 
 
 class RelevanceRewardModel(BaseRewardModel):
     threshold: float | None = None
-    pooling_strategy: str = "cls"
-    device: str = "cuda"
     model_config = ConfigDict(arbitrary_types_allowed=True)
     model: AnglE | None = None
 
     @model_validator(mode="after")
     def init_model(self) -> "RelevanceRewardModel":
-        self.model = AnglE.from_pretrained(
-            "WhereIsAI/UAE-Large-V1", pooling_strategy=self.pooling_strategy, device=self.device
-        )
-        if self.device.startswith("cuda"):
-            # This line is necessary to pass the model to the device defined at its initialization
-            self.model = self.model.cuda()
+        self.model = MODEL
         return self
 
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:

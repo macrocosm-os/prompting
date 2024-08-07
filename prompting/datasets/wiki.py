@@ -50,7 +50,7 @@ def _get_page(
 
 
 @lru_cache(maxsize=1000)
-def _get_random_titles(pages: int = 10, seed: int = 42) -> list:
+def _get_random_titles(pages: int = 10) -> list:
     """Cached wikipedia random page. Approximately deterministic random titles. This is useful for testing.
     NOTE: the actually cached result will change each session, but the result will be the same within a session.
     """
@@ -82,7 +82,7 @@ def get_article_sections(title: str) -> dict[str, str]:
 
 
 def process_page(
-    page: wikipedia.WikipediaPage, exclude_sections: Optional[list] | None = None, valid_section: callable | None = None
+    page: wikipedia.WikipediaPage, exclude_sections: Optional[list] | None = None, valid_section: callable = None
 ) -> dict:
     """Process a Wikipedia page and return a dictionary of sections with their content.
 
@@ -215,10 +215,21 @@ class WikiDataset(BaseDataset):
         title = random.choice(titles)
         return self.get(title)
 
-    def random(self, pages=10, seed=None, **kwargs) -> dict:
-        titles = wikipedia.random(pages=pages) if seed is None else _get_random_titles(pages=pages, seed=seed)
+    def random(self, pages=10) -> dict:
+        titles = _get_random_titles(pages=pages)
         title = random.choice(titles)
         return self.get(title)
+
+
+class DateContext(Context):
+    date: str = None
+
+    @classmethod
+    def from_context(cls, context: Context, date: str) -> "DateContext":
+        return cls(
+            **context.model_dump(),
+            date=date,
+        )
 
 
 class WikiDateDataset(BaseDataset):
@@ -239,11 +250,8 @@ class WikiDateDataset(BaseDataset):
         "December",
     )
     EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
-
-    def __init__(self, max_tries: int = 10, seed=None):
-        self.max_tries = max_tries
-        self.seed = seed
-        self.rng = random.Random(seed)
+    max_tries: int = 10
+    rng: Optional[random.Random] = random.Random()
 
     EXCLUDE_CATEGORIES: tuple = ("articles", "wikipedia", "pages", "cs1")
     max_tries: int = 10
@@ -291,7 +299,7 @@ class WikiDateDataset(BaseDataset):
 
         return None
 
-    def _random_date(self) -> str:
+    def _random_date(self) -> DateContext:
         for _ in range(self.max_tries):
             try:
                 context = CACHED_ARTICLES.get(block=False)
@@ -302,8 +310,10 @@ class WikiDateDataset(BaseDataset):
                 if not date_sentence:
                     continue
 
-                context.content, context.extra["date"] = date_sentence[1], date_sentence[0]
-                return context
+                content, date = date_sentence[1], date_sentence[0]
+                date_context = DateContext.from_context(context, date=date)
+                date_context.content = content
+                return date_context
 
             except Empty:
                 bt.logging.debug("Cache is empty. Skipping date until cache is filled.")
@@ -318,5 +328,5 @@ class WikiDateDataset(BaseDataset):
     def search(self, name: str, results: int = 5) -> dict:
         raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
 
-    def random(self) -> dict:
+    def random(self) -> DateContext:
         return self._random_date()

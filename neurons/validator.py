@@ -137,7 +137,7 @@ class Validator(BaseValidatorNeuron):
 
         best_response = response_event.completions[np.argmax(rewards)]
 
-        self.update_scores(reward_pipeline.final_rewards, uids)
+        self.update_scores(rewards, uids)
 
         # Log the step event.
         event = {

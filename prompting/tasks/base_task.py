@@ -3,7 +3,7 @@ import bittensor as bt
 from abc import ABC
 from pydantic import BaseModel
 from prompting.llms.base_llm import BasePipeline
-from prompting.llms.vllm_llm import vLLM_LLM, vLLMPipeline
+from prompting.llms.vllm_llm import vLLM_LLM
 from prompting.utils.cleaners import CleanerPipeline
 from typing import ClassVar
 from prompting.datasets.base import Context
@@ -36,7 +36,7 @@ class BaseTask(ABC, BaseModel):
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
 
     @abstractmethod
-    def generate_query_reference(llm_pipeline: vLLMPipeline, context: Context, **kwargs) -> [str, str]:
+    def generate_query_reference(llm_pipeline: BasePipeline, context: Context, **kwargs) -> [str, str]:
         raise NotImplementedError("Method generate_query_reference must be implemented")
 
     @classmethod

@@ -3,7 +3,7 @@ import re
 import pandas as pd
 import numpy as np
 from typing import List
-from prompting.rewards import BaseRewardModel, BatchRewardOutput
+from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from prompting.base.dendrite import DendriteResponseEvent
 
 

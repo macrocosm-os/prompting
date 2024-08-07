@@ -135,14 +135,6 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
             timeout_threshold,
         )
 
-        # class CustomBTStreamingResponse(StreamPromptingSynapse.BTStreamingResponse):
-        #     def __init__(self, axon, model):
-        #         super().__init__(model=model)
-        #         self.axon = None
-        #         self.name = "Custom streaming response"
-
-        # model_instance = bt.stream.BTStreamingResponseModel(token_streamer=token_streamer)
-        # streaming_response = bt.stream.StreamingSynapse.BTStreamingResponse(model_instance)
         streaming_response = synapse.create_streaming_response(token_streamer)
         return streaming_response
 

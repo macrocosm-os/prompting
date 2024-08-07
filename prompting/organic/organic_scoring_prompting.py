@@ -7,7 +7,6 @@ from typing import Any, AsyncGenerator, Tuple
 import bittensor as bt
 from prompting import settings
 from organic_scoring import OrganicScoringBase
-from organic_scoring.synth_dataset import SynthDatasetEntry
 from starlette.types import Send
 from typing_extensions import override
 from bittensor.dendrite import dendrite
@@ -19,7 +18,13 @@ from prompting.base.protocol import StreamPromptingSynapse
 
 # from prompting.rewards.reward import RewardResult
 
+
 # from prompting.tasks.task import make_system_prompt
+class SynthDatasetEntry:
+    roles: list[str]
+    messages: list[str]
+    organic: bool
+    source: str
 
 
 class OrganicScoringPrompting(OrganicScoringBase):

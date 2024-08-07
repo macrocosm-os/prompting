@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from prompting.utils.cleaners import CleanerPipeline
 from typing import Any
 from pydantic import BaseModel
-from vllm import LLM
 
 
 class BasePipeline(ABC, BaseModel):
@@ -12,7 +11,7 @@ class BasePipeline(ABC, BaseModel):
 
 
 class BaseLLM(ABC):
-    llm_pipeline: LLM
+    llm_pipeline: BasePipeline
     system_prompt: str
     model_kwargs: dict
     messages: list[dict] = []
