@@ -30,6 +30,7 @@ from prompting.utils.exceptions import MaxRetryError
 
 from prompting import settings
 from loguru import logger
+from prompting.utils.logging import init_wandb
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -39,25 +40,26 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def __init__(self, config=None):
         super().__init__(config=config)
+        init_wandb(neuron="validator")
         self.axon: bt.axon | None = None
         self.latest_block = -1
 
         # Save a copy of the hotkeys to local memory.
-        self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
+        self.hotkeys = copy.deepcopy(settings.METAGRAPH.hotkeys)
 
         # Dendrite lets us send messages to other nodes (axons) in the network.
-        self.dendrite = bt.dendrite(wallet=self.wallet)
+        self.dendrite = bt.dendrite(wallet=settings.WALLET)
         logger.info(f"Dendrite: {self.dendrite}")
 
         # Set up initial scoring weights for validation
         logger.info("Building validation weights.")
-        self.scores = np.zeros(self.metagraph.n, dtype=np.float32)
+        self.scores = np.zeros(settings.METAGRAPH.n, dtype=np.float32)
 
         # Init sync with the network. Updates the metagraph.
         self.sync()
 
         # Serve axon to enable external connections.
-        self.axon = bt.axon(wallet=self.wallet, config=self.config)
+        self.axon = bt.axon(wallet=settings.WALLET, port=settings.AXON_PORT)
         if self.axon is not None:
             self._serve_axon()
         else:
@@ -70,15 +72,12 @@ class BaseValidatorNeuron(BaseNeuron):
         self.should_exit: bool = False
         self.is_running: bool = False
         self.thread: threading.Thread = None
-        # self.lock = asyncio.Lock()
-        if self.axon is not None:
-            self._serve_axon()
 
     def _serve_axon(self):
         """Serve axon to enable external connections"""
-        validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+        validator_uid = settings.METAGRAPH.hotkeys.index(settings.WALLET.hotkey.ss58_address)
         logger.info(f"Serving validator IP of UID {validator_uid} to chain...")
-        self.axon.serve(netuid=settings.NETUID, subtensor=self.subtensor).start()
+        self.axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR).start()
 
     def run(self):
         """
@@ -217,17 +216,17 @@ class BaseValidatorNeuron(BaseNeuron):
         raw_weights = self.scores / np.linalg.norm(axis=0)
 
         logger.debug("raw_weights", raw_weights)
-        logger.debug("raw_weight_uids", self.metagraph.uids)
+        logger.debug("raw_weight_uids", settings.METAGRAPH.uids)
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
             processed_weights,
         ) = bt.utils.weight_utils.process_weights_for_netuid(
-            uids=self.metagraph.uids,
+            uids=settings.METAGRAPH.uids,
             weights=raw_weights,
             netuid=settings.NETUID,
-            subtensor=self.subtensor,
-            metagraph=self.metagraph,
+            subtensor=settings.SUBTENSOR,
+            metagraph=settings.METAGRAPH,
         )
         logger.debug("processed_weights", processed_weights)
         logger.debug("processed_weight_uids", processed_weight_uids)
@@ -243,8 +242,8 @@ class BaseValidatorNeuron(BaseNeuron):
         logger.debug("uint_uids", uint_uids)
 
         # Set the weights on chain via our subtensor connection.
-        result = self.subtensor.set_weights(
-            wallet=self.wallet,
+        result = settings.SUBTENSOR.set_weights(
+            wallet=settings.WALLET,
             netuid=settings.NETUID,
             uids=uint_uids,
             weights=uint_weights,
@@ -262,33 +261,33 @@ class BaseValidatorNeuron(BaseNeuron):
         logger.info("resync_metagraph()")
 
         # Copies state of metagraph before syncing.
-        previous_metagraph = copy.deepcopy(self.metagraph)
+        previous_metagraph = copy.deepcopy(settings.METAGRAPH)
 
         # Sync the metagraph.
-        self.metagraph.sync(subtensor=self.subtensor)
+        settings.METAGRAPH.sync(subtensor=settings.SUBTENSOR)
 
         # Check if the metagraph axon info has changed.
-        if previous_metagraph.axons == self.metagraph.axons:
+        if previous_metagraph.axons == settings.METAGRAPH.axons:
             return
 
         logger.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
         logger.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
         # Zero out all hotkeys that have been replaced.
         for uid, hotkey in enumerate(self.hotkeys):
-            if hotkey != self.metagraph.hotkeys[uid]:
+            if hotkey != settings.METAGRAPH.hotkeys[uid]:
                 self.scores[uid] = 0  # hotkey has been replaced
 
         # Check to see if the metagraph has changed size.
         # If so, we need to add new hotkeys and moving averages.
-        if len(self.hotkeys) < len(self.metagraph.hotkeys):
+        if len(self.hotkeys) < len(settings.METAGRAPH.hotkeys):
             # Update the size of the moving average scores.
-            new_moving_average = np.zeros((self.metagraph.n))
+            new_moving_average = np.zeros((settings.METAGRAPH.n))
             min_len = min(len(self.hotkeys), len(self.scores))
             new_moving_average[:min_len] = self.scores[:min_len]
             self.scores = new_moving_average
 
         # Update the hotkeys.
-        self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
+        self.hotkeys = copy.deepcopy(settings.METAGRAPH.hotkeys)
 
     def update_scores(self, rewards: np.ndarray, uids: list[int]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""

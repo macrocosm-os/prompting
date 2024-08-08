@@ -12,6 +12,8 @@ from prompting import settings
 import numpy as np
 import asyncio
 from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
+from prompting.utils.logging import log_event
+from prompting.utils.logging import ValidatorEvent, ErrorEvent
 
 try:
     from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
@@ -34,7 +36,6 @@ class Validator(BaseValidatorNeuron):
 
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)
-
         logger.info("load_state()")
         self.load_state()
         self._lock = asyncio.Lock()
@@ -65,17 +66,19 @@ class Validator(BaseValidatorNeuron):
         #     trigger_scaling_factor=settings.ORGANIC_SCALING_FACTOR,
         #     llm_pipeline=self.llm_pipeline,
         #     dendrite=self.dendrite,
-        #     metagraph=self.metagraph,
+        #     metagraph=settings.METAGRAPH,
         #     update_scores=self.update_scores,
         #     tokenizer=self.llm_pipeline.tokenizer,
         #     get_random_uids=lambda _: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
-        #     wallet=self.wallet,
+        #     wallet=settings.WALLET,
         #     _lock=self._lock,
         # )
         # if self._organic_scoring is not None:
         #     self.loop.create_task(self._organic_scoring.start_loop())
 
-    async def run_step(self, task: BaseTask, dataset: BaseDataset, k: int, timeout: float, exclude: list = None):
+    async def run_step(
+        self, task: BaseTask, dataset: BaseDataset, k: int, timeout: float, exclude: list = None
+    ) -> ValidatorEvent | ErrorEvent | None:
         """Executes a single step of the agent, which consists of:
         - Getting a list of uids to query
         - Querying the network
@@ -91,68 +94,72 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        logger.debug("run_step", task.__class__.__name__)
-        if not (dataset_entry := dataset.random()):
-            logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
-            return None
-        # Generate the query and reference for the task
-        query, reference = task.generate_query_reference(self.llm_pipeline, dataset_entry)
-        # task.generate_reference(self.llm_pipeline)
+        try:
+            logger.debug("run_step", task.__class__.__name__)
+            if not (dataset_entry := dataset.random()):
+                logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
+                return None
+            # Generate the query and reference for the task
+            query, reference = task.generate_query_reference(self.llm_pipeline, dataset_entry)
+            # task.generate_reference(self.llm_pipeline)
 
-        # Record event start time.
-        start_time = time.time()
+            # Record event start time.
+            start_time = time.time()
 
-        # Get the list of uids to query for this step.
-        uids = get_random_uids(self, k=k, exclude=exclude or [])
+            # Get the list of uids to query for this step.
+            uids = get_random_uids(self, k=k, exclude=exclude or [])
 
-        axons = [self.metagraph.axons[uid] for uid in uids]
+            axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
-        # Directly call dendrite and process responses in parallel
-        streams_responses = await self.dendrite(
-            axons=axons,
-            synapse=StreamPromptingSynapse(roles=["user"], messages=[query]),
-            timeout=timeout,
-            deserialize=False,
-            streaming=True,
-        )
+            # Directly call dendrite and process responses in parallel
+            streams_responses = await self.dendrite(
+                axons=axons,
+                synapse=StreamPromptingSynapse(roles=["user"], messages=[query]),
+                timeout=timeout,
+                deserialize=False,
+                streaming=True,
+            )
 
-        # Prepare the task for handling stream responses
-        stream_results_dict = dict(zip(uids, streams_responses))
-        tokenizer = self.llm_pipeline.tokenizer
-        stream_results = await handle_response(stream_results_dict, tokenizer)
+            # Prepare the task for handling stream responses
+            stream_results = await handle_response(
+                stream_results_dict=dict(zip(uids, streams_responses)), tokenizer=self.llm_pipeline.tokenizer
+            )
 
-        log_stream_results(stream_results)
+            log_stream_results(stream_results)
 
-        # Encapsulate the responses in a response event (dataclass)
-        response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
+            # Encapsulate the responses in a response event (dataclass)
+            response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
 
-        logger.info(f"Created DendriteResponseEvent:\n {response_event}")
+            logger.info(f"Created DendriteResponseEvent:\n {response_event}")
 
-        # Reward the responses and get the reward result (dataclass)
-        # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
-        reward_pipeline = TaskRegistry.get_task_reward(task)
-        reward_events, penalty_events, rewards = reward_pipeline.apply(
-            response_event=response_event, reference=reference, challenge=query
-        )
+            # Reward the responses and get the reward result (dataclass)
+            # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
+            reward_pipeline = TaskRegistry.get_task_reward(task)
+            reward_events, penalty_events, rewards = reward_pipeline.apply(
+                response_event=response_event, reference=reference, challenge=query
+            )
 
-        logger.info(f"Created RewardResult:\n {rewards}")
+            logger.info(f"Created RewardResult:\n {rewards}")
 
-        best_response = response_event.completions[np.argmax(rewards)]
+            best_response = response_event.completions[np.argmax(rewards)]
 
-        self.update_scores(rewards, uids)
+            self.update_scores(rewards, uids)
 
-        # Log the step event.
-        event = {
-            "best": best_response,
-            "block": self.block,
-            "step": self.step,
-            "step_time": time.time() - start_time,
-            "reward_events": [reward_event.__dict__ for reward_event in reward_events],
-            "penalty_events": [penalty_event.__dict__ for penalty_event in penalty_events],
-            "response_event": response_event.__dict__,
-        }
-
-        return event
+            # Log the step event.
+            return ValidatorEvent(
+                best=best_response or "",
+                block=self.block,
+                step=self.step,
+                step_time=time.time() - start_time,
+                reward_events=reward_events or [],
+                penalty_events=penalty_events or [],
+                response_event=response_event,
+            )
+        except Exception as ex:
+            logger.exception(ex)
+            return ErrorEvent(
+                error=str(ex),
+            )
 
     async def forward(self):
         """
@@ -163,7 +170,7 @@ class Validator(BaseValidatorNeuron):
         forward_start_time = time.time()
 
         while True:
-            logger.info(f"📋 Selecting task... from {TaskRegistry.tasks}")
+            logger.info(f"📋 Selecting task... from {TaskRegistry.task_configs}")
             task_config = TaskRegistry.random()
             logger.info(f"📋 Creating {task_config.task.__name__} task... ")
             try:
@@ -172,32 +179,26 @@ class Validator(BaseValidatorNeuron):
             except Exception as ex:
                 logger.exception(ex)
 
-        turn = 0
         exclude_uids = []
 
-        try:
-            # when run_step is called, the agent updates its progress
-            async with self._lock:
-                event = await self.run_step(
-                    task=task,
-                    dataset=dataset,
-                    k=settings.NEURON_SAMPLE_SIZE,
-                    timeout=settings.NEURON_TIMEOUT,
-                    exclude=exclude_uids,
-                )
-            # Adds forward time to event and logs it to wandb
-            if event:
-                event["forward_time"] = time.time() - forward_start_time
-                event["turn"] = turn
+        # when run_step is called, the agent updates its progress
+        async with self._lock:
+            event = await self.run_step(
+                task=task,
+                dataset=dataset,
+                k=settings.NEURON_SAMPLE_SIZE,
+                timeout=settings.NEURON_TIMEOUT,
+                exclude=exclude_uids,
+            )
 
-            # accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
+        # Adds forward time to event and logs it to wandb
+        if not event:
+            return
 
-        except Exception as e:
-            logger.exception(e)
-            # logger.error(f"Error in run_step: Skipping to next round. \n {e}")
-            event = {"unexpected_errors": e}
+        event.forward_time = time.time() - forward_start_time
+        log_event(event)
 
-        del task
+        # accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
 
     def __enter__(self):
         if settings.NO_BACKGROUND_THREAD:

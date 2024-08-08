@@ -55,11 +55,11 @@ class OrganicScoringPrompting(OrganicScoringBase):
         self.synth_dataset = data["synth_dataset"]
         self.llm_pipeline = data["llm_pipeline"]
         self.dendrite = data["dendrite"]
-        self.metagraph = data["metagraph"]
+        settings.METAGRAPH = data["metagraph"]
         self.update_scores = data["update_scores"]
         self.tokenizer = data["tokenizer"]
         self.get_random_uids = data["get_random_uids"]
-        self.wallet = data["wallet"]
+        settings.WALLET = data["wallet"]
         self._lock = data["_lock"]
         self.trigger_frequency = data["trigger_frequency"]
         self.trigger_frequency_min = data["trigger_frequency_min"]
@@ -130,9 +130,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
         """Stream back miner's responses."""
         logger.info(f"[Organic] Querying miner UIDs: {uids}")
         try:
-            async with dendrite(wallet=self.wallet) as dend:
+            async with dendrite(wallet=settings.WALLET) as dend:
                 responses = await dend(
-                    axons=[self.metagraph.axons[uid] for uid in uids],
+                    axons=[settings.METAGRAPH.axons[uid] for uid in uids],
                     synapse=synapse,
                     timeout=settings.ORGANIC_TIMEOUT,
                     deserialize=False,
@@ -244,7 +244,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         uids = self.get_random_uids()
         logger.info(f"[Organic] Querying miners with synthetic data, UIDs: {uids}")
         streams_responses = await dendrite.forward(
-            axons=[self.metagraph.axons[uid] for uid in uids],
+            axons=[settings.METAGRAPH.axons[uid] for uid in uids],
             synapse=StreamPromptingSynapse(roles=sample.roles, messages=sample.messages),
             timeout=settings.ORGANIC_TIMEOUT,
             deserialize=False,

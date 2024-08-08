@@ -24,6 +24,7 @@ from typing import Callable, Any
 from functools import lru_cache, update_wrapper
 from prompting.utils.exceptions import BittensorError
 from loguru import logger
+from prompting import settings
 
 
 # LRU Cache with TTL
@@ -112,7 +113,7 @@ def ttl_get_block(self) -> int:
     Note: self here is the miner or validator instance
     """
     try:
-        return self.subtensor.get_current_block()
+        return settings.SUBTENSOR.get_current_block()
     except Exception as e:
         raise BittensorError(f"Bittensor error: {str(e)}") from e
 

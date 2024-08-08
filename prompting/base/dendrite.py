@@ -1,34 +1,53 @@
 import numpy as np
-from typing import List
-from dataclasses import dataclass
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.utils.misc import serialize_exception_to_string
+from pydantic import BaseModel, model_validator, ConfigDict
 
 
-@dataclass
-class SynapseStreamResult:
-    exception: BaseException = None
-    uid: int = None
-    accumulated_chunks: List[str] = None
-    accumulated_chunks_timings: List[float] = None
-    tokens_per_chunk: List[int] = None
-    synapse: StreamPromptingSynapse = None
+class SynapseStreamResult(BaseModel):
+    exception: BaseException | None = None
+    uid: int | None = None
+    accumulated_chunks: list[str] | None = None
+    accumulated_chunks_timings: list[float] | None = None
+    tokens_per_chunk: list[int] | None = None
+    synapse: StreamPromptingSynapse | None = None
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def model_dump(self):
+        # without a custom model dump, this leads to serialization errors in DendriteResponseEvent...
+        # TODO: This isn't great, ideally find a cleaner workaround
+        return {
+            "exception": self.exception,
+            "uid": self.uid,
+            "accumulated_chunks": self.accumulated_chunks,
+            "accumulated_chunks_timings": self.accumulated_chunks_timings,
+            "tokens_per_chunk": self.tokens_per_chunk,
+        }
 
 
-class DendriteResponseEvent:
-    def __init__(self, stream_results: list[SynapseStreamResult], uids: np.ndarray, timeout: float):
-        self.uids = uids
-        self.completions = []
-        self.status_messages = []
-        self.status_codes = []
-        self.timings = []
-        self.stream_results_uids = []
-        self.stream_results_exceptions = []
-        self.stream_results_all_chunks = []
-        self.stream_results_all_chunks_timings = []
-        self.stream_results_all_tokens_per_chunk = []
+class DendriteResponseEvent(BaseModel):
+    uids: np.ndarray
+    timeout: float
+    stream_results: list[SynapseStreamResult]
+    completions: list[str] = []
+    status_messages: list[str] = []
+    status_codes: list[int] = []
+    timings: list[float] = []
+    stream_results_uids: list[int] = []
+    stream_results_exceptions: list[str] = []
+    stream_results_all_chunks: list[list[str]] = []
+    stream_results_all_chunks_timings: list[list[float]] = []
+    stream_results_all_tokens_per_chunk: list[list[int]] = []
 
-        for stream_result in stream_results:
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @model_validator(mode="after")
+    def stream_results(self) -> "DendriteResponseEvent":
+        for stream_result in self.stream_results:
+            # for some reason the language server needs this line to understand the type of stream_result
+            stream_result: SynapseStreamResult
+
             synapse = stream_result.synapse
 
             self.completions.append(synapse.completion)
@@ -43,7 +62,7 @@ class DendriteResponseEvent:
             if status_code == 200 or status_code == 204:
                 self.timings.append(process_time)
             elif status_code == 408:
-                self.timings.append(timeout)
+                self.timings.append(self.timeout)
             else:
                 self.timings.append(0)
 
@@ -53,19 +72,19 @@ class DendriteResponseEvent:
             self.stream_results_all_chunks_timings.append(stream_result.accumulated_chunks_timings)
             self.stream_results_all_tokens_per_chunk.append(stream_result.tokens_per_chunk)
 
-    def __state_dict__(self):
-        return {
-            "uids": self.uids,
-            "completions": self.completions,
-            "timings": self.timings,
-            "status_messages": self.status_messages,
-            "status_codes": self.status_codes,
-            "stream_results_uids": self.stream_results_uids,
-            "stream_results_exceptions": self.stream_results_exceptions,
-            "stream_results_all_chunks": self.stream_results_all_chunks,
-            "stream_results_all_chunks_timings": self.stream_results_all_chunks_timings,
-            "stream_results_all_tokens_per_chunk": self.stream_results_all_tokens_per_chunk,
-        }
+    # def __state_dict__(self):
+    #     return {
+    #         "uids": self.uids,
+    #         "completions": self.completions,
+    #         "timings": self.timings,
+    #         "status_messages": self.status_messages,
+    #         "status_codes": self.status_codes,
+    #         "stream_results_uids": self.stream_results_uids,
+    #         "stream_results_exceptions": self.stream_results_exceptions,
+    #         "stream_results_all_chunks": self.stream_results_all_chunks,
+    #         "stream_results_all_chunks_timings": self.stream_results_all_chunks_timings,
+    #         "stream_results_all_tokens_per_chunk": self.stream_results_all_tokens_per_chunk,
+    #     }
 
-    def __repr__(self):
-        return f"DendriteResponseEvent(uids={self.uids}, completions={self.completions}, timings={self.timings}, status_messages={self.status_messages}, status_codes={self.status_codes})"
+    # def __repr__(self):
+    #     return f"DendriteResponseEvent(uids={self.uids}, completions={self.completions}, timings={self.timings}, status_messages={self.status_messages}, status_codes={self.status_codes})"

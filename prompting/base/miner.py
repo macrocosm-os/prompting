@@ -1,9 +1,6 @@
 import time
-import wandb
-import prompting
 import threading
 import bittensor as bt
-from datetime import datetime
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.base.neuron import BaseNeuron
 from traceback import print_exception
@@ -11,6 +8,7 @@ from prompting import settings
 from loguru import logger
 from pydantic import BaseModel, model_validator, ConfigDict
 from typing import Tuple
+from prompting.utils.logging import init_wandb, MinerEvent, log_event
 
 
 class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
@@ -19,10 +17,10 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
     """
 
     step: int = 0
-    wallet: bt.wallet | None = None
+    # wallet: bt.wallet | None = None
     axon: bt.axon | None = None
-    subtensor: bt.subtensor | None = None
-    metagraph: bt.metagraph | None = None
+    # subtensor: bt.subtensor | None = None
+    # metagraph: bt.metagraph | None = None
     should_exit: bool = False
     is_running: bool = False
     thread: threading.Thread = None
@@ -34,19 +32,21 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
     def attach_axon(self) -> "BaseStreamMinerNeuron":
         # note that this initialization has to happen in the validator because the objects
         # are not picklable and because pydantic deepcopies things it breaks
-        self.wallet = bt.wallet(name=settings.WALLET_NAME, hotkey=settings.HOTKEY)
-        self.axon = bt.axon(wallet=self.wallet, port=settings.AXON_PORT)
+        # settings.WALLET = bt.wallet(name=settings.WALLET_NAME, hotkey=settings.HOTKEY)
+        self.axon = bt.axon(wallet=settings.WALLET, port=settings.AXON_PORT)
         logger.info("Attaching axon")
         self.axon.attach(
             forward_fn=self._forward,
             blacklist_fn=self.blacklist,
             priority_fn=self.priority,
         )
-        self.subtensor = bt.subtensor(network=settings.SUBTENSOR_NETWORK)
-        self.metagraph = bt.metagraph(netuid=settings.NETUID, network=settings.SUBTENSOR_NETWORK, sync=True, lite=False)
-        self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
+        # settings.SUBTENSOR = bt.subtensor(network=settings.SUBTENSOR)
+        # settings.METAGRAPH = bt.metagraph(netuid=settings.NETUID, network=settings.SUBTENSOR_NETWORK, sync=True, lite=False)
+        self.uid = settings.METAGRAPH.hotkeys.index(settings.WALLET.hotkey.ss58_address)
         logger.info(f"Axon created: {self.axon}; running on uid: {self.uid}")
-        self.axon.serve(netuid=settings.NETUID, subtensor=self.subtensor)
+        self.axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR)
+
+        init_wandb(neuron="miner")
         return self
 
     def run(self):
@@ -82,12 +82,12 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
         # Start  starts the miner's axon, making it active on the network.
         self.axon.start()
 
-        logger.info(f"Miner starting at block: {self.subtensor.get_current_block()}")
+        logger.info(f"Miner starting at block: {settings.SUBTENSOR.get_current_block()}")
         last_update_block = 0
         # This loop maintains the miner's operations until intentionally stopped.
         try:
             while not self.should_exit:
-                while self.subtensor.get_current_block() - last_update_block < settings.NEURON_EPOCH_LENGTH:
+                while settings.SUBTENSOR.get_current_block() - last_update_block < settings.NEURON_EPOCH_LENGTH:
                     # Wait before checking again.
                     time.sleep(1)
 
@@ -97,7 +97,7 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
 
                 # Sync metagraph and potentially set weights.
                 self.sync()
-                last_update_block = self.subtensor.get_current_block()
+                last_update_block = settings.SUBTENSOR.get_current_block()
                 self.step += 1
 
         # If someone intentionally stops the miner, it'll safely terminate operations.
@@ -165,7 +165,7 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
         logger.info("resync_metagraph()")
 
         # Sync the metagraph.
-        self.metagraph.sync(subtensor=self.subtensor)
+        settings.METAGRAPH.sync(subtensor=settings.SUBTENSOR)
 
     def _forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         """
@@ -226,7 +226,7 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
 
         Otherwise, allow the request to be processed further.
         """
-        if synapse.dendrite.hotkey not in self.metagraph.hotkeys:
+        if synapse.dendrite.hotkey not in settings.METAGRAPH.hotkeys:
             # Ignore requests from unrecognized entities.
             logger.trace(f"Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}")
             return True, "Unrecognized hotkey"
@@ -254,87 +254,47 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
         Example priority logic:
         - A higher stake results in a higher priority value.
         """
-        caller_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)  # Get the caller index.
-        priority = float(self.metagraph.S[caller_uid])  # Return the stake as the priority.
+        caller_uid = settings.METAGRAPH.hotkeys.index(synapse.dendrite.hotkey)  # Get the caller index.
+        priority = float(settings.METAGRAPH.S[caller_uid])  # Return the stake as the priority.
         logger.trace(f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority)
         # priority = 1.0
         return priority
-
-    def init_wandb(self):
-        logger.info("Initializing wandb...")
-
-        uid = f"uid_{self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)}"
-        net_uid = f"netuid_{settings.NETUID}"
-        tags = [
-            self.wallet.hotkey.ss58_address,
-            net_uid,
-            f"uid_{uid}",
-            prompting.__version__,
-            str(prompting.__spec_version__),
-        ]
-
-        # Add uid, netuid and timestamp to run name
-        run_name_tags = [
-            uid,
-            net_uid,
-            datetime.now().strftime("%Y_%m_%d_%H_%M_%S"),
-        ]
-
-        # Compose run name
-        run_name = "_".join(run_name_tags)
-
-        # inits wandb in case it hasn't been inited yet
-        self.wandb_run = wandb.init(
-            name=run_name,
-            project=settings.WANDB_PROJECT_NAME_MINER,
-            entity=settings.WANDB_ENTITY,
-            config=self.config,  # TODO: Check whether we really want this
-            mode="online" if settings.WANDB_ON else "offline",
-            tags=tags,
-        )
 
     def log_event(
         self,
         synapse: StreamPromptingSynapse,
         timing: float,
-        messages,
+        messages: list[str],
         accumulated_chunks: list[str] = [],
         accumulated_chunks_timings: list[float] = [],
-        extra_info: dict = {},
     ):
-        if not getattr(self, "wandb_run", None):
-            self.init_wandb()
+        dendrite_uid = settings.METAGRAPH.hotkeys.index(synapse.dendrite.hotkey)
+        event = MinerEvent(
+            epoch_time=timing,
+            messages=messages,
+            accumulated_chunks=accumulated_chunks,
+            accumulated_chunks_timings=accumulated_chunks_timings,
+            validator_uid=dendrite_uid,
+            validator_ip=synapse.dendrite.ip,
+            validator_coldkey=settings.METAGRAPH.coldkeys[dendrite_uid],
+            validator_hotkey=settings.METAGRAPH.hotkeys[dendrite_uid],
+            validator_stake=settings.METAGRAPH.S[dendrite_uid].item(),
+            validator_trust=settings.METAGRAPH.T[dendrite_uid].item(),
+            validator_incentive=settings.METAGRAPH.I[dendrite_uid].item(),
+            validator_consensus=settings.METAGRAPH.C[dendrite_uid].item(),
+            validator_dividends=settings.METAGRAPH.D[dendrite_uid].item(),
+            miner_stake=settings.METAGRAPH.S[self.uid].item(),
+            miner_trust=settings.METAGRAPH.T[self.uid].item(),
+            miner_incentive=settings.METAGRAPH.I[self.uid].item(),
+            miner_consensus=settings.METAGRAPH.C[self.uid].item(),
+            miner_dividends=settings.METAGRAPH.D[self.uid].item(),
+        )
 
-        dendrite_uid = self.metagraph.hotkeys.index(synapse.dendrite.hotkey)
-        step_log = {
-            "epoch_time": timing,
-            # TODO: add block to logs in the future in a way that doesn't impact performance
-            # "block": self.block,
-            "messages": messages,
-            "accumulated_chunks": accumulated_chunks,
-            "accumulated_chunks_timings": accumulated_chunks_timings,
-            "validator_uid": dendrite_uid,
-            "validator_ip": synapse.dendrite.ip,
-            "validator_coldkey": self.metagraph.coldkeys[dendrite_uid],
-            "validator_hotkey": self.metagraph.hotkeys[dendrite_uid],
-            "validator_stake": self.metagraph.S[dendrite_uid].item(),
-            "validator_trust": self.metagraph.T[dendrite_uid].item(),
-            "validator_incentive": self.metagraph.I[dendrite_uid].item(),
-            "validator_consensus": self.metagraph.C[dendrite_uid].item(),
-            "validator_dividends": self.metagraph.D[dendrite_uid].item(),
-            "miner_stake": self.metagraph.S[self.uid].item(),
-            "miner_trust": self.metagraph.T[self.uid].item(),
-            "miner_incentive": self.metagraph.I[self.uid].item(),
-            "miner_consensus": self.metagraph.C[self.uid].item(),
-            "miner_dividends": self.metagraph.D[self.uid].item(),
-            **extra_info,
-        }
-
-        logger.info("Logging event to wandb...", step_log)
-        wandb.log(step_log)
+        logger.info("Logging event to wandb...", event)
+        log_event(event)
 
     def log_status(self):
-        m = self.metagraph
+        m = settings.METAGRAPH
         logger.info(
-            f"Miner running:: network: {self.subtensor.network} | step: {self.step} | uid: {self.uid} | trust: {m.trust[self.uid]:.3f} | emission {m.emission[self.uid]:.3f}"
+            f"Miner running:: network: {settings.SUBTENSOR.network} | step: {self.step} | uid: {self.uid} | trust: {m.trust[self.uid]:.3f} | emission {m.emission[self.uid]:.3f}"
         )

@@ -1,8 +1,8 @@
-# from prompting.tasks.date_qa import DateQuestionAnsweringTask
 from prompting.tasks.base_task import BaseTask
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.date_qa import DateQuestionAnsweringTask, DateQARewardConfig
 from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
+from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
 
 from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.datasets.base import BaseDataset
@@ -22,26 +22,26 @@ class TaskConfig(BaseModel):
 
 
 class TaskRegistry(BaseModel):
-    tasks: ClassVar[list[TaskConfig]] = [
-        TaskConfig(task=QuestionAnsweringTask, probability=0.5, datasets=[WikiDataset], reward_model=QARewardConfig),
-        # TaskConfig(
-        #     task=SummarizationTask, probability=0.4, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
-        # ),
+    task_configs: ClassVar[list[TaskConfig]] = [
+        TaskConfig(task=QuestionAnsweringTask, probability=0.6, datasets=[WikiDataset], reward_model=QARewardConfig),
         TaskConfig(
-            task=DateQuestionAnsweringTask, probability=0.5, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
+            task=SummarizationTask, probability=0.2, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
+        ),
+        TaskConfig(
+            task=DateQuestionAnsweringTask, probability=0.2, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
         ),
     ]
 
     @classmethod
     def random(cls) -> TaskConfig:
-        probabilities = [task.probability for task in cls.tasks]
-        selected_task = random.choices(cls.tasks, probabilities)[0]
+        probabilities = [task.probability for task in cls.task_configs]
+        selected_task = random.choices(cls.task_configs, probabilities)[0]
         return selected_task
 
     @classmethod
     def get_task_datasets(cls, task: BaseTask.__class__) -> BaseDataset.__class__:
         try:
-            return [t.datasets for t in cls.tasks if task is t.task][0]
+            return [t.datasets for t in cls.task_configs if task is t.task][0]
         except Exception:
             logger.error("Tried accessing non-registered task")
             return []
@@ -54,7 +54,7 @@ class TaskRegistry(BaseModel):
     def get_task_reward(cls, task: BaseTask | BaseTask.__class__) -> BaseRewardConfig.__class__:
         task_class = task.__class__ if isinstance(task, BaseTask) else task
         try:
-            return [t.reward_model for t in cls.tasks if task_class is t.task][0]
+            return [t.reward_model for t in cls.task_configs if task_class is t.task][0]
         except Exception:
             logger.error("Tried accessing non-registered task")
             return []

@@ -1,7 +1,6 @@
 import time
 from functools import partial
 from openai import OpenAI
-from traceback import print_exception
 from prompting import settings
 from loguru import logger
 from pydantic import model_validator
@@ -9,6 +8,7 @@ from prompting.base.miner import BaseStreamMinerNeuron
 from prompting.base.protocol import StreamPromptingSynapse
 from neurons.miners.openai.utils import OpenAIUtils
 from starlette.types import Send
+from prompting.utils.logging import ErrorEvent, log_event
 
 
 SYSTEM_PROMPT = """You are a helpful agent that does it's best to answer all questions!"""
@@ -33,7 +33,7 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         async def _forward(
-            self,
+            self: "OpenAIMiner",
             synapse: StreamPromptingSynapse,
             init_time: float,
             timeout_threshold: float,
@@ -104,21 +104,21 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
                     )
 
             except Exception as e:
+                logger.exception(e)
                 logger.error(f"Error in forward: {e}")
-                logger.error(print_exception(type(e), e, e.__traceback__))
+                log_event(ErrorEvent(error=str(e)))
                 if settings.NEURON_STOP_ON_FORWARD_EXCEPTION:
                     self.should_exit = True
 
             finally:
                 synapse_latency = time.time() - init_time
-                if settings.WANDB_ON:
-                    self.log_event(
-                        synapse=synapse,
-                        timing=synapse_latency,
-                        messages=messages,
-                        accumulated_chunks=accumulated_chunks,
-                        accumulated_chunks_timings=accumulated_chunks_timings,
-                    )
+                self.log_event(
+                    synapse=synapse,
+                    timing=synapse_latency,
+                    messages=messages,
+                    accumulated_chunks=accumulated_chunks,
+                    accumulated_chunks_timings=accumulated_chunks_timings,
+                )
 
         logger.debug(
             f"📧 Message received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}; \nForwarding synapse: {synapse}"
