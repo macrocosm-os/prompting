@@ -11,19 +11,13 @@ from prompting.datasets.base import BaseDataset
 from prompting import settings
 import numpy as np
 import asyncio
-from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
 
 try:
     from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
-
-    # from organic_scoring.synth_dataset import SynthDatasetConversation
+    from organic_scoring.synth_dataset import SynthDatasetConversation
 except ImportError:
     raise ImportError(
-        "Could not import organic-scoring library.  Please install via poetry: " 'poetry install --extras "validator" '
-    )
-else:
-    logger.warning(
-        "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
+        "Could not import organic-scoring library.  Please install via poetry: `poetry install --extras 'validator'`"
     )
 
 
@@ -46,34 +40,37 @@ class Validator(BaseValidatorNeuron):
             device=self.device,
             mock=settings.MOCK,
         )
-        self._organic_scoring: OrganicScoringPrompting | None = None
 
         if self.axon is None or settings.ORGANIC_DISABLED:
+            logger.warning(
+                "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
+            )
             return
 
-        # dataset = SynthDatasetConversation()
-        # if dataset.exception is not None:
-        #     logger.error(f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}")
-        #     dataset = None
+        dataset = SynthDatasetConversation()
+        if dataset.exception is not None:
+            logger.error(f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}")
+            dataset = None
 
-        # self._organic_scoring = OrganicScoringPrompting(
-        #     axon=self.axon,
-        #     synth_dataset=SynthDatasetConversation(),
-        #     trigger_frequency=settings.ORGANIC_TRIGGER_FREQUENCY,
-        #     trigger_frequency_min=settings.ORGANIC_TRIGGER_FREQUENCY_MIN,
-        #     trigger=settings.ORGANIC_TRIGGER,
-        #     trigger_scaling_factor=settings.ORGANIC_SCALING_FACTOR,
-        #     llm_pipeline=self.llm_pipeline,
-        #     dendrite=self.dendrite,
-        #     metagraph=self.metagraph,
-        #     update_scores=self.update_scores,
-        #     tokenizer=self.llm_pipeline.tokenizer,
-        #     get_random_uids=lambda _: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
-        #     wallet=self.wallet,
-        #     _lock=self._lock,
-        # )
-        # if self._organic_scoring is not None:
-        #     self.loop.create_task(self._organic_scoring.start_loop())
+        self._organic_scoring: OrganicScoringPrompting | None = None
+        self._organic_scoring = OrganicScoringPrompting(
+            axon=self.axon,
+            synth_dataset=SynthDatasetConversation(),
+            trigger_frequency=settings.ORGANIC_TRIGGER_FREQUENCY,
+            trigger_frequency_min=settings.ORGANIC_TRIGGER_FREQUENCY_MIN,
+            trigger=settings.ORGANIC_TRIGGER,
+            trigger_scaling_factor=settings.ORGANIC_SCALING_FACTOR,
+            llm_pipeline=self.llm_pipeline,
+            dendrite=self.dendrite,
+            metagraph=self.metagraph,
+            update_scores=self.update_scores,
+            tokenizer=self.llm_pipeline.tokenizer,
+            get_random_uids=lambda _: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
+            wallet=self.wallet,
+            _lock=self._lock,
+        )
+        if self._organic_scoring is not None:
+            self.loop.create_task(self._organic_scoring.start_loop())
 
     async def run_step(self, task: BaseTask, dataset: BaseDataset, k: int, timeout: float, exclude: list = None):
         """Executes a single step of the agent, which consists of:
