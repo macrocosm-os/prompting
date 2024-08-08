@@ -3,6 +3,7 @@ import json
 import time
 from functools import partial
 from typing import Any, AsyncGenerator, Tuple
+from loguru import logger
 
 import bittensor as bt
 from prompting import settings
@@ -92,7 +93,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         self, synapse: StreamPromptingSynapse, metagraph: bt.metagraph, wallet: bt.wallet
     ) -> StreamPromptingSynapse:
         """Organic query handle."""
-        bt.logging.info(f"[Organic] Received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}")
+        logger.info(f"[Organic] Received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}")
 
         uids = list(self.get_random_uids())
         completions: dict[int, dict] = {}
@@ -127,7 +128,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         send: Send,
     ):
         """Stream back miner's responses."""
-        bt.logging.info(f"[Organic] Querying miner UIDs: {uids}")
+        logger.info(f"[Organic] Querying miner UIDs: {uids}")
         try:
             async with dendrite(wallet=self.wallet) as dend:
                 responses = await dend(
@@ -138,7 +139,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                     streaming=True,
                 )
         except Exception as e:
-            bt.logging.error(f"[Organic] Error querying dendrite: {e}")
+            logger.error(f"[Organic] Error querying dendrite: {e}")
             return
 
         async def stream_miner_chunks(uid: int, chunks: AsyncGenerator):
@@ -164,7 +165,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                     elif isinstance(chunk, StreamPromptingSynapse):
                         synapse = chunk
                 except Exception as e:
-                    bt.logging.error(f"[Organic] Error while streaming chunks: {e}")
+                    logger.error(f"[Organic] Error while streaming chunks: {e}")
                     break
             # TODO: Do we need to identify the end of each miner's response?
             # json_chunk = json.dumps({"uid": uid, "chunk": b"", "completed": True})
@@ -175,9 +176,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
             completions[uid]["accumulated_tokens_per_chunk"] = accumulated_tokens_per_chunk
             completions[uid]["completed"] = True
             completions[uid]["synapse"] = synapse
-            # bt.logging.debug(f"[Organic] Streaming {uid}: {''.join(accumulated_chunks)}")
+            # logger.debug(f"[Organic] Streaming {uid}: {''.join(accumulated_chunks)}")
 
-        bt.logging.info(f"[Organic] Awaiting miner streams UIDs: {uids}")
+        logger.info(f"[Organic] Awaiting miner streams UIDs: {uids}")
         await asyncio.gather(
             *[stream_miner_chunks(uid, chunks) for uid, chunks in zip(uids, responses)],
             return_exceptions=True,
@@ -198,7 +199,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
         uids = sample["uids"]
         responses: dict[int, SynapseStreamResult] = {}
-        bt.logging.info(f"[Organic] Reusing miner responses for organic data, UIDs: {uids}")
+        logger.info(f"[Organic] Reusing miner responses for organic data, UIDs: {uids}")
 
         async def _check_completion(sample: dict[str, Any], uid: int):
             while not sample["completions"][uid]["completed"]:
@@ -241,7 +242,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
 
         # Get the list of uids to query.
         uids = self.get_random_uids()
-        bt.logging.info(f"[Organic] Querying miners with synthetic data, UIDs: {uids}")
+        logger.info(f"[Organic] Querying miners with synthetic data, UIDs: {uids}")
         streams_responses = await dendrite.forward(
             axons=[self.metagraph.axons[uid] for uid in uids],
             synapse=StreamPromptingSynapse(roles=sample.roles, messages=sample.messages),

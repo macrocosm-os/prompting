@@ -14,9 +14,9 @@ class Context(BaseModel):
     internal_links: list[str]
     external_links: list[str]
     source: str
-    tags: list[str] = None
-    extra: dict = None  # additional non-essential information
-    stats: dict = None  # retrieval stats such as fetch time, number of tries, etc.
+    tags: list[str] | None = None
+    extra: dict | None = None  # additional non-essential information
+    stats: dict | None = None  # retrieval stats such as fetch time, number of tries, etc.
 
 
 class BaseDataset(ABC, BaseModel):

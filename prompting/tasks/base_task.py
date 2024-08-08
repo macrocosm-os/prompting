@@ -29,9 +29,9 @@ class BaseTask(ABC, BaseModel):
 
     query: str | None = None
 
-    query_system_prompt: ClassVar[str] = ""
-    reference_system_prompt: ClassVar[str] = ""
-    augmentation_system_prompt: ClassVar[str] = ""
+    query_system_prompt: ClassVar[str | None] = None
+    reference_system_prompt: ClassVar[str | None] = None
+    augmentation_system_prompt: ClassVar[str | None] = None
 
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
 
@@ -42,11 +42,8 @@ class BaseTask(ABC, BaseModel):
     @classmethod
     def generate_reference(cls, llm_pipeline: BasePipeline, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
-        if len(cls.reference_system_prompt) == 0:
-            logger.error("Reference prompt is empty. Please provide a reference prompt.")
-
         logger.info("🤖 Generating reference...")
-        reference = vLLM_LLM(llm_pipeline, system_prompt=cls.reference_system_prompt).query(
+        reference = vLLM_LLM(llm_pipeline, system_prompt=cls.reference_system_prompt or "").query(
             cleaner=cls.cleaner, message=messages
         )
         return reference
@@ -59,8 +56,8 @@ class BaseTask(ABC, BaseModel):
     ) -> str:
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
-        query = vLLM_LLM(llm_pipeline, system_prompt=cls.query_system_prompt).query(message=messages)
-        return query
+        query = vLLM_LLM(llm_pipeline, system_prompt=cls.query_system_prompt or "").query(message=messages)
+        return cls.augment_query(query, llm_pipeline)
 
     @classmethod
     def augment_query(
@@ -69,6 +66,8 @@ class BaseTask(ABC, BaseModel):
         llm_pipeline: BasePipeline,
     ) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
+        if cls.augmentation_system_prompt:
+            return query
         challenge = vLLM_LLM(
             llm_pipeline=llm_pipeline,
             max_new_tokens=256,

@@ -24,7 +24,7 @@ class CleanerPipeline(BaseModel):
         """
         try:
             for cleaner in self.cleaning_pipeline:
-                generation = cleaner(generation)
+                generation = cleaner.apply(generation)
             return generation
         except Exception as e:
             logger.error(f"Failed to apply cleaning pipeline {cleaner['name']}. {e},")
@@ -47,7 +47,6 @@ class PruneEnding(BaseCleaner):
         if not generation.endswith(".") and not generation.endswith("?") and not generation.endswith("!"):
             index = max(generation.rfind(char) for char in punctuation_chars)
             return generation[: index + 1]  # Go to the index of where the punctuation is, and include it (+1)
-            return generation[: index + 1]  # Go to the index of where the punctuation is, and include it (+1)
         else:
             return generation
 
@@ -63,7 +62,6 @@ class RemoveRoles(BaseCleaner):
         return result_string
 
     def apply(self, generation: str) -> str:
-        generation = re.sub(r"\n*\w+\s*:", "", generation)
         generation = re.sub(r"\n*\w+\s*:", "", generation)
         roles = [
             "User: ",
@@ -93,7 +91,7 @@ class RemovePostQuestionText(BaseCleaner):
         generation: str,
         min_pos: Union[int, float] = 5,
         max_pos: Union[int, float] = 0.5,
-        max_questions: int = None,
+        max_questions: int | None = None,
     ) -> str:
         if min_pos < 1:
             min_pos = int(min_pos * len(generation))

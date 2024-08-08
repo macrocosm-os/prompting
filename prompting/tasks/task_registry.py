@@ -23,12 +23,12 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     tasks: ClassVar[list[TaskConfig]] = [
-        TaskConfig(task=QuestionAnsweringTask, probability=0.2, datasets=[WikiDataset], reward_model=QARewardConfig),
+        TaskConfig(task=QuestionAnsweringTask, probability=0.5, datasets=[WikiDataset], reward_model=QARewardConfig),
         # TaskConfig(
         #     task=SummarizationTask, probability=0.4, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
         # ),
         TaskConfig(
-            task=DateQuestionAnsweringTask, probability=0.8, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
+            task=DateQuestionAnsweringTask, probability=0.5, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
         ),
     ]
 

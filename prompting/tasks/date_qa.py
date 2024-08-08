@@ -12,13 +12,13 @@ QUERY_SYSTEM_PROMPT = """You are a question creation expert. When asked to creat
 QUERY_PROMPT_TEMPLATE = """\
 Create a question about {topic} that would have <date> as the answer using the following context:
 topic: {topic}
-context: {context}
+context: {content}
 """
 REFERENCE_PROMPT_TEMPLATE = """\
 Your answer must include the following date: {date}.
 Answer the following question using the provided context.
 Question: {query}
-Context: {context}
+Context: {content}
 """
 
 
@@ -32,15 +32,14 @@ class DateQARewardConfig(BaseRewardConfig):
 class DateQuestionAnsweringTask(BaseTask):
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline(cleaning_pipeline=[RemoveTags(), FirstQuestion()])
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
-    reference_system_prompt: ClassVar[str | None] = None
     augmentation_system_prompt: ClassVar[str] = ""
 
     @classmethod
     def generate_query_reference(cls, llm_pipeline: BasePipeline, context: DateContext):
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(content=context.content, topic=context.topic)
         query = cls.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
 
-        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date=context.date, query=query, context=context.content)
+        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date=context.date, query=query, content=context.content)
         reference = cls.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
 
         return query, reference

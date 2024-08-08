@@ -12,8 +12,8 @@ class BasePipeline(ABC, BaseModel):
 
 class BaseLLM(ABC):
     llm_pipeline: BasePipeline
-    system_prompt: str
     model_kwargs: dict
+    system_prompt: str | None = None
     messages: list[dict] = []
     times: list[int] = []
     tokenizer: Any = None

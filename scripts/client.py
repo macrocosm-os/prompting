@@ -37,6 +37,8 @@ async def handle_response(responses: list[Awaitable]) -> List[str]:
             logger.info(f"UID: {uid}. chunk {(i := i + 1)} ({chunk_times[-1]:.3f}s) for resp: {chunk}")
 
         logger.success(f"UID {uid} took {sum(chunk_times):.3f} seconds\n")
+        if not isinstance(chunk, bt.Synapse):
+            raise Exception(f"Last object yielded is not a synapse; the miners response did not finish: {chunk}")
         synapses.append(chunk)  # last object yielded is the synapse itself with completion filled
 
     return synapses

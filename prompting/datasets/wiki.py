@@ -183,9 +183,9 @@ class WikiDataset(BaseDataset):
             exclude_sections=exclude,
             valid_section=lambda x: len(x.split()) >= self.min_length_words,
         )
-        header, section_title = selected_section
         if not selected_section:
             return None
+        header, section_title = selected_section
 
         section_length = len(selected_section[1].split())
 

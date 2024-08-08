@@ -92,9 +92,11 @@ class Validator(BaseValidatorNeuron):
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
         logger.debug("run_step", task.__class__.__name__)
-
+        if not (dataset_entry := dataset.random()):
+            logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
+            return None
         # Generate the query and reference for the task
-        query, reference = task.generate_query_reference(self.llm_pipeline, dataset.random())
+        query, reference = task.generate_query_reference(self.llm_pipeline, dataset_entry)
         # task.generate_reference(self.llm_pipeline)
 
         # Record event start time.
@@ -183,15 +185,15 @@ class Validator(BaseValidatorNeuron):
                     timeout=settings.NEURON_TIMEOUT,
                     exclude=exclude_uids,
                 )
-
             # Adds forward time to event and logs it to wandb
-            event["forward_time"] = time.time() - forward_start_time
-            event["turn"] = turn
+            if event:
+                event["forward_time"] = time.time() - forward_start_time
+                event["turn"] = turn
 
             # accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
 
         except Exception as e:
-            logger.exception(f"{e}")
+            logger.exception(e)
             # logger.error(f"Error in run_step: Skipping to next round. \n {e}")
             event = {"unexpected_errors": e}
 
