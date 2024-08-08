@@ -19,11 +19,11 @@
 import time
 import asyncio
 import traceback
-import bittensor as bt
 from math import floor
 from typing import Callable, Any
 from functools import lru_cache, update_wrapper
 from prompting.utils.exceptions import BittensorError
+from loguru import logger
 
 
 # LRU Cache with TTL
@@ -122,14 +122,14 @@ def async_log(func):
         start_time = time.time()
         task_id = id(asyncio.current_task())
         func_name = func.__name__
-        bt.logging.debug(f"Starting {func_name} on task {task_id} at {start_time}")
+        logger.debug(f"Starting {func_name} on task {task_id} at {start_time}")
 
         # Execute the wrapped function
         result = await func(*args, **kwargs)
 
         end_time = time.time()
         execution_time = end_time - start_time
-        bt.logging.debug(f"Completed {func_name} on task {task_id} in {execution_time} seconds")
+        logger.debug(f"Completed {func_name} on task {task_id} in {execution_time} seconds")
 
         return result
 

@@ -4,6 +4,7 @@ import bittensor as bt
 from typing import List
 from prompting.base.neuron import BaseNeuron
 from prompting import settings
+from loguru import logger
 
 
 def check_uid_availability(
@@ -25,13 +26,13 @@ def check_uid_availability(
     """
     # Filter non serving axons.
     if not metagraph.axons[uid].is_serving:
-        bt.logging.debug(f"uid: {uid} is not serving")
+        logger.debug(f"uid: {uid} is not serving")
         return False
 
     # Filter validator permit > 1024 stake.
     if metagraph.validator_permit[uid] and metagraph.S[uid] > vpermit_tao_limit:
-        bt.logging.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}")
-        bt.logging.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}")
+        logger.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}")
+        logger.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}")
         return False
 
     if coldkeys and metagraph.axons[uid].coldkey in coldkeys:
@@ -84,7 +85,7 @@ def get_random_uids(self: BaseNeuron, k: int, exclude: list[int] = None) -> np.n
 
     # Check if candidate_uids contain enough for querying, if not grab all avaliable uids
     if 0 < len(candidate_uids) < k:
-        bt.logging.warning(
+        logger.warning(
             f"Requested {k} uids but only {len(candidate_uids)} were available. To disable this warning reduce the sample size (--neuron.sample_size)"
         )
         return np.array(candidate_uids)

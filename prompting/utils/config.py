@@ -18,11 +18,8 @@
 
 import argparse
 import bittensor as bt
-import logging
 from prompting import settings
-from bittensor.btlogging.defines import BITTENSOR_LOGGER_NAME
-
-logger = logging.getLogger(BITTENSOR_LOGGER_NAME)
+from loguru import logger
 
 
 def add_args(parser):
@@ -48,6 +45,5 @@ def config(cls):
     logger.info(f"RUNNING WITH ARGS: {' '.join(f'{k}={v}' for k, v in vars(args).items())}")
     bt.wallet.add_args(parser)
     bt.subtensor.add_args(parser)
-    bt.logging.add_args(parser)
     bt.axon.add_args(parser)
     return bt.config(parser)

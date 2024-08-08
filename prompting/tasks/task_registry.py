@@ -1,7 +1,6 @@
 # from prompting.tasks.date_qa import DateQuestionAnsweringTask
 from prompting.tasks.base_task import BaseTask
 from prompting.rewards.reward import BaseRewardConfig
-from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
 from prompting.tasks.date_qa import DateQuestionAnsweringTask, DateQARewardConfig
 from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
 
@@ -24,12 +23,12 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     tasks: ClassVar[list[TaskConfig]] = [
-        TaskConfig(task=QuestionAnsweringTask, probability=0.6, datasets=[WikiDataset], reward_model=QARewardConfig),
+        TaskConfig(task=QuestionAnsweringTask, probability=0.2, datasets=[WikiDataset], reward_model=QARewardConfig),
+        # TaskConfig(
+        #     task=SummarizationTask, probability=0.4, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
+        # ),
         TaskConfig(
-            task=SummarizationTask, probability=0.4, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
-        ),
-        TaskConfig(
-            task=DateQuestionAnsweringTask, probability=0.2, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
+            task=DateQuestionAnsweringTask, probability=0.8, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
         ),
     ]
 

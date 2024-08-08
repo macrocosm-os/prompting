@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Union
-import bittensor as bt
 import re
 from pydantic import BaseModel
+from loguru import logger
 
 
 class BaseCleaner(ABC, BaseModel):
@@ -27,13 +27,13 @@ class CleanerPipeline(BaseModel):
                 generation = cleaner(generation)
             return generation
         except Exception as e:
-            bt.logging.error(f"Failed to apply cleaning pipeline {cleaner['name']}. {e},")
+            logger.error(f"Failed to apply cleaning pipeline {cleaner['name']}. {e},")
             return generation
 
 
 class RemoveQuotes(BaseCleaner):
     def apply(self, generation: str) -> str:
-        bt.logging.debug("Pruning unfinished sentence.")
+        logger.debug("Pruning unfinished sentence.")
         return generation.strip("\"'")
 
 

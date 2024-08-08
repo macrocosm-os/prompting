@@ -3,7 +3,7 @@ import sys
 import random
 import requests
 from bs4 import BeautifulSoup
-import bittensor as bt
+from loguru import logger
 import wikipedia
 from queue import Queue, Full, Empty
 from functools import lru_cache
@@ -34,7 +34,7 @@ def _get_page(
         return page
 
     except wikipedia.DisambiguationError as e:
-        bt.logging.debug(f"{e.__class__.__name__} loading page {title!r}: {e}")
+        logger.debug(f"{e.__class__.__name__} loading page {title!r}: {e}")
         # exc info contains a tuple of (requested_title: str, possible_matches: list[str])
         pages = sys.exc_info()[1].args[1]
         if not isinstance(pages, list):
@@ -43,7 +43,7 @@ def _get_page(
         return _get_page(title, auto_suggest=auto_suggest, redirect=redirect)
 
     except wikipedia.PageError as e:
-        bt.logging.warning(f"{e.__class__.__name__} loading page {title!r}: {e}")
+        logger.warning(f"{e.__class__.__name__} loading page {title!r}: {e}")
         if not auto_suggest:
             return _get_page(title, auto_suggest=True, redirect=redirect)
         return None
@@ -207,7 +207,7 @@ class WikiDataset(BaseDataset):
         try:
             CACHED_ARTICLES.put(context, block=False)
         except Full:
-            bt.logging.debug("Cache is full. Skipping article until cache is emptied.")
+            logger.debug("Cache is full. Skipping article until cache is emptied.")
         return context
 
     def search(self, name, results=3) -> Context:
@@ -316,7 +316,7 @@ class WikiDateDataset(BaseDataset):
                 return date_context
 
             except Empty:
-                bt.logging.debug("Cache is empty. Skipping date until cache is filled.")
+                logger.debug("Cache is empty. Skipping date until cache is filled.")
                 return None
 
     def get(

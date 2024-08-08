@@ -1,7 +1,6 @@
 import time
 import asyncio
 import traceback
-import bittensor as bt
 from typing import List, Dict, Awaitable
 from prompting.base.dendrite import SynapseStreamResult
 from prompting.base.protocol import StreamPromptingSynapse
@@ -9,6 +8,7 @@ from prompting.utils.misc import async_log, serialize_exception_to_string
 from transformers import PreTrainedTokenizerFast as Tokenizer
 from prompting.tasks.base_task import BaseTask
 from prompting.llms.base_llm import BasePipeline
+from loguru import logger
 
 
 @async_log
@@ -35,7 +35,7 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
                 tokens_in_chunk = len(tokenizer.tokenize(chunk))
                 accumulated_tokens_per_chunk.append(tokens_in_chunk)
 
-                bt.logging.debug(f"\nchunk for uid {uid}: {chunk}")
+                logger.debug(f"\nchunk for uid {uid}: {chunk}")
 
         # Assuming last chunk of async_iterator holds the last value yielded as a StreamingSynapse
         synapse = chunk
@@ -44,7 +44,7 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
     except Exception as e:
         exception = e
         traceback_details = traceback.format_exc()
-        bt.logging.error(f"Error in generating reference or handling responses for uid {uid}: {e}\n{traceback_details}")
+        logger.error(f"Error in generating reference or handling responses for uid {uid}: {e}\n{traceback_details}")
 
         failed_synapse = StreamPromptingSynapse(roles=["user"], messages=["failure"], completion="")
 
@@ -101,10 +101,10 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
         response for response in stream_results if response.exception is None and response.synapse.completion != ""
     ]
 
-    bt.logging.info(f"Total of non_empty responses: ({len(non_empty_responses)})")
-    bt.logging.info(f"Total of empty responses: ({len(empty_responses)})")
-    bt.logging.info(f"Total of failed responses: ({len(failed_responses)}):\n {failed_responses}")
+    logger.info(f"Total of non_empty responses: ({len(non_empty_responses)})")
+    logger.info(f"Total of empty responses: ({len(empty_responses)})")
+    logger.info(f"Total of failed responses: ({len(failed_responses)}):\n {failed_responses}")
 
     for failed_response in failed_responses:
         formatted_exception = serialize_exception_to_string(failed_response.exception)
-        bt.logging.error(f"Failed response for uid {failed_response.uid}: {formatted_exception}")
+        logger.error(f"Failed response for uid {failed_response.uid}: {formatted_exception}")

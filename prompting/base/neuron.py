@@ -1,7 +1,5 @@
 import sys
-
 import bittensor as bt
-
 from loguru import logger
 from abc import ABC, abstractmethod
 
@@ -42,27 +40,27 @@ class BaseNeuron(ABC):
         self.device = settings.NEURON_DEVICE
 
         # Log the configuration for reference.
-        bt.logging.info(self.config)
+        logger.info(self.config)
 
         # Build Bittensor objects
         # These are core Bittensor classes to interact with the network.
-        bt.logging.info("Setting up bittensor objects.")
+        logger.info("Setting up bittensor objects.")
 
         # The wallet holds the cryptographic key pairs for the miner.
         self.wallet = bt.wallet(config=self.config)
         self.subtensor = bt.subtensor(config=self.config)
         self.metagraph = self.subtensor.metagraph(settings.NETUID)
 
-        bt.logging.info(f"Wallet: {self.wallet}")
-        bt.logging.info(f"Subtensor: {self.subtensor}")
-        bt.logging.info(f"Metagraph: {self.metagraph}")
+        logger.info(f"Wallet: {self.wallet}")
+        logger.info(f"Subtensor: {self.subtensor}")
+        logger.info(f"Metagraph: {self.metagraph}")
 
         # Check if the miner is registered on the Bittensor network before proceeding further.
         self.check_registered()
 
         # Each miner gets a unique identity (UID) in the network for differentiation.
         self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
-        bt.logging.info(f"Running neuron on subnet: {settings.NETUID} with uid {self.uid}")
+        logger.info(f"Running neuron on subnet: {settings.NETUID} with uid {self.uid}")
         self.step = 0
 
     @abstractmethod
@@ -94,7 +92,7 @@ class BaseNeuron(ABC):
             netuid=settings.NETUID,
             hotkey_ss58=self.wallet.hotkey.ss58_address,
         ):
-            bt.logging.error(
+            logger.error(
                 f"Wallet: {self.wallet} is not registered on netuid {settings.NETUID}."
                 f" Please register the hotkey using `btcli subnets register` before trying again"
             )
@@ -128,6 +126,6 @@ class BaseNeuron(ABC):
         pass
 
     def load_state(self):
-        bt.logging.debug(
+        logger.debug(
             "load_state() not implemented for this neuron. You can implement this function to load model checkpoints or other useful data."
         )

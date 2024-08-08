@@ -1,5 +1,5 @@
 import time
-import bittensor as bt
+from loguru import logger
 from abc import ABC
 from pydantic import BaseModel
 from prompting.llms.base_llm import BasePipeline
@@ -43,9 +43,9 @@ class BaseTask(ABC, BaseModel):
     def generate_reference(cls, llm_pipeline: BasePipeline, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         if len(cls.reference_system_prompt) == 0:
-            bt.logging.error("Reference prompt is empty. Please provide a reference prompt.")
+            logger.error("Reference prompt is empty. Please provide a reference prompt.")
 
-        bt.logging.info("🤖 Generating reference...")
+        logger.info("🤖 Generating reference...")
         reference = vLLM_LLM(llm_pipeline, system_prompt=cls.reference_system_prompt).query(
             cleaner=cls.cleaner, message=messages
         )
@@ -58,7 +58,7 @@ class BaseTask(ABC, BaseModel):
         llm_pipeline: BasePipeline,
     ) -> str:
         """Generates a query to be used for generating the challenge"""
-        bt.logging.info("🤖 Generating query...")
+        logger.info("🤖 Generating query...")
         query = vLLM_LLM(llm_pipeline, system_prompt=cls.query_system_prompt).query(message=messages)
         return query
 

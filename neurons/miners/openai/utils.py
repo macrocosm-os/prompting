@@ -1,4 +1,4 @@
-import bittensor as bt
+from loguru import logger
 
 
 class OpenAIUtils:
@@ -6,10 +6,10 @@ class OpenAIUtils:
         pass
 
     def get_cost_logging(self, cb):
-        bt.logging.info(f"Total Tokens: {cb.total_tokens}")
-        bt.logging.info(f"Prompt Tokens: {cb.prompt_tokens}")
-        bt.logging.info(f"Completion Tokens: {cb.completion_tokens}")
-        bt.logging.info(f"Total Cost (USD): ${round(cb.total_cost,4)}")
+        logger.info(f"Total Tokens: {cb.total_tokens}")
+        logger.info(f"Prompt Tokens: {cb.prompt_tokens}")
+        logger.info(f"Completion Tokens: {cb.completion_tokens}")
+        logger.info(f"Total Cost (USD): ${round(cb.total_cost,4)}")
 
         self.accumulated_total_tokens += cb.total_tokens
         self.accumulated_prompt_tokens += cb.prompt_tokens

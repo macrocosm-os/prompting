@@ -1,5 +1,4 @@
 import time
-import bittensor as bt
 from typing import Optional, Any
 from prompting.utils.cleaners import CleanerPipeline
 from prompting.llms.base_llm import BasePipeline, BaseLLM
@@ -50,7 +49,7 @@ def load_vllm_pipeline(
         llm.llm_engine.tokenizer.eos_token_id = 128009
         return llm
     except Exception as e:
-        bt.logging.error(f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}")
+        logger.error(f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}")
         raise e
 
 
@@ -182,7 +181,7 @@ class vLLM_LLM(BaseLLM):
         composed_prompt = self._make_prompt(messages)
         response = self.llm_pipeline(composed_prompt, **self.model_kwargs)
 
-        bt.logging.info(f"{self.__class__.__name__} generated the following output:\n{response}")
+        logger.info(f"{self.__class__.__name__} generated the following output:\n{response}")
 
         return response
 

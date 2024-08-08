@@ -1,7 +1,7 @@
-import bittensor as bt
 from abc import ABC, abstractmethod
 from prompting.utils.cleaners import CleanerPipeline
 from typing import Any
+from loguru import logger
 from pydantic import BaseModel
 
 
@@ -47,9 +47,9 @@ class BaseLLM(ABC):
         if cleaner is not None:
             clean_response = cleaner.apply(generation=response)
             if clean_response != response:
-                bt.logging.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
+                logger.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
         clean_response = cleaner.apply(generation=response)
         if clean_response != response:
-            bt.logging.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
+            logger.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
 
         return clean_response
