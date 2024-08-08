@@ -185,18 +185,3 @@ class vLLM_LLM(BaseLLM):
         logger.info(f"{self.__class__.__name__} generated the following output:\n{response}")
 
         return response
-
-
-# if __name__ == "__main__":
-#     # Example usage
-#     llm_pipeline = vLLMPipeline(
-#         llm_model_id="casperhansen/llama-3-70b-instruct-awq",
-#         device="cuda",
-#         llm_max_allowed_memory_in_gb=80,
-#         gpus=1,
-#     )
-#     llm = vLLM_LLM(llm_pipeline, system_prompt="You are a helpful AI assistant")
-
-#     message = "What is the capital of Texas?"
-#     response = llm.query(message)
-#     print(response)
