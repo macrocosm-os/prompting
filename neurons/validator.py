@@ -63,11 +63,11 @@ class Validator(BaseValidatorNeuron):
             trigger_scaling_factor=settings.ORGANIC_SCALING_FACTOR,
             llm_pipeline=self.llm_pipeline,
             dendrite=self.dendrite,
-            metagraph=self.metagraph,
+            metagraph=settings.METAGRAPH,
             update_scores=self.update_scores,
             tokenizer=self.llm_pipeline.tokenizer,
             get_random_uids=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
-            wallet=self.wallet,
+            wallet=settings.WALLET,
             _lock=self._lock,
         )
         if self._organic_scoring is not None:
