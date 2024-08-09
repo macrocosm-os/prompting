@@ -7,7 +7,7 @@ from loguru import logger
 
 from typing import List, Awaitable
 from prompting.base.protocol import StreamPromptingSynapse
-from prompting import settings
+from prompting.settings import settings
 
 """
 This has assumed you have:

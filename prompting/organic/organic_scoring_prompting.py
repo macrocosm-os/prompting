@@ -6,7 +6,7 @@ from typing import Any, AsyncGenerator, Tuple
 from loguru import logger
 
 import bittensor as bt
-from prompting import settings
+from prompting.settings import settings
 from organic_scoring import OrganicScoringBase
 from starlette.types import Send
 from typing_extensions import override

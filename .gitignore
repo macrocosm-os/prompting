@@ -126,6 +126,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.miner
+.env.validator
 .venv
 env/
 venv/

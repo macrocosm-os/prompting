@@ -1,3 +1,7 @@
+# ruff: noqa: E402
+from prompting import settings
+
+settings.settings = settings.Settings(mode="validator")
 import time
 from loguru import logger
 from prompting.llms.vllm_llm import vLLMPipeline
@@ -8,7 +12,7 @@ from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_random_uids
 from prompting.tasks.base_task import BaseTask
 from prompting.datasets.base import BaseDataset
-from prompting import settings
+from prompting.settings import settings
 import numpy as np
 import asyncio
 from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting

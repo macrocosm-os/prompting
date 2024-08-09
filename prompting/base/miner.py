@@ -4,7 +4,7 @@ import bittensor as bt
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.base.neuron import BaseNeuron
 from traceback import print_exception
-from prompting import settings
+from prompting.settings import settings
 from loguru import logger
 from pydantic import BaseModel, model_validator, ConfigDict
 from typing import Tuple

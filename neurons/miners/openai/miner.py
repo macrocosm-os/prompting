@@ -1,7 +1,11 @@
+# ruff: noqa: E402
+from prompting import settings
+
+settings.settings = settings.Settings(mode="miner")
+
 import time
 from functools import partial
 from openai import OpenAI
-from prompting import settings
 from loguru import logger
 from pydantic import model_validator
 from prompting.base.miner import BaseStreamMinerNeuron

@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Literal
 from loguru import logger
 import prompting
-from prompting import settings
+from prompting.settings import settings
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.base.dendrite import DendriteResponseEvent

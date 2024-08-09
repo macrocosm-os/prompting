@@ -9,6 +9,9 @@ poetry config virtualenvs.in-project true
 # Install the project dependencies
 poetry install
 
+# uninstall uvloop which breaks the system
+poetry run pip uninstall -y uvloop
+
 # Updating the package list and installing jq and npm
 apt update && apt install -y jq npm
 
