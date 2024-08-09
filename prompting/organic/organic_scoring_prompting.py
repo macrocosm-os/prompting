@@ -2,35 +2,34 @@ import asyncio
 import json
 import time
 from functools import partial
-from typing import Any, AsyncGenerator, Literal, Optional, Sequence, Tuple, Union
-from loguru import logger
+from typing import Any, AsyncGenerator, Callable, Literal, Optional, Sequence, Tuple, Union
 
 import bittensor as bt
 import numpy as np
-from prompting import settings
-from organic_scoring import OrganicScoringBase
-from starlette.types import Send
-from typing_extensions import override
 from bittensor.dendrite import dendrite
-from transformers import PreTrainedTokenizerFast
-from organic_scoring.synth_dataset import SynthDatasetBase
+from loguru import logger
+from organic_scoring import OrganicScoringBase
 from organic_scoring.organic_queue import OrganicQueueBase
 from organic_scoring.synth_dataset import SynthDatasetBase
+from starlette.types import Send
+from transformers import PreTrainedTokenizerFast
+from typing_extensions import override
 
-from prompting.base.dendrite import SynapseStreamResult
 from neurons.forward import handle_response
-from prompting.llms.vllm_llm import vLLMPipeline
-from prompting.organic.organic_task import OrganicTask, OrganicRewardConfig
+from prompting import settings
+from prompting.base.dendrite import SynapseStreamResult
 from prompting.base.protocol import StreamPromptingSynapse
+from prompting.llms.vllm_llm import vLLMPipeline
+from prompting.organic.organic_task import OrganicRewardConfig, OrganicTask
 
 # from prompting.rewards.reward import RewardResult
 
 
 # from prompting.tasks.task import make_system_prompt
-class SynthDatasetEntry:
+class OrganicEntry:
     roles: list[str]
     messages: list[str]
-    organic: bool
+    is_organic: bool
     source: str
 
 
@@ -43,9 +42,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
         llm_pipeline: vLLMPipeline,
         dendrite: bt.dendrite,
         metagraph: bt.metagraph,
-        update_scores: callable[[np.ndarray, list[int]], None],
+        update_scores: Callable[[np.ndarray, list[int]], None],
         tokenizer: PreTrainedTokenizerFast,
-        get_random_uids: callable[[int, Optional[list[int]]], np.ndarray],
+        get_random_uids: Callable[[int, Optional[list[int]]], np.ndarray],
         wallet: bt.wallet,
         _lock: asyncio.Lock,
         trigger_frequency_min: Union[float, int] = 2,
@@ -73,13 +72,13 @@ class OrganicScoringPrompting(OrganicScoringBase):
         self.trigger_scaling_factor = trigger_scaling_factor
 
     async def _generate_rewards(
-        self, sample: SynthDatasetEntry, responses: dict[str, SynapseStreamResult], reference: str
+        self, sample: OrganicEntry, responses: dict[str, SynapseStreamResult], reference: str
     ):
         _, _, rewards = OrganicRewardConfig.apply(responses=responses, reference=reference, query=sample.messages[-1])
         return {
             "rewards": rewards,
             "uids": responses.keys(),
-            "organic": sample.organic,
+            "organic": sample.is_organic,
         }
 
     @override
@@ -99,7 +98,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         """Organic query handle."""
         logger.info(f"[Organic] Received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}")
 
-        # TODO: Query one of the top 3 incentive miners, the rest are random.
+        # TODO: Query one of the top N incentive miners, the rest keep random.
         uids = list(self.get_random_uids())
         completions: dict[int, dict] = {}
         token_streamer = partial(
@@ -189,7 +188,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
             return_exceptions=True,
         )
 
-    async def _reuse_organic_response(self, sample: SynthDatasetEntry) -> dict[int, SynapseStreamResult]:
+    async def _reuse_organic_response(self, sample: OrganicEntry) -> dict[int, SynapseStreamResult]:
         """Return a dictionary where the keys are miner UIDs and the values are their corresponding streaming responses.
 
         This method reuses miner responses for organic data. It waits for each miner to complete within the
@@ -199,7 +198,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         Args:
             sample: Dict where the keys are miner UIDs and the values are the input streaming synapses.
         """
-        if not sample.organic:
+        if not sample.is_organic:
             return None
 
         uids = sample["uids"]
@@ -239,9 +238,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
         return responses
 
     @override
-    async def _query_miners(self, sample: SynthDatasetEntry) -> dict[str, SynapseStreamResult]:
+    async def _query_miners(self, sample: OrganicEntry) -> dict[str, SynapseStreamResult]:
         """Query miners with the given synthetic or organic sample."""
-        if sample.organic and not settings.ORGANIC_REUSE_RESPONSE_DISABLED:
+        if sample.is_organic and not settings.ORGANIC_REUSE_RESPONSE_DISABLED:
             responses = await self._reuse_organic_response(sample)
             return responses
 
@@ -268,7 +267,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         # uids_to_reward = dict(zip(reward_result["uids"], reward_result["rewards"]))
         self.update_scores(reward_result["rewards"], reward_result["uids"])
 
-    # @override
+    @override
     async def _generate_reference(self, sample: dict[str, Any]) -> str:
         """Generate reference for the given organic or synthetic sample."""
         async with self._lock:

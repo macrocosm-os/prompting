@@ -55,7 +55,7 @@ class Validator(BaseValidatorNeuron):
         self._organic_scoring: OrganicScoringPrompting | None = None
         self._organic_scoring = OrganicScoringPrompting(
             axon=self.axon,
-            synth_dataset=SynthDatasetConversation(),
+            synth_dataset=dataset,
             trigger_frequency=settings.ORGANIC_TRIGGER_FREQUENCY,
             trigger_frequency_min=settings.ORGANIC_TRIGGER_FREQUENCY_MIN,
             trigger=settings.ORGANIC_TRIGGER,
@@ -65,7 +65,7 @@ class Validator(BaseValidatorNeuron):
             metagraph=self.metagraph,
             update_scores=self.update_scores,
             tokenizer=self.llm_pipeline.tokenizer,
-            get_random_uids=lambda _: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
+            get_random_uids=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
             wallet=self.wallet,
             _lock=self._lock,
         )

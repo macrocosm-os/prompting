@@ -11,19 +11,22 @@ from loguru import logger
 if not dotenv.load_dotenv():
     logger.warning("No .env file found")
 
-NETUID = int(os.environ.get("NETUID"))
+NETUID = int(os.environ.get("NET_UID"))
 TEST = NETUID != 1
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 WALLET_NAME = os.environ.get("WALLET_NAME")
 HOTKEY = os.environ.get("HOTKEY")
 AXON_PORT = int(os.environ.get("AXON_PORT"))
-ORGANIC_WHITELIST_HOTKEY = os.environ.get("ORGANIC_WHITELIST_HOTKEY")  # Replace with the actual default value
+ORGANIC_WHITELIST_HOTKEY = os.environ.get(
+    "ORGANIC_WHITELIST_HOTKEY",
+    # OTF hotkey.
+    "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3"
+)
 TEST_MINER_IDS = (
     [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
     if TEST and os.environ.get("TEST_MINER_IDS")
     else None
 )
-
 
 assert WALLET_NAME and HOTKEY, "You must provide you wallet and hotkey name in the .env file!"
 

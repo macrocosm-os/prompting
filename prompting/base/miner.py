@@ -45,7 +45,7 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
         self.subtensor = bt.subtensor(network=settings.SUBTENSOR_NETWORK)
         self.metagraph = bt.metagraph(netuid=settings.NETUID, network=settings.SUBTENSOR_NETWORK, sync=True, lite=False)
         self.uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
-        logger.info(f"Axon created: {self.axon}; running on uid: {self.uid}")
+        logger.info(f"Axon created: {self.axon}; miner uid: {self.uid}")
         self.axon.serve(netuid=settings.NETUID, subtensor=self.subtensor)
         return self
 
