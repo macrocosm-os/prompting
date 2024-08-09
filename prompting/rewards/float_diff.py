@@ -1,9 +1,9 @@
 import time
-import torch
+import numpy as np
 from typing import List
 from sympy.parsing.sympy_parser import parse_expr
-from prompting.rewards import BaseRewardModel, BatchRewardOutput
-from prompting.dendrite import DendriteResponseEvent
+from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
+from prompting.base.dendrite import DendriteResponseEvent
 
 
 class FloatDiffModel(BaseRewardModel):
@@ -66,8 +66,8 @@ class FloatDiffModel(BaseRewardModel):
             rewards.append(reward)
 
         output = BatchRewardOutput(
-            rewards=torch.FloatTensor(rewards),
-            timings=torch.FloatTensor(timings),
+            rewards=np.array(rewards),
+            timings=np.array(timings),
             extra_info={
                 "type": "math",
             },

@@ -1,4 +1,4 @@
-from prompting.tools.datasets import (
+from prompting.datasets import (
     MockDataset,
     HFCodingDataset,
     WikiDataset,

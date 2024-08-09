@@ -10,7 +10,7 @@ from prompting.agent import HumanAgent
 from prompting.protocol import StreamPromptingSynapse
 from prompting.tasks import TASKS
 
-sys.argv = [__file__, "--mock", "--wandb.off", "--neuron.tasks", "qa"]
+sys.argv = [__file__, "--mock", "--neuron.tasks", "qa"]
 mock_neuron = Validator()
 
 task = QuestionAnsweringTask(llm_pipeline=mock_neuron.llm_pipeline, context=WIKI_CONTEXT, create_reference=False)

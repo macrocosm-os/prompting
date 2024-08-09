@@ -26,7 +26,7 @@ def test_streaming_reward_model(all_tokens_per_chunk, expected_rewards):
 
     assert torch.allclose(
         output.rewards, torch.tensor(expected_rewards, dtype=torch.float)
-    ), f"Expected rewards {expected_rewards} but got {output.rewards.tolist()}"
+    ), f"Expected rewards {expected_rewards} but got {output.rewards}"
 
 
 if __name__ == "__main__":

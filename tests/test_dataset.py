@@ -1,7 +1,7 @@
 import pytest
 
 from .fixtures.dataset import DATASETS, CONTEXTS, CONTEXT_FIELDS
-from prompting.tools.datasets import Dataset
+from prompting.datasets import Dataset
 from prompting.shared import Context
 
 
@@ -36,7 +36,7 @@ def test_dataset_methods_return_contexts(dataset: Dataset, method: str):
 
 @pytest.mark.parametrize("dataset", DATASETS)
 def test_context_is_of_type_context_class(dataset: Dataset):
-    assert type(CONTEXTS[dataset]) == Context
+    assert isinstance(CONTEXTS[dataset], Context)
 
 
 @pytest.mark.parametrize("dataset", DATASETS)

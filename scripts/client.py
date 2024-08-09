@@ -3,9 +3,11 @@ import asyncio
 
 import bittensor as bt
 import time
+from loguru import logger
 
 from typing import List, Awaitable
-from prompting.protocol import StreamPromptingSynapse
+from prompting.base.protocol import StreamPromptingSynapse
+from prompting.settings import settings
 
 """
 This has assumed you have:
@@ -19,93 +21,64 @@ Steps:
 - Iterate over the async generator to extract the yielded tokens on the server side
 """
 
+assert settings.TEST_MINER_IDS, "Please provide the miner ids to query in the .env file as variable TEST_MINER_IDS"
 
-async def handle_response(uids: List[int], responses: List[Awaitable]) -> tuple[str, str]:
+
+async def handle_response(responses: list[Awaitable]) -> List[str]:
     synapses = []
 
-    for uid_num, resp in enumerate(responses):
-        ii = 0
+    for uid, response in zip(settings.TEST_MINER_IDS, responses):
         chunk_times = []
         start_time = time.time()
 
-        chunk_start_time = time.time()
-        async for chunk in resp:
-            chunk_time = round(time.time() - chunk_start_time, 3)
-            bt.logging.info(f"UID: {uids[uid_num]}. chunk {ii}({chunk_time}s) for resp: {chunk} ")
-            ii += 1
+        i = 0
+        async for chunk in response:
+            chunk_times.append(-start_time + (start_time := time.time()))
+            logger.info(f"UID: {uid}. chunk {(i := i + 1)} ({chunk_times[-1]:.3f}s) for resp: {chunk}")
 
-            chunk_times.append(chunk_time)
-            chunk_start_time = time.time()
-
-        bt.logging.success(f"UID {uids[uid_num]} took {(time.time() - start_time):.3f} seconds\n")
-
-        synapse = chunk  # last object yielded is the synapse itself with completion filled
-        synapses.append(synapse)
+        logger.success(f"UID {uid} took {sum(chunk_times):.3f} seconds\n")
+        if not isinstance(chunk, bt.Synapse):
+            raise Exception(f"Last object yielded is not a synapse; the miners response did not finish: {chunk}")
+        synapses.append(chunk)  # last object yielded is the synapse itself with completion filled
 
     return synapses
 
 
-async def query_stream_miner(args, synapse_protocol, wallet_name, hotkey, network, netuid, message=None):
+async def query_stream_miner(
+    synapse_protocol: bt.Synapse,
+    message: str | None = None,
+):
     if message is None:
         message = "Give me some information about the night sky."
 
-    syn = synapse_protocol(
+    synapse = synapse_protocol(
         roles=["user"],
         messages=[message],
     )
+    dendrite = bt.dendrite(wallet=settings.WALLET)
 
-    # create a wallet instance with provided wallet name and hotkey
-    wallet = bt.wallet(name=wallet_name, hotkey=hotkey)
+    logger.info(f"Synapse: {synapse}")
 
-    # instantiate the metagraph with provided network and netuid
-    metagraph = bt.metagraph(netuid=netuid, network=network, sync=True, lite=False)
+    try:
+        axons = [settings.METAGRAPH.axons[uid] for uid in settings.TEST_MINER_IDS]
+        responses = await dendrite(  # responses is an async generator that yields the response tokens
+            axons,
+            synapse,
+            deserialize=False,
+            timeout=settings.NEURON_TIMEOUT,
+            streaming=True,
+        )
 
-    # Create a Dendrite instance to handle client-side communication.
-    dendrite = bt.dendrite(wallet=wallet)
+        return await handle_response(responses)
 
-    bt.logging.info(f"Synapse: {syn}")
-
-    async def main():
-        try:
-            uids = args.uids
-            axons = [metagraph.axons[uid] for uid in uids]
-            responses = await dendrite(  # responses is an async generator that yields the response tokens
-                axons,
-                syn,
-                deserialize=False,
-                timeout=10,
-                streaming=True,
-            )
-
-            return await handle_response(uids, responses)
-
-        except Exception as e:
-            bt.logging.error(f"Exception during query to uids: {uids}: {e}")
-            return None
-
-    await main()
+    except Exception as e:
+        logger.exception(e)
+        logger.error(f"Exception during query to uids: {settings.TEST_MINER_IDS}: {e}")
+        return None
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Query a Bittensor synapse with given parameters.")
-
-    parser.add_argument(
-        "--uids",
-        nargs="+",
-        required=True,
-        help="UIDs to query.",
-        default=[1, 2],
-        type=int,
-    )
-    parser.add_argument("--netuid", type=int, default=102, help="Network Unique ID")
-    parser.add_argument("--wallet_name", type=str, default="default", help="Name of the wallet")
-    parser.add_argument("--hotkey", type=str, default="default", help="Hotkey for the wallet")
-    parser.add_argument(
-        "--network",
-        type=str,
-        default="test",
-        help='Network type, e.g., "test" or "mainnet"',
-    )
 
     parser.add_argument(
         "--message",
@@ -120,12 +93,7 @@ if __name__ == "__main__":
     # Running the async function with provided arguments
     asyncio.run(
         query_stream_miner(
-            args,
             synapse_protocol=StreamPromptingSynapse,
-            wallet_name=args.wallet_name,
-            hotkey=args.hotkey,
-            network=args.network,
-            netuid=args.netuid,
             message=args.message,
         )
     )

@@ -44,6 +44,6 @@ def make_mock_neuron(unique_coldkeys=False, unique_ips=False, vpermit_tao_limit=
 )
 def test_get_random_uids(unique_coldkeys, unique_ips, k, expected_result):
     mock_neuron = make_mock_neuron(unique_coldkeys, unique_ips)
-    uids_returned = sorted(get_random_uids(mock_neuron, k).tolist())
+    uids_returned = sorted(get_random_uids(mock_neuron, k))
 
     assert uids_returned == expected_result, f"Incorrect uids returned., {uids_returned}"

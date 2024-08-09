@@ -81,14 +81,14 @@ validators = [
         "port": 9000,
         "file": "neurons/validator.py",
         "type": "real",
-        "config": "--neuron.log_full --neuron.sample_size 5 --neuron.device cuda",
+        "config": "--neuron.sample_size 5 --neuron.device cuda",
     },
     {
         "hotkey": "v2",
         "port": 9011,
         "file": "neurons/validator.py",
         "type": "mock",
-        "config": "--neuron.log_full --neuron.sample_size 5 --neuron.model_id mock",
+        "config": "--neuron.sample_size 5 --neuron.model_id mock",
     },
 ]
 
