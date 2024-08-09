@@ -125,7 +125,9 @@ class Settings(BaseModel):
 
         if values["TEST"] and os.environ.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
-
+        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get(
+            "HUGGINGFACE_LLM_MODEL", "casperhansen/llama-3-70b-instruct-awq"
+        )
         values["SUBTENSOR_NETWORK"] = "test" if values["TEST"] else None
 
         logger.info(
@@ -145,9 +147,6 @@ class Settings(BaseModel):
             os.makedirs(values["SAVE_PATH"])
 
         values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = 24 if values["TEST"] else 70
-        values["NEURON_MODEL_ID_VALIDATOR"] = (
-            "casperhansen/llama-3-8b-instruct-awq" if values["TEST"] else "casperhansen/llama-3-70b-instruct-awq"
-        )
 
         return values
 
