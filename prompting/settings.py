@@ -16,7 +16,7 @@ logger.info(f"Config: {bt_config}")
 
 # Bittensor
 
-NETUID = bt_config.netuid or int(os.environ.get("NET_UID"))
+NETUID = bt_config.netuid or int(os.environ.get("NETUID"))
 TEST = NETUID != 1
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 WALLET_NAME = bt_config.wallet.name or os.environ.get("WALLET_NAME")
