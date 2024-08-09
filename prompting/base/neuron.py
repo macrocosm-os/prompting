@@ -3,8 +3,7 @@ import bittensor as bt
 from loguru import logger
 from abc import ABC, abstractmethod
 
-# Sync calls set weights and also resyncs the metagraph.
-# from prompting.utils.config import config
+# Sync calls set weights and also resyncs the metagraph.π
 from prompting.utils.misc import ttl_get_block
 
 # from prompting import __spec_version__ as spec_version

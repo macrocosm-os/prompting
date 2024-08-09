@@ -5,17 +5,23 @@ from loguru import logger
 import bittensor as bt
 
 if not dotenv.load_dotenv():
-    logger.warning("No .env file found")
+    logger.warning(
+        "No .env file found. The use of args when running a miner/validator will be deprecated in the near future."
+    )
+from prompting.utils.config import config
 
+# TODO: Remove in future as we deprecate config
+bt_config = config()
+logger.info(f"Config: {bt_config}")
 
 # Bittensor
 
-NETUID = int(os.environ.get("NETUID"))
+NETUID = bt_config.netuid or int(os.environ.get("NETUID"))
 TEST = NETUID != 1
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-WALLET_NAME = os.environ.get("WALLET_NAME")
-HOTKEY = os.environ.get("HOTKEY")
-AXON_PORT = int(os.environ.get("AXON_PORT"))
+WALLET_NAME = bt_config.wallet.name or os.environ.get("WALLET_NAME")
+HOTKEY = bt_config.wallet.hotkey or os.environ.get("HOTKEY")
+AXON_PORT = bt_config.axon.port or int(os.environ.get("AXON_PORT"))
 ORGANIC_WHITELIST_HOTKEY = os.environ.get("ORGANIC_WHITELIST_HOTKEY")  # Replace with the actual default value
 TEST_MINER_IDS = (
     [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
