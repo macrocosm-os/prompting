@@ -60,12 +60,12 @@ def get_random_uids(self: BaseNeuron, k: int, exclude: list[int] = None) -> np.n
     candidate_uids = []
     coldkeys = set()
     ips = set()
-    for uid in range(self.metagraph.n.item()):
+    for uid in range(settings.METAGRAPH.n.item()):
         if uid == self.uid:
             continue
 
         uid_is_available = check_uid_availability(
-            self.metagraph,
+            settings.METAGRAPH,
             uid,
             settings.NEURON_VPERMIT_TAO_LIMIT,
             coldkeys,
@@ -75,10 +75,10 @@ def get_random_uids(self: BaseNeuron, k: int, exclude: list[int] = None) -> np.n
             continue
 
         if settings.NEURON_QUERY_UNIQUE_COLDKEYS:
-            coldkeys.add(self.metagraph.axons[uid].coldkey)
+            coldkeys.add(settings.METAGRAPH.axons[uid].coldkey)
 
         if settings.NEURON_QUERY_UNIQUE_IPS:
-            ips.add(self.metagraph.axons[uid].ip)
+            ips.add(settings.METAGRAPH.axons[uid].ip)
 
         if exclude is None or uid not in exclude:
             candidate_uids.append(uid)
@@ -96,7 +96,7 @@ def get_random_uids(self: BaseNeuron, k: int, exclude: list[int] = None) -> np.n
 
 
 def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> np.ndarray:
-    metagraph = self.metagraph
+    metagraph = settings.METAGRAPH
     miners_uids = list(
         map(int, filter(lambda uid: check_uid_availability(metagraph, uid, vpermit_tao_limit), metagraph.uids))
     )

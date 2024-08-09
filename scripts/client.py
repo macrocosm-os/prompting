@@ -55,14 +55,12 @@ async def query_stream_miner(
         roles=["user"],
         messages=[message],
     )
-    wallet = bt.wallet(name=settings.WALLET_NAME, hotkey=settings.HOTKEY)
-    metagraph = bt.metagraph(netuid=settings.NETUID, network=settings.SUBTENSOR_NETWORK, sync=True, lite=False)
-    dendrite = bt.dendrite(wallet=wallet)
+    dendrite = bt.dendrite(wallet=settings.WALLET)
 
     logger.info(f"Synapse: {synapse}")
 
     try:
-        axons = [metagraph.axons[uid] for uid in settings.TEST_MINER_IDS]
+        axons = [settings.METAGRAPH.axons[uid] for uid in settings.TEST_MINER_IDS]
         responses = await dendrite(  # responses is an async generator that yields the response tokens
             axons,
             synapse,

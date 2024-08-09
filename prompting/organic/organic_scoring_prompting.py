@@ -134,9 +134,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
         """Stream back miner's responses."""
         logger.info(f"[Organic] Querying miner UIDs: {uids}")
         try:
-            async with dendrite(wallet=self.wallet) as dend:
+            async with dendrite(wallet=settings.WALLET) as dend:
                 responses = await dend(
-                    axons=[self.metagraph.axons[uid] for uid in uids],
+                    axons=[settings.METAGRAPH.axons[uid] for uid in uids],
                     synapse=synapse,
                     timeout=settings.ORGANIC_TIMEOUT,
                     deserialize=False,
@@ -248,7 +248,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         uids = self.get_random_uids()
         logger.info(f"[Organic] Querying miners with synthetic data, UIDs: {uids}")
         streams_responses = await dendrite.forward(
-            axons=[self.metagraph.axons[uid] for uid in uids],
+            axons=[settings.METAGRAPH.axons[uid] for uid in uids],
             synapse=StreamPromptingSynapse(roles=sample.roles, messages=sample.messages),
             timeout=settings.ORGANIC_TIMEOUT,
             deserialize=False,
