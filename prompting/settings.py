@@ -20,8 +20,7 @@ class Settings(BaseModel):
     # WANDB
     WANDB_ON: bool = True
     WANDB_ENTITY: Optional[str] = None
-    WANDB_PROJECT_NAME_MINER: Optional[str] = None
-    WANDB_PROJECT_NAME_VALIDATOR: Optional[str] = None
+    WANDB_PROJECT_NAME: Optional[str] = None
     WANDB_RUN_STEP_LENGTH: int = 100
     WANDB_API_KEY: Optional[str] = None
     WANDB_OFFLINE: bool = False
@@ -30,29 +29,15 @@ class Settings(BaseModel):
 
     # NEURON
     NEURON_EPOCH_LENGTH: int = 1
-    NEURON_LOG_FULL: bool = False
     NEURON_DEVICE: str = "cuda" if torch.cuda.is_available() else "cpu"
     NEURON_GPUS: int = 1
-    NEURON_EVENTS_RETENTION_SIZE: str = "2 GB"
-    NEURON_DONT_SAVE_EVENTS: bool = False
-    NEURON_MODEL_ID_MINER: str = "gpt-3.5-turbo"
 
-    # BLACKLIST
-    BLACKLIST_FORCE_VALIDATOR_PERMIT: bool = False
-    BLACKLIST_ALLOW_NON_REGISTERED: bool = False
+    # LOGGING
+    LOGGING_DONT_SAVE_EVENTS: bool = False
 
     # NEURON PARAMETERS
-    NEURON_SYSTEM_PROMPT: str = "You are a friendly chatbot who always responds concisely and helpfully. You are honest about things you don't know."
-    NEURON_MAX_TOKENS: int = 256
-    NEURON_TEMPERATURE: float = 0.7
-    NEURON_TOP_K: int = 50
-    NEURON_TOP_P: float = 0.95
-    NEURON_STOP_ON_FORWARD_EXCEPTION: bool = False
-    NEURON_SHOULD_FORCE_MODEL_LOADING: bool = False
-    NEURON_STREAMING_BATCH_SIZE: int = 12
+
     NEURON_TIMEOUT: int = 15
-    NEURON_NUM_CONCURRENT_FORWARDS: int = 1
-    NEURON_SAMPLE_SIZE: int = 100
     NEURON_DISABLE_SET_WEIGHTS: bool = False
     NEURON_MOVING_AVERAGE_ALPHA: float = 0.1
     NEURON_DECAY_ALPHA: float = 0.001
@@ -111,8 +96,7 @@ class Settings(BaseModel):
         bt_config = config()  # Re-fetch config as it might depend on .env values
 
         values["WANDB_ENTITY"] = os.environ.get("WANDB_ENTITY")
-        values["WANDB_PROJECT_NAME_MINER"] = os.environ.get("WANDB_PROJECT_NAME_MINER")
-        values["WANDB_PROJECT_NAME_VALIDATOR"] = os.environ.get("WANDB_PROJECT_NAME_VALIDATOR")
+        values["WANDB_PROJECT_NAME"] = os.environ.get("WANDB_PROJECT_NAME")
         values["WANDB_API_KEY"] = os.environ.get("WANDB_API_KEY")
 
         values["NETUID"] = bt_config.netuid or int(os.environ.get("NETUID"))

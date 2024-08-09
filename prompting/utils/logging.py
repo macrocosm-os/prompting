@@ -88,12 +88,12 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
     # wandb_config["neuron"].pop("full_path", None)
     wandb.login(anonymous="allow", key=settings.WANDB_API_KEY, verify=True)
     logger.info(
-        f"Logging in to wandb with key: {settings.WANDB_API_KEY[:6]}... on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME_VALIDATOR if neuron == 'validator' else settings.WANDB_PROJECT_NAME_MINER}"
+        f"Logging in to wandb with key: {settings.WANDB_API_KEY[:6]}... on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}"
     )
     WANDB = wandb.init(
         # anonymous="allow",
         reinit=reinit,
-        project=settings.WANDB_PROJECT_NAME_VALIDATOR if neuron == "validator" else settings.WANDB_PROJECT_NAME_MINER,
+        project=settings.WANDB_PROJECT_NAME,
         entity=settings.WANDB_ENTITY,
         mode="offline" if settings.WANDB_OFFLINE else "online",
         dir=settings.SAVE_PATH,
@@ -145,7 +145,7 @@ class MinerEvent(BaseModel):
 
 
 def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
-    if not settings.NEURON_DONT_SAVE_EVENTS:
+    if not settings.LOGGING_DONT_SAVE_EVENTS:
         logger.info(f"{event}")
 
     if not settings.WANDB_ON:
