@@ -106,8 +106,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
             synapse,
             uids,
             completions,
-            metagraph=self.metagraph,
-            wallet=self.wallet,
+            metagraph=settings.METAGRAPH,
+            wallet=settings.WALLET,
         )
 
         streaming_response = synapse.create_streaming_response(token_streamer)
