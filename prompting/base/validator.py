@@ -11,7 +11,7 @@ import torch
 from prompting.base.neuron import BaseNeuron
 from prompting.utils.exceptions import MaxRetryError
 
-from prompting import settings
+from prompting.settings import settings
 from loguru import logger
 from prompting.utils.logging import init_wandb
 

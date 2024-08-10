@@ -8,7 +8,7 @@ from prompting.utils.misc import ttl_get_block
 
 # from prompting import __spec_version__ as spec_version
 
-from prompting import settings
+from prompting.settings import settings
 
 
 class BaseNeuron(ABC):

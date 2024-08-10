@@ -1,7 +1,11 @@
+# ruff: noqa: E402
+from prompting import settings
+
+settings.settings = settings.Settings(mode="miner")
+settings = settings.settings
 import time
 from functools import partial
 from openai import OpenAI
-from prompting import settings
 from loguru import logger
 from pydantic import model_validator
 from prompting.base.miner import BaseStreamMinerNeuron
@@ -10,6 +14,13 @@ from neurons.miners.openai.utils import OpenAIUtils
 from starlette.types import Send
 from prompting.utils.logging import ErrorEvent, log_event
 
+MODEL_ID: str = "gpt-3.5-turbo"
+NEURON_MAX_TOKENS: int = 256
+NEURON_TEMPERATURE: float = 0.7
+NEURON_TOP_K: int = 50
+NEURON_TOP_P: float = 0.95
+NEURON_STREAMING_BATCH_SIZE: int = 12
+NEURON_STOP_ON_FORWARD_EXCEPTION: bool = False
 
 SYSTEM_PROMPT = """You are a helpful agent that does it's best to answer all questions!"""
 
@@ -56,9 +67,9 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
 
                 start_time = time.time()
                 stream_response = self.model.chat.completions.create(
-                    model=settings.NEURON_MODEL_ID_MINER,
+                    model=MODEL_ID,
                     messages=messages,
-                    max_tokens=settings.NEURON_MAX_TOKENS,
+                    max_tokens=NEURON_MAX_TOKENS,
                     stream=True,
                 )
 
@@ -79,7 +90,7 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
                         timeout_reached = True
                         break
 
-                    if len(buffer) == settings.NEURON_STREAMING_BATCH_SIZE:
+                    if len(buffer) == NEURON_STREAMING_BATCH_SIZE:
                         joined_buffer = "".join(buffer)
                         temp_completion += joined_buffer
                         logger.debug(f"Streamed tokens: {joined_buffer}")
@@ -107,7 +118,7 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
                 logger.exception(e)
                 logger.error(f"Error in forward: {e}")
                 log_event(ErrorEvent(error=str(e)))
-                if settings.NEURON_STOP_ON_FORWARD_EXCEPTION:
+                if NEURON_STOP_ON_FORWARD_EXCEPTION:
                     self.should_exit = True
 
             finally:

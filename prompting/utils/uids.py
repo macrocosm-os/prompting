@@ -3,7 +3,7 @@ import random
 import bittensor as bt
 from typing import List
 from prompting.base.neuron import BaseNeuron
-from prompting import settings
+from prompting.settings import settings
 from loguru import logger
 
 

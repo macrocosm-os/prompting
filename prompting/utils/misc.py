@@ -6,7 +6,7 @@ from typing import Callable, Any
 from functools import lru_cache, update_wrapper
 from prompting.utils.exceptions import BittensorError
 from loguru import logger
-from prompting import settings
+from prompting.settings import settings
 
 
 # LRU Cache with TTL

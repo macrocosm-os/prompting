@@ -1,5 +1,5 @@
 import time
-from prompting import settings
+from prompting.settings import settings
 import typing
 from functools import partial
 from starlette.types import Send

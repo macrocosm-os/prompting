@@ -6,6 +6,7 @@ from typing import Any, AsyncGenerator, Callable, Literal, Optional, Sequence, T
 
 import bittensor as bt
 import numpy as np
+from prompting.settings import settings
 from bittensor.dendrite import dendrite
 from loguru import logger
 from organic_scoring import OrganicScoringBase
