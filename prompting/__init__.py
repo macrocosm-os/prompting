@@ -1,34 +1,17 @@
-class Version:
-    """Same as packaging.version, but also supports comparison to strings"""
-
-    def __init__(self, version: str):
-        self.version: str = version
-
-    def __str__(self):
-        return f"{self.version}"
-
-    def __repr__(self):
-        return f"{self.version}"
-
-    def __eq__(self, other):
-        other = other.version if isinstance(other, Version) else other
-        return self.version == other
-
-    def __le__(self, other):
-        other = other.version if isinstance(other, Version) else other
-        return True if all([v <= o for v, o in zip(self.version.split("."), other.split("."))]) else False
-
-    def __lt__(self, other):
-        other = other.version if isinstance(other, Version) else other
-        return True if self <= other and self != other else False
-
-    def __ge__(self, other):
-        other = other.version if isinstance(other, Version) else other
-        return True if not (self < other) else False
-
-    def __gt__(self, other):
-        other = other.version if isinstance(other, Version) else other
-        return True if not (self <= other) else False
+from importlib.metadata import version
+from loguru import logger
 
 
-__version__ = Version("2.7.0")
+def _version_to_int(version_str: str) -> int:
+    version_split = version_str.split(".")
+    major = int(version_split[0])
+    minor = int(version_split[1])
+    patch = int(version_split[2])
+    return (10000 * major) + (100 * minor) + patch
+
+
+__version__ = version("prompting")
+# Used by W&B logging, which expects an integer version.
+__spec_version__ = _version_to_int(__version__)
+
+logger.info(f"Project version: {__version__}")

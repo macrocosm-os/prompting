@@ -63,18 +63,11 @@ class Validator(BaseValidatorNeuron):
         self._organic_scoring = OrganicScoringPrompting(
             axon=self.axon,
             synth_dataset=dataset,
-            trigger_frequency=settings.ORGANIC_TRIGGER_FREQUENCY,
-            trigger_frequency_min=settings.ORGANIC_TRIGGER_FREQUENCY_MIN,
-            trigger=settings.ORGANIC_TRIGGER,
-            trigger_scaling_factor=settings.ORGANIC_SCALING_FACTOR,
             llm_pipeline=self.llm_pipeline,
-            dendrite=self.dendrite,
-            metagraph=settings.METAGRAPH,
-            update_scores=self.update_scores,
             tokenizer=self.llm_pipeline.tokenizer,
-            get_random_uids=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
-            wallet=settings.WALLET,
-            _lock=self._lock,
+            update_scores_fn=self.update_scores,
+            get_random_uids_fn=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
+            lock=self._lock,
         )
         if self._organic_scoring is not None:
             self.loop.create_task(self._organic_scoring.start_loop())
@@ -238,7 +231,13 @@ if __name__ == "__main__":
     with Validator() as v:
         while True:
             logger.info(
-                f"Validator running:: network: {v.subtensor.network} | block: {v.block} | step: {v.step} | uid: {v.uid} | last updated: {v.block-v.metagraph.last_update[v.uid]} | vtrust: {v.metagraph.validator_trust[v.uid]:.3f} | emission {v.metagraph.emission[v.uid]:.3f}"
+                f"Validator running:: network: {settings.SUBTENSOR.network} "
+                f"| block: {v.block} "
+                f"| step: {v.step} "
+                f"| uid: {v.uid} "
+                f"| last updated: {v.block - settings.METAGRAPH.last_update[v.uid]} "
+                f"| vtrust: {settings.METAGRAPH.validator_trust[v.uid]:.3f} "
+                f"| emission {settings.METAGRAPH.emission[v.uid]:.3f}"
             )
             time.sleep(5)
 

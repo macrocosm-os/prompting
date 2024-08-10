@@ -36,7 +36,6 @@ class Settings(BaseModel):
     LOGGING_DONT_SAVE_EVENTS: bool = False
 
     # NEURON PARAMETERS
-
     NEURON_TIMEOUT: int = 15
     NEURON_DISABLE_SET_WEIGHTS: bool = False
     NEURON_MOVING_AVERAGE_ALPHA: float = 0.1
@@ -95,8 +94,8 @@ class Settings(BaseModel):
 
         bt_config = config()  # Re-fetch config as it might depend on .env values
 
-        values["WANDB_ENTITY"] = os.environ.get("WANDB_ENTITY")
-        values["WANDB_PROJECT_NAME"] = os.environ.get("WANDB_PROJECT_NAME")
+        values["WANDB_ENTITY"] = os.environ.get("WANDB_ENTITY", "macrocosmos")
+        values["WANDB_PROJECT_NAME"] = os.environ.get("WANDB_PROJECT_NAME", "prompting-validators")
         values["WANDB_API_KEY"] = os.environ.get("WANDB_API_KEY")
 
         values["NETUID"] = bt_config.netuid or int(os.environ.get("NETUID"))
@@ -114,8 +113,11 @@ class Settings(BaseModel):
         if values["TEST"] and os.environ.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
         values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get(
-            "HUGGINGFACE_LLM_MODEL", "casperhansen/llama-3-70b-instruct-awq"
+            "LLM_MODEL", "casperhansen/llama-3-70b-instruct-awq"
         )
+        values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = os.environ.get("MAX_ALLOWED_VRAM_GB", 62)
+        values["NEURON_GPUS"] = os.environ.get("NEURON_GPUS", 1)
+
         values["SUBTENSOR_NETWORK"] = "test" if values["TEST"] else None
 
         logger.info(
@@ -133,8 +135,6 @@ class Settings(BaseModel):
         values["SAVE_PATH"] = os.environ.get("SAVE_PATH") or "./storage"
         if not os.path.exists(values["SAVE_PATH"]):
             os.makedirs(values["SAVE_PATH"])
-
-        values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = 24 if values["TEST"] else 70
 
         return values
 

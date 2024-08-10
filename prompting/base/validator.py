@@ -3,16 +3,16 @@ import copy
 import sys
 import threading
 from traceback import print_exception
-import numpy as np
 
 import bittensor as bt
+import numpy as np
 import torch
-
-from prompting.base.neuron import BaseNeuron
-from prompting.utils.exceptions import MaxRetryError
-
-from prompting.settings import settings
 from loguru import logger
+
+from prompting import __spec_version__
+from prompting.base.neuron import BaseNeuron
+from prompting.settings import settings
+from prompting.utils.exceptions import MaxRetryError
 from prompting.utils.logging import init_wandb
 
 
@@ -232,7 +232,7 @@ class BaseValidatorNeuron(BaseNeuron):
             weights=uint_weights,
             wait_for_finalization=False,
             wait_for_inclusion=False,
-            version_key=self.spec_version,
+            version_key=__spec_version__,
         )
         if result is True:
             logger.info("set_weights on chain successfully!")
