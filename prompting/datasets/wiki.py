@@ -151,7 +151,6 @@ class WikiDataset(BaseDataset):
     EXCLUDE_CATEGORIES: tuple = ("articles", "wikipedia", "pages", "cs1")
     min_length_words: int = 20
     max_links: int = 10
-    max_tries: int = 10
 
     def get(
         self,
@@ -218,15 +217,12 @@ class WikiDataset(BaseDataset):
 
     def random(self, pages=10) -> dict:
         titles = _get_random_titles(pages=pages)
-        tries = 0
-        while tries < self.max_tries:
-            title = random.choice(titles)
+        for i in range(self.max_tries):
+            title = titles[i]
             context = self.get(title)
             if context:
                 return context
-            tries += 1
-        return self.get(title)
-
+        return None
 
 class DateContext(Context):
     date: str = None
