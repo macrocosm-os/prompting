@@ -34,7 +34,7 @@ def load_vllm_pipeline(
 
     try:
         # Attempt to initialize the LLM
-        logger.info(f"Loading VLLM pipeline with model_id: {model_id}")
+        logger.info(f"Loading VLLM pipeline with model_id {model_id}: Max. VRAM: {gpu_mem_utilization}; GPUs: {gpus}")
         llm = LLM(
             model=model_id,
             gpu_memory_utilization=gpu_mem_utilization,

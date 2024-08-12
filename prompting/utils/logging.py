@@ -1,17 +1,19 @@
 import json
 import os
-import wandb
-from wandb.wandb_run import Run
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Literal
+
+import wandb
 from loguru import logger
+from pydantic import BaseModel, ConfigDict
+from wandb.wandb_run import Run
+
 import prompting
+from prompting.base.dendrite import DendriteResponseEvent
+from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.tasks.task_registry import TaskRegistry
-from prompting.rewards.reward import WeightedRewardEvent
-from prompting.base.dendrite import DendriteResponseEvent
-from pydantic import BaseModel, ConfigDict
 
 WANDB: Run
 
@@ -88,10 +90,9 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
     # wandb_config["neuron"].pop("full_path", None)
     wandb.login(anonymous="allow", key=settings.WANDB_API_KEY, verify=True)
     logger.info(
-        f"Logging in to wandb with key: {settings.WANDB_API_KEY[:6]}... on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}"
+        f"Logging in to wandb on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}"
     )
     WANDB = wandb.init(
-        # anonymous="allow",
         reinit=reinit,
         project=settings.WANDB_PROJECT_NAME,
         entity=settings.WANDB_ENTITY,
