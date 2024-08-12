@@ -236,7 +236,7 @@ class DateContext(Context):
 
 
 class WikiDateDataset(BaseDataset):
-    name: str = "wikipedia_date"
+    name: ClassVar[str] = "wikipedia_date"
     INCLUDE_HEADERS: tuple = ("Events", "Births", "Deaths")
     MONTHS: tuple = (
         "January",
@@ -252,12 +252,7 @@ class WikiDateDataset(BaseDataset):
         "November",
         "December",
     )
-    EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
-    max_tries: int = 10
-    rng: Optional[random.Random] = random.Random()
-
     EXCLUDE_CATEGORIES: tuple = ("articles", "wikipedia", "pages", "cs1")
-    max_tries: int = 10
     seed: int | None = None
     rng: Optional[random.Random] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
