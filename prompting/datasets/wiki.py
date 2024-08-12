@@ -217,10 +217,8 @@ class WikiDataset(BaseDataset):
 
     def random(self, pages=10) -> dict:
         titles = _get_random_titles(pages=pages)
-        for i in range(self.max_tries):
-            title = titles[i]
-            context = self.get(title)
-            if context:
+        for title in titles[:self.max_tries]:
+            if context := self.get(title):
                 return context
         return None
 
