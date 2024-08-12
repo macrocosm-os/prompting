@@ -29,7 +29,7 @@ pre_commit_content = """
 #!/bin/bash
 
 # Run Black formatting on staged Python files with specific parameters
-git diff-index --cached --name-only --diff-filter=ACMRTUXB HEAD | grep '\.py$' | xargs black
+git diff-index --cached --name-only --diff-filter=ACMRTUXB HEAD | grep "\.py$" | xargs black
 
 # Add the formatted files to the staging area
 git diff --name-only --cached | xargs git add

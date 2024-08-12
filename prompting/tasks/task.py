@@ -50,7 +50,7 @@ class Task(ABC):
     query_prompt = ""
     cleaner = None
     clean_reference = True
-    challenge_type = 'inference'
+    challenge_type = "inference"
     
     global_penalty_definition = [
         dict(name="streaming", max_tokens_per_chunk=200, weight=0.2)

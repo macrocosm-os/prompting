@@ -61,7 +61,7 @@ class RemoveRoles(BaseCleaner):
         return result_string
 
     def apply(self, generation: str) -> str:
-        generation = re.sub(r'\n*\w+\s*:','',generation)
+        generation = re.sub(r"\n*\w+\s*:","",generation)
         roles = [
             "User: ",
             "System: ",
@@ -98,10 +98,10 @@ class PrunePostQuestionText(BaseCleaner):
         if not min_pos <= generation.rfind("?") <= max_pos:
             return generation
         elif max_questions is not None:
-            generation = '?'.join(generation.split("?",max_questions)[:-1]) + '?'
+            generation = "?".join(generation.split("?",max_questions)[:-1]) + "?"
         else:
             # drop everything after the last question mark. Alternatively, we can just extract the first question.
-            generation = generation.rsplit("?",1) + '?'
+            generation = generation.rsplit("?",1) + "?"
 
         return generation 
 
@@ -123,7 +123,7 @@ class FirstQuestion(BaseCleaner):
 
     def apply(self, generation: str) -> str:
         if "?" in generation:
-            if ':' in generation:
-                generation = generation.split(':')[1]
+            if "":" in generation:
+                generation = generation.split("":")[1]
             generation = generation.split("?")[0] + "?"
         return generation

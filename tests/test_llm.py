@@ -21,12 +21,12 @@ from vllm import LLM
     "input, expected_result, cleaner",
     [
         (
-            '"I am a quote. User: I know you are. I am asking a question. What is th"',
-            '"I am a quote. User: I know you are. I am asking a question. What is th"',
+            "I am a quote. User: I know you are. I am asking a question. What is th",
+            "I am a quote. User: I know you are. I am asking a question. What is th",
             None,
         ),
         (
-            '"I am a quote. User: I know you are. I am asking a question. What is th"',
+            "I am a quote. User: I know you are. I am asking a question. What is th",
             "I am a quote. I know you are. I am asking a question.",
             DEFAULT_CLEANER_PIPELINE,
         ),

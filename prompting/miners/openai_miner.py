@@ -88,8 +88,8 @@ class OpenAIMiner(BaseStreamPromptingMiner, OpenAIUtils):
             
 
             try:                
-                system_prompt_message = [{ 'role': 'system', 'content': self.system_prompt }]
-                synapse_messages = [{'role': role, 'content': message} for role, message in zip(synapse.roles, synapse.messages)]
+                system_prompt_message = [{ "role": "system", "content": self.system_prompt }]
+                synapse_messages = [{"role": role, "content": message} for role, message in zip(synapse.roles, synapse.messages)]
                 
                 messages = system_prompt_message + synapse_messages
                 

@@ -24,7 +24,7 @@ def corrupt(
         n_remove (int): The number of chunks to remove.
         n_swap (int): The number of chunks to swap.
         seed (int): The random seed to use.
-        sep (str): The separator to use when splitting the code into chunks. Recommended values are '', ' ', '\n'.
+        sep (str): The separator to use when splitting the code into chunks. Recommended values are "", " ", "\n".
         min_length (int): The minimum length of a chunk.
         max_length (int): The maximum length of a chunk.
     """

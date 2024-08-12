@@ -42,7 +42,7 @@ class TranslationPipeline:
                 bt.logging.info(f"Installing package from {package.from_code} to {package.to_code}")
                 package_path = str(package.download())
                 argostranslate.package.install_from_path(package_path)
-                bt.logging.success(f'Package successfully installed at {package_path}')
+                bt.logging.success(f"Package successfully installed at {package_path}")
             else:
                 bt.logging.info(f"Package from {package.from_code} to {package.to_code} is already installed, skipping...")
 
@@ -57,7 +57,7 @@ class TranslationPipeline:
     def translate(self, content: str, from_code: str, to_code: str):
         self.reference = argostranslate.translate.translate(content, from_code, to_code)
         
-    def translate_to_random_language(self, content: str, from_code:str='en') -> Tuple[AvailablePackage, str]:        
+    def translate_to_random_language(self, content: str, from_code:str="en") -> Tuple[AvailablePackage, str]:        
         english_supported_languages = list(filter(lambda x: x.from_code == from_code, self.supported_language_pairs))
         available_translations = list(map(lambda x: x, english_supported_languages))
                 
@@ -71,7 +71,7 @@ class TranslationPipeline:
 
 @dataclass
 class TranslationTask(Task):
-    challenge_type = 'query'
+    challenge_type = "query"
     static_reference = True
     static_query = True
     name = "translation"

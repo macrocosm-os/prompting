@@ -83,7 +83,7 @@ def get_article_sections(title: str) -> Dict:
     html_content = response.text
 
     # Parse the HTML using BeautifulSoup
-    soup = BeautifulSoup(html_content, 'html.parser')
+    soup = BeautifulSoup(html_content, "html.parser")
 
     sections = {}
     for section in soup.find_all("h2"):
@@ -278,13 +278,13 @@ class WikiDateDataset(Dataset):
         
     def extract_dates_and_sentences(self, text: str) -> Tuple[str, str]:
         # Regular expression to find dates in various formats
-        date_pattern = r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b'
+        date_pattern = r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b"
 
         # Compile the regex pattern
         date_regex = re.compile(date_pattern)
 
         # Split text into sentences
-        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
+        sentences = re.split(r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s", text)
 
         # Iterate through sentences and find dates
         for sentence in sentences:
@@ -294,10 +294,10 @@ class WikiDateDataset(Dataset):
             if dates:
                 for date in dates:
                     # Return the first date found
-                    return (str(date), sentence.replace(str(date), '<date>').strip())
+                    return (str(date), sentence.replace(str(date), "<date>").strip())
 
         # If no dates are found, search for dates in the form of "Month DD"
-        secondary_date_pattern = r'\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?\b'
+        secondary_date_pattern = r"\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?\b"
         secondary_date_regex = re.compile(secondary_date_pattern)
 
         for sentence in sentences:
@@ -315,12 +315,12 @@ class WikiDateDataset(Dataset):
         for _ in range(self.max_tries):
             try:
                 context = CACHED_ARTICLES.get(block=False)
-                date_sentence = self.extract_dates_and_sentences(context['content'])
-                context['content'] = date_sentence[1]
-                context['extra']['date'] = date_sentence[0]
-                if not context['content']:
+                date_sentence = self.extract_dates_and_sentences(context["content"])
+                context["content"] = date_sentence[1]
+                context["extra"]["date"] = date_sentence[0]
+                if not context["content"]:
                     continue
-                elif not context['extra']['date']:
+                elif not context["extra"]["date"]:
                     continue
                 else:
                     return context

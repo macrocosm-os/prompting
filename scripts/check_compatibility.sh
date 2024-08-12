@@ -8,10 +8,10 @@ fi
 python_version="$1"
 all_passed=true
 
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+GREEN="\033[0;32m"
+YELLOW="\033[0;33m"
+RED="\033[0;31m"
+NC="\033[0m" # No Color
 
 check_compatibility() {
     all_supported=0
@@ -22,7 +22,7 @@ check_compatibility() {
             continue
         fi
 
-        package_name=$(echo "$requirement" | awk -F'[!=<>]' '{print $1}' | awk -F'[' '{print $1}') # Strip off brackets
+        package_name=$(echo "$requirement" | awk -F"[!=<>]" "{print $1}" | awk -F"[" "{print $1}") # Strip off brackets
         echo -n "Checking $package_name... "
 
         url="https://pypi.org/pypi/$package_name/json"
@@ -35,8 +35,8 @@ check_compatibility() {
             continue
         fi
 
-        classifiers=$(echo "$response" | jq -r '.info.classifiers[]')
-        requires_python=$(echo "$response" | jq -r '.info.requires_python')
+        classifiers=$(echo "$response" | jq -r ".info.classifiers[]")
+        requires_python=$(echo "$response" | jq -r ".info.requires_python")
 
         base_version="Programming Language :: Python :: ${python_version%%.*}"
         specific_version="Programming Language :: Python :: $python_version"

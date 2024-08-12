@@ -120,7 +120,7 @@ if __name__ == "__main__":
         "--network",
         type=str,
         default="test",
-        help='Network type, e.g., "test" or "mainnet"',
+        help="Network type, e.g., "test" or "mainnet"",
     )
 
     parser.add_argument(

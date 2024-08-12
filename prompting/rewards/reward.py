@@ -79,8 +79,8 @@ class RewardResult:
     ) -> List[RewardEvent]:
         """Calculates the rewards for the responses given the task and returns a RewardEvent for each reward model
         reward_events: List[RewardEvent] = [
-            RewardEvent(model_name='rouge', rewards=torch.zeros(50), timings=torch.zeros(50), ...),
-            RewardEvent(model_name='relevance', rewards=torch.zeros(50), timings=torch.zeros(50), ...),
+            RewardEvent(model_name="rouge", rewards=torch.zeros(50), timings=torch.zeros(50), ...),
+            RewardEvent(model_name="relevance", rewards=torch.zeros(50), timings=torch.zeros(50), ...),
         ]
         """
         reward_events = []
@@ -90,7 +90,7 @@ class RewardResult:
             reward_model = self.reward_pipeline.get(reward_info["name"])
             if not reward_model:
                 raise ValueError(
-                    f"Reward model {reward_info['name']} not supported. Please choose from {self.reward_pipeline.keys()}"
+                    f"Reward model {reward_info["name"]} not supported. Please choose from {self.reward_pipeline.keys()}"
                 )
             # Compute the rewards for the responses given the prompt
             reward_event = reward_model.apply(

@@ -36,7 +36,7 @@ from prompting.utils.logging import log_event
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from transformers import PreTrainedTokenizerFast as Tokenizer
 
-SINGLE_TURN_TASKS = ('sentiment', 'translation')
+SINGLE_TURN_TASKS = ("sentiment", "translation")
 
 
 @async_log
@@ -323,7 +323,7 @@ async def forward(self):
             if task.name in SINGLE_TURN_TASKS:
                 break
 
-            history = '\n'.join([f"{role}: {message}" for role, message in zip(roles, messages)])
+            history = "\n".join([f"{role}: {message}" for role, message in zip(roles, messages)])
 
             # Use PREVIOUS task context
             agent.task = QuestionAnsweringTask(self.llm_pipeline, context=task.context, create_reference=False, history=history)

@@ -24,7 +24,7 @@ Ask a specific question about the following context:
 FOLLOWUP_PROMPT_TEMPLATE = """
 Compose a single, specific question to continue the dialogue below. Adopt the persona of the original user, reflecting their communication style and objectives. The question should be rooted in the previous exchanges and should not be answerable with a simple yes or no.
 
-Ensure the question requires detailed knowledge of the conversation history for a correct response, focusing on requests for clarification or additional details (e.g., 'What specific steps did you take?', 'Are you sure?', 'How do you know that is true', or 'How did that situation resolve?'). Use indirect pronouns or descriptions to refer to subjects instead of their names. Avoid answering the question yourself and do not introduce new information not already discussed.
+Ensure the question requires detailed knowledge of the conversation history for a correct response, focusing on requests for clarification or additional details (e.g., "What specific steps did you take?", "Are you sure?", "How do you know that is true", or "How did that situation resolve?"). Use indirect pronouns or descriptions to refer to subjects instead of their names. Avoid answering the question yourself and do not introduce new information not already discussed.
 
 When asking a followup question, you should use pronouns or descriptions to refer to subjects instead of their names. You absolutely must not repeat the subject of the question in the followup question. For example, if the question is "What is the capital of France?", the followup question should not be "What is the population of France?". Instead, it should be "How many people live there?" or "What is its population?".
 # Context:
@@ -90,7 +90,7 @@ class QuestionAnsweringTask(Task):
         self.query_system_prompt = QUERY_SYSTEM_PROMPT
         if history:
             self.query_prompt = FOLLOWUP_PROMPT_TEMPLATE.format(context=context.content, history=history)
-            bt.logging.warning(f'Using history!!\n{history=}\n\n{context=}\n\n{self.query_prompt=}')
+            bt.logging.warning(f"Using history!!\n{history=}\n\n{context=}\n\n{self.query_prompt=}")
         else:
             self.query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
             

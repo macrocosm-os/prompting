@@ -9,7 +9,7 @@ def test_cleaning_pipeline():
     ]
 
     generation = (
-        '"I am a quote. User: I know you are. I am asking a question. What is th"'
+        "I am a quote. User: I know you are. I am asking a question. What is th"
     )
     answer = "I am a quote. I know you are. I am asking a question."
 

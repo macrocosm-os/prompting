@@ -28,7 +28,7 @@ def calculate_single_gpu_requirements(device: str, max_allowed_memory_allocation
 
     gpu_utilization = round(max_allowed_memory_allocation_in_bytes / global_free, 2)
     bt.logging.info(
-        f'{gpu_utilization * 100}% of the GPU memory will be utilized for loading the model to device "{device}".'
+        f"{gpu_utilization * 100}% of the GPU memory will be utilized for loading the model to device "{device}"."
     )
 
     return gpu_utilization    

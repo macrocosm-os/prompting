@@ -18,7 +18,7 @@ Context: {context}
 @dataclass
 class DateQuestionAnsweringTask(Task):
     name = "date_qa"
-    challenge_type = 'query'
+    challenge_type = "query"
     clean_reference = False
     desc = "get help answering a specific date-based question"
     goal = "to get the answer to the following date-based question"
@@ -40,7 +40,7 @@ class DateQuestionAnsweringTask(Task):
         self.query_system_prompt = QUERY_SYSTEM_PROMPT
         self.query_prompt = QUERY_PROMPT_TEMPLATE.format(topic = context.title, context=context.content)
         self.query = self.generate_query(llm_pipeline)
-        date = self.context.extra.get('date', None)
+        date = self.context.extra.get("date", None)
         self.reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date = date, query = self.query, context = context.content)
         if create_reference:
             self.reference = self.generate_reference(llm_pipeline)
