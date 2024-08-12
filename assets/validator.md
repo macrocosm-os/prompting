@@ -44,3 +44,5 @@ After creating the above environment file, run
 bash run.sh
 ```
 It will spawn 2 pm2 processes, one to run the validator and one to autoupdate. 
+
+> Note: this is not an end solution, major releases or changes in requirements will still require you to manually restart the processes. Regularly monitor the health of your validator to ensure optimal performance.
