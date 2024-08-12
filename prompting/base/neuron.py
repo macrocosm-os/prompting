@@ -22,11 +22,6 @@ class BaseNeuron(ABC):
     # def _config(cls):
     #     return config(cls)
 
-    subtensor: "bt.subtensor"
-    wallet: "bt.wallet"
-    metagraph: "bt.metagraph"
-    # spec_version: int = spec_version
-
     @property
     def block(self):
         self._block = ttl_get_block(self)
