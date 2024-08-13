@@ -43,13 +43,9 @@ class BatchRewardOutput(BaseModel):
 
     @property
     def rewards_normalized(self) -> np.ndarray:
-        return self.rewards / sum(self.rewards)
-
-    def __post_init__(self):
         if self.rewards.shape != self.timings.shape:
             raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
-
-        self.rewards_normalized = (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min() + 1e-6)
+        return (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min() + 1e-6)
 
 
 class BaseRewardModel(ABC, BaseModel):
