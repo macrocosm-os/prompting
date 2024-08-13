@@ -40,10 +40,15 @@ AXON_PORT= #Number of the open tcp port
 OPENAI_API_KEY= #The openai key that you would like to mine with
 ```
 ## Testnet - RECOMMENDED
+We highly recommend that you run your miners on testnet before deploying on main. This is give you an opportunity to debug your systems, and ensure that you will not lose valuable immunity time. The SN1 testnet is **netuid 61**.
 
-If you would like to get started with testnet, follow the directions in the discord's help-forum/Requests for Testnet Tao to test tao to register.
+In order to run on testnet, you will need to go through the same hotkey registration proceure as on main, but using **testtao**. You will need to ask for some in the community discord if you do not have any.
+
+Then, simply set test=True in your .env file and execute all other steps as before.
+
 Then post in the Subnet 1 channel on discord so we can activate a validator for your miner to respond to.
-You can use wandb to see how successful your miner would be on mainnet.
+
+You can use wandb to see how successful your miner would be on mainnet, an example notebook is pinned in the channel.
 
 ## Running
 
