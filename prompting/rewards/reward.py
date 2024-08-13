@@ -11,7 +11,7 @@ RewardTypeLiteral = Literal["reward", "penalty"]
 class RewardEvent(BaseModel):
     """Contains rewards for all the responses in a batch"""
 
-    model_name: str
+    reward_model_name: str
     rewards: np.ndarray
     rewards_normalized: np.ndarray
     timings: np.ndarray
@@ -23,11 +23,11 @@ class RewardEvent(BaseModel):
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
         return {
-            f"{self.model_name}_raw_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards),
-            f"{self.model_name}_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards_normalized, 4),
-            f"{self.model_name}_{self.model_type.value}_timings": self.tensor_to_rounded_list(self.timings),
-            f"{self.model_name}_{self.model_type.value}_batch_time": self.batch_time,
-            f"{self.model_name}_{self.model_type.value}_extra_info": self.extra_info,
+            f"{self.reward_model_name}_raw_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards),
+            f"{self.reward_model_name}_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards_normalized, 4),
+            f"{self.reward_model_name}_{self.model_type.value}_timings": self.tensor_to_rounded_list(self.timings),
+            f"{self.reward_model_name}_{self.model_type.value}_batch_time": self.batch_time,
+            f"{self.reward_model_name}_{self.model_type.value}_extra_info": self.extra_info,
         }
 
     def tensor_to_rounded_list(self, tensor, decimals=6):
