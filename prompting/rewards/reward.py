@@ -15,7 +15,7 @@ class RewardEvent(BaseModel):
     rewards: np.ndarray
     rewards_normalized: np.ndarray
     timings: np.ndarray
-    model_type: RewardTypeLiteral
+    reward_model_type: RewardTypeLiteral
     batch_time: float
     threshold: float | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -69,7 +69,7 @@ class BaseRewardModel(ABC, BaseModel):
             reward_model_name=self.__class__.__name__,
             rewards=batch_rewards_output.rewards,
             rewards_normalized=batch_rewards_output.rewards_normalized,
-            model_type=reward_type,
+            reward_model_type=reward_type,
             batch_time=batch_rewards_time,
             threshold=batch_rewards_output.threshold,
             timings=batch_rewards_output.timings,
