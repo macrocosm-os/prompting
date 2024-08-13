@@ -31,7 +31,6 @@ class Log:
     reference_time: float
     rewards: list[float]
     task: dict
-    # extra_info: dict
 
 
 def export_logs(logs: list[Log]):

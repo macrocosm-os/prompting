@@ -17,7 +17,7 @@ class RewardEvent(BaseModel):
     timings: np.ndarray
     model_type: RewardTypeLiteral
     batch_time: float
-    extra_info: dict
+    threshold: float | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
@@ -27,7 +27,7 @@ class RewardEvent(BaseModel):
             f"{self.reward_model_name}_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards_normalized, 4),
             f"{self.reward_model_name}_{self.model_type.value}_timings": self.tensor_to_rounded_list(self.timings),
             f"{self.reward_model_name}_{self.model_type.value}_batch_time": self.batch_time,
-            f"{self.reward_model_name}_{self.model_type.value}_extra_info": self.extra_info,
+            f"{self.reward_model_name}_{self.model_type.value}_threshold": self.threshold,
         }
 
     def tensor_to_rounded_list(self, tensor, decimals=6):
@@ -38,7 +38,7 @@ class RewardEvent(BaseModel):
 class BatchRewardOutput(BaseModel):
     rewards: np.ndarray
     timings: np.ndarray
-    extra_info: dict
+    threshold: float | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @property
@@ -66,12 +66,12 @@ class BaseRewardModel(ABC, BaseModel):
         batch_rewards_time = time.time() - t0
 
         return RewardEvent(
-            model_name=self.__class__.__name__,
+            reward_model_name=self.__class__.__name__,
             rewards=batch_rewards_output.rewards,
             rewards_normalized=batch_rewards_output.rewards_normalized,
             model_type=reward_type,
             batch_time=batch_rewards_time,
-            extra_info=batch_rewards_output.extra_info,
+            threshold=batch_rewards_output.threshold,
             timings=batch_rewards_output.timings,
         )
 
