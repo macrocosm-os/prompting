@@ -117,8 +117,13 @@ class Settings(BaseModel):
         )
         values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = os.environ.get("MAX_ALLOWED_VRAM_GB", 62)
         values["NEURON_GPUS"] = os.environ.get("NEURON_GPUS", 1)
+        
 
-        values["SUBTENSOR_NETWORK"] = "test" if values["TEST"] else None
+
+        if os.environ.get("SUBTENSOR_NETWORK") == "local":
+            values["SUBTENSOR_NETWORK"] = bt_config.subtensor.chain_endpoint or os.environ.get("SUBTENSOR_CHAIN_ENDPOINT")
+        else:
+            values["SUBTENSOR_NETWORK"] = bt_config.subtensor.network or os.environ.get("SUBTENSOR_NETWORK")
 
         logger.info(
             f"Instantiating bittensor objects with NETUID: {values['NETUID']}, WALLET_NAME: {values['WALLET_NAME']}, HOTKEY: {values['HOTKEY']}"

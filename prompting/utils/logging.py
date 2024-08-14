@@ -31,7 +31,6 @@ class Log:
     reference_time: float
     rewards: list[float]
     task: dict
-    # extra_info: dict
 
 
 def export_logs(logs: list[Log]):
@@ -149,8 +148,5 @@ def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
     if not settings.LOGGING_DONT_SAVE_EVENTS:
         logger.info(f"{event}")
 
-    if not settings.WANDB_ON:
-        return
-
-    # Log the event to wandb.
-    wandb.log(event.model_dump())
+    if settings.WANDB_ON:
+        wandb.log(event.model_dump())

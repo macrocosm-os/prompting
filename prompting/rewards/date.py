@@ -110,8 +110,5 @@ class DateRewardModel(BaseRewardModel):
         output = BatchRewardOutput(
             rewards=np.array(rewards),
             timings=np.array(timings),
-            extra_info={
-                "type": "date",
-            },
         )
         return output
