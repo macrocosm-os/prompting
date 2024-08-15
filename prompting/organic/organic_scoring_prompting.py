@@ -64,7 +64,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         )
         return {
             "rewards": rewards,
-            "uids": responses.keys(),
+            "uids": list(responses.keys()),
             "is_organic": sample.get("is_organic", False),
         }
 
@@ -240,13 +240,6 @@ class OrganicScoringPrompting(OrganicScoringBase):
                 deserialize=False,
                 streaming=True,
             )
-        # streams_responses = await dendrite.forward(
-        #     axons=[settings.METAGRAPH.axons[uid] for uid in uids],
-        #     synapse=StreamPromptingSynapse(roles=sample["roles"], messages=sample["messages"]),
-        #     timeout=settings.ORGANIC_TIMEOUT,
-        #     deserialize=False,
-        #     streaming=True,
-        # )
         stream_results_dict = dict(zip(uids, streams_responses))
         responses = await handle_response(stream_results_dict, tokenizer=self._tokenizer)
         return dict(zip(uids, responses))
@@ -262,9 +255,5 @@ class OrganicScoringPrompting(OrganicScoringBase):
     @override
     async def _generate_reference(self, sample: dict[str, Any]) -> str:
         """Generate reference for the given organic or synthetic sample."""
-        # async with self._lock:
-        # reference = await asyncio.to_thread(OrganicTask.generate_reference, sample, self._llm_pipeline)
-        # reference = await asyncio.to_thread(OrganicTask.generate_reference, sample, self._llm_pipeline)
-        # TODO Ref is none
         reference = await OrganicTask.generate_reference(sample, self._llm_pipeline)
         return reference
