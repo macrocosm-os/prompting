@@ -83,6 +83,7 @@ class Settings(BaseModel):
     def load_env(values):
         mode = values.get("mode")
         if mode == "miner":
+            values["WANDB_ON"] = False
             if not dotenv.load_dotenv(dotenv.find_dotenv(filename=".env.miner")):
                 logger.warning(
                     "No .env.miner file found. The use of args when running a miner will be deprecated in the near future."
