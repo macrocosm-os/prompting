@@ -1,29 +1,31 @@
 # ruff: noqa: E402
-import numpy as np
 import asyncio
 import time
 
+import numpy as np
+
 from prompting import settings
+
 settings.settings = settings.Settings(mode="validator")
 settings = settings.settings
-print(settings)
 
 import huggingface_hub
 from loguru import logger
-from prompting.llms.vllm_llm import vLLMPipeline
-from prompting.base.validator import BaseValidatorNeuron
-from neurons.forward import log_stream_results, handle_response
+
+from neurons.forward import handle_response, log_stream_results
 from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
-from prompting.tasks.task_registry import TaskRegistry
-from prompting.utils.uids import get_random_uids
-from prompting.tasks.base_task import BaseTask
+from prompting.base.validator import BaseValidatorNeuron
 from prompting.datasets.base import BaseDataset
-from prompting.utils.logging import log_event
-from prompting.utils.logging import ValidatorEvent, ErrorEvent
+from prompting.llms.vllm_llm import vLLMPipeline
+from prompting.tasks.base_task import BaseTask
+from prompting.tasks.task_registry import TaskRegistry
+from prompting.utils.logging import ErrorEvent, ValidatorEvent, log_event
+from prompting.utils.uids import get_random_uids
 
 try:
-    from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
     from organic_scoring.synth_dataset import SynthDatasetConversation
+
+    from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
 except ImportError:
     raise ImportError(
         "Could not import organic-scoring library.  Please install via poetry: `poetry install --extras 'validator'`"
