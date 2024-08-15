@@ -93,8 +93,6 @@ class OrganicScoringPrompting(OrganicScoringBase):
             synapse,
             uids,
             completions,
-            metagraph=settings.METAGRAPH,
-            wallet=settings.WALLET,
         )
 
         streaming_response = synapse.create_streaming_response(token_streamer)
@@ -109,6 +107,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                 "completions": completions,
             }
         )
+        logger.info(f"Message: {synapse.messages}; Comp: {completions}")
         return streaming_response
 
     async def _stream_miner_response(
@@ -145,7 +144,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                     if isinstance(chunk, str):
                         accumulated_chunks.append(chunk)
                         accumulated_chunks_timings.append(time.perf_counter() - timer_start)
-                        json_chunk = json.dumps({"uid": uid, "chunk": chunk})
+                        json_chunk = json.dumps({"uid": int(uid), "chunk": chunk})
                         await send(
                             {
                                 "type": "http.response.body",
@@ -156,7 +155,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                     elif isinstance(chunk, StreamPromptingSynapse):
                         synapse = chunk
                 except Exception as e:
-                    logger.error(f"[Organic] Error while streaming chunks: {e}")
+                    logger.exception(f"[Organic] Error while streaming chunks")
                     break
             # TODO: Do we need to identify the end of each miner's response?
             # json_chunk = json.dumps({"uid": uid, "chunk": b"", "completed": True})

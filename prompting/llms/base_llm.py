@@ -51,8 +51,5 @@ class BaseLLM(ABC):
             clean_response = cleaner.apply(generation=response)
             if clean_response != response:
                 logger.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
-        # clean_response = cleaner.apply(generation=response)
-        # if clean_response != response:
-        #     logger.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
 
         return clean_response
