@@ -48,10 +48,10 @@ class Settings(BaseModel):
 
     # ORGANIC
     ORGANIC_TIMEOUT: int = 15
-    ORGANIC_SAMPLE_SIZE: int = 10  # Replace with the actual default value
+    ORGANIC_SAMPLE_SIZE: int = 5  # Replace with the actual default value
     ORGANIC_REUSE_RESPONSE_DISABLED: bool = False  # Boolean default value
-    ORGANIC_REFERENCE_MAX_TOKENS: int = 256  # Replace with the actual default value
-    ORGANIC_SYNTH_REWARD_SCALE: float = 1.0  # Replace with the actual default value
+    ORGANIC_REFERENCE_MAX_TOKENS: int = 1024  # Replace with the actual default value
+    ORGANIC_SYNTH_REWARD_SCALE: float = 0.1  # Replace with the actual default value
     ORGANIC_SET_WEIGHTS_ENABLED: bool = True  # Boolean default value
     ORGANIC_DISABLED: bool = False
     ORGANIC_TRIGGER_FREQUENCY: int = 120
@@ -59,6 +59,7 @@ class Settings(BaseModel):
     ORGANIC_TRIGGER: str = "seconds"
     ORGANIC_SCALING_FACTOR: int = 1
     LOG_FULL: bool = False  # Boolean default value
+    HF_TOKEN: Optional[str] = None
 
     # ADDITIONAL FIELDS FROM model_validator
     NETUID: int
@@ -103,12 +104,26 @@ class Settings(BaseModel):
         values["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY")
         values["WALLET_NAME"] = bt_config.wallet.name or os.environ.get("WALLET_NAME")
         values["HOTKEY"] = bt_config.wallet.hotkey or os.environ.get("HOTKEY")
+
         values["AXON_PORT"] = bt_config.axon.port or int(os.environ.get("AXON_PORT"))
+        values["HF_TOKEN"] = os.environ.get("HF_TOKEN")
         values["ORGANIC_WHITELIST_HOTKEY"] = os.environ.get(
             "ORGANIC_WHITELIST_HOTKEY",
             # OTF hotkey.
             "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3"
         )
+        values["ORGANIC_TIMEOUT"] = os.environ.get("ORGANIC_TIMEOUT", 15)
+        values["ORGANIC_SAMPLE_SIZE"] = os.environ.get("ORGANIC_SAMPLE_SIZE", 5)
+        values["ORGANIC_REUSE_RESPONSE_DISABLED"] = os.environ.get("ORGANIC_REUSE_RESPONSE_DISABLED", False)
+        values["ORGANIC_REFERENCE_MAX_TOKENS"] = os.environ.get("ORGANIC_REFERENCE_MAX_TOKENS", 1024)
+        values["ORGANIC_SYNTH_REWARD_SCALE"] = os.environ.get("ORGANIC_SYNTH_REWARD_SCALE", 0.1)
+        values["ORGANIC_SET_WEIGHTS_ENABLED"] = os.environ.get("ORGANIC_SET_WEIGHTS_ENABLED", True)
+        values["ORGANIC_DISABLED"] = os.environ.get("ORGANIC_DISABLED", False)
+        values["ORGANIC_TRIGGER_FREQUENCY"] = os.environ.get("ORGANIC_TRIGGER_FREQUENCY", 120)
+        values["ORGANIC_TRIGGER_FREQUENCY_MIN"] = os.environ.get("ORGANIC_TRIGGER_FREQUENCY_MIN", 5)
+        values["ORGANIC_TRIGGER"] = os.environ.get("ORGANIC_TRIGGER", "seconds")
+        values["ORGANIC_SCALING_FACTOR"] = os.environ.get("ORGANIC_SCALING_FACTOR", 1)
+
 
         if values["TEST"] and os.environ.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
@@ -145,6 +160,3 @@ class Settings(BaseModel):
 
 
 settings: Settings
-
-settings = Settings(mode="validator")
-print(settings)

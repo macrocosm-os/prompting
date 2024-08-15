@@ -6,6 +6,9 @@ import time
 from prompting import settings
 settings.settings = settings.Settings(mode="validator")
 settings = settings.settings
+print(settings)
+
+import huggingface_hub
 from loguru import logger
 from prompting.llms.vllm_llm import vLLMPipeline
 from prompting.base.validator import BaseValidatorNeuron
@@ -54,12 +57,17 @@ class Validator(BaseValidatorNeuron):
             )
             return
 
+        huggingface_hub.login(settings.HF_TOKEN)
         dataset = SynthDatasetConversation()
         if dataset.exception is not None:
-            logger.error(f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}")
+            logger.error(
+                "Organic scoring on synthetic data is disabled. Failed to load HF dataset.\nMake sure to:\n"
+                "1. Accept License on: https://huggingface.co/datasets/lmsys/lmsys-chat-1m\n"
+                "2. Create HF Access Token: https://huggingface.co/settings/tokens\n"
+                "3. Set Access Token 'HF_TOKEN' in .env.validator\n"
+            )
             dataset = None
 
-        self._organic_scoring: OrganicScoringPrompting | None = None
         self._organic_scoring = OrganicScoringPrompting(
             axon=self.axon,
             synth_dataset=dataset,
@@ -69,6 +77,7 @@ class Validator(BaseValidatorNeuron):
             get_random_uids_fn=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
             lock=self._lock,
         )
+        # self._serve_axon()
         if self._organic_scoring is not None:
             self.loop.create_task(self._organic_scoring.start_loop())
 

@@ -44,12 +44,13 @@ class BaseLLM(ABC):
     def _forward(self, messages: list[dict[str, str]]): ...
 
     def clean_response(self, cleaner: CleanerPipeline, response: str) -> str:
+        clean_response = response
         if cleaner is not None:
             clean_response = cleaner.apply(generation=response)
             if clean_response != response:
                 logger.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
-        clean_response = cleaner.apply(generation=response)
-        if clean_response != response:
-            logger.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
+        # clean_response = cleaner.apply(generation=response)
+        # if clean_response != response:
+        #     logger.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
 
         return clean_response

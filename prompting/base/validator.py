@@ -59,8 +59,8 @@ class BaseValidatorNeuron(BaseNeuron):
     def _serve_axon(self):
         """Serve axon to enable external connections"""
         validator_uid = settings.METAGRAPH.hotkeys.index(settings.WALLET.hotkey.ss58_address)
-        logger.info(f"Serving validator IP of UID {validator_uid} to chain...")
         self.axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR).start()
+        logger.info(f"Serving validator UID {validator_uid} on {self.axon.ip}:{self.axon.port} to chain")
 
     def run(self):
         """
