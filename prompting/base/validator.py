@@ -23,7 +23,8 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def __init__(self, config=None):
         super().__init__(config=config)
-        init_wandb(neuron="validator")
+        if settings.WANDB_ON:
+            init_wandb(neuron="validator")
         self.axon: bt.axon | None = None
         self.latest_block = -1
 
