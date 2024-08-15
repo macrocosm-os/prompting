@@ -107,14 +107,12 @@ class Settings(BaseModel):
         values["ORGANIC_WHITELIST_HOTKEY"] = os.environ.get(
             "ORGANIC_WHITELIST_HOTKEY",
             # OTF hotkey.
-            "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3"
+            "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
         )
 
         if values["TEST"] and os.environ.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
-        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get(
-            "LLM_MODEL", "casperhansen/llama-3-70b-instruct-awq"
-        )
+        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get("LLM_MODEL", "casperhansen/llama-3-70b-instruct-awq")
         values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = os.environ.get("MAX_ALLOWED_VRAM_GB", 62)
         values["NEURON_GPUS"] = os.environ.get("NEURON_GPUS", 1)
 

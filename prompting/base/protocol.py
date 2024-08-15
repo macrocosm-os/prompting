@@ -3,6 +3,25 @@ import bittensor as bt
 from typing import List, AsyncIterator
 from starlette.responses import StreamingResponse
 
+# from prompting.tasks.date_qa import DateQuestionAnsweringTask
+# from prompting.tasks.qa import QuestionAnsweringTask
+# from prompting.tasks.summarization import SummarizationTask
+# from prompting.llms.model_zoo import ModelZoo
+# from prompting.tasks.inference import InferenceTask
+
+
+# class AvailabilitySynapse(bt.Synapse):
+#     """AvailabilitySynapse is a specialized implementation of the `Synapse` class used to allow miners to let validators know
+#     about their status/availability to server certain tasks"""
+
+#     task_availability: dict[str, bool] = {
+#         DateQuestionAnsweringTask.__name__: False,
+#         QuestionAnsweringTask.__name__: False,
+#         SummarizationTask.__name__: False,
+#         InferenceTask.__name__: False,
+#     }
+#     model_availabilities: dict[str, bool] = {model: False for model in ModelZoo.get_all_models()}
+
 
 class StreamPromptingSynapse(bt.StreamingSynapse):
     """
@@ -39,6 +58,13 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
     Note: While you can directly use the `StreamPromptingSynapse` class, it's designed to be extensible. Thus, you can create
     subclasses to further customize behavior for specific prompting scenarios or requirements.
     """
+
+    task: str = pydantic.Field(
+        ...,
+        title="Task",
+        description="The task for the current StreamPromptingSynapse object. This attribute is immutable.",
+        allow_mutation=False,
+    )
 
     roles: List[str] = pydantic.Field(
         ...,

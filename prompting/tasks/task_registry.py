@@ -1,4 +1,4 @@
-from prompting.tasks.base_task import BaseTask
+from prompting.tasks.base_task import BaseTextTask
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.date_qa import DateQuestionAnsweringTask, DateQARewardConfig
 from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
@@ -13,7 +13,7 @@ from loguru import logger
 
 
 class TaskConfig(BaseModel):
-    task: BaseTask.__class__
+    task: BaseTextTask.__class__
     probability: float
     datasets: list[BaseDataset.__class__]
     reward_model: BaseRewardConfig.__class__
@@ -39,20 +39,25 @@ class TaskRegistry(BaseModel):
         return selected_task
 
     @classmethod
-    def get_task_datasets(cls, task: BaseTask.__class__) -> BaseDataset.__class__:
+    def get_task_datasets(cls, task: BaseTextTask.__class__ | BaseTextTask) -> BaseDataset.__class__:
+        task_class = task.__class__ if isinstance(task, BaseTextTask) else task
         try:
-            return [t.datasets for t in cls.task_configs if task is t.task][0]
+            return [t.datasets for t in cls.task_configs if task_class is t.task][0]
         except Exception:
             logger.error("Tried accessing non-registered task")
             return []
 
     @classmethod
-    def get_random_task_dataset(cls, task: BaseTask.__class__) -> BaseDataset.__class__:
+    def get_random_task(cls) -> BaseTextTask:
+        return cls.random().task()
+
+    @classmethod
+    def get_random_task_dataset(cls, task: BaseTextTask.__class__ | BaseTextTask) -> BaseDataset.__class__:
         return random.choice(cls.get_task_datasets(task))
 
     @classmethod
-    def get_task_reward(cls, task: BaseTask | BaseTask.__class__) -> BaseRewardConfig.__class__:
-        task_class = task.__class__ if isinstance(task, BaseTask) else task
+    def get_task_reward(cls, task: BaseTextTask | BaseTextTask.__class__) -> BaseRewardConfig.__class__:
+        task_class = task.__class__ if isinstance(task, BaseTextTask) else task
         try:
             return [t.reward_model for t in cls.task_configs if task_class is t.task][0]
         except Exception:
@@ -60,7 +65,7 @@ class TaskRegistry(BaseModel):
             return []
 
     @classmethod
-    def create_random_task_with_dataset(cls) -> tuple[BaseTask.__class__, BaseDataset]:
+    def create_random_task_with_dataset(cls) -> tuple[BaseTextTask, BaseDataset]:
         task_config = cls.random()
         dataset = cls.get_random_task_dataset(task_config.task)
-        return task_config.task, dataset()
+        return task_config.task(), dataset()

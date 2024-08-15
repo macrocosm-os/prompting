@@ -12,7 +12,7 @@ from prompting.base.miner import BaseStreamMinerNeuron
 from prompting.base.protocol import StreamPromptingSynapse
 from neurons.miners.openai.utils import OpenAIUtils
 from starlette.types import Send
-from prompting.utils.logging import ErrorEvent, log_event
+from prompting.utils.logging import ErrorLoggingEvent, log_event
 
 MODEL_ID: str = "gpt-3.5-turbo"
 NEURON_MAX_TOKENS: int = 256
@@ -117,7 +117,7 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
             except Exception as e:
                 logger.exception(e)
                 logger.error(f"Error in forward: {e}")
-                log_event(ErrorEvent(error=str(e)))
+                log_event(ErrorLoggingEvent(error=str(e)))
                 if NEURON_STOP_ON_FORWARD_EXCEPTION:
                     self.should_exit = True
 

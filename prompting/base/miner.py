@@ -8,7 +8,7 @@ from prompting.settings import settings
 from loguru import logger
 from pydantic import BaseModel, model_validator, ConfigDict
 from typing import Tuple
-from prompting.utils.logging import init_wandb, MinerEvent, log_event
+from prompting.utils.logging import init_wandb, MinerLoggingEvent, log_event
 
 
 class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
@@ -269,7 +269,7 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
         accumulated_chunks_timings: list[float] = [],
     ):
         dendrite_uid = settings.METAGRAPH.hotkeys.index(synapse.dendrite.hotkey)
-        event = MinerEvent(
+        event = MinerLoggingEvent(
             epoch_time=timing,
             messages=messages,
             accumulated_chunks=accumulated_chunks,

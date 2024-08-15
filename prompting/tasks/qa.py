@@ -1,6 +1,6 @@
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
-from prompting.tasks.base_task import BaseTask
+from prompting.tasks.base_task import BaseTextTask
 from prompting.rewards.reward import WeightedRewardModel
 
 # from prompting.rewards.reward import BaseRewardModel
@@ -10,7 +10,6 @@ from prompting.datasets.base import Context
 from prompting.rewards.reward import BaseRewardConfig
 from typing import ClassVar
 
-# TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 
 # Used to instruct the LLM to provide a good query when given a context
 QUERY_SYSTEM_PROMPT = """\
@@ -43,8 +42,6 @@ Answer the question you will receive in detail, utilizing the following context.
 {question}
 """
 
-# TODO: We also need a special followup reference prompt (or just merge both)
-# TODO: We should create followups using the specified llama3 chat template rather than feeding the message history through textually
 FOLLOWUP_REFERENCE_PROMPT_TEMPLATE = """\
 You are a helpful assistant. Answer the question below in detail, prioritizing the use of the provided conversation history. The context is available for additional information if needed, but it may not always be relevant.
 
@@ -71,7 +68,7 @@ class QARewardConfig(BaseRewardConfig):
     ]
 
 
-class QuestionAnsweringTask(BaseTask):
+class QuestionAnsweringTask(BaseTextTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
 
@@ -86,11 +83,15 @@ class QuestionAnsweringTask(BaseTask):
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     reference_system_prompt: ClassVar[str] = REFERENCE_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
+    query: str | None = None
+    reference: str | None = None
 
-    @classmethod
-    def generate_query_reference(cls, llm_pipeline, context: Context):
+    def make_query(self, llm_pipeline, context: Context):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
-        query = cls.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
-        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content, question=query)
-        reference = cls.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
-        return query, reference
+        self.query = self.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
+        return self.query
+
+    def make_reference(self, llm_pipeline, context: Context):
+        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content, question=self.query)
+        self.reference = self.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
+        return self.reference

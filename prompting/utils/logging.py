@@ -89,9 +89,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
     # wandb_config = {key: copy.deepcopy(self.config.get(key, None)) for key in ("neuron", "reward", "netuid", "wandb")}
     # wandb_config["neuron"].pop("full_path", None)
     wandb.login(anonymous="allow", key=settings.WANDB_API_KEY, verify=True)
-    logger.info(
-        f"Logging in to wandb on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}"
-    )
+    logger.info(f"Logging in to wandb on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}")
     WANDB = wandb.init(
         reinit=reinit,
         project=settings.WANDB_PROJECT_NAME,
@@ -110,25 +108,32 @@ def reinit_wandb(self):
     init_wandb(self, reinit=True)
 
 
-class ErrorEvent(BaseModel):
+class ErrorLoggingEvent(BaseModel):
     error: str
     forward_time: float | None = None
 
 
-class ValidatorEvent(BaseModel):
-    best: str
+class ValidatorLoggingEvent(BaseModel):
     block: int
     step: int
     step_time: float
-    reward_events: list[WeightedRewardEvent]
-    penalty_events: list[WeightedRewardEvent]
     response_event: DendriteResponseEvent
     forward_time: float | None = None
+    task_id: str
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class MinerEvent(BaseModel):
+class RewardLoggingEvent(BaseModel):
+    best: str
+    reward_events: list[WeightedRewardEvent]
+    penalty_events: list[WeightedRewardEvent]
+    task_id: str
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class MinerLoggingEvent(BaseModel):
     epoch_time: float
     messages: int
     accumulated_chunks: int
@@ -145,7 +150,7 @@ class MinerEvent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
+def log_event(event: ValidatorLoggingEvent | MinerLoggingEvent | ErrorLoggingEvent):
     if not settings.LOGGING_DONT_SAVE_EVENTS:
         logger.info(f"{event}")
 

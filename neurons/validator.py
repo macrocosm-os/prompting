@@ -1,9 +1,9 @@
 # ruff: noqa: E402
-import numpy as np
 import asyncio
 import time
 
 from prompting import settings
+
 settings.settings = settings.Settings(mode="validator")
 settings = settings.settings
 from loguru import logger
@@ -13,10 +13,9 @@ from neurons.forward import log_stream_results, handle_response
 from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_random_uids
-from prompting.tasks.base_task import BaseTask
-from prompting.datasets.base import BaseDataset
 from prompting.utils.logging import log_event
-from prompting.utils.logging import ValidatorEvent, ErrorEvent
+from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
+from prompting.rewards.scoring import scoring_manager
 
 try:
     from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
@@ -73,8 +72,8 @@ class Validator(BaseValidatorNeuron):
             self.loop.create_task(self._organic_scoring.start_loop())
 
     async def run_step(
-        self, task: BaseTask, dataset: BaseDataset, k: int, timeout: float, exclude: list = None
-    ) -> ValidatorEvent | ErrorEvent | None:
+        self, k: int, timeout: float, exclude: list = None
+    ) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
         """Executes a single step of the agent, which consists of:
         - Getting a list of uids to query
         - Querying the network
@@ -90,13 +89,24 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
+
+        while True:
+            logger.info(f"📋 Selecting task... from {TaskRegistry.task_configs}")
+            try:
+                task, dataset = TaskRegistry.create_random_task_with_dataset()
+                break
+            except Exception as ex:
+                logger.exception(ex)
+
         try:
             logger.debug("run_step", task.__class__.__name__)
             if not (dataset_entry := dataset.random()):
                 logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
                 return None
             # Generate the query and reference for the task
-            query, reference = task.generate_query_reference(self.llm_pipeline, dataset_entry)
+            # query, reference = task.generate_query_reference(self.llm_pipeline, dataset_entry)
+            query = task.make_query(llm_pipeline=self.llm_pipeline, context=dataset_entry)
+            """query = Task.generate_query(self.llm_pipeline, dataset_entry)"""
             # task.generate_reference(self.llm_pipeline)
 
             # Record event start time.
@@ -110,7 +120,7 @@ class Validator(BaseValidatorNeuron):
             # Directly call dendrite and process responses in parallel
             streams_responses = await self.dendrite(
                 axons=axons,
-                synapse=StreamPromptingSynapse(roles=["user"], messages=[query]),
+                synapse=StreamPromptingSynapse(task=task.__name__, roles=["user"], messages=[query]),
                 timeout=timeout,
                 deserialize=False,
                 streaming=True,
@@ -130,30 +140,32 @@ class Validator(BaseValidatorNeuron):
 
             # Reward the responses and get the reward result (dataclass)
             # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
-            reward_pipeline = TaskRegistry.get_task_reward(task)
-            reward_events, penalty_events, rewards = reward_pipeline.apply(
-                response_event=response_event, reference=reference, challenge=query
-            )
+            """reward_queue.append(Task, response_event)"""
 
-            logger.info(f"Created RewardResult:\n {rewards}")
+            # scoring_manager will score the responses as and when the correct model is loaded
+            scoring_manager.add_to_queue(task, response_event)
+            # reward_pipeline = TaskRegistry.get_task_reward(task)
+            # reward_events, penalty_events, rewards = reward_pipeline.apply(
+            #     response_event=response_event, reference=reference, challenge=query
+            # )
 
-            best_response = response_event.completions[np.argmax(rewards)]
+            # logger.info(f"Created RewardResult:\n {rewards}")
 
-            self.update_scores(rewards, uids)
+            # best_response = response_event.completions[np.argmax(rewards)]
+
+            # self.update_scores(rewards, uids)
 
             # Log the step event.
-            return ValidatorEvent(
-                best=best_response or "",
+            return ValidatorLoggingEvent(
                 block=self.block,
                 step=self.step,
                 step_time=time.time() - start_time,
-                reward_events=reward_events or [],
-                penalty_events=penalty_events or [],
                 response_event=response_event,
+                task_id=task.task_id,
             )
         except Exception as ex:
             logger.exception(ex)
-            return ErrorEvent(
+            return ErrorLoggingEvent(
                 error=str(ex),
             )
 
@@ -165,23 +177,11 @@ class Validator(BaseValidatorNeuron):
         logger.info("🚀 Starting forward loop...")
         forward_start_time = time.time()
 
-        while True:
-            logger.info(f"📋 Selecting task... from {TaskRegistry.task_configs}")
-            task_config = TaskRegistry.random()
-            logger.info(f"📋 Creating {task_config.task.__name__} task... ")
-            try:
-                task, dataset = TaskRegistry.create_random_task_with_dataset()
-                break
-            except Exception as ex:
-                logger.exception(ex)
-
         exclude_uids = []
 
         # when run_step is called, the agent updates its progress
         async with self._lock:
             event = await self.run_step(
-                task=task,
-                dataset=dataset,
                 k=NEURON_SAMPLE_SIZE,
                 timeout=settings.NEURON_TIMEOUT,
                 exclude=exclude_uids,

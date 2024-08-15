@@ -1,4 +1,4 @@
-from prompting.tasks.base_task import BaseTask
+from prompting.tasks.base_task import BaseTextTask
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
@@ -20,7 +20,7 @@ class OrganicRewardConfig(BaseRewardConfig):
     ]
 
 
-class OrganicTask(BaseTask):
+class OrganicTask(BaseTextTask):
     """Task with defined reward and penalty mechanisms for organic prompts."""
 
     cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline()

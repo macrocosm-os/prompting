@@ -2,7 +2,7 @@ from typing import ClassVar
 
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.date import DateRewardModel
-from prompting.tasks.base_task import BaseTask
+from prompting.tasks.base_task import BaseTextTask
 from prompting.llms.base_llm import BasePipeline
 from prompting.utils.cleaners import RemoveTags, FirstQuestion, CleanerPipeline
 from prompting.datasets.wiki import DateContext
@@ -29,17 +29,21 @@ class DateQARewardConfig(BaseRewardConfig):
     ]
 
 
-class DateQuestionAnsweringTask(BaseTask):
+class DateQuestionAnsweringTask(BaseTextTask):
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline(cleaning_pipeline=[RemoveTags(), FirstQuestion()])
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
+    query: str | None = None
+    reference: str | None = None
 
-    @classmethod
-    def generate_query_reference(cls, llm_pipeline: BasePipeline, context: DateContext):
+    def make_query(self, llm_pipeline: BasePipeline, context: DateContext, **kwargs) -> str:
         query_prompt = QUERY_PROMPT_TEMPLATE.format(content=context.content, topic=context.topic)
-        query = cls.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
+        self.query = self.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
+        return self.reference
 
-        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date=context.date, query=query, content=context.content)
-        reference = cls.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
-
-        return query, reference
+    def make_reference(self, llm_pipeline, context: DateContext) -> str:
+        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
+            date=context.date, query=self.query, content=context.content
+        )
+        self.reference = self.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
+        return self.reference
