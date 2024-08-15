@@ -48,17 +48,16 @@ class Settings(BaseModel):
 
     # ORGANIC
     ORGANIC_TIMEOUT: int = 15
-    ORGANIC_SAMPLE_SIZE: int = 5  # Replace with the actual default value
-    ORGANIC_REUSE_RESPONSE_DISABLED: bool = False  # Boolean default value
-    ORGANIC_REFERENCE_MAX_TOKENS: int = 1024  # Replace with the actual default value
-    ORGANIC_SYNTH_REWARD_SCALE: float = 0.1  # Replace with the actual default value
-    ORGANIC_SET_WEIGHTS_ENABLED: bool = True  # Boolean default value
+    ORGANIC_SAMPLE_SIZE: int = 5
+    ORGANIC_REUSE_RESPONSE_DISABLED: bool = False
+    ORGANIC_REFERENCE_MAX_TOKENS: int = 1024
+    ORGANIC_SYNTH_REWARD_SCALE: float = 0.1
+    ORGANIC_SET_WEIGHTS_ENABLED: bool = True
     ORGANIC_DISABLED: bool = False
     ORGANIC_TRIGGER_FREQUENCY: int = 120
     ORGANIC_TRIGGER_FREQUENCY_MIN: int = 5
     ORGANIC_TRIGGER: str = "seconds"
     ORGANIC_SCALING_FACTOR: int = 1
-    LOG_FULL: bool = False  # Boolean default value
     HF_TOKEN: Optional[str] = None
 
     # ADDITIONAL FIELDS FROM model_validator

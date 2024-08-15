@@ -79,7 +79,6 @@ class Validator(BaseValidatorNeuron):
             get_random_uids_fn=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
             lock=self._lock,
         )
-        # self._serve_axon()
         if self._organic_scoring is not None:
             self.loop.create_task(self._organic_scoring.start_loop())
 

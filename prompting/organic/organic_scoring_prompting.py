@@ -54,7 +54,6 @@ class OrganicScoringPrompting(OrganicScoringBase):
     ):
         stream_results = list(responses.values())
         uids = np.asarray(responses.keys())
-        # uids = torch.tensor(uids_list)
         timeout = settings.ORGANIC_TIMEOUT
         response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
         _, _, rewards = OrganicRewardConfig.apply(
