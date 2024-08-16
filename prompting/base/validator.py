@@ -23,7 +23,8 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def __init__(self, config=None):
         super().__init__(config=config)
-        init_wandb(neuron="validator")
+        if settings.WANDB_ON:
+            init_wandb(neuron="validator")
         self.axon: bt.axon | None = None
         self.latest_block = -1
 
@@ -59,8 +60,8 @@ class BaseValidatorNeuron(BaseNeuron):
     def _serve_axon(self):
         """Serve axon to enable external connections"""
         validator_uid = settings.METAGRAPH.hotkeys.index(settings.WALLET.hotkey.ss58_address)
-        logger.info(f"Serving validator IP of UID {validator_uid} to chain...")
         self.axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR).start()
+        logger.info(f"Serving validator UID {validator_uid} on {self.axon.ip}:{self.axon.port} to chain")
 
     def run(self):
         """
