@@ -2,6 +2,7 @@ import asyncio
 import copy
 import sys
 import threading
+import pandas as pd
 from traceback import print_exception
 
 import bittensor as bt
@@ -235,6 +236,18 @@ class BaseValidatorNeuron(BaseNeuron):
             wait_for_inclusion=False,
             version_key=__spec_version__,
         )
+
+        # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
+        if settings.LOG_WEIGHTS:
+            weights_df = pd.DataFrame({
+            'uids': uint_uids,
+            'weights': uint_weights,
+            'block': self.block,
+            })
+            # Save the dataframe as a CSV file with the current step as the filename.
+            step_filename = f"weights_step_{self.step}.csv"
+            weights_df.to_csv(step_filename, index=False)
+
         if result is True:
             logger.info("set_weights on chain successfully!")
         else:
