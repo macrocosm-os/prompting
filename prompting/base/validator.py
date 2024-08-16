@@ -240,9 +240,9 @@ class BaseValidatorNeuron(BaseNeuron):
         # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
         if settings.LOG_WEIGHTS:
             weights_df = pd.DataFrame({
-            'uids': uint_uids,
-            'weights': uint_weights,
-            'block': self.block,
+                "uids": uint_uids,
+                "weights": uint_weights,
+                "block": self.block,
             })
             # Save the dataframe as a CSV file with the current step as the filename.
             step_filename = f"weights_step_{self.step}.csv"
