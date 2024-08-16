@@ -124,7 +124,7 @@ class Settings(BaseModel):
         values["ORGANIC_TRIGGER"] = os.environ.get("ORGANIC_TRIGGER", "seconds")
         values["ORGANIC_SCALING_FACTOR"] = os.environ.get("ORGANIC_SCALING_FACTOR", 1)
 
-
+        values["LOG_WEIGHTS"] = os.environ.get("LOG_WEIGHTS", False)
         if values["TEST"] and os.environ.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
         values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get(
