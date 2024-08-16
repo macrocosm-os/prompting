@@ -26,14 +26,14 @@ class OrganicTask(BaseTask):
     cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline()
 
     @classmethod
-    async def generate_reference(cls, sample: dict[str, Any], pipeline: BasePipeline) -> str:
+    async def generate_reference(cls, messages: list[str], roles: list[str], pipeline: BasePipeline) -> str:
         """Generate reference for the given organic or synthetic sample."""
         reference = vLLM_LLM(
             llm_pipeline=pipeline,
             system_prompt=CHATTENSOR_SYSTEM_PROMPT(),
             max_new_tokens=settings.ORGANIC_REFERENCE_MAX_TOKENS,
         ).query_conversation(
-            messages=sample["messages"],
-            roles=sample["roles"],
+            messages=messages,
+            roles=roles,
         )
         return cls.cleaning_pipeline.apply(reference)

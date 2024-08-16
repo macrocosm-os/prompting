@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+from dataclasses import dataclass
 from functools import partial
 from typing import Any, AsyncGenerator, Callable, Optional, Sequence, Tuple, Union
 
@@ -16,11 +17,22 @@ from transformers import PreTrainedTokenizerFast
 from typing_extensions import override
 
 from neurons.forward import handle_response
-from prompting.settings import settings
-from prompting.base.dendrite import SynapseStreamResult, DendriteResponseEvent
+from prompting.base.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.llms.vllm_llm import vLLMPipeline
 from prompting.organic.organic_task import OrganicRewardConfig, OrganicTask
+from prompting.settings import settings
+
+# TODO: Implement Sample dataclass for SynthDatasets, Queues, and OrganicScoringBase methods.
+# Fields: "messages", "roles", "uids", "is_organic", "completions".
+SAMPLE_TYPE = dict[str, Union[list[str], bool, list[int], dict[int, dict[str, Any]]]]
+
+
+@dataclass
+class RewardResult:
+    rewards: list[float]
+    uids: list[int]
+    is_organic: bool
 
 
 class OrganicScoringPrompting(OrganicScoringBase):
@@ -50,8 +62,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
         self._lock = lock
 
     async def _generate_rewards(
-        self, sample: dict[str, Any], responses: dict[str, SynapseStreamResult], reference: str
-    ):
+        self, sample: SAMPLE_TYPE, responses: dict[str, SynapseStreamResult], reference: str
+    ) -> RewardResult:
         stream_results = list(responses.values())
         uids = np.asarray(responses.keys())
         timeout = settings.ORGANIC_TIMEOUT
@@ -61,11 +73,11 @@ class OrganicScoringPrompting(OrganicScoringBase):
             reference=reference,
             challenge=sample["messages"][-1]
         )
-        return {
-            "rewards": rewards,
-            "uids": list(responses.keys()),
-            "is_organic": sample.get("is_organic", False),
-        }
+        return RewardResult(
+            rewards=rewards,
+            uids=list(responses.keys()),
+            is_organic=sample.get("is_organic", False),
+        )
 
     @override
     async def _priority_fn(self, synapse: StreamPromptingSynapse) -> float:
@@ -106,7 +118,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                 "completions": completions,
             }
         )
-        logger.info(f"Message: {synapse.messages}; Comp: {completions}")
+        logger.debug(f"Message: {synapse.messages}; Completions: {completions}")
         return streaming_response
 
     async def _stream_miner_response(
@@ -153,8 +165,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
                         )
                     elif isinstance(chunk, StreamPromptingSynapse):
                         synapse = chunk
-                except Exception as e:
-                    logger.exception(f"[Organic] Error while streaming chunks")
+                except Exception:
+                    logger.exception("[Organic] Error while streaming chunks")
                     break
             # TODO: Do we need to identify the end of each miner's response?
             # json_chunk = json.dumps({"uid": uid, "chunk": b"", "completed": True})
@@ -173,7 +185,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
             return_exceptions=True,
         )
 
-    async def _reuse_organic_response(self, sample: dict[str, Any]) -> dict[int, SynapseStreamResult]:
+    async def _reuse_organic_response(self, sample: SAMPLE_TYPE) -> dict[int, SynapseStreamResult]:
         """Return a dictionary where the keys are miner UIDs and the values are their corresponding streaming responses.
 
         This method reuses miner responses for organic data. It waits for each miner to complete within the
@@ -190,7 +202,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         responses: dict[int, SynapseStreamResult] = {}
         logger.info(f"[Organic] Reusing miner responses for organic data, UIDs: {uids}")
 
-        async def _check_completion(sample: dict[str, Any], uid: int):
+        async def _check_completion(sample: SAMPLE_TYPE, uid: int):
             while not sample["completions"][uid]["completed"]:
                 await asyncio.sleep(0.01)
 
@@ -220,9 +232,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
         return responses
 
     @override
-    async def _query_miners(self, sample: dict[str, Any]) -> dict[str, SynapseStreamResult]:
+    async def _query_miners(self, sample: SAMPLE_TYPE) -> dict[str, SynapseStreamResult]:
         """Query miners with the given synthetic or organic sample."""
-        if sample.get("organic", False) and not settings.ORGANIC_REUSE_RESPONSE_DISABLED:
+        if sample.get("is_organic", False) and not settings.ORGANIC_REUSE_RESPONSE_DISABLED:
             responses = await self._reuse_organic_response(sample)
             return responses
 
@@ -243,15 +255,15 @@ class OrganicScoringPrompting(OrganicScoringBase):
         return dict(zip(uids, responses))
 
     @override
-    async def _set_weights(self, reward_result: dict[str, Any]):
+    async def _set_weights(self, reward_result: RewardResult):
         """Set weights based on the given reward."""
-        if not reward_result.get("is_organic", False):
-            reward_result["rewards"] *= settings.ORGANIC_SYNTH_REWARD_SCALE
+        if not reward_result.is_organic:
+            reward_result.rewards *= settings.ORGANIC_SYNTH_REWARD_SCALE
 
-        self._update_scores_fn(reward_result["rewards"], reward_result["uids"])
+        self._update_scores_fn(reward_result.rewards, reward_result.uids)
 
     @override
-    async def _generate_reference(self, sample: dict[str, Any]) -> str:
+    async def _generate_reference(self, sample: SAMPLE_TYPE) -> str:
         """Generate reference for the given organic or synthetic sample."""
-        reference = await OrganicTask.generate_reference(sample, self._llm_pipeline)
+        reference = await OrganicTask.generate_reference(sample["messages"], sample["roles"], self._llm_pipeline)
         return reference
