@@ -104,6 +104,7 @@ class Settings(BaseModel):
         values["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY")
         values["WALLET_NAME"] = bt_config.wallet.name or os.environ.get("WALLET_NAME")
         values["HOTKEY"] = bt_config.wallet.hotkey or os.environ.get("HOTKEY")
+        values["NEURON_DISABLE_SET_WEIGHTS"] = os.environ.get("NEURON_DISABLE_SET_WEIGHTS", False)
 
         values["AXON_PORT"] = bt_config.axon.port or int(os.environ.get("AXON_PORT"))
         values["HF_TOKEN"] = os.environ.get("HF_TOKEN")

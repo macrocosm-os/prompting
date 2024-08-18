@@ -60,6 +60,7 @@ class BaseNeuron(ABC):
             self.resync_metagraph()
 
         if self.should_set_weights():
+            logger.debug(f"Setting weights...")
             self.set_weights()
 
         # Always save state.
@@ -92,6 +93,7 @@ class BaseNeuron(ABC):
 
         # Check if enough epoch blocks have elapsed since the last epoch.
         if settings.NEURON_DISABLE_SET_WEIGHTS:
+            logger.debug(f"Set weights disabled: {settings.NEURON_DISABLE_SET_WEIGHTS}")
             return False
 
         # If neuron has validator permit we assume its running the validator code. If it is a dual permit neuron then we check that it also has a set_weights method (only true if it is running validator neuron)
