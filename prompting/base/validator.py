@@ -237,8 +237,8 @@ class BaseValidatorNeuron(BaseNeuron):
             step_filename = f"weights_step_{self.step}.csv"
             weights_df.to_csv(step_filename, index=False)
 
-        logger.debug(f"Set weights disabled: {settings.NEURON_DISABLE_SET_WEIGHTS}")
         if settings.NEURON_DISABLE_SET_WEIGHTS:
+            logger.debug(f"Set weights disabled: {settings.NEURON_DISABLE_SET_WEIGHTS}")
             return
 
         # Set the weights on chain via our subtensor connection.
