@@ -34,6 +34,7 @@ class Settings(BaseModel):
 
     # LOGGING
     LOGGING_DONT_SAVE_EVENTS: bool = False
+    LOG_WEIGHTS: bool = False
 
     # NEURON PARAMETERS
     NEURON_TIMEOUT: int = 15

@@ -226,17 +226,6 @@ class BaseValidatorNeuron(BaseNeuron):
         logger.debug("uint_weights", uint_weights)
         logger.debug("uint_uids", uint_uids)
 
-        # Set the weights on chain via our subtensor connection.
-        result = settings.SUBTENSOR.set_weights(
-            wallet=settings.WALLET,
-            netuid=settings.NETUID,
-            uids=uint_uids,
-            weights=uint_weights,
-            wait_for_finalization=False,
-            wait_for_inclusion=False,
-            version_key=__spec_version__,
-        )
-
         # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
         if settings.LOG_WEIGHTS:
             weights_df = pd.DataFrame({
@@ -247,6 +236,21 @@ class BaseValidatorNeuron(BaseNeuron):
             # Save the dataframe as a CSV file with the current step as the filename.
             step_filename = f"weights_step_{self.step}.csv"
             weights_df.to_csv(step_filename, index=False)
+
+        logger.debug(f"Set weights disabled: {settings.NEURON_DISABLE_SET_WEIGHTS}")
+        if settings.NEURON_DISABLE_SET_WEIGHTS:
+            return
+
+        # Set the weights on chain via our subtensor connection.
+        result = settings.SUBTENSOR.set_weights(
+            wallet=settings.WALLET,
+            netuid=settings.NETUID,
+            uids=uint_uids,
+            weights=uint_weights,
+            wait_for_finalization=False,
+            wait_for_inclusion=False,
+            version_key=__spec_version__,
+        )
 
         if result is True:
             logger.info("set_weights on chain successfully!")
