@@ -46,7 +46,6 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
         async def _forward(
             self: "OpenAIMiner",
             synapse: StreamPromptingSynapse,
-            init_time: float,
             timeout_threshold: float,
             send: Send,
         ):
@@ -85,7 +84,7 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
 
                     buffer.append(chunk_content)
 
-                    if time.time() - init_time > timeout_threshold:
+                    if time.time() - start_time > timeout_threshold:
                         logger.debug("⏰ Timeout reached, stopping streaming")
                         timeout_reached = True
                         break
@@ -122,7 +121,7 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
                     self.should_exit = True
 
             finally:
-                synapse_latency = time.time() - init_time
+                synapse_latency = time.time() - start_time
                 self.log_event(
                     synapse=synapse,
                     timing=synapse_latency,
@@ -135,14 +134,12 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
             f"📧 Message received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}; \nForwarding synapse: {synapse}"
         )
 
-        init_time = time.time()
         timeout_threshold = synapse.timeout
 
         token_streamer = partial(
             _forward,
             self,
             synapse,
-            init_time,
             timeout_threshold,
         )
 

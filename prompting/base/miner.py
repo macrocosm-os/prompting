@@ -258,7 +258,6 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
         caller_uid = settings.METAGRAPH.hotkeys.index(synapse.dendrite.hotkey)  # Get the caller index.
         priority = float(settings.METAGRAPH.S[caller_uid])  # Return the stake as the priority.
         logger.trace(f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority)
-        # priority = 1.0
         return priority
 
     def log_event(
