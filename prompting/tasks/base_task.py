@@ -8,6 +8,7 @@ from prompting.utils.cleaners import CleanerPipeline
 from typing import ClassVar
 from prompting.datasets.base import Context
 from abc import abstractmethod
+from prompting.settings import settings
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -70,7 +71,7 @@ class BaseTask(ABC, BaseModel):
             return query
         challenge = vLLM_LLM(
             llm_pipeline=llm_pipeline,
-            max_new_tokens=256,
+            max_new_tokens=settings.NEURON_MAX_TOKENS,
             system_prompt=cls.augmentation_system_prompt,
         ).query(message=query)
         return challenge

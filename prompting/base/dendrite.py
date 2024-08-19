@@ -71,20 +71,3 @@ class DendriteResponseEvent(BaseModel):
             self.stream_results_all_chunks.append(stream_result.accumulated_chunks)
             self.stream_results_all_chunks_timings.append(stream_result.accumulated_chunks_timings)
             self.stream_results_all_tokens_per_chunk.append(stream_result.tokens_per_chunk)
-
-    # def __state_dict__(self):
-    #     return {
-    #         "uids": self.uids,
-    #         "completions": self.completions,
-    #         "timings": self.timings,
-    #         "status_messages": self.status_messages,
-    #         "status_codes": self.status_codes,
-    #         "stream_results_uids": self.stream_results_uids,
-    #         "stream_results_exceptions": self.stream_results_exceptions,
-    #         "stream_results_all_chunks": self.stream_results_all_chunks,
-    #         "stream_results_all_chunks_timings": self.stream_results_all_chunks_timings,
-    #         "stream_results_all_tokens_per_chunk": self.stream_results_all_tokens_per_chunk,
-    #     }
-
-    # def __repr__(self):
-    #     return f"DendriteResponseEvent(uids={self.uids}, completions={self.completions}, timings={self.timings}, status_messages={self.status_messages}, status_codes={self.status_codes})"

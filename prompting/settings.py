@@ -45,6 +45,7 @@ class Settings(BaseModel):
     NEURON_QUERY_UNIQUE_COLDKEYS: bool = False
     NEURON_QUERY_UNIQUE_IPS: bool = False
     NEURON_FORWARD_MAX_TIME: int = 120
+    NEURON_MAX_TOKENS: int = 256
 
     # ORGANIC
     ORGANIC_TIMEOUT: int = 15
@@ -110,7 +111,7 @@ class Settings(BaseModel):
         values["ORGANIC_WHITELIST_HOTKEY"] = os.environ.get(
             "ORGANIC_WHITELIST_HOTKEY",
             # OTF hotkey.
-            "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3"
+            "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
         )
         values["ORGANIC_TIMEOUT"] = os.environ.get("ORGANIC_TIMEOUT", 15)
         values["ORGANIC_SAMPLE_SIZE"] = os.environ.get("ORGANIC_SAMPLE_SIZE", 5)
@@ -127,16 +128,14 @@ class Settings(BaseModel):
         values["LOG_WEIGHTS"] = os.environ.get("LOG_WEIGHTS", False)
         if values["TEST"] and os.environ.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
-        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get(
-            "LLM_MODEL", "casperhansen/llama-3-70b-instruct-awq"
-        )
+        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get("LLM_MODEL", "casperhansen/llama-3-70b-instruct-awq")
         values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = os.environ.get("MAX_ALLOWED_VRAM_GB", 62)
         values["NEURON_GPUS"] = os.environ.get("NEURON_GPUS", 1)
-        
-
 
         if os.environ.get("SUBTENSOR_NETWORK") == "local":
-            values["SUBTENSOR_NETWORK"] = bt_config.subtensor.chain_endpoint or os.environ.get("SUBTENSOR_CHAIN_ENDPOINT")
+            values["SUBTENSOR_NETWORK"] = bt_config.subtensor.chain_endpoint or os.environ.get(
+                "SUBTENSOR_CHAIN_ENDPOINT"
+            )
         else:
             values["SUBTENSOR_NETWORK"] = bt_config.subtensor.network or os.environ.get("SUBTENSOR_NETWORK")
 

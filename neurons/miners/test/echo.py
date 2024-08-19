@@ -3,7 +3,6 @@ import typing
 from functools import partial
 from starlette.types import Send
 
-# Bittensor Miner Template:
 from prompting.base.protocol import StreamPromptingSynapse
 
 # import base miner class which takes care of most of the boilerplate
