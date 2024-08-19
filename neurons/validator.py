@@ -7,7 +7,6 @@ from prompting import settings
 settings.settings = settings.Settings(mode="validator")
 settings = settings.settings
 from loguru import logger
-from prompting.llms.vllm_llm import vLLMPipeline
 from prompting.base.validator import BaseValidatorNeuron
 from neurons.forward import log_stream_results, handle_response
 from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
@@ -17,13 +16,13 @@ from prompting.utils.logging import log_event
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from prompting.rewards.scoring import scoring_manager
 
-try:
-    from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
-    from organic_scoring.synth_dataset import SynthDatasetConversation
-except ImportError:
-    raise ImportError(
-        "Could not import organic-scoring library.  Please install via poetry: `poetry install --extras 'validator'`"
-    )
+# try:
+#     from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
+#     from organic_scoring.synth_dataset import SynthDatasetConversation
+# except ImportError:
+#     raise ImportError(
+#         "Could not import organic-scoring library.  Please install via poetry: `poetry install --extras 'validator'`"
+#     )
 
 NEURON_SAMPLE_SIZE = 100
 
@@ -39,37 +38,37 @@ class Validator(BaseValidatorNeuron):
         self.load_state()
         self._lock = asyncio.Lock()
 
-        self.llm_pipeline = vLLMPipeline(
-            llm_model_id=settings.NEURON_MODEL_ID_VALIDATOR,
-            gpus=settings.NEURON_GPUS,
-            llm_max_allowed_memory_in_gb=settings.NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB,
-            device=self.device,
-            mock=settings.MOCK,
-        )
+        # self.llm_pipeline = vLLMPipeline(
+        #     llm_model_id=settings.NEURON_MODEL_ID_VALIDATOR,
+        #     gpus=settings.NEURON_GPUS,
+        #     llm_max_allowed_memory_in_gb=settings.NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB,
+        #     device=self.device,
+        #     mock=settings.MOCK,
+        # # )
 
-        if self.axon is None or settings.ORGANIC_DISABLED:
-            logger.warning(
-                "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
-            )
-            return
+        # if self.axon is None or settings.ORGANIC_DISABLED:
+        #     logger.warning(
+        #         "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
+        #     )
+        #     return
 
-        dataset = SynthDatasetConversation()
-        if dataset.exception is not None:
-            logger.error(f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}")
-            dataset = None
+        # dataset = SynthDatasetConversation()
+        # if dataset.exception is not None:
+        #     logger.error(f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}")
+        #     dataset = None
 
-        self._organic_scoring: OrganicScoringPrompting | None = None
-        self._organic_scoring = OrganicScoringPrompting(
-            axon=self.axon,
-            synth_dataset=dataset,
-            llm_pipeline=self.llm_pipeline,
-            tokenizer=self.llm_pipeline.tokenizer,
-            update_scores_fn=self.update_scores,
-            get_random_uids_fn=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
-            lock=self._lock,
-        )
-        if self._organic_scoring is not None:
-            self.loop.create_task(self._organic_scoring.start_loop())
+        # self._organic_scoring: OrganicScoringPrompting | None = None
+        # self._organic_scoring = OrganicScoringPrompting(
+        #     axon=self.axon,
+        #     synth_dataset=dataset,
+        #     llm_pipeline=self.llm_pipeline,
+        #     tokenizer=self.llm_pipeline.tokenizer,
+        #     update_scores_fn=self.update_scores,
+        #     get_random_uids_fn=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
+        #     lock=self._lock,
+        # )
+        # if self._organic_scoring is not None:
+        #     self.loop.create_task(self._organic_scoring.start_loop())
 
     async def run_step(
         self, k: int, timeout: float, exclude: list = None
@@ -104,10 +103,9 @@ class Validator(BaseValidatorNeuron):
                 logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
                 return None
             # Generate the query and reference for the task
-            # query, reference = task.generate_query_reference(self.llm_pipeline, dataset_entry)
-            query = task.make_query(llm_pipeline=self.llm_pipeline, context=dataset_entry)
+            if not task.query:
+                query = task.make_query(dataset_entry=dataset_entry)
             """query = Task.generate_query(self.llm_pipeline, dataset_entry)"""
-            # task.generate_reference(self.llm_pipeline)
 
             # Record event start time.
             start_time = time.time()
@@ -143,7 +141,7 @@ class Validator(BaseValidatorNeuron):
             """reward_queue.append(Task, response_event)"""
 
             # scoring_manager will score the responses as and when the correct model is loaded
-            scoring_manager.add_to_queue(task, response_event)
+            scoring_manager.add_to_queue(task, response_event, dataset_entry)
             # reward_pipeline = TaskRegistry.get_task_reward(task)
             # reward_events, penalty_events, rewards = reward_pipeline.apply(
             #     response_event=response_event, reference=reference, challenge=query

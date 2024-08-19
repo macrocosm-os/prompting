@@ -8,6 +8,7 @@ from prompting.llms.base_llm import BasePipeline
 from prompting.settings import settings
 from prompting.tasks.base_task import CHATTENSOR_SYSTEM_PROMPT
 from typing import ClassVar, Any
+from prompting.llms.model_manager import model_manager
 
 
 class OrganicRewardConfig(BaseRewardConfig):
@@ -29,7 +30,7 @@ class OrganicTask(BaseTextTask):
     async def generate_reference(cls, sample: dict[str, Any], pipeline: BasePipeline) -> str:
         """Generate reference for the given organic or synthetic sample."""
         reference = vLLM_LLM(
-            llm_pipeline=pipeline,
+            llm_pipeline=model_manager.get_model(settings.NEURON_MODEL_ID_VALIDATOR),
             system_prompt=CHATTENSOR_SYSTEM_PROMPT(),
             max_new_tokens=settings.ORGANIC_REFERENCE_MAX_TOKENS,
         ).query_conversation(

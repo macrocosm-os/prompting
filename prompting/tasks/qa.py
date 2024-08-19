@@ -86,12 +86,12 @@ class QuestionAnsweringTask(BaseTextTask):
     query: str | None = None
     reference: str | None = None
 
-    def make_query(self, llm_pipeline, context: Context):
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
-        self.query = self.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
+    def make_query(self, dataset_entry: Context):
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.content)
+        self.query = self.generate_query(messages=[query_prompt])
         return self.query
 
-    def make_reference(self, llm_pipeline, context: Context):
-        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content, question=self.query)
-        self.reference = self.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
+    def make_reference(self, dataset_entry: Context):
+        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.content, question=self.query)
+        self.reference = self.generate_reference(messages=[reference_prompt])
         return self.reference

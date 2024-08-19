@@ -3,7 +3,6 @@ from typing import ClassVar
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.date import DateRewardModel
 from prompting.tasks.base_task import BaseTextTask
-from prompting.llms.base_llm import BasePipeline
 from prompting.utils.cleaners import RemoveTags, FirstQuestion, CleanerPipeline
 from prompting.datasets.wiki import DateContext
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
@@ -36,14 +35,14 @@ class DateQuestionAnsweringTask(BaseTextTask):
     query: str | None = None
     reference: str | None = None
 
-    def make_query(self, llm_pipeline: BasePipeline, context: DateContext, **kwargs) -> str:
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(content=context.content, topic=context.topic)
-        self.query = self.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
+    def make_query(self, dataset_entry: DateContext, **kwargs) -> str:
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(content=dataset_entry.content, topic=dataset_entry.topic)
+        self.query = self.generate_query(messages=[query_prompt])
         return self.reference
 
-    def make_reference(self, llm_pipeline, context: DateContext) -> str:
+    def make_reference(self, dataset_entry: DateContext) -> str:
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
-            date=context.date, query=self.query, content=context.content
+            date=dataset_entry.date, query=self.query, content=dataset_entry.content
         )
-        self.reference = self.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
+        self.reference = self.generate_reference(messages=[reference_prompt])
         return self.reference

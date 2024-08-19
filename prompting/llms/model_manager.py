@@ -1,4 +1,5 @@
 from loguru import logger
+import threading
 from pydantic import BaseModel, ConfigDict, model_validator
 import torch
 import asyncio
@@ -28,6 +29,10 @@ class ModelManager(BaseModel):
         return self
 
     def load_model(self, model_config: ModelConfig, force: bool = True):
+        if model_config in self.active_models.keys():
+            print(f"Model {model_config.model_id} is already loaded.")
+            return
+
         # if force loading is enabled, unload models until there is enough RAM
         if force:
             for active_model in self.active_models.keys():
@@ -40,16 +45,14 @@ class ModelManager(BaseModel):
                     break
 
         if self.used_ram + model_config.min_ram > self.total_ram or GPUInfo.free_memory < model_config.min_ram:
+            if not force:
+                logger.warning(f"Not enough RAM to load model {model_config.model_id}.")
             raise MemoryError(
                 f"""Not enough RAM to load model {model_config.model_id}.
                     Required: {model_config.min_ram} GB
                     Available in Model Manager: {self.total_ram - self.used_ram} GB
                     Available in GPU: {GPUInfo.free_memory} GB"""
             )
-
-        if model_config in self.active_models.keys():
-            print(f"Model {model_config.model_id} is already loaded.")
-            return
 
         try:
             model = vllm.LLM(model_config.model_id, max_model_len=8_000)
@@ -77,11 +80,16 @@ class ModelManager(BaseModel):
         self.used_ram -= model_config.min_ram
         torch.cuda.empty_cache()
 
-    def get_or_load(self, model_id: str) -> vllm.LLM:
+    def get_or_load_model(self, model_id: str) -> vllm.LLM:
         model_config = ModelZoo.get_model_by_id(model_id)
         if model_config not in self.active_models:
             self.load_model(model_config)
         return self.active_models[model_config]
+
+    def get_model(self, model: ModelConfig | str) -> vllm.LLM:
+        if isinstance(model, str):
+            model = ModelZoo.get_model_by_id(model)
+        return self.active_models.get(model)
 
 
 class AsyncModelScheduler(BaseModel):
@@ -90,8 +98,9 @@ class AsyncModelScheduler(BaseModel):
     running: bool = False
 
     async def start(self):
+        self.thread = threading.Thread(target=self.run_scheduler, daemon=True)
+        self.thread.start()
         self.running = True
-        await self.run_scheduler()
 
     async def stop(self):
         self.running = False
@@ -120,8 +129,10 @@ class AsyncModelScheduler(BaseModel):
 
     async def load_model_async(self, model_config: ModelConfig):
         loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, self.model_manager.load_model, model_config)
+        await loop.run_in_executor(None, self.model_manager.load_model, model_config, False)
 
 
 # keep model used for validation always active
 model_manager = ModelManager(always_active_models=[ModelZoo.get_model_by_id(settings.NEURON_MODEL_ID_VALIDATOR)])
+model_scheduler = AsyncModelScheduler(model_manager=model_manager)
+model_scheduler.start()

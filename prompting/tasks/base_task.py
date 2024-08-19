@@ -1,15 +1,16 @@
 import time
 from loguru import logger
 from abc import ABC
-from pydantic import BaseModel, Field
-from prompting.llms.base_llm import BasePipeline
+from pydantic import BaseModel, Field, ConfigDict
 from prompting.llms.vllm_llm import vLLM_LLM
 from prompting.utils.cleaners import CleanerPipeline
 from typing import ClassVar
 from prompting.datasets.base import Context
 from abc import abstractmethod
-from prompting.tasks.inference import ModelConfig
-from uuid import UUID, uuid4
+from uuid import uuid4
+from prompting.llms.model_zoo import ModelConfig, ModelZoo
+from prompting.llms.model_manager import model_manager
+from prompting.settings import settings
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -29,7 +30,9 @@ class BaseTask(BaseModel, ABC):
     name: str = Field(default="BaseTask", allow_mutation=False)
     query: ... = None
     reference: ... = None
-    task_id: UUID = Field(default_factory=uuid4, allow_mutation=False)
+    task_id: str = Field(default_factory=uuid4, allow_mutation=False)
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @abstractmethod
     def make_query(self, **kwargs):
@@ -39,16 +42,16 @@ class BaseTask(BaseModel, ABC):
     def make_reference(self, **kwargs):
         raise NotImplementedError("Method make_reference must be implemented")
 
-    def generate_query_reference(self, llm_pipeline: BasePipeline, context: Context) -> str:
-        self.make_query(llm_pipeline=llm_pipeline, context=context)
-        self.make_reference(llm_pipeline=llm_pipeline, context=context)
+    def generate_query_reference(self, context: Context) -> str:
+        self.make_query(context=context)
+        self.make_reference(context=context)
         return self.query, self.reference
 
 
 class BaseTextTask(BaseTask):
     query: str | None = None
     reference: str | None = None
-    model: ModelConfig | None = None
+    model: ModelConfig = ModelZoo.get_model_by_id(settings.NEURON_MODEL_ID_VALIDATOR)
     query_system_prompt: ClassVar[str | None] = None
     reference_system_prompt: ClassVar[str | None] = None
     augmentation_system_prompt: ClassVar[str | None] = None
@@ -56,46 +59,46 @@ class BaseTextTask(BaseTask):
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
 
     @abstractmethod
-    def make_query(self, llm_pipeline: BasePipeline, context: Context, **kwargs) -> str:
+    def make_query(self, dataset_entry: Context, **kwargs) -> str:
         raise NotImplementedError("Method generate_query_reference must be implemented")
 
     @abstractmethod
-    def make_reference(self, llm_pipeline, context: Context) -> str:
+    def make_reference(self, context: Context) -> str:
         raise NotImplementedError("Method generate_query_reference must be implemented")
 
-    def generate_query_reference(self, llm_pipeline: BasePipeline, context: Context) -> str:
-        self.make_query(llm_pipeline=llm_pipeline, context=context)
-        self.make_reference(llm_pipeline=llm_pipeline, context=context)
+    def generate_query_reference(self, context: Context) -> str:
+        self.make_query(dataset_entry=context)
+        self.make_reference(context=context)
         return self.query, self.reference
 
-    def generate_reference(self, llm_pipeline: BasePipeline, messages: list[str]) -> str:
+    def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
-        reference = vLLM_LLM(llm_pipeline, system_prompt=self.reference_system_prompt or "").query(
-            cleaner=self.cleaner, message=messages
-        )
+        reference = vLLM_LLM(
+            model_manager.get_model(self.model), system_prompt=self.reference_system_prompt or ""
+        ).query(cleaner=self.cleaner, message=messages)
         return reference
 
     def generate_query(
         self,
         messages: str,
-        llm_pipeline: BasePipeline,
     ) -> str:
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
-        query = vLLM_LLM(llm_pipeline, system_prompt=self.query_system_prompt or "").query(message=messages)
-        return self.augment_query(query, llm_pipeline)
+        query = vLLM_LLM(model_manager.get_model(self.model), system_prompt=self.query_system_prompt or "").query(
+            message=messages
+        )
+        return self.augment_query(query)
 
     def augment_query(
         self,
         query: str,
-        llm_pipeline: BasePipeline,
     ) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
         if self.augmentation_system_prompt:
             return query
         challenge = vLLM_LLM(
-            llm_pipeline=llm_pipeline,
+            llm_pipeline=model_manager.get_model(self.model),
             max_new_tokens=256,
             system_prompt=self.augmentation_system_prompt,
         ).query(message=query)

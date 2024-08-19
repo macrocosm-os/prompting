@@ -2,12 +2,13 @@ from typing import ClassVar
 from prompting.rewards.reward import WeightedRewardModel, BaseRewardConfig
 
 from prompting.tasks.base_task import BaseTextTask
+from prompting.datasets.base import DatasetEntry
 from prompting.llms.model_zoo import ModelConfig
 import random
 from prompting.llms.model_manager import model_manager
-from prompting.tasks.task_registry import TaskRegistry
 from vllm import SamplingParams
 from abc import abstractmethod
+from prompting.llms.model_zoo import ModelZoo
 
 
 class InferenceRewardConfig(BaseRewardConfig):
@@ -38,8 +39,8 @@ class OrganicInferenceData(BaseInferenceTask):
 
 
 class SyntheticInferenceTask(BaseInferenceTask):
-    model: ModelConfig
+    model: ModelConfig = ModelZoo.get_random()
 
-    def make_query(self) -> str:
-        self.query = TaskRegistry.get_random_task().generate_query()
+    def make_query(self, dataset_entry: DatasetEntry) -> str:
+        self.query = "What is the capital of France?"
         return self.query

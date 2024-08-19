@@ -5,7 +5,11 @@ from pydantic import BaseModel
 from typing import ClassVar
 
 
-class Context(BaseModel):
+class DatasetEntry(BaseModel):
+    pass
+
+
+class Context(DatasetEntry):
     # TODO: Pydantic model
     title: str
     topic: str
@@ -29,10 +33,10 @@ class BaseDataset(ABC, BaseModel):
     def search(self, name) -> Context: ...
 
     @abstractmethod
-    def random(self, name) -> Context: ...
+    def random(self) -> Context: ...
 
     @abstractmethod
-    def get(self, name) -> Context: ...
+    def get(self) -> Context: ...
 
     def next(self, method: Literal["random", "search", "get"] = "random", **kwargs) -> Dict:
         tries = 1

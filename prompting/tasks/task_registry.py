@@ -5,7 +5,9 @@ from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
 from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
 
 from prompting.datasets.wiki import WikiDataset, WikiDateDataset
+from prompting.datasets.inference import SyntheticInferenceDataset
 from prompting.datasets.base import BaseDataset
+from prompting.tasks.inference import SyntheticInferenceTask
 from pydantic import BaseModel, ConfigDict
 import random
 from typing import ClassVar
@@ -30,6 +32,12 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=DateQuestionAnsweringTask, probability=0.2, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
         ),
+        TaskConfig(
+            task=SyntheticInferenceTask,
+            probability=0.1,
+            datasets=[SyntheticInferenceDataset],
+            reward_model=BaseRewardConfig,
+        ),
     ]
 
     @classmethod
@@ -39,7 +47,7 @@ class TaskRegistry(BaseModel):
         return selected_task
 
     @classmethod
-    def get_task_datasets(cls, task: BaseTextTask.__class__ | BaseTextTask) -> BaseDataset.__class__:
+    def get_task_datasets(cls, task: BaseTextTask.__class__ | BaseTextTask) -> list[BaseDataset.__class__]:
         task_class = task.__class__ if isinstance(task, BaseTextTask) else task
         try:
             return [t.datasets for t in cls.task_configs if task_class is t.task][0]

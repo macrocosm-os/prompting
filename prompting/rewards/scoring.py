@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from loguru import logger
 import threading
 from prompting.tasks.base_task import BaseTextTask
@@ -9,11 +9,13 @@ from prompting.base.dendrite import DendriteResponseEvent
 from prompting.tasks.inference import model_manager
 from prompting.utils.logging import RewardLoggingEvent, log_event
 import numpy as np
+from prompting.datasets.base import Context
 
 
 class ScoringConfig(BaseModel):
     task: BaseTextTask
     response: DendriteResponseEvent
+    dataset_entry: Context
 
 
 class ScoringManager(BaseModel):
@@ -23,9 +25,12 @@ class ScoringManager(BaseModel):
 
     scoring_queue: list[ScoringConfig] = []
     is_running: bool = False
+    thread: threading.Thread = None
 
-    def add_to_queue(self, task: BaseTextTask, response: bt.Synapse) -> None:
-        self.scoring_queue.append(ScoringConfig(task=task, response=response))
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def add_to_queue(self, task: BaseTextTask, response: bt.Synapse, dataset_entry: Context) -> None:
+        self.scoring_queue.append(ScoringConfig(task=task, response=response, dataset_entry=dataset_entry))
 
     def scoring_step(self) -> RewardLoggingEvent:
         # Only score responses for which the model is loaded
@@ -34,24 +39,36 @@ class ScoringManager(BaseModel):
             for scoring_config in self.scoring_queue
             if scoring_config.task.model in model_manager.active_models.keys()
         ]
-
+        best_response: str = ""
+        reward_events = []
+        penalty_events = []
         if len(scorable) > 0:
             self.scoring_queue.remove(scorable[0])
             scoring_config = scorable.pop(0)
-            reward_events, penalty_events, rewards = TaskRegistry.get_task_reward(scoring_config.task).apply(
-                scoring_config.response
+
+            # here we generate the actual reference
+            scoring_config.task.make_reference(
+                context=scoring_config.dataset_entry,
             )
+
+            # and there we then calculate the reward
+            reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
+            reward_events, penalty_events, rewards = reward_pipeline.apply(
+                response_event=scoring_config.response,
+                challenge=scoring_config.task.query,
+                reference=scoring_config.task.reference,
+            )
+            best_response = scoring_config.response.completions[np.argmax(rewards)]
 
         else:
             time.sleep(1)
 
         # Log the step event.
-        best_response = scoring_config.response.completions[np.argmax(rewards)]
         log_event(
             RewardLoggingEvent(
-                best=best_response or "",
-                reward_events=reward_events or [],
-                penalty_events=penalty_events or [],
+                best=best_response,
+                reward_events=reward_events,
+                penalty_events=penalty_events,
                 task_id=scoring_config.task.task_id,
             )
         )
