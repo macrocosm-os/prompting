@@ -1,3 +1,4 @@
+import os
 import asyncio
 import copy
 import sys
@@ -229,13 +230,16 @@ class BaseValidatorNeuron(BaseNeuron):
         # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
         if settings.LOG_WEIGHTS:
             weights_df = pd.DataFrame({
+                "step": self.step,
                 "uids": uint_uids,
                 "weights": uint_weights,
                 "block": self.block,
             })
-            # Save the dataframe as a CSV file with the current step as the filename.
-            step_filename = f"weights_step_{self.step}.csv"
+            step_filename = "weights.csv"
             weights_df.to_csv(step_filename, index=False)
+            file_exists = os.path.isfile(step_filename)
+            # Append to the file if it exists, otherwise write a new file.
+            weights_df.to_csv(step_filename, mode="a", index=False, header=not file_exists)
 
         if settings.NEURON_DISABLE_SET_WEIGHTS:
             logger.debug(f"Set weights disabled: {settings.NEURON_DISABLE_SET_WEIGHTS}")
