@@ -103,15 +103,17 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
                         )
                         buffer = []
 
-                if buffer and not timeout_reached:  # Don't send the last buffer of data if timeout.
-                    joined_buffer = "".join(buffer)
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": joined_buffer.encode("utf-8"),
-                            "more_body": False,
-                        }
-                    )
+                if not buffer or timeout_reached:
+                    return
+
+                joined_buffer = "".join(buffer)
+                await send(
+                    {
+                        "type": "http.response.body",
+                        "body": joined_buffer.encode("utf-8"),
+                        "more_body": False,
+                    }
+                )
 
             except Exception as e:
                 logger.exception(e)
