@@ -10,17 +10,12 @@ from starlette.responses import StreamingResponse
 # from prompting.tasks.inference import InferenceTask
 
 
-# class AvailabilitySynapse(bt.Synapse):
-#     """AvailabilitySynapse is a specialized implementation of the `Synapse` class used to allow miners to let validators know
-#     about their status/availability to server certain tasks"""
+class AvailabilitySynapse(bt.Synapse):
+    """AvailabilitySynapse is a specialized implementation of the `Synapse` class used to allow miners to let validators know
+    about their status/availability to server certain tasks"""
 
-#     task_availability: dict[str, bool] = {
-#         DateQuestionAnsweringTask.__name__: False,
-#         QuestionAnsweringTask.__name__: False,
-#         SummarizationTask.__name__: False,
-#         InferenceTask.__name__: False,
-#     }
-#     model_availabilities: dict[str, bool] = {model: False for model in ModelZoo.get_all_models()}
+    task_availabilities: dict[str, bool]
+    model_availabilities: dict[str, bool]
 
 
 class StreamPromptingSynapse(bt.StreamingSynapse):

@@ -1,16 +1,13 @@
 import numpy as np
+from typing import Literal
 import random
-import bittensor as bt
 from typing import List
-from prompting.base.neuron import BaseNeuron
 from prompting.settings import settings
 from loguru import logger
 
 
 def check_uid_availability(
-    metagraph: "bt.metagraph.Metagraph",
     uid: int,
-    vpermit_tao_limit: int,
     coldkeys: set = None,
     ips: set = None,
 ) -> bool:
@@ -24,15 +21,16 @@ def check_uid_availability(
     Returns:
         bool: True if uid is available, False otherwise
     """
+    metagraph = settings.METAGRAPH
     # Filter non serving axons.
     if not metagraph.axons[uid].is_serving:
         logger.debug(f"uid: {uid} is not serving")
         return False
 
     # Filter validator permit > 1024 stake.
-    if metagraph.validator_permit[uid] and metagraph.S[uid] > vpermit_tao_limit:
-        logger.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}")
-        logger.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {vpermit_tao_limit}")
+    if metagraph.validator_permit[uid] and metagraph.S[uid] > settings.NEURON_VPERMIT_TAO_LIMIT:
+        logger.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {settings.NEURON_VPERMIT_TAO_LIMIT}")
+        logger.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {settings.NEURON_VPERMIT_TAO_LIMIT}")
         return False
 
     if coldkeys and metagraph.axons[uid].coldkey in coldkeys:
@@ -45,7 +43,7 @@ def check_uid_availability(
     return True
 
 
-def get_random_uids(self: BaseNeuron, k: int, exclude: list[int] = None) -> np.ndarray:
+def get_random_uids(k: int, exclude: list[int] = None, own_uid: int | None = None) -> np.ndarray:
     """Returns k available random uids from the metagraph.
     Args:
         k (int): Number of uids to return.
@@ -61,13 +59,11 @@ def get_random_uids(self: BaseNeuron, k: int, exclude: list[int] = None) -> np.n
     coldkeys = set()
     ips = set()
     for uid in range(settings.METAGRAPH.n.item()):
-        if uid == self.uid:
+        if uid == own_uid:
             continue
 
         uid_is_available = check_uid_availability(
-            settings.METAGRAPH,
             uid,
-            settings.NEURON_VPERMIT_TAO_LIMIT,
             coldkeys,
             ips,
         )
@@ -95,20 +91,13 @@ def get_random_uids(self: BaseNeuron, k: int, exclude: list[int] = None) -> np.n
         raise ValueError(f"No eligible uids were found. Cannot return {k} uids")
 
 
-def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> np.ndarray:
-    metagraph = settings.METAGRAPH
-    miners_uids = list(
-        map(int, filter(lambda uid: check_uid_availability(metagraph, uid, vpermit_tao_limit), metagraph.uids))
-    )
-
-    miners_uids = list(
-        map(int, filter(lambda uid: check_uid_availability(metagraph, uid, vpermit_tao_limit), metagraph.uids))
-    )
+def get_top_incentive_uids(k: int, vpermit_tao_limit: int) -> np.ndarray:
+    miners_uids = list(map(int, filter(lambda uid: check_uid_availability(uid), settings.METAGRAPH.uids)))
 
     # Builds a dictionary of uids and their corresponding incentives.
     all_miners_incentives = {
         "miners_uids": miners_uids,
-        "incentives": list(map(lambda uid: metagraph.I[uid], miners_uids)),
+        "incentives": list(map(lambda uid: settings.METAGRAPH.I[uid], miners_uids)),
     }
 
     # Zip the uids and their corresponding incentives into a list of tuples.
@@ -123,9 +112,16 @@ def get_top_incentive_uids(self, k: int, vpermit_tao_limit: int) -> np.ndarray:
     return np.array(top_k_uids)
 
 
-def get_uids(self: BaseNeuron, sampling_mode: str, k: int, exclude: List[int] = []) -> np.ndarray:
+def get_uids(
+    sampling_mode: Literal["random", "top_incentive", "all"],
+    k: int = 10**6,
+    exclude: List[int] = [],
+    own_uid: int | None = None,
+) -> np.ndarray:
     if sampling_mode == "random":
-        return get_random_uids(self, k=k, exclude=exclude or [])
+        return get_random_uids(k=k, exclude=exclude or [])
     if sampling_mode == "top_incentive":
         vpermit_tao_limit = settings.NEURON_VPERMIT_TAO_LIMIT
-        return get_top_incentive_uids(self, k=k, vpermit_tao_limit=vpermit_tao_limit)
+        return get_top_incentive_uids(k=k, vpermit_tao_limit=vpermit_tao_limit, own_uid=own_uid)
+    if sampling_mode == "all":
+        return [uid for uid in settings.METAGRAPH.uids if (uid != own_uid and check_uid_availability(uid))]

@@ -78,12 +78,12 @@ class Validator(BaseValidatorNeuron):
             start_time = time.time()
 
             # Get the list of uids to query for this step.
-            uids = get_random_uids(self, k=k, exclude=exclude or [])
+            uids = get_random_uids(k=k, exclude=exclude or [], own_uid=self.uid)
 
             axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
             # Directly call dendrite and process responses in parallel
-            streams_responses = await self.dendrite(
+            streams_responses = await settings.DENDRITE(
                 axons=axons,
                 synapse=StreamPromptingSynapse(task=task.__class__.__name__, roles=["user"], messages=[query]),
                 timeout=timeout,

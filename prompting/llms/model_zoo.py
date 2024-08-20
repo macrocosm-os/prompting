@@ -16,9 +16,9 @@ class ModelConfig(BaseModel):
 
 class ModelZoo:
     models_configs: ClassVar[list[ModelConfig]] = [
-        # ModelConfig(model_id="casperhansen/mistral-nemo-instruct-2407-awq", reward=0.1, min_ram=24),
+        ModelConfig(model_id="casperhansen/mistral-nemo-instruct-2407-awq", reward=0.1, min_ram=24),
         ModelConfig(model_id="casperhansen/llama-3-8b-instruct-awq", reward=0.1, min_ram=24),
-        # ModelConfig(model_id="casperhansen/llama-3-70b-instruct-awq", reward=0.8, min_ram=70),
+        ModelConfig(model_id="casperhansen/llama-3-70b-instruct-awq", reward=0.8, min_ram=70),
     ]
 
     @classmethod

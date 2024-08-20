@@ -27,7 +27,6 @@ def CHATTENSOR_SYSTEM_PROMPT():
 
 
 class BaseTask(BaseModel, ABC):
-    name: str = Field(default="BaseTask", allow_mutation=False)
     query: ... = None
     reference: ... = None
     task_id: str = Field(default_factory=lambda: str(uuid4()), allow_mutation=False)

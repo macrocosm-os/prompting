@@ -75,6 +75,7 @@ class Settings(BaseModel):
     METAGRAPH: bt.metagraph
     NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB: int
     NEURON_MODEL_ID_VALIDATOR: str
+    DENDRITE: bt.dendrite = None
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)  # freeze all variables
 
@@ -133,6 +134,8 @@ class Settings(BaseModel):
         values["SAVE_PATH"] = os.environ.get("SAVE_PATH") or "./storage"
         if not os.path.exists(values["SAVE_PATH"]):
             os.makedirs(values["SAVE_PATH"])
+
+        values["DENDRITE"] = bt.dendrite(wallet=values["WALLET"])
 
         return values
 

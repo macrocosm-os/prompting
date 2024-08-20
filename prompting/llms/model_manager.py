@@ -1,5 +1,4 @@
 from loguru import logger
-import threading
 from pydantic import BaseModel, ConfigDict, model_validator
 import torch
 import asyncio
@@ -8,6 +7,7 @@ from prompting.llms.utils import GPUInfo
 from vllm.distributed.parallel_state import destroy_model_parallel
 from prompting.settings import settings
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
+from prompting.base.loop_runner import AsyncLoopRunner
 
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work
@@ -92,40 +92,26 @@ class ModelManager(BaseModel):
         return self.active_models.get(model)
 
 
-class AsyncModelScheduler(BaseModel):
+class AsyncModelScheduler(AsyncLoopRunner):
     model_manager: ModelManager
-    interval: int = 10  # Minimum time in seconds for a model to stay active
-    running: bool = False
+    interval: int = 10
 
-    async def start(self):
-        self.thread = threading.Thread(target=self.run_scheduler, daemon=True)
-        self.thread.start()
-        self.running = True
+    async def run_step(self):
+        """This method is called periodically according to the interval."""
+        selected_model = ModelZoo.get_random(max_ram=self.model_manager.total_ram)
+        logger.info(f"Loading model {selected_model.model_id} for {self.interval} seconds.")
 
-    async def stop(self):
-        self.running = False
+        if selected_model in self.model_manager.active_models:
+            logger.info(f"Model {selected_model.model_id} is already loaded.")
+            return
 
-    async def run_scheduler(self):
-        while self.running:
-            selected_model = ModelZoo.get_random(max_ram=self.model_manager.total_ram)
-            logger.info(f"Loading model {selected_model.model_id} for {self.interval} seconds.")
+        # Load the selected model
+        await self.load_model_async(selected_model)
 
-            if selected_model in self.model_manager.active_models:
-                logger.info(f"Model {selected_model.model_id} is already loaded.")
-                return
-
-            # Load the selected model
-            await self.load_model_async(selected_model)
-
-            # Keep the model loaded for the specified time interval
-            await asyncio.sleep(self.interval)
-
-            # After the interval, unload the model if it is not in always_active_models
-            if selected_model not in self.model_manager.always_active_models:
-                logger.info(f"Unloading model {selected_model.model_id} after {self.interval} seconds.")
-                self.model_manager.unload_model(selected_model)
-
-        logger.info("Model scheduler stopped.")
+        # After the interval, unload the model if it is not in always_active_models
+        if selected_model not in self.model_manager.always_active_models:
+            logger.info(f"Unloading model {selected_model.model_id} after {self.interval} seconds.")
+            self.model_manager.unload_model(selected_model)
 
     async def load_model_async(self, model_config: ModelConfig):
         loop = asyncio.get_event_loop()
