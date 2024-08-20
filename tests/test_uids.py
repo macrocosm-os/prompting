@@ -10,9 +10,7 @@ def make_mock_neuron(unique_coldkeys=False, unique_ips=False, vpermit_tao_limit=
         SimpleNamespace(coldkey="a", ip="0.0.0.0", is_serving=True),
         SimpleNamespace(coldkey="b", ip="0.0.0.1", is_serving=True),
         SimpleNamespace(coldkey="b", ip="0.0.0.0", is_serving=True),
-        SimpleNamespace(
-            coldkey="c", ip="0.0.0.2", is_serving=True
-        ),  # This is the validator coldkey
+        SimpleNamespace(coldkey="c", ip="0.0.0.2", is_serving=True),  # This is the validator coldkey
     ]
     metagraph = SimpleNamespace(
         axons=axons,
@@ -46,8 +44,6 @@ def make_mock_neuron(unique_coldkeys=False, unique_ips=False, vpermit_tao_limit=
 )
 def test_get_random_uids(unique_coldkeys, unique_ips, k, expected_result):
     mock_neuron = make_mock_neuron(unique_coldkeys, unique_ips)
-    uids_returned = sorted(get_random_uids(mock_neuron, k).tolist())
+    uids_returned = sorted(get_random_uids(mock_neuron, k))
 
-    assert (
-        uids_returned == expected_result
-    ), f"Incorrect uids returned., {uids_returned}"
+    assert uids_returned == expected_result, f"Incorrect uids returned., {uids_returned}"

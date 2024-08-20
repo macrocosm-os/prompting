@@ -1,28 +1,12 @@
-# The MIT License (MIT)
-# Copyright © 2024 Yuma Rao
-# Copyright © 2023 Opentensor Foundation
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import time
 import asyncio
 import traceback
-import bittensor as bt
 from math import floor
 from typing import Callable, Any
 from functools import lru_cache, update_wrapper
+from prompting.utils.exceptions import BittensorError
+from loguru import logger
+from prompting.settings import settings
 
 
 # LRU Cache with TTL
@@ -110,7 +94,10 @@ def ttl_get_block(self) -> int:
 
     Note: self here is the miner or validator instance
     """
-    return self.subtensor.get_current_block()
+    try:
+        return settings.SUBTENSOR.get_current_block()
+    except Exception as e:
+        raise BittensorError(f"Bittensor error: {str(e)}") from e
 
 
 def async_log(func):
@@ -118,28 +105,26 @@ def async_log(func):
         start_time = time.time()
         task_id = id(asyncio.current_task())
         func_name = func.__name__
-        bt.logging.debug(f"Starting {func_name} on task {task_id} at {start_time}")
+        logger.debug(f"Starting {func_name} on task {task_id} at {start_time}")
 
         # Execute the wrapped function
         result = await func(*args, **kwargs)
 
         end_time = time.time()
         execution_time = end_time - start_time
-        bt.logging.debug(
-            f"Completed {func_name} on task {task_id} in {execution_time} seconds"
-        )
+        logger.debug(f"Completed {func_name} on task {task_id} in {execution_time} seconds")
 
         return result
 
     return wrapper
 
 
-def serialize_exception_to_string(e):    
+def serialize_exception_to_string(e):
     if isinstance(e, BaseException):
         # Format the traceback
-        tb_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
+        tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
         # Combine type, message, and traceback into one string
         serialized_str = f"Exception Type: {type(e).__name__}, Message: {str(e)}, Traceback: {tb_str}"
         return serialized_str
-    else:        
+    else:
         return e

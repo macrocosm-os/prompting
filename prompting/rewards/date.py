@@ -1,12 +1,10 @@
 import time
-import torch
 import re
 import pandas as pd
 import numpy as np
 from typing import List
-from prompting.rewards import BaseRewardModel, BatchRewardOutput, RewardModelTypeEnum
-from prompting.dendrite import DendriteResponseEvent
-import bittensor as bt
+from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
+from prompting.base.dendrite import DendriteResponseEvent
 
 
 class DateRewardModel(BaseRewardModel):
@@ -26,10 +24,13 @@ class DateRewardModel(BaseRewardModel):
             return DATE_NOT_FOUND_CODE
         # Check if ref date is just a year
         if ref_date.isdigit():
-            # Extract the last 3-4 digits from the completion date using a regex pattern that would detect 3 or 4 digit years 
-            comp_year = re.findall(r'\b\d{3,4}\b', comp_date)
+            # Extract the last 3-4 digits from the completion date using a regex pattern that would detect 3 or 4 digit years
+            comp_year = re.findall(r"\b\d{3,4}\b", comp_date)
+            # Extract the last 3-4 digits from the completion date using a regex pattern that would detect 3 or 4 digit years
+            comp_year = re.findall(r"\b\d{3,4}\b", comp_date)
             if comp_year:
-                return abs(int(ref_date) - int(comp_year[0]))*365
+                return abs(int(ref_date) - int(comp_year[0])) * 365
+                return abs(int(ref_date) - int(comp_year[0])) * 365
             else:
                 return DATE_NOT_FOUND_CODE
         # If the reference date is not only a year, take the difference between the two dates
@@ -37,7 +38,7 @@ class DateRewardModel(BaseRewardModel):
             ref_date = pd.to_datetime(ref_date)
             comp_date = pd.to_datetime(comp_date)
             return abs((ref_date - comp_date).days)
-        except:
+        except Exception as _:
             if ref_date == comp_date:
                 return 0
             else:
@@ -45,13 +46,15 @@ class DateRewardModel(BaseRewardModel):
 
     def parse_dates_from_text(self, text: str) -> tuple:
         # Regular expression to find dates in various formats
-        date_pattern = r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b'
+        date_pattern = r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b"
+        date_pattern = r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b"
 
         # Compile the regex pattern
         date_regex = re.compile(date_pattern)
 
         # Split text into sentences
-        sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', text)
+        sentences = re.split(r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s", text)
+        sentences = re.split(r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s", text)
 
         # Initialize dictionary to store results
 
@@ -105,10 +108,7 @@ class DateRewardModel(BaseRewardModel):
             rewards.append(reward)
 
         output = BatchRewardOutput(
-            rewards=torch.FloatTensor(rewards),
-            timings=torch.FloatTensor(timings),
-            extra_info={
-                "type": "date",
-            },
+            rewards=np.array(rewards),
+            timings=np.array(timings),
         )
         return output

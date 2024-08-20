@@ -5,6 +5,8 @@ __pycache__/
 .DS_Store
 **/.DS_Store
 
+*.npz
+prompting/storage/
 
 # C extensions
 *.so
@@ -124,6 +126,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.miner
+.env.validator
 .venv
 env/
 venv/
@@ -165,7 +169,6 @@ cython_debug/
 testing/
 data/*
 plots/*
-notebooks/*
 core
 app.config.js
 wandb
