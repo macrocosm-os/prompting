@@ -34,41 +34,8 @@ class Validator(BaseValidatorNeuron):
 
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)
-        logger.info("load_state()")
         self.load_state()
         self._lock = asyncio.Lock()
-
-        # self.llm_pipeline = vLLMPipeline(
-        #     llm_model_id=settings.NEURON_MODEL_ID_VALIDATOR,
-        #     gpus=settings.NEURON_GPUS,
-        #     llm_max_allowed_memory_in_gb=settings.NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB,
-        #     device=self.device,
-        #     mock=settings.MOCK,
-        # # )
-
-        # if self.axon is None or settings.ORGANIC_DISABLED:
-        #     logger.warning(
-        #         "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
-        #     )
-        #     return
-
-        # dataset = SynthDatasetConversation()
-        # if dataset.exception is not None:
-        #     logger.error(f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}")
-        #     dataset = None
-
-        # self._organic_scoring: OrganicScoringPrompting | None = None
-        # self._organic_scoring = OrganicScoringPrompting(
-        #     axon=self.axon,
-        #     synth_dataset=dataset,
-        #     llm_pipeline=self.llm_pipeline,
-        #     tokenizer=self.llm_pipeline.tokenizer,
-        #     update_scores_fn=self.update_scores,
-        #     get_random_uids_fn=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
-        #     lock=self._lock,
-        # )
-        # if self._organic_scoring is not None:
-        #     self.loop.create_task(self._organic_scoring.start_loop())
 
     async def run_step(
         self, k: int, timeout: float, exclude: list = None
@@ -90,7 +57,7 @@ class Validator(BaseValidatorNeuron):
         """
 
         while True:
-            logger.info(f"📋 Selecting task... from {TaskRegistry.task_configs}")
+            logger.debug(f"📋 Selecting task... from {TaskRegistry.task_configs}")
             try:
                 task, dataset = TaskRegistry.create_random_task_with_dataset()
                 break
@@ -118,16 +85,14 @@ class Validator(BaseValidatorNeuron):
             # Directly call dendrite and process responses in parallel
             streams_responses = await self.dendrite(
                 axons=axons,
-                synapse=StreamPromptingSynapse(task=task.__name__, roles=["user"], messages=[query]),
+                synapse=StreamPromptingSynapse(task=task.__class__.__name__, roles=["user"], messages=[query]),
                 timeout=timeout,
                 deserialize=False,
                 streaming=True,
             )
 
             # Prepare the task for handling stream responses
-            stream_results = await handle_response(
-                stream_results_dict=dict(zip(uids, streams_responses)), tokenizer=self.llm_pipeline.tokenizer
-            )
+            stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
 
             log_stream_results(stream_results)
 
@@ -141,17 +106,7 @@ class Validator(BaseValidatorNeuron):
             """reward_queue.append(Task, response_event)"""
 
             # scoring_manager will score the responses as and when the correct model is loaded
-            scoring_manager.add_to_queue(task, response_event, dataset_entry)
-            # reward_pipeline = TaskRegistry.get_task_reward(task)
-            # reward_events, penalty_events, rewards = reward_pipeline.apply(
-            #     response_event=response_event, reference=reference, challenge=query
-            # )
-
-            # logger.info(f"Created RewardResult:\n {rewards}")
-
-            # best_response = response_event.completions[np.argmax(rewards)]
-
-            # self.update_scores(rewards, uids)
+            scoring_manager.add_to_queue(task=task, response=response_event, dataset_entry=dataset_entry)
 
             # Log the step event.
             return ValidatorLoggingEvent(

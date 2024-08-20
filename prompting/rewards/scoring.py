@@ -2,20 +2,21 @@ from pydantic import BaseModel, ConfigDict
 from loguru import logger
 import threading
 from prompting.tasks.base_task import BaseTextTask
-import bittensor as bt
 from prompting.tasks.task_registry import TaskRegistry
 import time
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.tasks.inference import model_manager
 from prompting.utils.logging import RewardLoggingEvent, log_event
 import numpy as np
-from prompting.datasets.base import Context
+from prompting.datasets.base import DatasetEntry
+from dataclasses import dataclass
 
 
-class ScoringConfig(BaseModel):
+@dataclass
+class ScoringConfig:
     task: BaseTextTask
     response: DendriteResponseEvent
-    dataset_entry: Context
+    dataset_entry: DatasetEntry
 
 
 class ScoringManager(BaseModel):
@@ -29,7 +30,8 @@ class ScoringManager(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def add_to_queue(self, task: BaseTextTask, response: bt.Synapse, dataset_entry: Context) -> None:
+    def add_to_queue(self, task: BaseTextTask, response: DendriteResponseEvent, dataset_entry: DatasetEntry) -> None:
+        logger.debug(f"SCORING: Added to queue: {task.task_id}")
         self.scoring_queue.append(ScoringConfig(task=task, response=response, dataset_entry=dataset_entry))
 
     def scoring_step(self) -> RewardLoggingEvent:
@@ -39,16 +41,13 @@ class ScoringManager(BaseModel):
             for scoring_config in self.scoring_queue
             if scoring_config.task.model in model_manager.active_models.keys()
         ]
-        best_response: str = ""
-        reward_events = []
-        penalty_events = []
         if len(scorable) > 0:
             self.scoring_queue.remove(scorable[0])
             scoring_config = scorable.pop(0)
 
             # here we generate the actual reference
             scoring_config.task.make_reference(
-                context=scoring_config.dataset_entry,
+                dataset_entry=scoring_config.dataset_entry,
             )
 
             # and there we then calculate the reward
@@ -59,21 +58,21 @@ class ScoringManager(BaseModel):
                 reference=scoring_config.task.reference,
             )
             best_response = scoring_config.response.completions[np.argmax(rewards)]
-
+            logger.debug(f"SCORING: Scored {scoring_config.task.task_id} with reward {rewards}")
+            # Log the step event.
+            log_event(
+                RewardLoggingEvent(
+                    best=best_response,
+                    reward_events=reward_events,
+                    penalty_events=penalty_events,
+                    task_id=scoring_config.task.task_id,
+                )
+            )
         else:
             time.sleep(1)
 
-        # Log the step event.
-        log_event(
-            RewardLoggingEvent(
-                best=best_response,
-                reward_events=reward_events,
-                penalty_events=penalty_events,
-                task_id=scoring_config.task.task_id,
-            )
-        )
-
     def run_scoring_loop(self) -> None:
+        logger.info("Starting scoring loop...")
         while True:
             self.scoring_step()
             logger.debug("Scoring step completed.")

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from prompting.llms.vllm_llm import vLLM_LLM
 from prompting.utils.cleaners import CleanerPipeline
 from typing import ClassVar
-from prompting.datasets.base import Context
+from prompting.datasets.base import DatasetEntry
 from abc import abstractmethod
 from uuid import uuid4
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
@@ -30,7 +30,7 @@ class BaseTask(BaseModel, ABC):
     name: str = Field(default="BaseTask", allow_mutation=False)
     query: ... = None
     reference: ... = None
-    task_id: str = Field(default_factory=uuid4, allow_mutation=False)
+    task_id: str = Field(default_factory=lambda: str(uuid4()), allow_mutation=False)
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -42,9 +42,9 @@ class BaseTask(BaseModel, ABC):
     def make_reference(self, **kwargs):
         raise NotImplementedError("Method make_reference must be implemented")
 
-    def generate_query_reference(self, context: Context) -> str:
-        self.make_query(context=context)
-        self.make_reference(context=context)
+    def generate_query_reference(self, dataset_entry: DatasetEntry) -> str:
+        self.make_query(dataset_entry=dataset_entry)
+        self.make_reference(dataset_entry=dataset_entry)
         return self.query, self.reference
 
 
@@ -59,16 +59,16 @@ class BaseTextTask(BaseTask):
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
 
     @abstractmethod
-    def make_query(self, dataset_entry: Context, **kwargs) -> str:
+    def make_query(self, dataset_entry: DatasetEntry, **kwargs) -> str:
         raise NotImplementedError("Method generate_query_reference must be implemented")
 
     @abstractmethod
-    def make_reference(self, context: Context) -> str:
+    def make_reference(self, dataset_entry: DatasetEntry) -> str:
         raise NotImplementedError("Method generate_query_reference must be implemented")
 
-    def generate_query_reference(self, context: Context) -> str:
-        self.make_query(dataset_entry=context)
-        self.make_reference(context=context)
+    def generate_query_reference(self, dataset_entry: DatasetEntry) -> str:
+        self.make_query(dataset_entry=dataset_entry)
+        self.make_reference(dataset_entry=dataset_entry)
         return self.query, self.reference
 
     def generate_reference(self, messages: list[str]) -> str:
@@ -98,7 +98,7 @@ class BaseTextTask(BaseTask):
         if self.augmentation_system_prompt:
             return query
         challenge = vLLM_LLM(
-            llm_pipeline=model_manager.get_model(self.model),
+            llm=model_manager.get_model(self.model),
             max_new_tokens=256,
             system_prompt=self.augmentation_system_prompt,
         ).query(message=query)

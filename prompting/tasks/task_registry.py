@@ -7,7 +7,7 @@ from prompting.tasks.summarization import SummarizationTask, SummarizationReward
 from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.datasets.inference import SyntheticInferenceDataset
 from prompting.datasets.base import BaseDataset
-from prompting.tasks.inference import SyntheticInferenceTask
+from prompting.tasks.inference import SyntheticInferenceTask, InferenceRewardConfig
 from pydantic import BaseModel, ConfigDict
 import random
 from typing import ClassVar
@@ -25,18 +25,18 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
-        TaskConfig(task=QuestionAnsweringTask, probability=0.6, datasets=[WikiDataset], reward_model=QARewardConfig),
+        TaskConfig(task=QuestionAnsweringTask, probability=0, datasets=[WikiDataset], reward_model=QARewardConfig),
         TaskConfig(
-            task=SummarizationTask, probability=0.2, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
+            task=SummarizationTask, probability=0, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
         ),
         TaskConfig(
-            task=DateQuestionAnsweringTask, probability=0.2, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
+            task=DateQuestionAnsweringTask, probability=0, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
         ),
         TaskConfig(
             task=SyntheticInferenceTask,
-            probability=0.1,
+            probability=1,
             datasets=[SyntheticInferenceDataset],
-            reward_model=BaseRewardConfig,
+            reward_model=InferenceRewardConfig,
         ),
     ]
 

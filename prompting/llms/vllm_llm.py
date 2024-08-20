@@ -3,7 +3,7 @@ from typing import Optional, Any
 from prompting.utils.cleaners import CleanerPipeline
 from prompting.llms.base_llm import BasePipeline, BaseLLM
 from prompting.llms.utils import calculate_gpu_requirements
-from vllm import LLM
+from vllm import LLM, RequestOutput
 from transformers import PreTrainedTokenizerFast
 from pydantic import model_validator, ConfigDict
 from loguru import logger
@@ -61,7 +61,7 @@ class vLLMPipeline(BasePipeline):
     device: str = None
     quantization: bool = True
 
-    llm: Optional[LLM] = None
+    llm: LLM = None
     tokenizer: Optional[PreTrainedTokenizerFast] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -96,7 +96,7 @@ class vLLMPipeline(BasePipeline):
 class vLLM_LLM(BaseLLM):
     def __init__(
         self,
-        llm_pipeline: BasePipeline,
+        llm: LLM,
         system_prompt,
         max_new_tokens=256,
         temperature=0.7,
@@ -107,7 +107,7 @@ class vLLM_LLM(BaseLLM):
             "top_p": top_p,
             "max_tokens": max_new_tokens,
         }
-        super().__init__(llm_pipeline, system_prompt, model_kwargs)
+        super().__init__(llm, system_prompt, model_kwargs)
 
         # Keep track of generation data using messages and times
 
@@ -180,8 +180,8 @@ class vLLM_LLM(BaseLLM):
     def _forward(self, messages: list[dict[str, str]]):
         # make composed prompt from messages
         composed_prompt = self._make_prompt(messages)
-        response = self.llm_pipeline(composed_prompt, **self.model_kwargs)
+        response: RequestOutput = self.llm.generate(composed_prompt, SamplingParams(**self.model_kwargs))[0]
 
         logger.info(f"{self.__class__.__name__} generated the following output:\n{response}")
 
-        return response
+        return response.outputs[0].text
