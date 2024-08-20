@@ -15,6 +15,8 @@ from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from prompting.rewards.scoring import scoring_manager
+from prompting.miner_availability.miner_availability import checking_loop
+from prompting.llms.model_manager import model_scheduler
 
 # try:
 #     from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
@@ -25,6 +27,12 @@ from prompting.rewards.scoring import scoring_manager
 #     )
 
 NEURON_SAMPLE_SIZE = 100
+
+# will start rotating the different LLMs in/out of memory
+asyncio.run(model_scheduler.start())
+
+# will start checking the availability of miners at regular intervals
+asyncio.run(checking_loop.start())
 
 
 class Validator(BaseValidatorNeuron):
@@ -55,6 +63,8 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
+        # TODO: REMOVE THIS!
+        await asyncio.sleep(100)
 
         while True:
             logger.debug(f"📋 Selecting task... from {TaskRegistry.task_configs}")
@@ -197,3 +207,12 @@ if __name__ == "__main__":
             if v.should_exit:
                 logger.warning("Ending validator...")
                 break
+
+###
+
+
+# ProgrammingTask -> return code
+# Multiple choice -> return answer
+# Online lookup -> return context from website
+# Inference -> just run a model
+# AgentTask -> uses the other model in an agentic to respond

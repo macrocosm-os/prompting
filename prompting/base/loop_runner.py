@@ -1,9 +1,10 @@
 import asyncio
 from abc import ABC, abstractmethod
 from loguru import logger
+from pydantic import BaseModel
 
 
-class AsyncLoopRunner(ABC):
+class AsyncLoopRunner(BaseModel, ABC):
     interval: int = 10  # interval to run the main function in
     running: bool = False
     _task: asyncio.Task = None
@@ -40,7 +41,10 @@ class AsyncLoopRunner(ABC):
         """Run the loop periodically, respecting the interval."""
         try:
             while self.running:
-                await self.run_step()
+                try:
+                    await self.run_step()
+                except Exception as ex:
+                    logger.exception(ex)
                 await asyncio.sleep(self.interval)
         except asyncio.CancelledError:
             logger.info("Loop was stopped.")

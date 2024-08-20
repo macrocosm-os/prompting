@@ -74,7 +74,7 @@ class BaseTextTask(BaseTask):
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
         reference = vLLM_LLM(
-            model_manager.get_model(self.model), system_prompt=self.reference_system_prompt or ""
+            llm=model_manager.get_model(self.model), system_prompt=self.reference_system_prompt or ""
         ).query(cleaner=self.cleaner, message=messages)
         return reference
 
@@ -84,7 +84,7 @@ class BaseTextTask(BaseTask):
     ) -> str:
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
-        query = vLLM_LLM(model_manager.get_model(self.model), system_prompt=self.query_system_prompt or "").query(
+        query = vLLM_LLM(llm=model_manager.get_model(self.model), system_prompt=self.query_system_prompt or "").query(
             message=messages
         )
         return self.augment_query(query)

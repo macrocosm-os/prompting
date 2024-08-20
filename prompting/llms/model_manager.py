@@ -1,5 +1,5 @@
 from loguru import logger
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict
 import torch
 import asyncio
 import vllm
@@ -22,11 +22,14 @@ class ModelManager(BaseModel):
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    @model_validator(mode="after")
-    def load_always_active_models(self) -> "ModelManager":
+    # @model_validator(mode="after")
+    # def load_always_active_models(self) -> "ModelManager":
+    #     for model_config in self.always_active_models:
+    #         self.load_model(model_config)
+    #     return self
+    def load_always_active_models(self):
         for model_config in self.always_active_models:
             self.load_model(model_config)
-        return self
 
     def load_model(self, model_config: ModelConfig, force: bool = True):
         if model_config in self.active_models.keys():
@@ -96,6 +99,9 @@ class AsyncModelScheduler(AsyncLoopRunner):
     model_manager: ModelManager
     interval: int = 10
 
+    async def initialise_loop(self):
+        model_manager.load_always_active_models()
+
     async def run_step(self):
         """This method is called periodically according to the interval."""
         selected_model = ModelZoo.get_random(max_ram=self.model_manager.total_ram)
@@ -119,6 +125,6 @@ class AsyncModelScheduler(AsyncLoopRunner):
 
 
 # keep model used for validation always active
+# model_manager: ModelManager
 model_manager = ModelManager(always_active_models=[ModelZoo.get_model_by_id(settings.NEURON_MODEL_ID_VALIDATOR)])
 model_scheduler = AsyncModelScheduler(model_manager=model_manager)
-model_scheduler.start()

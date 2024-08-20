@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from loguru import logger
 from prompting.tasks.base_task import BaseTask
 from prompting.llms.model_zoo import ModelZoo
 from prompting.base.loop_runner import AsyncLoopRunner
@@ -10,21 +11,21 @@ from prompting.tasks.summarization import SummarizationTask
 from prompting.tasks.inference import SyntheticInferenceTask, BaseInferenceTask
 from prompting.utils.uids import get_uids
 
-task_config = dict[str, bool] = {
+task_config: dict[str, bool] = {
     DateQuestionAnsweringTask.__name__: False,
     QuestionAnsweringTask.__name__: False,
     SummarizationTask.__name__: False,
     SyntheticInferenceTask.__name__: False,
     BaseInferenceTask.__name__: False,
 }
-model_config: dict[str, bool] = [{conf.model_id: False} for conf in ModelZoo.models_configs]
+model_config: dict[str, bool] = {conf.model_id: False for conf in ModelZoo.models_configs}
 
 
 class MinerAvailability(BaseModel):
     """This class keeps track of one miner's availability"""
 
     task_availabilities: dict[str, bool] = task_config
-    model_availabilities: list[dict] = model_config
+    model_availabilities: dict[str, bool] = model_config
 
     def is_model_available(self, model: str) -> bool:
         return self.model_availabilities[model]
@@ -47,30 +48,40 @@ class MinerAvailabilities(BaseModel):
 
 
 class CheckMinerAvailability(AsyncLoopRunner):
-    interval: int = 60
+    interval: int = 10
 
     async def run_step(self):
-        uids = get_uids(sampling_mode="all")
+        uids = settings.TEST_MINER_IDS or get_uids(sampling_mode="all")
+        logger.info(f"Collecting miner availabilities on uids: {uids}")
         axons = [settings.METAGRAPH.axons[uid] for uid in uids]
+        availability_synapse = AvailabilitySynapse(task_availabilities=task_config, model_availabilities=model_config)
         responses: list[AvailabilitySynapse] = await settings.DENDRITE(
             axons=axons,
-            synapse=AvailabilitySynapse(task_config=task_config, model_config=model_config),
+            synapse=availability_synapse,
             timeout=settings.NEURON_TIMEOUT,
+            # timeout=100,
             deserialize=False,
-            streaming=True,
+            streaming=False,
         )
         for response, uid in zip(responses, uids):
             miner_availabilities.miners[uid] = MinerAvailability(
                 task_availabilities=response.task_availabilities,
                 model_availabilities=response.model_availabilities,
             )
+        logger.debug(miner_availabilities.miners)
 
 
 miner_availabilities = MinerAvailabilities()
 checking_loop = CheckMinerAvailability()
-checking_loop.start()
+# # checking_loop.start()
+# import asyncio
+# import time
 
+# asyncio.run(checking_loop.start())
 
+# while True:
+#     time.sleep(1)
+#     print("...")
 # Example usage
 # miner_availabilities.available_miners_by_model("gpt-neo-2.7B")
 # miner_availabilities.available_miners_by_task(DateQuestionAnsweringTask())
