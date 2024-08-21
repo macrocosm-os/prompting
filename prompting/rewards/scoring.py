@@ -89,4 +89,3 @@ class ScoringManager(AsyncLoopRunner):
 
 
 scoring_manager = ScoringManager()
-scoring_manager.start()
