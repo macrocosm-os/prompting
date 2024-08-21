@@ -54,10 +54,24 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
     subclasses to further customize behavior for specific prompting scenarios or requirements.
     """
 
-    task: str = pydantic.Field(
+    task_name: str = pydantic.Field(
         ...,
         title="Task",
         description="The task for the current StreamPromptingSynapse object. This attribute is immutable.",
+        allow_mutation=False,
+    )
+
+    target_model: str = pydantic.Field(
+        None,
+        title="Target Model",
+        description="The model the miner should use for generations. If none, the miner should respond with whatever he thinks is best.",
+        allow_mutation=False,
+    )
+
+    seed: int = pydantic.Field(
+        None,
+        title="Seed",
+        description="The seed for that the miner must use for generations. This is only used in combination with the target_model.",
         allow_mutation=False,
     )
 

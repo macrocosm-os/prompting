@@ -1,16 +1,16 @@
 import time
 from loguru import logger
 from abc import ABC
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from prompting.llms.vllm_llm import vLLM_LLM
 from prompting.utils.cleaners import CleanerPipeline
 from typing import ClassVar
 from prompting.datasets.base import DatasetEntry
 from abc import abstractmethod
 from uuid import uuid4
-from prompting.llms.model_zoo import ModelConfig, ModelZoo
+from prompting.llms.model_zoo import ModelConfig
 from prompting.llms.model_manager import model_manager
-from prompting.settings import settings
+import random
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -50,12 +50,21 @@ class BaseTask(BaseModel, ABC):
 class BaseTextTask(BaseTask):
     query: str | None = None
     reference: str | None = None
-    model: ModelConfig = ModelZoo.get_model_by_id(settings.NEURON_MODEL_ID_VALIDATOR)
+    model: ModelConfig = None
+    model_id: str = None
+    seed: str = None
     query_system_prompt: ClassVar[str | None] = None
     reference_system_prompt: ClassVar[str | None] = None
     augmentation_system_prompt: ClassVar[str | None] = None
 
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
+
+    @model_validator
+    def get_model_id_and_seed(self) -> "BaseTextTask":
+        if self.model:
+            self.model_id = self.model.model_id if self.model else None
+            self.seed = random.randint(0, 1000000)
+        return self
 
     @abstractmethod
     def make_query(self, dataset_entry: DatasetEntry, **kwargs) -> str:
