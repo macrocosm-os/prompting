@@ -1,6 +1,6 @@
 from typing import ClassVar
 from prompting.rewards.reward import WeightedRewardModel, BaseRewardConfig
-from prompting.rewards.rouge import RougeRewardModel
+from prompting.rewards.exact_match import ExactMatchRewardModel
 
 from prompting.tasks.base_task import BaseTextTask
 from prompting.datasets.base import DatasetEntry
@@ -14,7 +14,7 @@ from prompting.llms.model_zoo import ModelZoo
 
 class InferenceRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
+        WeightedRewardModel(weight=1, reward_model=ExactMatchRewardModel()),
     ]
 
 
