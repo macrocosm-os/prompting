@@ -135,19 +135,17 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
         logger.debug(
             f"📧 Message received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}; \nForwarding synapse: {synapse}"
         )
-        if isinstance(synapse, StreamPromptingSynapse):
-            init_time = time.time()
-            timeout_threshold = synapse.timeout
+        init_time = time.time()
+        timeout_threshold = synapse.timeout
 
-            token_streamer = partial(
-                _forward,
-                self,
-                synapse,
-                init_time,
-                timeout_threshold,
-            )
-            streaming_response = synapse.create_streaming_response(token_streamer)
-            return streaming_response
+        token_streamer = partial(
+            _forward,
+            self,
+            synapse,
+            init_time,
+            timeout_threshold,
+        )
+        return synapse.create_streaming_response(token_streamer)
 
     def check_availability(self, synapse: AvailabilitySynapse) -> AvailabilitySynapse:
         logger.info(f"Checking availability of miner... {synapse}")

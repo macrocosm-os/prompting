@@ -1,12 +1,25 @@
-import time
 from abc import ABC, abstractmethod
-from typing import Dict, Literal
+from typing import Literal
 from pydantic import BaseModel
 from typing import ClassVar
+from prompting.utils.timer import Timer
+import json
 
 
 class DatasetEntry(BaseModel):
-    pass
+    @property
+    def hash(self) -> int:
+        return hash(json.dumps(self.model_dump(), sort_keys=True))
+
+    def __hash__(self) -> int:
+        return self.hash
+
+
+class MMLUEntry(DatasetEntry):
+    query: str
+    subject: str
+    choices: list[str]
+    answer: str
 
 
 class Context(DatasetEntry):
@@ -30,34 +43,31 @@ class BaseDataset(ABC, BaseModel):
     max_tries: int = 10
 
     @abstractmethod
-    def search(self, name) -> Context: ...
-
-    @abstractmethod
     def random(self) -> Context: ...
 
     @abstractmethod
     def get(self) -> Context: ...
 
-    def next(self, method: Literal["random", "search", "get"] = "random", **kwargs) -> Dict:
+    def next(self, method: Literal["random", "search", "get"] = "random", **kwargs) -> dict:
         tries = 1
-        t0 = time.time()
-
         context: Context  # for some reason the ls doesn't understand it's of type Context without this
-        while True:
-            # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
-            if method == "random":
-                context = self.random(**kwargs)
-            elif method == "search":
-                context = self.search(**kwargs)
-            elif method == "get":
-                context = self.get(**kwargs)
 
-            if context:
-                break
+        with Timer() as timer:
+            while True:
+                # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
+                if method == "random":
+                    context = self.random(**kwargs)
+                elif method == "search":
+                    context = self.search(**kwargs)
+                elif method == "get":
+                    context = self.get(**kwargs)
+
+                if context:
+                    break
 
         context.source = self.__class__.__name__
         context.stats = {
-            "fetch_time": time.time() - t0,
+            "fetch_time": timer.elapsed_time,
             "num_tries": tries,
             "fetch_method": method,
             "next_kwargs": kwargs,

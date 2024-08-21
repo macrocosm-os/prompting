@@ -5,13 +5,13 @@ from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
 from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
 
 from prompting.datasets.wiki import WikiDataset, WikiDateDataset
-from prompting.datasets.inference import SyntheticInferenceDataset
 from prompting.datasets.base import BaseDataset
 from prompting.tasks.inference import SyntheticInferenceTask, InferenceRewardConfig
 from pydantic import BaseModel, ConfigDict
 import random
 from typing import ClassVar
 from loguru import logger
+from prompting.datasets.mmlu import MMLUDataset
 
 
 class TaskConfig(BaseModel):
@@ -35,7 +35,7 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=SyntheticInferenceTask,
             probability=0.7,
-            datasets=[SyntheticInferenceDataset],
+            datasets=[MMLUDataset],
             reward_model=InferenceRewardConfig,
         ),
     ]

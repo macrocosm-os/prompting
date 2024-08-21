@@ -10,6 +10,7 @@ from prompting.llms.model_manager import model_manager
 from vllm import SamplingParams
 from abc import abstractmethod
 from prompting.llms.model_zoo import ModelZoo
+from prompting.datasets.mmlu import MMLUEntry
 
 
 class InferenceRewardConfig(BaseRewardConfig):
@@ -47,6 +48,6 @@ class OrganicInferenceData(BaseInferenceTask):
 class SyntheticInferenceTask(BaseInferenceTask):
     model: ModelConfig = ModelZoo.get_random()
 
-    def make_query(self, dataset_entry: DatasetEntry) -> str:
-        self.query = "What is the capital of France?"
+    def make_query(self, dataset_entry: MMLUEntry) -> str:
+        self.query = dataset_entry.query
         return self.query
