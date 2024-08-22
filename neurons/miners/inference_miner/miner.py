@@ -1,4 +1,6 @@
 # ruff: noqa: E402
+
+# This is an example miner that can respond to the inference task using a vllm model.
 from prompting import settings
 
 settings.settings = settings.Settings(mode="miner")
@@ -14,7 +16,6 @@ from starlette.types import Send
 from prompting.utils.logging import ErrorLoggingEvent, log_event
 from prompting.base.protocol import AvailabilitySynapse
 
-MODEL_PATH: str = "path_to_your_vllm_model"
 NEURON_MAX_TOKENS: int = 256
 NEURON_TEMPERATURE: float = 0.7
 NEURON_TOP_K: int = 50
@@ -26,10 +27,6 @@ SYSTEM_PROMPT = """You are a helpful agent that does its best to answer all ques
 
 
 class VLLMMiner(BaseStreamMinerNeuron):
-    """Langchain-based miner using vLLM as the LLM.
-    This miner relies entirely on the models' own representation and world model.
-    """
-
     llm: LLM | None = None
     accumulated_total_tokens: int = 0
     accumulated_prompt_tokens: int = 0
@@ -39,7 +36,7 @@ class VLLMMiner(BaseStreamMinerNeuron):
 
     @model_validator(mode="after")
     def init_vllm(self) -> "VLLMMiner":
-        self.llm = LLM(model=MODEL_PATH)
+        self.llm = LLM(model=settings.MINER_LLM_MODEL)
         return self
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
@@ -57,19 +54,19 @@ class VLLMMiner(BaseStreamMinerNeuron):
             timeout_reached = False
 
             try:
-                system_prompt_message = [{"role": "system", "content": SYSTEM_PROMPT}]
                 synapse_messages = [
                     {"role": role, "content": message} for role, message in zip(synapse.roles, synapse.messages)
                 ]
 
-                prompt = system_prompt_message + synapse_messages
+                prompt = synapse_messages
 
                 start_time = time.time()
                 sampling_params = SamplingParams(
-                    max_tokens=NEURON_MAX_TOKENS,
-                    temperature=NEURON_TEMPERATURE,
-                    top_k=NEURON_TOP_K,
-                    top_p=NEURON_TOP_P,
+                    seed=synapse.seed,
+                    # max_tokens=NEURON_MAX_TOKENS,
+                    # temperature=NEURON_TEMPERATURE,
+                    # top_k=NEURON_TOP_K,
+                    # top_p=NEURON_TOP_P,
                 )
 
                 stream_response = self.llm.generate(prompt, sampling_params)

@@ -76,6 +76,7 @@ class Settings(BaseModel):
     NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB: int
     NEURON_MODEL_ID_VALIDATOR: str
     DENDRITE: bt.dendrite = None
+    MINER_LLM_MODEL: str = None
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)  # freeze all variables
 
@@ -116,6 +117,7 @@ class Settings(BaseModel):
         values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get("LLM_MODEL", "casperhansen/llama-3-70b-instruct-awq")
         values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = os.environ.get("MAX_ALLOWED_VRAM_GB", 62)
         values["NEURON_GPUS"] = os.environ.get("NEURON_GPUS", 1)
+        values["MINER_LLM_MODEL"] = os.environ.get("MINER_LLM_MODEL", "casperhansen/llama-3-8b-instruct-awq")
 
         values["SUBTENSOR_NETWORK"] = "test" if values["TEST"] else None
 
