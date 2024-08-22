@@ -43,7 +43,7 @@ class DendriteResponseEvent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="after")
-    def stream_results(self) -> "DendriteResponseEvent":
+    def process_stream_results(self) -> "DendriteResponseEvent":
         for stream_result in self.stream_results:
             # for some reason the language server needs this line to understand the type of stream_result
             stream_result: SynapseStreamResult
