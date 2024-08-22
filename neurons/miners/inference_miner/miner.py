@@ -15,6 +15,7 @@ from vllm import LLM, SamplingParams
 from starlette.types import Send
 from prompting.utils.logging import ErrorLoggingEvent, log_event
 from prompting.base.protocol import AvailabilitySynapse
+from prompting.llms.utils import GPUInfo
 
 NEURON_MAX_TOKENS: int = 256
 NEURON_TEMPERATURE: float = 0.7
@@ -36,7 +37,11 @@ class VLLMMiner(BaseStreamMinerNeuron):
 
     @model_validator(mode="after")
     def init_vllm(self) -> "VLLMMiner":
-        self.llm = LLM(model=settings.MINER_LLM_MODEL)
+        GPUInfo.log_gpu_info()
+        logger.debug("Loading vLLM model...")
+        self.llm = LLM(model=settings.MINER_LLM_MODEL, gpu_memory_utilization=0.3)
+        logger.debug("vLLM model loaded.")
+        GPUInfo.log_gpu_info()
         return self
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
@@ -54,22 +59,18 @@ class VLLMMiner(BaseStreamMinerNeuron):
             timeout_reached = False
 
             try:
-                synapse_messages = [
-                    {"role": role, "content": message} for role, message in zip(synapse.roles, synapse.messages)
-                ]
+                # synapse_messages = [
+                #     {"role": role, "content": message} for role, message in zip(synapse.roles, synapse.messages)
+                # ]
 
-                prompt = synapse_messages
+                # prompt = synapse_messages
 
                 start_time = time.time()
                 sampling_params = SamplingParams(
                     seed=synapse.seed,
-                    # max_tokens=NEURON_MAX_TOKENS,
-                    # temperature=NEURON_TEMPERATURE,
-                    # top_k=NEURON_TOP_K,
-                    # top_p=NEURON_TOP_P,
                 )
 
-                stream_response = self.llm.generate(prompt, sampling_params)
+                stream_response = self.llm.generate(prompts=[synapse.messages[0]], sampling_params=sampling_params)
 
                 for chunk in stream_response:
                     chunk_content = chunk.outputs[0].text
@@ -124,7 +125,7 @@ class VLLMMiner(BaseStreamMinerNeuron):
                 self.log_event(
                     synapse=synapse,
                     timing=synapse_latency,
-                    messages=prompt,
+                    messages=synapse.messages,
                     accumulated_chunks=accumulated_chunks,
                     accumulated_chunks_timings=accumulated_chunks_timings,
                 )
@@ -148,6 +149,9 @@ class VLLMMiner(BaseStreamMinerNeuron):
         logger.info(f"Checking availability of miner... {synapse}")
         # allow all tasks to be sent through
         synapse.task_availabilities = {task: True for task, _ in synapse.task_availabilities.items()}
+        synapse.model_availabilities = {
+            model: True for model, _ in synapse.model_availabilities.items() if model == settings.MINER_LLM_MODEL
+        }
         return synapse
 
 

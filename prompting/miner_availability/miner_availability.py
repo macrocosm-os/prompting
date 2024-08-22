@@ -70,12 +70,13 @@ class CheckMinerAvailability(AsyncLoopRunner):
             deserialize=False,
             streaming=False,
         )
+        logger.debug(f"MINER AVAILABILITY RESPONSES: {responses}")
         for response, uid in zip(responses, uids):
             miner_availabilities.miners[uid] = MinerAvailability(
                 task_availabilities=response.task_availabilities,
                 model_availabilities=response.model_availabilities,
             )
-        logger.debug(miner_availabilities.miners)
+        logger.debug(f"MINER AVAILABILITIES: {miner_availabilities.miners}")
 
 
 miner_availabilities = MinerAvailabilities()

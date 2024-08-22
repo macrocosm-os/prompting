@@ -121,7 +121,7 @@ class ValidatorLoggingEvent(BaseModel):
     forward_time: float | None = None
     task_id: str
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, copy_on_model_validation=False)
 
 
 class RewardLoggingEvent(BaseModel):

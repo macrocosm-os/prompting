@@ -42,8 +42,12 @@ class DendriteResponseEvent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="after")
-    def stream_results(self) -> "DendriteResponseEvent":
+    def process_stream_results(self) -> "DendriteResponseEvent":
         for stream_result in self.stream_results:
+            # when passing this to a pydantic model, this method can be called multiple times, leading
+            # to duplicating the arrays. If the arrays are already filled, we can skip this step
+            if len(self.completions) > 0:
+                return self
             # for some reason the language server needs this line to understand the type of stream_result
             stream_result: SynapseStreamResult
 
@@ -70,20 +74,4 @@ class DendriteResponseEvent(BaseModel):
             self.stream_results_all_chunks.append(stream_result.accumulated_chunks)
             self.stream_results_all_chunks_timings.append(stream_result.accumulated_chunks_timings)
             self.stream_results_all_tokens_per_chunk.append(stream_result.tokens_per_chunk)
-
-    # def __state_dict__(self):
-    #     return {
-    #         "uids": self.uids,
-    #         "completions": self.completions,
-    #         "timings": self.timings,
-    #         "status_messages": self.status_messages,
-    #         "status_codes": self.status_codes,
-    #         "stream_results_uids": self.stream_results_uids,
-    #         "stream_results_exceptions": self.stream_results_exceptions,
-    #         "stream_results_all_chunks": self.stream_results_all_chunks,
-    #         "stream_results_all_chunks_timings": self.stream_results_all_chunks_timings,
-    #         "stream_results_all_tokens_per_chunk": self.stream_results_all_tokens_per_chunk,
-    #     }
-
-    # def __repr__(self):
-    #     return f"DendriteResponseEvent(uids={self.uids}, completions={self.completions}, timings={self.timings}, status_messages={self.status_messages}, status_codes={self.status_codes})"
+        return self

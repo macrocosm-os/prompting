@@ -46,14 +46,14 @@ class ModelManager(BaseModel):
                     logger.debug(f"Unloading {active_model.model_id} to make room for {model_config.model_id}")
                     self.unload_model(active_model)
                 else:
-                    logger.debug(
-                        f"Enough RAM available to load {model_config.model_id}. Free ram: {GPUInfo.free_memory}, use ram: {self.used_ram}, total ram: {self.total_ram}"
-                    )
+                    logger.debug(f"Enough RAM for model {model_config.model_id} free")
+                    GPUInfo.log_gpu_info()
                     break
 
         if self.used_ram + model_config.min_ram > self.total_ram or GPUInfo.free_memory < model_config.min_ram:
             if not force:
                 logger.warning(f"Not enough RAM to load model {model_config.model_id}.")
+                GPUInfo.log_gpu_info()
             raise MemoryError(
                 f"""Not enough RAM to load model {model_config.model_id}.
                     Required: {model_config.min_ram} GB
@@ -62,7 +62,11 @@ class ModelManager(BaseModel):
             )
 
         try:
-            model = vllm.LLM(model_config.model_id, max_model_len=8_000)
+            model = vllm.LLM(
+                model_config.model_id,
+                max_model_len=8_000,
+                gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
+            )
             self.active_models[model_config] = model
             self.used_ram += model_config.min_ram
             logger.info(f"Model {model_config.model_id} loaded. Current used RAM: {self.used_ram} GB")

@@ -7,7 +7,7 @@ from prompting.datasets.base import DatasetEntry
 from prompting.llms.model_zoo import ModelConfig
 import random
 from prompting.llms.model_manager import model_manager
-from vllm import SamplingParams
+from vllm import RequestOutput, SamplingParams
 from abc import abstractmethod
 from prompting.llms.model_zoo import ModelZoo
 from prompting.datasets.mmlu import MMLUEntry
@@ -31,9 +31,10 @@ class BaseInferenceTask(BaseTextTask):
 
     def make_reference(self, dataset_entry: DatasetEntry) -> str:
         if self.model in model_manager.active_models.keys():
-            self.reference = model_manager.active_models[self.model].generate(
+            output: RequestOutput = model_manager.active_models[self.model].generate(
                 self.query, SamplingParams(seed=self.seed)
-            )
+            )[0]
+            self.reference = output.outputs[0].text
             return self.reference
 
 

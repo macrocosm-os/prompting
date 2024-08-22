@@ -61,7 +61,6 @@ class ScoringManager(AsyncLoopRunner):
         )
         best_response = scoring_config.response.completions[np.argmax(rewards)]
         logger.debug(f"SCORING: Scored {scoring_config.task.task_id} with reward {rewards}")
-        # Log the step event.
         log_event(
             RewardLoggingEvent(
                 best=best_response,
@@ -70,22 +69,6 @@ class ScoringManager(AsyncLoopRunner):
                 task_id=scoring_config.task.task_id,
             )
         )
-        logger.debug("Scoring step completed.")
-
-    # def run_scoring_loop(self) -> None:
-    #     logger.info("Starting scoring loop...")
-    #     while True:
-    #         self.scoring_step()
-
-    # def run_in_background_thread(self):
-    #     """
-    #     Starts the validator's operations in a background thread upon entering the context.
-    #     This method facilitates the use of the validator in a 'with' statement.
-    #     """
-    #     if not self.is_running:
-    #         self.thread = threading.Thread(target=self.run_scoring_loop, daemon=True)
-    #         self.thread.start()
-    #         self.is_running = True
 
 
 scoring_manager = ScoringManager()

@@ -61,14 +61,14 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
         allow_mutation=False,
     )
 
-    target_model: str = pydantic.Field(
+    target_model: str | None = pydantic.Field(
         None,
         title="Target Model",
         description="The model the miner should use for generations. If none, the miner should respond with whatever he thinks is best.",
         allow_mutation=False,
     )
 
-    seed: int = pydantic.Field(
+    seed: int | None = pydantic.Field(
         None,
         title="Seed",
         description="The seed for that the miner must use for generations. This is only used in combination with the target_model.",

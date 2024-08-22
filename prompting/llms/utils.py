@@ -86,6 +86,14 @@ def calculate_gpu_requirements(
 
 
 class GPUInfo:
+    def log_gpu_info():
+        logger.info(
+            f"""Total GPU memory: {GPUInfo.total_memory} GB
+                    Free GPU memory: {GPUInfo.free_memory} GB
+                    Used GPU memory: {GPUInfo.used_memory} GB
+                    GPU utilization: {GPUInfo.gpu_utilization * 100}%"""
+        )
+
     @classproperty
     def total_memory(cls):
         return np.sum([torch.cuda.get_device_properties(i).total_memory / (1024**3) for i in range(cls.n_gpus)])

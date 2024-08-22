@@ -18,14 +18,6 @@ from prompting.miner_availability.miner_availability import checking_loop, miner
 from prompting.llms.model_manager import model_scheduler
 from prompting.utils.timer import Timer
 
-# try:
-#     from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
-#     from organic_scoring.synth_dataset import SynthDatasetConversation
-# except ImportError:
-#     raise ImportError(
-#         "Could not import organic-scoring library.  Please install via poetry: `poetry install --extras 'validator'`"
-#     )
-
 NEURON_SAMPLE_SIZE = 100
 SCORING_QUEUE_LENGTH_THRESHOLD = 10
 
@@ -65,6 +57,7 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
+
         if len(scoring_manager.scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Skipping task generation.")
             return None
@@ -72,12 +65,17 @@ class Validator(BaseValidatorNeuron):
         try:
             # Getting task & Dataset
             while True:
-                logger.debug(f"📋 Selecting task... from {TaskRegistry.task_configs}")
                 try:
                     task, dataset = TaskRegistry.create_random_task_with_dataset()
                     break
                 except Exception as ex:
                     logger.exception(ex)
+
+            if len(miner_availabilities.get_available_miners(task=task, model=task.model_id)) == 0:
+                logger.debug(
+                    f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.model_id}. Skipping step."
+                )
+                return None
 
             if not (dataset_entry := dataset.random()):
                 logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
@@ -85,13 +83,13 @@ class Validator(BaseValidatorNeuron):
 
             # Generate the query and reference for the task
             if not task.query:
+                logger.debug(f"Generating query for task: {task.__class__.__name__}.")
                 query = task.make_query(dataset_entry=dataset_entry)
 
             # Record event start time.
             start_time = time.time()
 
             # Get the list of uids and their axons to query for this step.
-            # TODO: Make it such that the validators only queries UIDs based on the availabilities that miners have given
             uids = miner_availabilities.get_available_miners(task=task, model=task.model_id, k=k)
             logger.debug(f"🔍 Querying uids: {uids}")
             if len(uids) == 0:
@@ -106,7 +104,7 @@ class Validator(BaseValidatorNeuron):
                 synapse=StreamPromptingSynapse(
                     task_name=task.__class__.__name__,
                     seed=task.seed,
-                    model=task.model_id,
+                    target_model=task.model_id,
                     roles=["user"],
                     messages=[query],
                 ),
