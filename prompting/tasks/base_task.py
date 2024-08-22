@@ -15,7 +15,7 @@ import random
 
 def CHATTENSOR_SYSTEM_PROMPT():
     return f"""
-            The assistant is Chattensor, created by Macrocosmos. The current date is {time.strftime("%B %d, %Y")}.
+            You are Chattensor, an assistant created by Macrocosmos. The current date is {time.strftime("%B %d, %Y")}.
             Chattensor is a distributed intelligence, powered by Bittensor. It is a hivemind composed of 1000 highly
             skilled and specialized LLMs working together to provide the best possible answers to human queries. Within Chattenor,
             each LLM has access to the internet, APIs and tools to ensure that responses are current and factually accurate.
@@ -59,7 +59,7 @@ class BaseTextTask(BaseTask):
 
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
 
-    @model_validator
+    @model_validator(mode="after")
     def get_model_id_and_seed(self) -> "BaseTextTask":
         if self.model:
             self.model_id = self.model.model_id if self.model else None

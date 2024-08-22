@@ -10,6 +10,7 @@ from prompting.tasks.qa import QuestionAnsweringTask
 from prompting.tasks.summarization import SummarizationTask
 from prompting.tasks.inference import SyntheticInferenceTask, BaseInferenceTask
 from prompting.utils.uids import get_uids
+import random
 
 task_config: dict[str, bool] = {
     DateQuestionAnsweringTask.__name__: False,
@@ -40,11 +41,17 @@ class MinerAvailabilities(BaseModel):
 
     miners: dict[int, MinerAvailability] = {}
 
-    def available_miners_by_model(model: str) -> list[str]:
-        return [uid for uid, miner in miner_availabilities.miners.items() if miner.is_model_available(model)]
-
-    def available_miners_by_task(task: BaseTask) -> list[str]:
-        return [uid for uid, miner in miner_availabilities.miners.items() if miner.is_task_available(task)]
+    def get_available_miners(
+        self, task: BaseTask | None = None, model: str | None = None, k: int | None = None
+    ) -> list[int]:
+        available = list(self.miners.keys())
+        if task:
+            available = [uid for uid in available if self.miners[uid].is_task_available(task)]
+        if model:
+            available = [uid for uid in available if self.miners[uid].is_model_available(model)]
+        if k:
+            available = random.sample(available, min(len(available), k))
+        return available
 
 
 class CheckMinerAvailability(AsyncLoopRunner):
@@ -73,15 +80,3 @@ class CheckMinerAvailability(AsyncLoopRunner):
 
 miner_availabilities = MinerAvailabilities()
 checking_loop = CheckMinerAvailability()
-# # checking_loop.start()
-# import asyncio
-# import time
-
-# asyncio.run(checking_loop.start())
-
-# while True:
-#     time.sleep(1)
-#     print("...")
-# Example usage
-# miner_availabilities.available_miners_by_model("gpt-neo-2.7B")
-# miner_availabilities.available_miners_by_task(DateQuestionAnsweringTask())

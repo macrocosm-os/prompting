@@ -34,7 +34,7 @@ class ScoringManager(AsyncLoopRunner):
         logger.debug(f"SCORING: Added to queue: {task.task_id}")
         self.scoring_queue.append(ScoringConfig(task=task, response=response, dataset_entry=dataset_entry))
 
-    def run_step(self) -> RewardLoggingEvent:
+    async def run_step(self) -> RewardLoggingEvent:
         # Only score responses for which the model is loaded
         scorable = [
             scoring_config

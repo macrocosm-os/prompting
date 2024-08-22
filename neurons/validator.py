@@ -11,11 +11,10 @@ from prompting.base.validator import BaseValidatorNeuron
 from neurons.forward import log_stream_results, handle_response
 from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
 from prompting.tasks.task_registry import TaskRegistry
-from prompting.utils.uids import get_random_uids
 from prompting.utils.logging import log_event
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from prompting.rewards.scoring import scoring_manager
-from prompting.miner_availability.miner_availability import checking_loop
+from prompting.miner_availability.miner_availability import checking_loop, miner_availabilities
 from prompting.llms.model_manager import model_scheduler
 from prompting.utils.timer import Timer
 
@@ -93,7 +92,12 @@ class Validator(BaseValidatorNeuron):
 
             # Get the list of uids and their axons to query for this step.
             # TODO: Make it such that the validators only queries UIDs based on the availabilities that miners have given
-            uids = get_random_uids(k=k, own_uid=self.uid)
+            uids = miner_availabilities.get_available_miners(task=task, model=task.model_id, k=k)
+            logger.debug(f"🔍 Querying uids: {uids}")
+            if len(uids) == 0:
+                logger.debug("No available miners. Skipping step.")
+                return
+
             axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
             # Directly call dendrite and process responses in parallel

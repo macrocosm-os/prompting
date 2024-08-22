@@ -43,7 +43,7 @@ def check_uid_availability(
     return True
 
 
-def get_random_uids(k: int, exclude: list[int] = None, own_uid: int | None = None) -> np.ndarray:
+def get_random_uids(k: int | None = 10**6, exclude: list[int] = None, own_uid: int | None = None) -> np.ndarray:
     """Returns k available random uids from the metagraph.
     Args:
         k (int): Number of uids to return.
@@ -114,10 +114,12 @@ def get_top_incentive_uids(k: int, vpermit_tao_limit: int) -> np.ndarray:
 
 def get_uids(
     sampling_mode: Literal["random", "top_incentive", "all"],
-    k: int = 10**6,
+    k: int | None = None,
     exclude: List[int] = [],
     own_uid: int | None = None,
 ) -> np.ndarray:
+    if settings.TEST and settings.TEST_MINER_IDS:
+        return random.sample(np.array(settings.TEST_MINER_IDS), min(len(settings.TEST_MINER_IDS, k or 10**6)))
     if sampling_mode == "random":
         return get_random_uids(k=k, exclude=exclude or [])
     if sampling_mode == "top_incentive":

@@ -20,11 +20,6 @@ class ExactMatchRewardModel(BaseRewardModel):
         output = BatchRewardOutput(
             rewards=np.array(rewards),
             timings=np.array(timings),
-            extra_info={
-                "ngram": self.ngram,
-                "metric": self.metric,
-                "avg": self.avg,
-            },
         )
 
         return output

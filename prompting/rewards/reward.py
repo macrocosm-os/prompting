@@ -38,7 +38,7 @@ class RewardEvent(BaseModel):
 class BatchRewardOutput(BaseModel):
     rewards: np.ndarray
     timings: np.ndarray
-    extra_info: dict
+    extra_info: dict = {}
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @property

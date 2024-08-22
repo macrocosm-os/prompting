@@ -1,4 +1,3 @@
-import numpy as np
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.utils.misc import serialize_exception_to_string
 from pydantic import BaseModel, model_validator, ConfigDict
@@ -27,7 +26,7 @@ class SynapseStreamResult(BaseModel):
 
 
 class DendriteResponseEvent(BaseModel):
-    uids: np.ndarray
+    uids: list[int]
     timeout: float
     stream_results: list[SynapseStreamResult]
     completions: list[str] = []

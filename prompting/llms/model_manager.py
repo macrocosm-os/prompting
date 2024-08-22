@@ -94,9 +94,15 @@ class ModelManager(BaseModel):
         return self.active_models[model_config]
 
     def get_model(self, model: ModelConfig | str) -> vllm.LLM:
+        if not model:
+            model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
         if isinstance(model, str):
             model = ModelZoo.get_model_by_id(model)
-        return self.active_models.get(model)
+
+        if model in self.active_models:
+            return self.active_models.get(model)
+        else:
+            return self.load_model(model, force=True)
 
 
 class AsyncModelScheduler(AsyncLoopRunner):
@@ -108,11 +114,6 @@ class AsyncModelScheduler(AsyncLoopRunner):
 
     async def run_step(self):
         """This method is called periodically according to the interval."""
-        # After the interval, unload the model if it is not in always_active_models
-        # if selected_model not in self.model_manager.always_active_models:
-        #     logger.info(f"Unloading model {selected_model.model_id} after {self.interval} seconds.")
-        #     self.model_manager.unload_model(selected_model)
-
         selected_model = ModelZoo.get_random(max_ram=self.model_manager.total_ram)
         logger.info(f"Loading model {selected_model.model_id} for {self.interval} seconds.")
 
@@ -122,17 +123,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
 
         # Load the selected model
         model_manager.load_model(selected_model)
-        # await self.load_model_async(
-        #     selected_model,
-        # )
-
-    # async def load_model_async(self, model_config: ModelConfig):
-    #     loop = asyncio.get_event_loop()
-    #     await loop.run_in_executor(None, self.model_manager.load_model, model_config, True)
 
 
-# keep model used for validation always active
-# model_manager: ModelManager
-# model_manager = ModelManager(always_active_models=[ModelZoo.get_model_by_id(settings.NEURON_MODEL_ID_VALIDATOR)])
 model_manager = ModelManager()
 model_scheduler = AsyncModelScheduler(model_manager=model_manager)

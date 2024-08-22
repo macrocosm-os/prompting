@@ -56,12 +56,13 @@ def load_vllm_pipeline(
 class vLLMPipeline(BasePipeline):
     llm_model_id: str
     llm_max_allowed_memory_in_gb: int
+    llm: LLM
+
     mock: bool = False
     gpus: int = 1
     device: str = None
     quantization: bool = True
 
-    llm: LLM = None
     tokenizer: Optional[PreTrainedTokenizerFast] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
