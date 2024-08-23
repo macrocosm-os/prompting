@@ -76,6 +76,7 @@ class Settings(BaseModel):
     SUBTENSOR: bt.subtensor
     METAGRAPH: bt.metagraph
     NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB: int
+    LLM_MAX_MODEL_LEN: int
     NEURON_MODEL_ID_VALIDATOR: str
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)  # freeze all variables
@@ -130,7 +131,8 @@ class Settings(BaseModel):
         values["LOG_WEIGHTS"] = os.environ.get("LOG_WEIGHTS", False)
         if values["TEST"] and os.environ.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
-        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get("LLM_MODEL", "casperhansen/llama-3-70b-instruct-awq")
+        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get("LLM_MODEL", "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4")
+        values["LLM_MAX_MODEL_LEN"] = int(os.environ.get("LLM_MAX_MODEL_LEN", 4096))
         values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = os.environ.get("MAX_ALLOWED_VRAM_GB", 62)
         values["NEURON_GPUS"] = os.environ.get("NEURON_GPUS", 1)
 

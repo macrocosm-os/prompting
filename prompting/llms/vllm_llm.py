@@ -17,7 +17,13 @@ except ImportError:
 
 
 def load_vllm_pipeline(
-    model_id: str, device: str, gpus: int, max_allowed_memory_in_gb: int, mock: bool = False, quantization: bool = True
+    model_id: str,
+    device: str,
+    gpus: int,
+    max_allowed_memory_in_gb: int,
+    max_model_len: int,
+    mock: bool = False,
+    quantization: bool = True,
 ):
     """Loads the VLLM pipeline for the LLM, or a mock pipeline if mock=True"""
 
@@ -38,6 +44,7 @@ def load_vllm_pipeline(
         llm = LLM(
             model=model_id,
             gpu_memory_utilization=gpu_mem_utilization,
+            max_model_len=max_model_len,
             quantization="AWQ" if quantization else None,
             tensor_parallel_size=gpus,
             enforce_eager=True,
@@ -56,6 +63,7 @@ def load_vllm_pipeline(
 class vLLMPipeline(BasePipeline):
     llm_model_id: str
     llm_max_allowed_memory_in_gb: int
+    llm_max_model_len: int
     mock: bool = False
     gpus: int = 1
     device: str = None
@@ -72,6 +80,7 @@ class vLLMPipeline(BasePipeline):
             device=self.device,
             gpus=self.gpus,
             max_allowed_memory_in_gb=self.llm_max_allowed_memory_in_gb,
+            max_model_len=self.llm_max_model_len,
             mock=self.mock,
             quantization=self.quantization,
         )
