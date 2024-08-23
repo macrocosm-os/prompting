@@ -1,6 +1,7 @@
 import pytest
 
-from prompting.llms import BaseLLM, BasePipeline, load_vllm_pipeline
+from prompting.llms.base_llm import BaseLLM, BasePipeline
+from prompting.llms.vllm_llm import load_vllm_pipeline
 from prompting.llms.utils import (
     contains_gpu_index_in_device,
     calculate_gpu_requirements,
@@ -128,7 +129,8 @@ def test_calulate_gpu_requirements_raises_cuda_error(
 
 # Test 1: Success on first attempt
 @patch("prompting.llms.vllm_llm.calculate_gpu_requirements")
-def test_load_vllm_pipeline_success(mock_calculate_gpu_requirements):
+@patch("prompting.llms.vllm_llm.LLM")
+def test_load_vllm_pipeline_success(mock_llm, mock_calculate_gpu_requirements):
     # Mocking calculate_gpu_requirements to return a fixed value
     mock_calculate_gpu_requirements.return_value = 5e9  # Example value
 
@@ -144,13 +146,12 @@ def test_load_vllm_pipeline_success(mock_calculate_gpu_requirements):
     mock_llm_instance = MagicMock()
     mock_llm_instance.llm_engine = mock_llm_engine
 
-    # Mocking the LLM class after it is initialized
-    # This is needed because the LLM class is imported inside the function
-    with patch.dict("sys.modules", {"vllm": MagicMock(LLM=MagicMock(return_value=mock_llm_instance))}):
-        result = load_vllm_pipeline(model_id="test_name", device="cuda", gpus=1, max_allowed_memory_in_gb=0)
-        assert isinstance(result, MagicMock)  # or any other assertion you find suitable
-        # Ensures LLM was called exactly once
-        mock_llm_instance.llm_engine.tokenizer.eos_token_id = 128009
+    # Setting the return value of the LLM mock to the mock LLM instance
+    mock_llm.return_value = mock_llm_instance
 
-        # Verify the nested property (Specific assert for llama3)
-        assert result.llm_engine.tokenizer.eos_token_id == 128009
+    result = load_vllm_pipeline(model_id="test_name", device="cuda", gpus=1, max_allowed_memory_in_gb=0)
+    assert isinstance(result, MagicMock)  # or any other assertion you find suitable
+    mock_llm.assert_called_once()  # Ensures LLM was called exactly once
+
+    # Verify the nested property (Specific assert for llama3)
+    assert result.llm_engine.tokenizer.eos_token_id == 128009

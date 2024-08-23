@@ -1,12 +1,9 @@
-from prompting.cleaners.cleaner import CleanerPipeline
+from prompting.utils.cleaners import CleanerPipeline
+from prompting.utils.cleaners import RemoveQuotes, PruneEnding, RemoveRoles
 
 
 def test_cleaning_pipeline():
-    cleaning_pipeline = [
-        dict(name="remove_quotes"),
-        dict(name="prune_ending"),
-        dict(name="remove_roles"),
-    ]
+    cleaning_pipeline = [RemoveQuotes, PruneEnding, RemoveRoles]
 
     generation = '"I am a quote. User: I know you are. I am asking a question. What is th"'
     answer = "I am a quote. I know you are. I am asking a question."
@@ -18,9 +15,7 @@ def test_cleaning_pipeline():
 
 def test_phrase_without_any_punctuation():
     # arrange
-    cleaning_pipeline = [
-        dict(name="prune_ending"),
-    ]
+    cleaning_pipeline = [PruneEnding]
 
     generation = "Austin is the capital of texas"
 

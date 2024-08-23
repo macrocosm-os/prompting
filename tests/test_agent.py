@@ -130,7 +130,7 @@ def test_agent_finished_is_true_when_task_is_complete(task: Task):
     task = task(llm_pipeline=mock_llm_pipeline(), context=context)
     task.complete = True
     agent = HumanAgent(llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True)
-    assert agent.finished == True
+    assert agent.finished is True
 
 
 @pytest.mark.parametrize("task", TASKS)
@@ -139,4 +139,4 @@ def test_agent_finished_is_false_when_task_is_not_complete(task: Task):
     task = task(llm_pipeline=mock_llm_pipeline(), context=context)
     task.complete = False
     agent = HumanAgent(llm_pipeline=mock_llm_pipeline(), task=task, begin_conversation=True)
-    assert agent.finished == False
+    assert agent.finished is False

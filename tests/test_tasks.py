@@ -42,7 +42,7 @@ def test_task_field_is_not_null(task: Task, field: str):
 @pytest.mark.parametrize("task", TASKS)
 def test_task_complete_is_false_on_init(task: Task):
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
-    assert task.complete == False
+    assert task.complete is False
 
 
 @pytest.mark.parametrize("task", TASKS)
@@ -67,7 +67,7 @@ def test_task_contains_reference_time(task: Task):
 @pytest.mark.parametrize("full", (True, False))
 def test_task_state_dict(task: Task, full: bool):
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
-    assert type(task.__state_dict__(full)) == dict
+    assert isinstance(task.__state_dict__(full), dict)
 
 
 @pytest.mark.parametrize("task", TASKS)

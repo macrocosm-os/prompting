@@ -1,15 +1,23 @@
-import bittensor as bt
 from abc import ABC, abstractmethod
-from prompting.cleaners.cleaner import CleanerPipeline
-from typing import Any, Dict, List
+from prompting.utils.cleaners import CleanerPipeline
+from typing import Any
+from loguru import logger
+from pydantic import BaseModel
 
 
-class BasePipeline(ABC):
+class BasePipeline(ABC, BaseModel):
     @abstractmethod
     def __call__(self, composed_prompt: str, **kwargs: dict) -> Any: ...
 
 
 class BaseLLM(ABC):
+    llm_pipeline: BasePipeline
+    model_kwargs: dict
+    system_prompt: str | None = None
+    messages: list[dict] = []
+    times: list[int] = []
+    tokenizer: Any = None
+
     def __init__(
         self,
         llm_pipeline: BasePipeline,
@@ -23,21 +31,25 @@ class BaseLLM(ABC):
         self.times = []
         self.tokenizer = None
 
+    @abstractmethod
     def query(
         self,
         message: str,
         role: str = "user",
-        disregard_system_prompt: bool = False,
         cleaner: CleanerPipeline = None,
     ) -> str: ...
 
-    def forward(self, messages: List[Dict[str, str]]): ...
+    def forward(self, messages: list[dict[str, str]]) -> str:
+        return self._forward(messages)
+
+    @abstractmethod
+    def _forward(self, messages: list[dict[str, str]]) -> str: ...
 
     def clean_response(self, cleaner: CleanerPipeline, response: str) -> str:
+        clean_response = response
         if cleaner is not None:
             clean_response = cleaner.apply(generation=response)
             if clean_response != response:
-                bt.logging.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
+                logger.debug(f"Response cleaned, chars removed: {len(response) - len(clean_response)}...")
 
-            return clean_response
-        return response
+        return clean_response

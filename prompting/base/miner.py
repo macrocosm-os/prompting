@@ -1,71 +1,54 @@
-# The MIT License (MIT)
-# Copyright © 2024 Yuma Rao
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
 import time
-import argparse
-import asyncio
 import threading
 import bittensor as bt
-from prompting.protocol import StreamPromptingSynapse
+from prompting.base.protocol import StreamPromptingSynapse
 from prompting.base.neuron import BaseNeuron
-from prompting.utils.config import add_miner_args
 from traceback import print_exception
+from prompting.settings import settings
+from loguru import logger
+from pydantic import BaseModel, model_validator, ConfigDict
+from typing import Tuple
+from prompting.utils.logging import init_wandb, MinerEvent, log_event
 
 
-class BaseStreamMinerNeuron(BaseNeuron):
+class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
     """
     Base class for Bittensor miners.
     """
 
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
-        super().add_args(parser)
-        add_miner_args(cls, parser)
+    step: int = 0
+    # wallet: bt.wallet | None = None
+    axon: bt.axon | None = None
+    # subtensor: bt.subtensor | None = None
+    # metagraph: bt.metagraph | None = None
+    should_exit: bool = False
+    is_running: bool = False
+    thread: threading.Thread = None
+    uid: int | None = None
 
-    def __init__(self, config=None):
-        super().__init__(config=config)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-        # Warn if allowing incoming requests from anyone.
-        if not self.config.blacklist.force_validator_permit:
-            bt.logging.warning(
-                "You are allowing non-validators to send requests to your miner. This is a security risk."
-            )
-        if self.config.blacklist.allow_non_registered:
-            bt.logging.warning(
-                "You are allowing non-registered entities to send requests to your miner. This is a security risk."
-            )
-
-        # The axon handles request processing, allowing validators to send this miner requests.
-        self.axon = bt.axon(wallet=self.wallet, config=self.config)
-
-        # Attach determiners which functions are called when servicing a request.
-        bt.logging.info("Attaching forward function to miner axon.")
+    @model_validator(mode="after")
+    def attach_axon(self) -> "BaseStreamMinerNeuron":
+        # note that this initialization has to happen in the validator because the objects
+        # are not picklable and because pydantic deepcopies things it breaks
+        # settings.WALLET = bt.wallet(name=settings.WALLET_NAME, hotkey=settings.HOTKEY)
+        self.axon = bt.axon(wallet=settings.WALLET, port=settings.AXON_PORT)
+        logger.info("Attaching axon")
         self.axon.attach(
             forward_fn=self._forward,
             blacklist_fn=self.blacklist,
             priority_fn=self.priority,
         )
-        bt.logging.info(f"Axon created: {self.axon}")
+        # settings.SUBTENSOR = bt.subtensor(network=settings.SUBTENSOR)
+        # settings.METAGRAPH = bt.metagraph(netuid=settings.NETUID, network=settings.SUBTENSOR_NETWORK, sync=True, lite=False)
+        self.uid = settings.METAGRAPH.hotkeys.index(settings.WALLET.hotkey.ss58_address)
+        logger.info(f"Axon created: {self.axon}; miner uid: {self.uid}")
+        self.axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR)
 
-        # Instantiate runners
-        self.should_exit: bool = False
-        self.is_running: bool = False
-        self.thread: threading.Thread = None
-        self.lock = asyncio.Lock()
+        if settings.WANDB_ON:
+            init_wandb(neuron="miner")
+        return self
 
     def run(self):
         """
@@ -95,20 +78,17 @@ class BaseStreamMinerNeuron(BaseNeuron):
 
         # Serve passes the axon information to the network + netuid we are hosting on.
         # This will auto-update if the axon port of external ip have changed.
-        bt.logging.info(
-            f"Serving miner axon {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
-        )
-        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor)
+        logger.info(f"Serving miner axon {self.axon} with netuid: {settings.NETUID}")
 
         # Start  starts the miner's axon, making it active on the network.
         self.axon.start()
 
-        bt.logging.info(f"Miner starting at block: {self.block}")
+        logger.info(f"Miner starting at block: {settings.SUBTENSOR.get_current_block()}")
         last_update_block = 0
         # This loop maintains the miner's operations until intentionally stopped.
         try:
             while not self.should_exit:
-                while self.block - last_update_block < self.config.neuron.epoch_length:
+                while settings.SUBTENSOR.get_current_block() - last_update_block < settings.NEURON_EPOCH_LENGTH:
                     # Wait before checking again.
                     time.sleep(1)
 
@@ -118,19 +98,19 @@ class BaseStreamMinerNeuron(BaseNeuron):
 
                 # Sync metagraph and potentially set weights.
                 self.sync()
-                last_update_block = self.block
+                last_update_block = settings.SUBTENSOR.get_current_block()
                 self.step += 1
 
         # If someone intentionally stops the miner, it'll safely terminate operations.
         except KeyboardInterrupt:
             self.axon.stop()
-            bt.logging.success("Miner killed by keyboard interrupt.")
+            logger.success("Miner killed by keyboard interrupt.")
             exit()
 
         # In case of unforeseen errors, the miner will log the error and continue operations.
         except Exception as err:
-            bt.logging.error("Error during mining", str(err))
-            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
+            logger.error("Error during mining", str(err))
+            logger.debug(print_exception(type(err), err, err.__traceback__))
             self.should_exit = True
 
     def run_in_background_thread(self):
@@ -139,23 +119,23 @@ class BaseStreamMinerNeuron(BaseNeuron):
         This is useful for non-blocking operations.
         """
         if not self.is_running:
-            bt.logging.debug("Starting miner in background thread.")
+            logger.debug("Starting miner in background thread.")
             self.should_exit = False
             self.thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
             self.is_running = True
-            bt.logging.debug("Started")
+            logger.debug("Started")
 
     def stop_run_thread(self):
         """
         Stops the miner's operations that are running in the background thread.
         """
         if self.is_running:
-            bt.logging.debug("Stopping miner in background thread.")
+            logger.debug("Stopping miner in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False
-            bt.logging.debug("Stopped")
+            logger.debug("Stopped")
 
     def __enter__(self):
         """
@@ -183,10 +163,10 @@ class BaseStreamMinerNeuron(BaseNeuron):
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
-        bt.logging.info("resync_metagraph()")
+        logger.info("resync_metagraph()")
 
         # Sync the metagraph.
-        self.metagraph.sync(subtensor=self.subtensor)
+        settings.METAGRAPH.sync(subtensor=settings.SUBTENSOR)
 
     def _forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
         """
@@ -211,4 +191,110 @@ class BaseStreamMinerNeuron(BaseNeuron):
             This method is not meant to be called directly but is invoked internally when a request
             is received, and it subsequently calls the `forward` method of the subclass.
         """
+        self.step += 1
+        logger.info("Calling self._forward in BaseStreamMinerNeuron")
         return self.forward(synapse=synapse)
+
+    async def blacklist(self, synapse: StreamPromptingSynapse) -> Tuple[bool, str]:
+        # WARNING: The typehint must remain Tuple[bool, str] to avoid runtime errors. YOU
+        # CANNOT change to tuple[bool, str]!!!
+        """
+        Determines whether an incoming request should be blacklisted and thus ignored. Your implementation should
+        define the logic for blacklisting requests based on your needs and desired security parameters.
+
+        Blacklist runs before the synapse data has been deserialized (i.e. before synapse.data is available).
+        The synapse is instead contructed via the headers of the request. It is important to blacklist
+        requests before they are deserialized to avoid wasting resources on requests that will be ignored.
+
+        Args:
+            synapse (StreamPromptingSynapse): A synapse object constructed from the headers of the incoming request.
+
+        Returns:
+            Tuple[bool, str]: A tuple containing a boolean indicating whether the synapse's hotkey is blacklisted,
+                            and a string providing the reason for the decision.
+
+        This function is a security measure to prevent resource wastage on undesired requests. It should be enhanced
+        to include checks against the metagraph for entity registration, validator status, and sufficient stake
+        before deserialization of synapse data to minimize processing overhead.
+
+        Example blacklist logic:
+        - Reject if the hotkey is not a registered entity within the metagraph.
+        - Consider blacklisting entities that are not validators or have insufficient stake.
+
+        In practice it would be wise to blacklist requests from entities that are not validators, or do not have
+        enough stake. This can be checked via metagraph.S and metagraph.validator_permit. You can always attain
+        the uid of the sender via a metagraph.hotkeys.index( synapse.dendrite.hotkey ) call.
+
+        Otherwise, allow the request to be processed further.
+        """
+        if synapse.dendrite.hotkey not in settings.METAGRAPH.hotkeys:
+            # Ignore requests from unrecognized entities.
+            logger.trace(f"Blacklisting unrecognized hotkey {synapse.dendrite.hotkey}")
+            return True, "Unrecognized hotkey"
+
+        logger.trace(f"Not Blacklisting recognized hotkey {synapse.dendrite.hotkey}")
+        return False, "Hotkey recognized!"
+
+    async def priority(self, synapse: StreamPromptingSynapse) -> float:
+        """
+        The priority function determines the order in which requests are handled. More valuable or higher-priority
+        requests are processed before others. You should design your own priority mechanism with care.
+
+        This implementation assigns priority to incoming requests based on the calling entity's stake in the metagraph.
+
+        Args:
+            synapse (StreamPromptingSynapse): The synapse object that contains metadata about the incoming request.
+
+        Returns:
+            float: A priority score derived from the stake of the calling entity.
+
+        Miners may recieve messages from multiple entities at once. This function determines which request should be
+        processed first. Higher values indicate that the request should be processed first. Lower values indicate
+        that the request should be processed later.
+
+        Example priority logic:
+        - A higher stake results in a higher priority value.
+        """
+        caller_uid = settings.METAGRAPH.hotkeys.index(synapse.dendrite.hotkey)  # Get the caller index.
+        priority = float(settings.METAGRAPH.S[caller_uid])  # Return the stake as the priority.
+        logger.trace(f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority)
+        return priority
+
+    def log_event(
+        self,
+        synapse: StreamPromptingSynapse,
+        timing: float,
+        messages: list[str],
+        accumulated_chunks: list[str] = [],
+        accumulated_chunks_timings: list[float] = [],
+    ):
+        dendrite_uid = settings.METAGRAPH.hotkeys.index(synapse.dendrite.hotkey)
+        event = MinerEvent(
+            epoch_time=timing,
+            messages=messages,
+            accumulated_chunks=accumulated_chunks,
+            accumulated_chunks_timings=accumulated_chunks_timings,
+            validator_uid=dendrite_uid,
+            validator_ip=synapse.dendrite.ip,
+            validator_coldkey=settings.METAGRAPH.coldkeys[dendrite_uid],
+            validator_hotkey=settings.METAGRAPH.hotkeys[dendrite_uid],
+            validator_stake=settings.METAGRAPH.S[dendrite_uid].item(),
+            validator_trust=settings.METAGRAPH.T[dendrite_uid].item(),
+            validator_incentive=settings.METAGRAPH.I[dendrite_uid].item(),
+            validator_consensus=settings.METAGRAPH.C[dendrite_uid].item(),
+            validator_dividends=settings.METAGRAPH.D[dendrite_uid].item(),
+            miner_stake=settings.METAGRAPH.S[self.uid].item(),
+            miner_trust=settings.METAGRAPH.T[self.uid].item(),
+            miner_incentive=settings.METAGRAPH.I[self.uid].item(),
+            miner_consensus=settings.METAGRAPH.C[self.uid].item(),
+            miner_dividends=settings.METAGRAPH.D[self.uid].item(),
+        )
+
+        logger.info("Logging event to wandb...", event)
+        log_event(event)
+
+    def log_status(self):
+        m = settings.METAGRAPH
+        logger.info(
+            f"Miner running:: network: {settings.SUBTENSOR.network} | step: {self.step} | uid: {self.uid} | trust: {m.trust[self.uid]:.3f} | emission {m.emission[self.uid]:.3f}"
+        )

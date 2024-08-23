@@ -1,6 +1,6 @@
 import re
 import torch
-import bittensor as bt
+from loguru import logger
 
 
 def contains_gpu_index_in_device(device: str) -> bool:
@@ -17,16 +17,18 @@ def calculate_single_gpu_requirements(device: str, max_allowed_memory_allocation
     torch.cuda.synchronize()
     global_free, total_gpu_memory = torch.cuda.mem_get_info(device=device_with_gpu_index)
 
-    bt.logging.info(f"Available free memory: {round(global_free / 10e8, 2)} GB")
-    bt.logging.info(f"Total gpu memory {round(total_gpu_memory / 10e8, 2)} GB")
+    logger.info(f"Available free memory: {round(global_free / 10e8, 2)} GB")
+    logger.info(f"Total gpu memory {round(total_gpu_memory / 10e8, 2)} GB")
 
     if global_free < max_allowed_memory_allocation_in_bytes:
-        raise torch.cuda.CudaError(
+        ex = Exception(
             f"Not enough memory to allocate for the model. Please ensure you have at least {max_allowed_memory_allocation_in_bytes / 10e8} GB of free GPU memory."
         )
+        logger.error(ex)
+        raise ex
 
     gpu_utilization = round(max_allowed_memory_allocation_in_bytes / global_free, 2)
-    bt.logging.info(
+    logger.info(
         f'{gpu_utilization * 100}% of the GPU memory will be utilized for loading the model to device "{device}".'
     )
 
@@ -44,10 +46,8 @@ def calculate_multiple_gpu_requirements(device: str, gpus: int, max_allowed_memo
         total_free_memory += global_free
         total_gpu_memory += total_memory
 
-    bt.logging.info(
-        f"Total available free memory across all visible {gpus} GPUs: {round(total_free_memory / 10e8, 2)} GB"
-    )
-    bt.logging.info(f"Total GPU memory across all visible GPUs: {gpus} {round(total_gpu_memory / 10e8, 2)} GB")
+    logger.info(f"Total available free memory across all visible {gpus} GPUs: {round(total_free_memory / 10e8, 2)} GB")
+    logger.info(f"Total GPU memory across all visible GPUs: {gpus} {round(total_gpu_memory / 10e8, 2)} GB")
 
     if total_free_memory < max_allowed_memory_allocation_in_bytes:
         raise torch.cuda.CudaError(
@@ -55,7 +55,7 @@ def calculate_multiple_gpu_requirements(device: str, gpus: int, max_allowed_memo
         )
 
     gpu_utilization = round(max_allowed_memory_allocation_in_bytes / total_free_memory, 2)
-    bt.logging.info(
+    logger.info(
         f"{gpu_utilization * 100}% of the total GPU memory across all GPUs will be utilized for loading the model."
     )
 
