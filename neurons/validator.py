@@ -45,10 +45,12 @@ class Validator(BaseValidatorNeuron):
         self.load_state()
         self._lock = asyncio.Lock()
 
+        logger.info(f"LEN: {settings.LLM_MAX_MODEL_LEN}")
         self.llm_pipeline = vLLMPipeline(
             llm_model_id=settings.NEURON_MODEL_ID_VALIDATOR,
-            gpus=settings.NEURON_GPUS,
             llm_max_allowed_memory_in_gb=settings.NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB,
+            llm_max_model_len=settings.LLM_MAX_MODEL_LEN,
+            gpus=settings.NEURON_GPUS,
             device=self.device,
             mock=settings.MOCK,
         )
