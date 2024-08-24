@@ -22,6 +22,7 @@ from prompting.base.protocol import StreamPromptingSynapse
 from prompting.llms.vllm_llm import vLLMPipeline
 from prompting.organic.organic_task import OrganicRewardConfig, OrganicTask
 from prompting.settings import settings
+from prompting.utils.logging import log_event, OrganicEvent
 
 # TODO: Implement Sample dataclass for SynthDatasets, Queues, and OrganicScoringBase methods.
 # Fields: "messages", "roles", "uids", "is_organic", "completions".
@@ -73,6 +74,14 @@ class OrganicScoringPrompting(OrganicScoringBase):
             reference=reference,
             challenge=sample["messages"][-1]
         )
+        event = OrganicEvent(
+            timeout=timeout,
+            reference=reference,
+            challenge=sample["messages"][-1],
+            rewards=rewards,
+            response_event=response_event,
+        )
+        log_event(event)
         return RewardResult(
             rewards=rewards,
             uids=list(responses.keys()),

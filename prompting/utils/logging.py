@@ -122,9 +122,19 @@ class ValidatorEvent(BaseModel):
     reward_events: list[WeightedRewardEvent]
     penalty_events: list[WeightedRewardEvent]
     response_event: DendriteResponseEvent
+    reference: str
+    challenge: str
     rewards: list[float]
     forward_time: float | None = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
+class OrganicEvent(BaseModel):
+    timeout: float
+    reference: str
+    challenge: str
+    rewards: list[float]
+    response_event: DendriteResponseEvent
+    is_organic: bool = True
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
@@ -145,7 +155,7 @@ class MinerEvent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
+def log_event(event: ValidatorEvent | OrganicEvent | MinerEvent | ErrorEvent):
     if not settings.LOGGING_DONT_SAVE_EVENTS:
         logger.info(f"{event}")
 
@@ -154,7 +164,7 @@ def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
         unpacked_event = convert_arrays_to_lists(unpacked_event)
         wandb.log(unpacked_event)
 
-def unpack_events(event: ValidatorEvent) -> dict:
+def unpack_events(event: ValidatorEvent | OrganicEvent) -> dict:
     """reward_events and penalty_events are unpacked into a list of dictionaries."""
     event_dict = event.model_dump()
     for key in list(event_dict.keys()):

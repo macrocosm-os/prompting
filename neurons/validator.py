@@ -160,6 +160,8 @@ class Validator(BaseValidatorNeuron):
                 step_time=time.time() - start_time,
                 reward_events=reward_events or [],
                 penalty_events=penalty_events or [],
+                reference=reference,
+                challenge = query,
                 rewards=rewards,
                 response_event=response_event,
             )
