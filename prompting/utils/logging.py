@@ -122,6 +122,8 @@ class ValidatorEvent(BaseModel):
     reward_events: list[WeightedRewardEvent]
     penalty_events: list[WeightedRewardEvent]
     response_event: DendriteResponseEvent
+    rewards: list[float]
+    uids: list[int]
     forward_time: float | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -149,4 +151,30 @@ def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
         logger.info(f"{event}")
 
     if settings.WANDB_ON:
-        wandb.log(event.model_dump())
+        wandb.log(unpack_events(event))
+
+def unpack_events(event):
+    """The keys that have _events in them are unpacked into a list of dictionaries."""
+    event_dict = event.dict()
+    for key, value in event_dict.items():
+        if key.endswith("_events"):
+            event_dict.update(event_dict.pop(key))
+    return event_dict
+
+def extract_reward_event(reward_event: list):
+    flattened_reward_dict = {}
+    for element in reward_event:
+        print(element['reward_event'].keys())
+        name = element['reward_event'].pop('reward_model_name')
+        weight = element.pop('weight')
+        # Rename all the keys in the element['reward_event'] dictionary to be name_key
+        reward_event = element['reward_event']
+        new_reward_event = {f"{name}_{key}": value for key, value in reward_event.items()}
+        new_reward_event['weight'] = weight
+        # If any of the keys have a value which contains a dictionary with a key called 'value', rename set the value of the key to the value of the 'value' key
+        print(new_reward_event.items())
+        for key, value in new_reward_event.items():
+            if isinstance(value, dict) and 'values' in value:
+                new_reward_event[key] = value['values']
+        flattened_reward_dict.update(new_reward_event)
+    return flattened_reward_dict
