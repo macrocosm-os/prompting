@@ -151,20 +151,26 @@ def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
         logger.info(f"{event}")
 
     if settings.WANDB_ON:
-        wandb.log(unpack_events(event))
+        unpacked_event = unpack_events(event)
+        wandb.log(unpacked_event)
+        print('#'*100, unpacked_event)
 
 def unpack_events(event):
     """The keys that have _events in them are unpacked into a list of dictionaries."""
     event_dict = event.dict()
-    for key, value in event_dict.items():
+    for key in list(event_dict.keys()):  # Use list to safely modify the dictionary during iteration
         if key.endswith("_events"):
             event_dict.update(event_dict.pop(key))
-    return event_dict
+        if key == 'response_event':
+            # Unpack this nested dictionary
+            nested_dict = event_dict.pop(key)
+            if isinstance(nested_dict, dict):  # Ensure it's a dictionary
+                event_dict.update(nested_dict)
+    return unpack_values(event_dict)
 
 def extract_reward_event(reward_event: list):
     flattened_reward_dict = {}
     for element in reward_event:
-        print(element['reward_event'].keys())
         name = element['reward_event'].pop('reward_model_name')
         weight = element.pop('weight')
         # Rename all the keys in the element['reward_event'] dictionary to be name_key
@@ -172,9 +178,12 @@ def extract_reward_event(reward_event: list):
         new_reward_event = {f"{name}_{key}": value for key, value in reward_event.items()}
         new_reward_event['weight'] = weight
         # If any of the keys have a value which contains a dictionary with a key called 'value', rename set the value of the key to the value of the 'value' key
-        print(new_reward_event.items())
-        for key, value in new_reward_event.items():
-            if isinstance(value, dict) and 'values' in value:
-                new_reward_event[key] = value['values']
+        
         flattened_reward_dict.update(new_reward_event)
     return flattened_reward_dict
+
+def unpack_values(dictionary):
+    for key, value in dictionary.items():
+            if isinstance(value, dict) and 'values' in value:
+                dictionary[key] = value['values']
+    return dictionary

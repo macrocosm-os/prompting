@@ -161,7 +161,6 @@ class Validator(BaseValidatorNeuron):
                 reward_events=reward_events or [],
                 penalty_events=penalty_events or [],
                 rewards=rewards,
-                uids=uids,
                 response_event=response_event,
             )
         except Exception as ex:
