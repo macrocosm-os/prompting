@@ -156,13 +156,12 @@ def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
 def unpack_events(event: ValidatorEvent) -> dict:
     """The keys that have _events in them are unpacked into a list of dictionaries."""
     event_dict = event.model_dump()
-    for key in list(event_dict.keys()):  # Use list to safely modify the dictionary during iteration
+    for key in list(event_dict.keys()):
         if key.endswith("_events"):
             event_dict.update(extract_reward_event(event_dict.pop(key)))
         if key == 'response_event':
-            # Unpack this nested dictionary
             nested_dict = event_dict.pop(key)
-            if isinstance(nested_dict, dict):  # Ensure it's a dictionary
+            if isinstance(nested_dict, dict):
                 event_dict.update(nested_dict)
     return unpack_values(event_dict)
 
@@ -170,10 +169,9 @@ def extract_reward_event(reward_event: list) -> dict:
     flattened_reward_dict = {}
     for element in reward_event:
         name = element['reward_event'].pop('reward_model_name')
-        weight = element.pop('weight')
+        element['reward_event']['weight'] = element.pop('weight')
         reward_event = element['reward_event']
         new_reward_event = {f"{name}_{key}": value for key, value in reward_event.items()}
-        new_reward_event['weight'] = weight
         flattened_reward_dict.update(new_reward_event)
     return flattened_reward_dict
 
