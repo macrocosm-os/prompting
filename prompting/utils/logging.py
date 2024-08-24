@@ -151,6 +151,7 @@ def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
 
     if settings.WANDB_ON:
         unpacked_event = unpack_events(event)
+        unpacked_event = convert_arrays_to_lists(unpacked_event)
         wandb.log(unpacked_event)
 
 def unpack_events(event: ValidatorEvent) -> dict:
@@ -163,20 +164,18 @@ def unpack_events(event: ValidatorEvent) -> dict:
             nested_dict = event_dict.pop(key)
             if isinstance(nested_dict, dict):
                 event_dict.update(nested_dict)
-    return unpack_values(event_dict)
+    return event_dict
 
 def extract_reward_event(reward_event: list) -> dict:
     flattened_reward_dict = {}
     for element in reward_event:
         name = element['reward_event'].pop('reward_model_name')
         element['reward_event']['weight'] = element.pop('weight')
-        reward_event = element['reward_event']
+        reward_event = element.pop('reward_event')
         new_reward_event = {f"{name}_{key}": value for key, value in reward_event.items()}
         flattened_reward_dict.update(new_reward_event)
     return flattened_reward_dict
 
-def unpack_values(dictionary) -> dict:
-    for key, value in dictionary.items():
-            if isinstance(value, dict) and 'values' in value:
-                dictionary[key] = value['values']
-    return dictionary
+def convert_arrays_to_lists(data: dict) -> dict:
+    """Convert all array values in the dictionary to lists."""
+    return {key: value.tolist() if hasattr(value, 'tolist') else value for key, value in data.items()}
