@@ -158,7 +158,7 @@ def unpack_events(event):
     event_dict = event.dict()
     for key in list(event_dict.keys()):  # Use list to safely modify the dictionary during iteration
         if key.endswith("_events"):
-            event_dict.update(event_dict.pop(key))
+            event_dict.update(extract_reward_event(event_dict.pop(key)))
         if key == 'response_event':
             # Unpack this nested dictionary
             nested_dict = event_dict.pop(key)
