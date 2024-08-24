@@ -123,7 +123,6 @@ class ValidatorEvent(BaseModel):
     penalty_events: list[WeightedRewardEvent]
     response_event: DendriteResponseEvent
     rewards: list[float]
-    uids: list[int]
     forward_time: float | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
