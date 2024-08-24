@@ -124,6 +124,7 @@ class ValidatorEvent(BaseModel):
     response_event: DendriteResponseEvent
     reference: str
     challenge: str
+    task: str
     rewards: list[float]
     forward_time: float | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -134,7 +135,7 @@ class OrganicEvent(BaseModel):
     challenge: str
     rewards: list[float]
     response_event: DendriteResponseEvent
-    is_organic: bool = True
+    task: str = "organic"
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 

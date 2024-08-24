@@ -77,6 +77,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         event = OrganicEvent(
             timeout=timeout,
             reference=reference,
+            task = "organic",
             challenge=sample["messages"][-1],
             rewards=rewards,
             response_event=response_event,
