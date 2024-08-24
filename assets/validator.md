@@ -19,7 +19,7 @@ cd prompting
 bash install.sh
 ```
 
-You will also need to log into huggingface and accept the License Agreement for the LMSYS-Chat-1M dataset: https:#huggingface.co/datasets/lmsys/lmsys-chat-1m:
+You will also need to log into huggingface and accept the License Agreement for the LMSYS-Chat-1M dataset: https://huggingface.co/datasets/lmsys/lmsys-chat-1m :
 ```shell
 huggingface-cli login
 ```
@@ -35,6 +35,7 @@ SUBTENSOR_CHAIN_ENDPOINT= #The chain endpoint [test if running on test, main if 
 WALLET_NAME= #Name of your wallet(coldkey) 
 HOTKEY= #Name of your hotkey associated with above wallet
 AXON_PORT= #Number of the open tcp port
+HF_TOKEN= #Access token from Hugging Face where you accepted the License Agreement for lmsys
 ```
 
 ## Running
