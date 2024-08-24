@@ -153,9 +153,9 @@ def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
         unpacked_event = unpack_events(event)
         wandb.log(unpacked_event)
 
-def unpack_events(event):
+def unpack_events(event: ValidatorEvent) -> dict:
     """The keys that have _events in them are unpacked into a list of dictionaries."""
-    event_dict = event.dict()
+    event_dict = event.model_dump()
     for key in list(event_dict.keys()):  # Use list to safely modify the dictionary during iteration
         if key.endswith("_events"):
             event_dict.update(extract_reward_event(event_dict.pop(key)))
@@ -166,21 +166,18 @@ def unpack_events(event):
                 event_dict.update(nested_dict)
     return unpack_values(event_dict)
 
-def extract_reward_event(reward_event: list):
+def extract_reward_event(reward_event: list) -> dict:
     flattened_reward_dict = {}
     for element in reward_event:
         name = element['reward_event'].pop('reward_model_name')
         weight = element.pop('weight')
-        # Rename all the keys in the element['reward_event'] dictionary to be name_key
         reward_event = element['reward_event']
         new_reward_event = {f"{name}_{key}": value for key, value in reward_event.items()}
         new_reward_event['weight'] = weight
-        # If any of the keys have a value which contains a dictionary with a key called 'value', rename set the value of the key to the value of the 'value' key
-        
         flattened_reward_dict.update(new_reward_event)
     return flattened_reward_dict
 
-def unpack_values(dictionary):
+def unpack_values(dictionary) -> dict:
     for key, value in dictionary.items():
             if isinstance(value, dict) and 'values' in value:
                 dictionary[key] = value['values']
