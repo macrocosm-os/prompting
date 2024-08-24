@@ -155,7 +155,7 @@ def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
         wandb.log(unpacked_event)
 
 def unpack_events(event: ValidatorEvent) -> dict:
-    """The keys that have _events in them are unpacked into a list of dictionaries."""
+    """reward_events and penalty_events are unpacked into a list of dictionaries."""
     event_dict = event.model_dump()
     for key in list(event_dict.keys()):
         if key.endswith("_events"):
@@ -177,5 +177,4 @@ def extract_reward_event(reward_event: list) -> dict:
     return flattened_reward_dict
 
 def convert_arrays_to_lists(data: dict) -> dict:
-    """Convert all array values in the dictionary to lists."""
     return {key: value.tolist() if hasattr(value, 'tolist') else value for key, value in data.items()}
