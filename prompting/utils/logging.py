@@ -153,7 +153,6 @@ def log_event(event: ValidatorEvent | MinerEvent | ErrorEvent):
     if settings.WANDB_ON:
         unpacked_event = unpack_events(event)
         wandb.log(unpacked_event)
-        print('#'*100, unpacked_event)
 
 def unpack_events(event):
     """The keys that have _events in them are unpacked into a list of dictionaries."""
