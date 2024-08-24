@@ -66,7 +66,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         self, sample: SAMPLE_TYPE, responses: dict[str, SynapseStreamResult], reference: str
     ) -> RewardResult:
         stream_results = list(responses.values())
-        uids = np.asarray(responses.keys())
+        uids = np.asarray(list(responses.keys()))
         timeout = settings.ORGANIC_TIMEOUT
         response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
         _, _, rewards = OrganicRewardConfig.apply(
