@@ -49,6 +49,7 @@ class SummarizationRewardConfig(BaseRewardConfig):
 
 
 class SummarizationTask(BaseTask):
+    name: ClassVar[str] = "summarization"
     cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline(
         cleaning_pipeline=[
             RemoveQuotes(),

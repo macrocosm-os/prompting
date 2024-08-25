@@ -162,7 +162,7 @@ class Validator(BaseValidatorNeuron):
                 penalty_events=penalty_events or [],
                 reference=reference,
                 challenge = query,
-                task = task.__class__.__name__,
+                task = task.name,
                 rewards=rewards,
                 response_event=response_event,
             )

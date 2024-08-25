@@ -74,7 +74,7 @@ class QARewardConfig(BaseRewardConfig):
 class QuestionAnsweringTask(BaseTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
-
+    name: ClassVar[str] = "qa"
     cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline(
         cleaning_pipeline=[
             RemoveQuotes(),
