@@ -82,7 +82,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
             rewards=rewards,
             response_event=response_event,
         )
-        log_event(event)
+        if not sample.get("is_organic", False):
+            log_event(event)
         return RewardResult(
             rewards=rewards,
             uids=list(responses.keys()),
