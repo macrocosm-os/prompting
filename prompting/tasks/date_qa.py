@@ -37,7 +37,7 @@ class DateQuestionAnsweringTask(BaseTask):
     @classmethod
     def generate_query_reference(cls, llm_pipeline: BasePipeline, context: DateContext):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(content=context.date, topic=context.title) #TODO Sort out context dictionary
-        query = cls.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
+        query = cls.generate_query(llm_pipeline=llm_pipeline, message=query_prompt)
 
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date=context.content, query=query, content=context.subtopic)
         reference = cls.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
