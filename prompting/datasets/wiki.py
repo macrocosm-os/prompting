@@ -298,8 +298,7 @@ class WikiDateDataset(BaseDataset):
                     content, date = date_sentence
                     date_context = DateContext.from_context(context, date=date)
                     date_context.content = content
-
-                return date_context
+                    return date_context
 
             except Empty:
                 logger.debug("Cache is empty. Skipping date until cache is filled.")
