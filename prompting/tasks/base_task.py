@@ -67,7 +67,7 @@ class BaseTask(ABC, BaseModel):
         llm_pipeline: BasePipeline,
     ) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
-        if cls.augmentation_system_prompt:
+        if not cls.augmentation_system_prompt:
             return query
         challenge = vLLM_LLM(
             llm_pipeline=llm_pipeline,

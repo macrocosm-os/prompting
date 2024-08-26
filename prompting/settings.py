@@ -53,7 +53,7 @@ class Settings(BaseModel):
     ORGANIC_SAMPLE_SIZE: int = 5
     ORGANIC_REUSE_RESPONSE_DISABLED: bool = False
     ORGANIC_REFERENCE_MAX_TOKENS: int = 1024
-    ORGANIC_SYNTH_REWARD_SCALE: float = 0.1
+    ORGANIC_SYNTH_REWARD_SCALE: float = 1.0
     ORGANIC_SET_WEIGHTS_ENABLED: bool = True
     ORGANIC_DISABLED: bool = False
     ORGANIC_TRIGGER_FREQUENCY: int = 120
@@ -119,7 +119,7 @@ class Settings(BaseModel):
         values["ORGANIC_SAMPLE_SIZE"] = os.environ.get("ORGANIC_SAMPLE_SIZE", 5)
         values["ORGANIC_REUSE_RESPONSE_DISABLED"] = os.environ.get("ORGANIC_REUSE_RESPONSE_DISABLED", False)
         values["ORGANIC_REFERENCE_MAX_TOKENS"] = os.environ.get("ORGANIC_REFERENCE_MAX_TOKENS", 1024)
-        values["ORGANIC_SYNTH_REWARD_SCALE"] = os.environ.get("ORGANIC_SYNTH_REWARD_SCALE", 0.1)
+        values["ORGANIC_SYNTH_REWARD_SCALE"] = os.environ.get("ORGANIC_SYNTH_REWARD_SCALE", 1.0)
         values["ORGANIC_SET_WEIGHTS_ENABLED"] = os.environ.get("ORGANIC_SET_WEIGHTS_ENABLED", True)
         values["ORGANIC_DISABLED"] = os.environ.get("ORGANIC_DISABLED", False)
         values["ORGANIC_TRIGGER_FREQUENCY"] = os.environ.get("ORGANIC_TRIGGER_FREQUENCY", 120)

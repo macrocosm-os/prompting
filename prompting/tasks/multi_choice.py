@@ -15,13 +15,12 @@ from prompting.utils.exceptions import TaskCreationError
 
 # Used to instruct the LLM to provide a good query when given a context.
 QUERY_SYSTEM_PROMPT = """\
-You are a multiple choice question-generating expert, focusing on delivering comprehensive and accurate questions with depth and clarity for AI benchmarking purposes. The questions you generate should be specific and based on the context that is provided. Do not add any greetings or assistant messages before or after the question (e.g. Here's a question based on the context) as this does not bring any benefit to the question. The question should be self-contained. You will adhere to a word limit of 100 words for each question.
+You are a multiple choice question-generating expert.
+Provide 4 possible answers (multiple choice-style: A, B, C, D), one of which is correct.
 
-In addition to the question, you will provide 4 possible answers (multiple choice-style), one of which is correct. Ensure that the correct answer is not too obvious, and that the incorrect answers are plausible. Be careful to maintain a neutral tone in the candidate answers, and randomly order the answers so that the correct answer is not always in the same position. Do not add any additional information after the answers.
+Indicate the correct answer by placing an asterisk (*) at the beginning of the correct answer, the generated quiz must follow the same format:
 
-Indicate the correct answer by placing an asterisk (*) at the beginning of the correct answer, like this:
-
-A. [Correct Answer]
+A. [Incorrect Answer]
 *B. [Correct Answer]
 C. [Incorrect Answer]
 D. [Incorrect Answer]
@@ -44,11 +43,41 @@ A. Covalent bond formation between amino acids
 C. Hydrogen bonds between the protein backbone and side chains
 D. Ionic interactions between charged side chains
 """
+# QUERY_SYSTEM_PROMPT = """\
+# You are a multiple choice question-generating expert, focusing on delivering comprehensive and accurate questions with depth and clarity for AI benchmarking purposes. The questions you generate should be specific and based on the context that is provided. Do not add any greetings or assistant messages before or after the question (e.g. Here's a question based on the context) as this does not bring any benefit to the question. The question should be self-contained. You will adhere to a word limit of 100 words for each question.
+
+# In addition to the question, you will provide 4 possible answers (multiple choice-style), one of which is correct. Ensure that the correct answer is not too obvious, and that the incorrect answers are plausible. Be careful to maintain a neutral tone in the candidate answers, and randomly order the answers so that the correct answer is not always in the same position. Do not add any additional information after the answers.
+
+# Indicate the correct answer by placing an asterisk (*) at the beginning of the correct answer, like this:
+
+# A. [Correct Answer]
+# *B. [Correct Answer]
+# C. [Incorrect Answer]
+# D. [Incorrect Answer]
+
+# ## Example 1
+
+# What is the capital of Texas?
+
+# A. Paris
+# B. London
+# *C. Austin
+# D. Houston
+
+# ## Example 2
+
+# Which of the following best describes the primary driving force behind protein folding?
+
+# A. Covalent bond formation between amino acids
+# *B. Hydrophobic interactions between nonpolar side chains
+# C. Hydrogen bonds between the protein backbone and side chains
+# D. Ionic interactions between charged side chains
+# """
 
 # Used to obtain the query (which is a question about the context)
 # TODO: modulate difficulty "ask an {expert} question"
 QUERY_PROMPT_TEMPLATE = """\
-Create a multiple choice question based on the following context source from {source} about {title}:
+Create a multiple choice quiz based on the following context source from {source} about {title}:
 
 #Context:
 {context}
