@@ -2,7 +2,7 @@ import json
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal, Optional
 
 import wandb
 from loguru import logger
@@ -109,12 +109,15 @@ def reinit_wandb(self):
     init_wandb(self, reinit=True)
 
 
-class ErrorEvent(BaseModel):
-    error: str
+class BaseEvent(BaseModel):
     forward_time: float | None = None
 
 
-class ValidatorEvent(BaseModel):
+class ErrorEvent(BaseEvent):
+    error: str
+
+
+class ValidatorEvent(BaseEvent):
     best: str
     block: int
     step: int
@@ -126,20 +129,19 @@ class ValidatorEvent(BaseModel):
     challenge: str
     task: str
     rewards: list[float]
-    forward_time: float | None = None
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-class OrganicEvent(BaseModel):
-    timeout: float
-    reference: str
-    challenge: str
-    rewards: list[float]
-    response_event: DendriteResponseEvent
-    task: str = "organic"
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class MinerEvent(BaseModel):
+class ValidatorOrganicEvent(ValidatorEvent):
+    organic_turn: Optional[int]
+    organic_time_sample: Optional[float]
+    organic_time_responses: Optional[float]
+    organic_time_rewards: Optional[float]
+    organic_time_weights: Optional[float]
+    organic_queue_size: Optional[int]
+
+
+class MinerEvent(BaseEvent):
     epoch_time: float
     messages: int
     accumulated_chunks: int
@@ -156,7 +158,7 @@ class MinerEvent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-def log_event(event: ValidatorEvent | OrganicEvent | MinerEvent | ErrorEvent):
+def log_event(event: BaseEvent):
     if not settings.LOGGING_DONT_SAVE_EVENTS:
         logger.info(f"{event}")
 
@@ -165,27 +167,29 @@ def log_event(event: ValidatorEvent | OrganicEvent | MinerEvent | ErrorEvent):
         unpacked_event = convert_arrays_to_lists(unpacked_event)
         wandb.log(unpacked_event)
 
-def unpack_events(event: ValidatorEvent | OrganicEvent) -> dict:
+
+def unpack_events(event: BaseEvent) -> dict[str, Any]:
     """reward_events and penalty_events are unpacked into a list of dictionaries."""
     event_dict = event.model_dump()
     for key in list(event_dict.keys()):
         if key.endswith("_events"):
             event_dict.update(extract_reward_event(event_dict.pop(key)))
-        if key == 'response_event':
+        if key == "response_event":
             nested_dict = event_dict.pop(key)
             if isinstance(nested_dict, dict):
                 event_dict.update(nested_dict)
     return event_dict
 
-def extract_reward_event(reward_event: list) -> dict:
+
+def extract_reward_event(reward_event: list[dict[str, Any]]) -> dict[str, Any]:
     flattened_reward_dict = {}
     for element in reward_event:
-        name = element['reward_event'].pop('reward_model_name')
-        element['reward_event']['weight'] = element.pop('weight')
-        reward_event = element.pop('reward_event')
+        name = element["reward_event"].pop("reward_model_name")
+        element["reward_event"]["weight"] = element.pop("weight")
+        reward_event = element.pop("reward_event")
         new_reward_event = {f"{name}_{key}": value for key, value in reward_event.items()}
         flattened_reward_dict.update(new_reward_event)
     return flattened_reward_dict
 
 def convert_arrays_to_lists(data: dict) -> dict:
-    return {key: value.tolist() if hasattr(value, 'tolist') else value for key, value in data.items()}
+    return {key: value.tolist() if hasattr(value, "tolist") else value for key, value in data.items()}
