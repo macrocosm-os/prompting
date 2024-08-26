@@ -119,7 +119,7 @@ class vLLM_LLM(BaseLLM):
         super().__init__(llm_pipeline, system_prompt, model_kwargs)
 
         # Keep track of generation data using messages and times
-
+        self.system_prompt = system_prompt
         self.messages = [{"content": self.system_prompt, "role": "system"}] if self.system_prompt else []
         self.times: list[float] = [0]
         self._role_template = {
