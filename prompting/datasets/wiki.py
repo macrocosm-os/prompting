@@ -43,7 +43,6 @@ def _get_page(
         return None
 
 
-@lru_cache(maxsize=1000)
 def _get_random_titles(pages: int = 10) -> list:
     """Cached wikipedia random page. Approximately deterministic random titles. This is useful for testing.
     NOTE: the actually cached result will change each session, but the result will be the same within a session.
