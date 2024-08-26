@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-import re
 from typing import ClassVar
+import re
+import json
 
 import numpy as np
 
@@ -15,33 +16,32 @@ from prompting.utils.exceptions import TaskCreationError
 
 # Used to instruct the LLM to provide a good query when given a context.
 QUERY_SYSTEM_PROMPT = """\
-You are a multiple choice question-generating expert.
-Provide 4 possible answers (multiple choice-style: A, B, C, D), one of which is correct.
+You are a multiple choice quiz-generating expert.
+Based on the input context, you must generate the question, exactly 4 possible answers (A, B, C, D), and the correct answer letter.
 
-Indicate the correct answer by placing an asterisk (*) at the beginning of the correct answer, the generated quiz must follow the same format:
+[Example 1]
+```json
+{
+    "question": "What is the capital of Texas?",
+    "A": "Paris",
+    "B": "London",
+    "C": "Austin",
+    "D": "Houston",
+    "answer": "C"
+}
+```
 
-A. [Incorrect Answer]
-*B. [Correct Answer]
-C. [Incorrect Answer]
-D. [Incorrect Answer]
-
-## Example 1
-
-What is the capital of Texas?
-
-A. Paris
-B. London
-*C. Austin
-D. Houston
-
-## Example 2
-
-Which of the following best describes the primary driving force behind protein folding?
-
-A. Covalent bond formation between amino acids
-*B. Hydrophobic interactions between nonpolar side chains
-C. Hydrogen bonds between the protein backbone and side chains
-D. Ionic interactions between charged side chains
+[Example 2]
+```json
+{
+    "question": "Which of the following best describes the primary driving force behind protein folding?",
+    "A": "Covalent bond formation between amino acids",
+    "B": "Hydrophobic interactions between nonpolar side chains",
+    "C": "Hydrogen bonds between the protein backbone and side chains",
+    "D": "Ionic interactions between charged side chains",
+    "answer": "B"
+}
+```
 """
 # QUERY_SYSTEM_PROMPT = """\
 # You are a multiple choice question-generating expert, focusing on delivering comprehensive and accurate questions with depth and clarity for AI benchmarking purposes. The questions you generate should be specific and based on the context that is provided. Do not add any greetings or assistant messages before or after the question (e.g. Here's a question based on the context) as this does not bring any benefit to the question. The question should be self-contained. You will adhere to a word limit of 100 words for each question.
@@ -79,7 +79,7 @@ D. Ionic interactions between charged side chains
 QUERY_PROMPT_TEMPLATE = """\
 Create a multiple choice quiz based on the following context source from {source} about {title}:
 
-#Context:
+[Input Context]
 {context}
 """
 
@@ -95,7 +95,7 @@ class MultiChoiceTask(BaseTask):
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
 
-    # specific pattern (semi-flexible) which detects multiple choices
+    # Specific pattern (semi-flexible) which detects multiple choices.
     choices_pattern: ClassVar[str] = r"\n\s*(\*?\s*\W?[A-D]\W?)\s*(.*)"
 
     @classmethod
@@ -104,6 +104,48 @@ class MultiChoiceTask(BaseTask):
         query_with_choices = cls.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
         query, reference = cls.extract_query_and_reference(query_with_choices)
         return query, reference
+
+    @classmethod
+    def extract_query_and_reference(query_with_choices: str) -> dict:
+        """
+        Detects JSON within a string, parses it into a dictionary,
+        and validates that the dictionary contains the required fields:
+        "question", "answer", "A", "B", "C", and "D".
+        
+        Args:
+            json_string (str): The string containing the JSON data, possibly with extra text.
+            
+        Returns:
+            dict: The parsed and validated dictionary.
+        
+        Raises:
+            ValueError: If JSON extraction or parsing fails, or required fields are missing.
+        """
+        # Regular expression pattern to match JSON object in the string.
+        json_pattern = r"{.*?}"
+        match = re.search(json_pattern, query_with_choices, re.DOTALL)
+        
+        if not match:
+            raise TaskCreationError(f"No JSON object could be found in the provided string: {query_with_choices}.")
+        
+        json_data = match.group()
+        
+        try:
+            # Attempt to parse the JSON string into a dictionary
+            quiz_data = json.loads(json_data)
+        except json.JSONDecodeError:
+            raise TaskCreationError(
+                f"Failed to parse JSON from the detected portion of the string: {query_with_choices}."
+            )
+
+        required_fields = ["question", "answer", "A", "B", "C", "D"]
+
+        # Check for missing fields.
+        for field in required_fields:
+            if field not in quiz_data:
+                raise TaskCreationError(f"Missing required field: '{field}'")
+
+        return quiz_data
 
     @classmethod
     def extract_query_and_reference(cls, query_with_choices: str) -> tuple[str, str]:
@@ -139,6 +181,41 @@ class MultiChoiceTask(BaseTask):
             query_with_choices[:index] + "\n\n" + shuffled_choices
         )
         return shuffled_query_with_choices, new_reference
+
+    # @classmethod
+    # def extract_query_and_reference(cls, query_with_choices: str) -> tuple[str, str]:
+    #     """Extract the query and reference answer from the generated query.
+
+    #     To do this we extract the reference answer by searching for the choice with a * symbol,
+    #     and then removing the * to form the query
+    #     """
+    #     # get the index of first occurrence of the choices
+    #     index = re.search(cls.choices_pattern, query_with_choices).start()
+
+    #     items, choices = list(
+    #         zip(*re.findall(cls.choices_pattern, query_with_choices[index:]))
+    #     )
+    #     if len(choices) != 4:
+    #         raise TaskCreationError(
+    #             f"{cls.__name__} the number of choices is not 4 in query_with_choices:\n{query_with_choices}"
+    #         )
+
+    #     correct_item = [i for i, item in enumerate(items) if "*" in item]
+    #     if len(correct_item) == 0:
+    #         raise TaskCreationError(
+    #             f"{cls.__name__} no reference was found in query_with_choices:\n{query_with_choices}"
+    #         )
+    #     elif len(correct_item) != 1:
+    #         raise TaskCreationError(
+    #             f"{cls.__name__} found multiple reference matches in query_with_choices:\n{query_with_choices}"
+    #         )
+    #     reference_label = choices[correct_item[0]]
+
+    #     shuffled_choices, new_reference = cls.shuffle_choices(choices, reference_label)
+    #     shuffled_query_with_choices = (
+    #         query_with_choices[:index] + "\n\n" + shuffled_choices
+    #     )
+    #     return shuffled_query_with_choices, new_reference
 
     @classmethod
     def shuffle_choices(cls, choices: list[str], reference_label: str) -> tuple[str, str]:
