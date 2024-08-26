@@ -58,7 +58,7 @@ class BaseTask(ABC, BaseModel):
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
         query = vLLM_LLM(llm_pipeline, system_prompt=cls.query_system_prompt or "").query(message=message)
-        return cls.augment_query(query, llm_pipeline)
+        return query
 
     @classmethod
     def augment_query(
