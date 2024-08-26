@@ -11,7 +11,6 @@ from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
 QUERY_SYSTEM_PROMPT = """You are a question creation expert. When asked to create a question, you use the context to make a specific question that would have the answer <date>. Your question should contain the topic."""
 QUERY_PROMPT_TEMPLATE = """\
 Create a question about {topic} that would have <date> as the answer using the following context:
-topic: {topic}
 context: {content}
 """
 REFERENCE_PROMPT_TEMPLATE = """\
@@ -37,10 +36,10 @@ class DateQuestionAnsweringTask(BaseTask):
 
     @classmethod
     def generate_query_reference(cls, llm_pipeline: BasePipeline, context: DateContext):
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(content=context.content, topic=context.topic)
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(content=context.date, topic=context.title) #TODO Sort out context dictionary
         query = cls.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
 
-        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date=context.date, query=query, content=context.content)
+        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date=context.content, query=query, content=context.subtopic)
         reference = cls.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
 
         return query, reference

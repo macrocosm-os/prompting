@@ -14,9 +14,7 @@ from prompting.utils.cleaners import CleanerPipeline
 from typing import ClassVar
 
 QUERY_SYSTEM_PROMPT = """\
-You are a question-generating expert, focusing on delivering comprehensive and accurate questions with depth and clarity. The questions you generate should be based on the context that is provided.
-You will maintain a neutral tone in your questions.
-You will adhere to a word limit of 50 words for each question.
+You are a request-generating expert. When asked to generate a request, you ask for a detailed summary of a topic. Your request should be specificly about the topic.
 """
 
 REFERENCE_SYSTEM_PROMPT = """\
@@ -24,7 +22,8 @@ You are an expert question-answering LLM. You will receive context and a questio
 """
 
 QUERY_PROMPT_TEMPLATE = """\
-    Provide an exhaustive summary about the topic \"{title}\""""
+Request an exhaustive summary about the topic {title}"""
+
 # Used to obtain reference answer
 REFERENCE_PROMPT_TEMPLATE = """\
 Summarize the following context in a concise and accurate manner:

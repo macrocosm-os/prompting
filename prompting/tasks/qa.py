@@ -29,6 +29,8 @@ Ask a specific question about the following context:
 
 #Context:
 {context}
+
+You must ask a question that can be answered by the context.
 """
 
 
@@ -42,24 +44,6 @@ Answer the question you will receive in detail, utilizing the following context.
 # Question:
 {question}
 """
-
-# TODO: We also need a special followup reference prompt (or just merge both)
-# TODO: We should create followups using the specified llama3 chat template rather than feeding the message history through textually
-FOLLOWUP_REFERENCE_PROMPT_TEMPLATE = """\
-You are a helpful assistant. Answer the question below in detail, prioritizing the use of the provided conversation history. The context is available for additional information if needed, but it may not always be relevant.
-
-# Conversation History:
-{history}
-
-# Context (optional):
-{context}
-
-# Question:
-{question}
-
-Ensure your answer references relevant parts of the conversation history. Use the context only if it provides additional necessary information.
-"""
-
 
 class QARewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
