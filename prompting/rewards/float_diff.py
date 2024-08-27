@@ -68,8 +68,5 @@ class FloatDiffModel(BaseRewardModel):
         output = BatchRewardOutput(
             rewards=np.array(rewards),
             timings=np.array(timings),
-            extra_info={
-                "type": "math",
-            },
         )
         return output

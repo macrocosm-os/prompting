@@ -2,10 +2,12 @@
 import asyncio
 import time
 
+
 from prompting import settings
 
 settings.settings = settings.Settings(mode="validator")
 settings = settings.settings
+
 from loguru import logger
 from prompting.base.validator import BaseValidatorNeuron
 from neurons.forward import log_stream_results, handle_response

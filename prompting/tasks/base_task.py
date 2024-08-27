@@ -11,6 +11,7 @@ from uuid import uuid4
 from prompting.llms.model_zoo import ModelConfig
 from prompting.llms.model_manager import model_manager
 import random
+from prompting.settings import settings
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -108,6 +109,7 @@ class BaseTextTask(BaseTask):
         challenge = vLLM_LLM(
             llm=model_manager.get_model(self.model),
             max_new_tokens=256,
+            settings.NEURON_MAX_TOKENS,
             system_prompt=self.augmentation_system_prompt,
         ).query(message=query)
         return challenge

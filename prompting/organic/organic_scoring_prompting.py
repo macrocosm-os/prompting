@@ -1,8 +1,9 @@
 import asyncio
 import json
 import time
+from dataclasses import dataclass
 from functools import partial
-from typing import Any, AsyncGenerator, Callable, Literal, Optional, Sequence, Tuple, Union
+from typing import Any, AsyncGenerator, Callable, Optional, Sequence, Tuple, Union
 
 import bittensor as bt
 import numpy as np
@@ -16,21 +17,22 @@ from transformers import PreTrainedTokenizerFast
 from typing_extensions import override
 
 from neurons.forward import handle_response
-from prompting import settings
-from prompting.base.dendrite import SynapseStreamResult
+from prompting.base.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.llms.vllm_llm import vLLMPipeline
 from prompting.organic.organic_task import OrganicRewardConfig, OrganicTask
 from prompting.settings import settings
 
-# from prompting.rewards.reward import RewardResult
+# TODO: Implement Sample dataclass for SynthDatasets, Queues, and OrganicScoringBase methods.
+# Fields: "messages", "roles", "uids", "is_organic", "completions".
+SAMPLE_TYPE = dict[str, Union[list[str], bool, list[int], dict[int, dict[str, Any]]]]
 
 
-class OrganicEntry:
-    roles: list[str]
-    messages: list[str]
+@dataclass
+class RewardResult:
+    rewards: list[float]
+    uids: list[int]
     is_organic: bool
-    source: str
 
 
 class OrganicScoringPrompting(OrganicScoringBase):
@@ -60,14 +62,22 @@ class OrganicScoringPrompting(OrganicScoringBase):
         self._lock = lock
 
     async def _generate_rewards(
-        self, sample: OrganicEntry, responses: dict[str, SynapseStreamResult], reference: str
-    ):
-        _, _, rewards = OrganicRewardConfig.apply(responses=responses, reference=reference, query=sample.messages[-1])
-        return {
-            "rewards": rewards,
-            "uids": responses.keys(),
-            "organic": sample.is_organic,
-        }
+        self, sample: SAMPLE_TYPE, responses: dict[str, SynapseStreamResult], reference: str
+    ) -> RewardResult:
+        stream_results = list(responses.values())
+        uids = np.asarray(responses.keys())
+        timeout = settings.ORGANIC_TIMEOUT
+        response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
+        _, _, rewards = OrganicRewardConfig.apply(
+            response_event=response_event,
+            reference=reference,
+            challenge=sample["messages"][-1]
+        )
+        return RewardResult(
+            rewards=rewards,
+            uids=list(responses.keys()),
+            is_organic=sample.get("is_organic", False),
+        )
 
     @override
     async def _priority_fn(self, synapse: StreamPromptingSynapse) -> float:
@@ -94,8 +104,6 @@ class OrganicScoringPrompting(OrganicScoringBase):
             synapse,
             uids,
             completions,
-            metagraph=settings.METAGRAPH,
-            wallet=settings.WALLET,
         )
 
         streaming_response = synapse.create_streaming_response(token_streamer)
@@ -103,13 +111,14 @@ class OrganicScoringPrompting(OrganicScoringBase):
             {
                 "roles": synapse.roles,
                 "messages": synapse.messages,
-                "organic": True,
+                "is_organic": True,
                 "synapse": synapse,
                 "streaming_response": streaming_response,
                 "uids": uids,
                 "completions": completions,
             }
         )
+        logger.debug(f"Message: {synapse.messages}; Completions: {completions}")
         return streaming_response
 
     async def _stream_miner_response(
@@ -146,7 +155,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
                     if isinstance(chunk, str):
                         accumulated_chunks.append(chunk)
                         accumulated_chunks_timings.append(time.perf_counter() - timer_start)
-                        json_chunk = json.dumps({"uid": uid, "chunk": chunk})
+                        json_chunk = json.dumps({"uid": int(uid), "chunk": chunk})
                         await send(
                             {
                                 "type": "http.response.body",
@@ -156,8 +165,8 @@ class OrganicScoringPrompting(OrganicScoringBase):
                         )
                     elif isinstance(chunk, StreamPromptingSynapse):
                         synapse = chunk
-                except Exception as e:
-                    logger.error(f"[Organic] Error while streaming chunks: {e}")
+                except Exception:
+                    logger.exception("[Organic] Error while streaming chunks")
                     break
             # TODO: Do we need to identify the end of each miner's response?
             # json_chunk = json.dumps({"uid": uid, "chunk": b"", "completed": True})
@@ -176,7 +185,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
             return_exceptions=True,
         )
 
-    async def _reuse_organic_response(self, sample: OrganicEntry) -> dict[int, SynapseStreamResult]:
+    async def _reuse_organic_response(self, sample: SAMPLE_TYPE) -> dict[int, SynapseStreamResult]:
         """Return a dictionary where the keys are miner UIDs and the values are their corresponding streaming responses.
 
         This method reuses miner responses for organic data. It waits for each miner to complete within the
@@ -186,23 +195,20 @@ class OrganicScoringPrompting(OrganicScoringBase):
         Args:
             sample: Dict where the keys are miner UIDs and the values are the input streaming synapses.
         """
-        if not sample.is_organic:
+        if not sample.get("is_organic", False):
             return None
 
         uids = sample["uids"]
         responses: dict[int, SynapseStreamResult] = {}
         logger.info(f"[Organic] Reusing miner responses for organic data, UIDs: {uids}")
 
-        async def _check_completion(sample: dict[str, Any], uid: int):
+        async def _check_completion(sample: SAMPLE_TYPE, uid: int):
             while not sample["completions"][uid]["completed"]:
                 await asyncio.sleep(0.01)
 
         async def _wait_for_completion(uid: int):
             try:
-                await asyncio.wait_for(
-                    _check_completion(sample, uid),
-                    settings.ORGANIC_TIMEOUT,
-                )
+                await asyncio.wait_for(_check_completion(sample, uid), settings.ORGANIC_TIMEOUT)
                 response = SynapseStreamResult(
                     accumulated_chunks=sample["completions"][uid]["accumulated_chunks"],
                     accumulated_chunks_timings=sample["completions"][uid]["accumulated_chunks_timings"],
@@ -226,37 +232,38 @@ class OrganicScoringPrompting(OrganicScoringBase):
         return responses
 
     @override
-    async def _query_miners(self, sample: OrganicEntry) -> dict[str, SynapseStreamResult]:
+    async def _query_miners(self, sample: SAMPLE_TYPE) -> dict[str, SynapseStreamResult]:
         """Query miners with the given synthetic or organic sample."""
-        if sample.is_organic and not settings.ORGANIC_REUSE_RESPONSE_DISABLED:
+        if sample.get("is_organic", False) and not settings.ORGANIC_REUSE_RESPONSE_DISABLED:
             responses = await self._reuse_organic_response(sample)
             return responses
 
         # Get the list of uids to query.
         uids = self._get_random_uids_fn()
         logger.info(f"[Organic] Querying miners with synthetic data, UIDs: {uids}")
-        streams_responses = await dendrite.forward(
-            axons=[settings.METAGRAPH.axons[uid] for uid in uids],
-            synapse=StreamPromptingSynapse(roles=sample.roles, messages=sample.messages),
-            timeout=settings.ORGANIC_TIMEOUT,
-            deserialize=False,
-            streaming=True,
-        )
+
+        async with dendrite(wallet=settings.WALLET) as dend:
+            streams_responses = await dend(
+                axons=[settings.METAGRAPH.axons[uid] for uid in uids],
+                synapse=StreamPromptingSynapse(roles=sample["roles"], messages=sample["messages"]),
+                timeout=settings.ORGANIC_TIMEOUT,
+                deserialize=False,
+                streaming=True,
+            )
         stream_results_dict = dict(zip(uids, streams_responses))
         responses = await handle_response(stream_results_dict, tokenizer=self._tokenizer)
         return dict(zip(uids, responses))
 
     @override
-    async def _set_weights(self, reward_result: dict[str, Any]):
+    async def _set_weights(self, reward_result: RewardResult):
         """Set weights based on the given reward."""
-        if not reward_result.get("organic", False):
-            reward_result["rewards"] *= settings.ORGANIC_SYNTH_REWARD_SCALE
+        if not reward_result.is_organic:
+            reward_result.rewards *= settings.ORGANIC_SYNTH_REWARD_SCALE
 
-        self._update_scores_fn(reward_result["rewards"], reward_result["uids"])
+        self._update_scores_fn(reward_result.rewards, reward_result.uids)
 
     @override
-    async def _generate_reference(self, sample: dict[str, Any]) -> str:
+    async def _generate_reference(self, sample: SAMPLE_TYPE) -> str:
         """Generate reference for the given organic or synthetic sample."""
-        async with self._lock:
-            _, reference = OrganicTask.generate_reference(sample, self._llm_pipeline)
+        reference = await OrganicTask.generate_reference(sample["messages"], sample["roles"], self._llm_pipeline)
         return reference

@@ -55,7 +55,8 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
         self.streaming_axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR)
         # self.availability_axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR)
 
-        init_wandb(neuron="miner")
+        if settings.WANDB_ON:
+            init_wandb(neuron="miner")
         return self
 
     def check_availability(self, synapse: AvailabilitySynapse) -> AvailabilitySynapse:
@@ -276,7 +277,6 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
         caller_uid = settings.METAGRAPH.hotkeys.index(synapse.dendrite.hotkey)  # Get the caller index.
         priority = float(settings.METAGRAPH.S[caller_uid])  # Return the stake as the priority.
         logger.trace(f"Prioritizing {synapse.dendrite.hotkey} with value: ", priority)
-        # priority = 1.0
         return priority
 
     def log_event(

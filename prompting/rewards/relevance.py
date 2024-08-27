@@ -55,7 +55,7 @@ class RelevanceRewardModel(BaseRewardModel):
         output = BatchRewardOutput(
             rewards=np.clip(np.array(rewards), 0, 1),
             timings=np.array(timings),
-            extra_info={"threshold": self.threshold},
+            threshold=self.threshold,
         )
 
         return output

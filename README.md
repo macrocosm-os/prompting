@@ -45,7 +45,7 @@ If you are running a validator, you will need to install the extras via poetry. 
 
 ```bash
 poetry install --extras validator
-poetry run pip uninstall uvloop
+poetry run pip uninstall -y uvloop
 ```
 
 If you are running a validator, logging in to Hugging Face is required:

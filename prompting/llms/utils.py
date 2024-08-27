@@ -23,9 +23,6 @@ def calculate_single_gpu_requirements(device: str, max_allowed_memory_allocation
     logger.info(f"Total gpu memory {round(total_gpu_memory / 10e8, 2)} GB")
 
     if global_free < max_allowed_memory_allocation_in_bytes:
-        # ex = torch.cuda.CudaError(
-        #     f"Not enough memory to allocate for the model. Please ensure you have at least {max_allowed_memory_allocation_in_bytes / 10e8} GB of free GPU memory."
-        # )
         ex = Exception(
             f"Not enough memory to allocate for the model. Please ensure you have at least {max_allowed_memory_allocation_in_bytes / 10e8} GB of free GPU memory."
         )
