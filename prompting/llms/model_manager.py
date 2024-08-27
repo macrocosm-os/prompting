@@ -118,6 +118,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
 
     async def run_step(self):
         """This method is called periodically according to the interval."""
+        # TODO: Make it load whichever model is in highest demand (based on the list of tasks) rather than a random model
         selected_model = ModelZoo.get_random(max_ram=self.model_manager.total_ram)
         logger.info(f"Loading model {selected_model.model_id} for {self.interval} seconds.")
 

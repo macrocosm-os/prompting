@@ -13,7 +13,7 @@ from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynaps
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.logging import log_event
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
-from prompting.rewards.scoring import scoring_manager
+from prompting.rewards.scoring import task_scorer
 from prompting.miner_availability.miner_availability import checking_loop, miner_availabilities
 from prompting.llms.model_manager import model_scheduler
 from prompting.utils.timer import Timer
@@ -28,7 +28,7 @@ asyncio.run(model_scheduler.start())
 asyncio.run(checking_loop.start())
 
 # start scoring tasks in separate loop
-asyncio.run(scoring_manager.start())
+asyncio.run(task_scorer.start())
 
 
 class Validator(BaseValidatorNeuron):
@@ -58,7 +58,7 @@ class Validator(BaseValidatorNeuron):
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
 
-        if len(scoring_manager.scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
+        if len(task_scorer.scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Skipping task generation.")
             return None
 
@@ -122,7 +122,7 @@ class Validator(BaseValidatorNeuron):
             response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
 
             # scoring_manager will score the responses as and when the correct model is loaded
-            scoring_manager.add_to_queue(task=task, response=response_event, dataset_entry=dataset_entry)
+            task_scorer.add_to_queue(task=task, response=response_event, dataset_entry=dataset_entry)
 
             # Log the step event.
             return ValidatorLoggingEvent(

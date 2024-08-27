@@ -45,6 +45,8 @@ class VLLMMiner(BaseStreamMinerNeuron):
         return self
 
     def forward(self, synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+        """The forward function generates text based on a prompt, model, and seed."""
+
         async def _forward(
             self: "VLLMMiner",
             synapse: StreamPromptingSynapse,
@@ -59,12 +61,6 @@ class VLLMMiner(BaseStreamMinerNeuron):
             timeout_reached = False
 
             try:
-                # synapse_messages = [
-                #     {"role": role, "content": message} for role, message in zip(synapse.roles, synapse.messages)
-                # ]
-
-                # prompt = synapse_messages
-
                 start_time = time.time()
                 sampling_params = SamplingParams(
                     seed=synapse.seed,
@@ -146,9 +142,15 @@ class VLLMMiner(BaseStreamMinerNeuron):
         return synapse.create_streaming_response(token_streamer)
 
     def check_availability(self, synapse: AvailabilitySynapse) -> AvailabilitySynapse:
+        """The check_availability function returns an AvailabilitySynapse which indicates
+        which tasks and models this miner can handle."""
+
         logger.info(f"Checking availability of miner... {synapse}")
-        # allow all tasks to be sent through
-        synapse.task_availabilities = {task: True for task, _ in synapse.task_availabilities.items()}
+        synapse.task_availabilities = {
+            task: True
+            for task, _ in synapse.task_availabilities.items()
+            if task == "SyntheticInferenceTask" or "OrganicInferenceTask"
+        }
         synapse.model_availabilities = {
             model: True for model, _ in synapse.model_availabilities.items() if model == settings.MINER_LLM_MODEL
         }
