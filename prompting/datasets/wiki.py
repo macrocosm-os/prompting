@@ -293,6 +293,7 @@ class WikiDateDataset(BaseDataset):
 
                 date_sentence = self._extract_dates_and_sentences(context.content)
 
+                date_context = ""
                 if date_sentence and all(date_sentence):
                     content, date = date_sentence
                     date_context = DateContext.from_context(context, date=date)

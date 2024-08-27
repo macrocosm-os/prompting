@@ -60,7 +60,7 @@ class BaseNeuron(ABC):
             self.resync_metagraph()
 
         if self.should_set_weights():
-            logger.debug(f"Setting weights...")
+            logger.debug("Setting weights...")
             self.set_weights()
 
         # Always save state.

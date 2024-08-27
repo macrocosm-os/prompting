@@ -4,6 +4,7 @@ from prompting.rewards import (
     DateRewardModel,
     FloatDiffModel,
 )
+from prompting.rewards.pipeline import RewardPipeline
 
 date1 = datetime.strptime("2022-01-01", "%Y-%m-%d")
 date2 = datetime.strptime("2022-01-03", "%Y-%m-%d")
