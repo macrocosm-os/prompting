@@ -120,8 +120,8 @@ class MultiChoiceTask(BaseTask):
                 raise TaskCreationError(f"Missing required field: '{field}'")
 
         # Answer must be exactly one of the choices.
-        if quiz_data["answer"] not in ["A", "B", "C", "D"]:
-            raise TaskCreationError(f"Invalid answer: '{quiz_data['answer']}")
+        if quiz_data["answer"] not in ("A", "B", "C", "D"):
+            raise TaskCreationError(f"Invalid answer: '{quiz_data['answer']}'")
 
         return quiz_data
 
