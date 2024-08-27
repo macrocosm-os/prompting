@@ -1,0 +1,161 @@
+[tool.poetry]
+name = "prompting"
+version = "2.7.0"
+description = "Subnetwork 1 runs on Bittensor and is maintained by Macrocosmos. It's an effort to create decentralised AI"
+authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz"]
+readme = "README.md"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+
+[tool.black]
+line-length = 120
+target-version = ['py310']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+| \.hg
+| \.mypy_cache
+| \.tox
+| \.venv
+| _build
+| buck-out
+| build
+)/
+'''
+
+[tool.flake8]
+max-line-length = 120
+extend-ignore = ["D203", "E203", "E251", "E266", "E302", "E305", "E401", "E402", "E501", "F401", "F403", "W503"]
+exclude = [".git", "__pycache__", "dist"]
+max-complexity = 10
+
+[tool.isort]
+atomic = true
+profile = "black"
+line_length = 120
+skip_gitignore = true
+
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+# Same as Black.
+line-length = 120
+indent-width = 4
+target-version = "py310"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = ["E4", "E7", "E9", "F"]
+ignore = []
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+#
+# This is currently disabled by default, but it is planned for this
+# to be opt-out in the future.
+docstring-code-format = false
+
+# Set the line length limit used when formatting code snippets in
+# docstrings.
+#
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"
+
+[tool.poetry.dependencies]
+python = ">=3.10 <3.11"
+transformers = "4.43.3"
+mathgenerator = {git = "https://github.com/synapse-alpha/mathgenerator.git", rev = "main"}
+sympy = "^1.13.0"
+tqdm = "^4.66.4"
+requests = "^2.32.3"
+numpy = "1.26.4"
+# bittensor = "^7.3.0"
+bittensor = { git = "https://github.com/opentensor/bittensor.git", branch = "release/7.1.2" }
+pydantic = "^2.8.2"
+rouge = "^1.0.1"
+torch = "2.3.1"
+wandb = "^0.17.4"
+starlette = "^0.37.2"
+openai = "^1.35.13"
+bs4 = "^0.0.2"
+wikipedia = "1.4.0"
+deprecated = "^1.2.14"
+pandas = "2.2.1"
+datasets = "2.14.6"
+langchain = "0.2.3"
+argostranslate = "^1.9.6"
+langchain-core = "0.2.19"
+python-dotenv = "^1.0.1"
+pre-commit = "^3.7.1"
+ruff = "^0.5.2"
+flake8 = "^7.1.0"
+black = "23.7.0"
+pytest = "^8.3.1"
+angle-emb = "0.4.3"
+
+# optional dependencies for some services to run
+vllm = { version = "0.5.3.post1", optional = true }
+
+organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main", optional = true}
+autoawq = "0.2"
+loguru = "^0.7.2"
+
+[tool.poetry.extras]
+validator = ["vllm", "organic-scoring"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
