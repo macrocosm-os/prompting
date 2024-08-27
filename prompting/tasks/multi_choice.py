@@ -1,5 +1,5 @@
-from typing import ClassVar, Optional
 import json
+from typing import ClassVar, Optional
 
 import numpy as np
 
@@ -129,8 +129,7 @@ class MultiChoiceTask(BaseTask):
 
     @classmethod
     def shuffle_and_format(cls, quiz_data: dict[str, str]) -> tuple[str, str]:
-        """
-        Shuffles the choices and formats them into a string with the question.
+        """Shuffles the choices and formats them into a string with the question.
 
         Args:
             quiz_data (dict): The dictionary containing the quiz data.
