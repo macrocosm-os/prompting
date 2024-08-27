@@ -1,6 +1,7 @@
 # ruff: noqa: E402
 import asyncio
 import time
+from typing import Optional
 
 import numpy as np
 
@@ -78,21 +79,21 @@ class Validator(BaseValidatorNeuron):
             tokenizer=self.llm_pipeline.tokenizer,
             update_scores_fn=self.update_scores,
             get_random_uids_fn=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
-            lock=self._lock,
+            get_step_fn=lambda: self.step,
+            get_block_fn=lambda: self.block,
         )
         if self._organic_scoring is not None:
             self.loop.create_task(self._organic_scoring.start_loop())
 
     async def run_step(
-        self, task: BaseTask, dataset: BaseDataset, k: int, timeout: float, exclude: list = None
+        self, task: BaseTask, dataset: BaseDataset, k: int, timeout: float, exclude: Optional[list] = None
     ) -> ValidatorEvent | ErrorEvent | None:
         """Executes a single step of the agent, which consists of:
-        - Getting a list of uids to query
-        - Querying the network
-        - Rewarding the network
-        - Updating the scores
-        - Logging the event
-
+            - Getting a list of uids to query
+            - Querying the network
+            - Rewarding the network
+            - Updating the scores
+            - Logging the event
         Args:
             agent (HumanAgent): The agent to run the step for.
             roles (List[str]): The roles for the synapse.
@@ -160,6 +161,10 @@ class Validator(BaseValidatorNeuron):
                 step_time=time.time() - start_time,
                 reward_events=reward_events or [],
                 penalty_events=penalty_events or [],
+                reference=reference,
+                challenge=query,
+                task=task.name,
+                rewards=rewards,
                 response_event=response_event,
             )
         except Exception as ex:
@@ -253,5 +258,6 @@ if __name__ == "__main__":
             time.sleep(5)
 
             if v.should_exit:
+                logger.warning("Ending validator...")
                 logger.warning("Ending validator...")
                 break
