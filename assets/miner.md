@@ -12,7 +12,7 @@
 | Resource      | Requirement       |
 |---------------|-------------------|
 | **VRAM**      | None              |
-| **vCPU**      | 24 vCPU           |
+| **vCPU**      | 8 vCPU            |
 | **RAM**       | 8 GB              |
 | **Storage**   | 80 GB             |
 
