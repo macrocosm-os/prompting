@@ -27,7 +27,6 @@ Your answer must include the following date: {date}.
 Answer the following question using the provided context.
 Question: {query}
 Context: {content}
-Context: {content}
 """
 
 
