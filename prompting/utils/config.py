@@ -1,5 +1,4 @@
 import argparse
-import sys
 import bittensor as bt
 from loguru import logger
 

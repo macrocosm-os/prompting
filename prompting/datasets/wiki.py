@@ -293,7 +293,6 @@ class WikiDateDataset(BaseDataset):
 
                 date_sentence = self._extract_dates_and_sentences(context.content)
 
-                date_context = ""
                 if date_sentence and all(date_sentence):
                     content, date = date_sentence
                     date_context = DateContext.from_context(context, date=date)
@@ -303,6 +302,10 @@ class WikiDateDataset(BaseDataset):
             except Empty:
                 logger.debug("Cache is empty. Skipping date until cache is filled.")
                 return None
+
+            except Exception as e:
+                logger.exception(f"Error fetching date: {e}")
+                continue
 
     def get(
         self,
