@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import ClassVar
-import re
 import json
 
 import numpy as np
@@ -56,7 +55,6 @@ class MultiChoiceRewardConfig(BaseRewardConfig):
     ]
 
 
-@dataclass
 class MultiChoiceTask(BaseTask):
     name: ClassVar[str] = "multi_choice"
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
