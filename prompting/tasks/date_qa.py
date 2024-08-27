@@ -35,10 +35,6 @@ class DateQARewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
         WeightedRewardModel(weight=0.7, reward_model=DateRewardModel()),
         WeightedRewardModel(weight=0.3, reward_model=RougeRewardModel()),
-class DateQARewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=0.7, reward_model=DateRewardModel()),
-        WeightedRewardModel(weight=0.3, reward_model=RougeRewardModel()),
     ]
 
 
