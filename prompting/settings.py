@@ -34,6 +34,7 @@ class Settings(BaseModel):
 
     # LOGGING
     LOGGING_DONT_SAVE_EVENTS: bool = False
+    LOG_WEIGHTS: bool = False
 
     # NEURON PARAMETERS
     NEURON_TIMEOUT: int = 15
@@ -45,20 +46,21 @@ class Settings(BaseModel):
     NEURON_QUERY_UNIQUE_COLDKEYS: bool = False
     NEURON_QUERY_UNIQUE_IPS: bool = False
     NEURON_FORWARD_MAX_TIME: int = 120
+    NEURON_MAX_TOKENS: int = 256
 
     # ORGANIC
     ORGANIC_TIMEOUT: int = 15
-    ORGANIC_SAMPLE_SIZE: int = 10  # Replace with the actual default value
-    ORGANIC_REUSE_RESPONSE_DISABLED: bool = False  # Boolean default value
-    ORGANIC_REFERENCE_MAX_TOKENS: int = 256  # Replace with the actual default value
-    ORGANIC_SYNTH_REWARD_SCALE: float = 1.0  # Replace with the actual default value
-    ORGANIC_SET_WEIGHTS_ENABLED: bool = True  # Boolean default value
+    ORGANIC_SAMPLE_SIZE: int = 5
+    ORGANIC_REUSE_RESPONSE_DISABLED: bool = False
+    ORGANIC_REFERENCE_MAX_TOKENS: int = 1024
+    ORGANIC_SYNTH_REWARD_SCALE: float = 0.1
+    ORGANIC_SET_WEIGHTS_ENABLED: bool = True
     ORGANIC_DISABLED: bool = False
     ORGANIC_TRIGGER_FREQUENCY: int = 120
     ORGANIC_TRIGGER_FREQUENCY_MIN: int = 5
     ORGANIC_TRIGGER: str = "seconds"
     ORGANIC_SCALING_FACTOR: int = 1
-    LOG_FULL: bool = False  # Boolean default value
+    HF_TOKEN: Optional[str] = None
 
     # ADDITIONAL FIELDS FROM model_validator
     NETUID: int
@@ -74,6 +76,7 @@ class Settings(BaseModel):
     SUBTENSOR: bt.subtensor
     METAGRAPH: bt.metagraph
     NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB: int
+    LLM_MAX_MODEL_LEN: int
     NEURON_MODEL_ID_VALIDATOR: str
     DENDRITE: bt.dendrite = None
     MINER_LLM_MODEL: str | None = None
@@ -84,6 +87,7 @@ class Settings(BaseModel):
     def load_env(values):
         mode = values.get("mode")
         if mode == "miner":
+            values["WANDB_ON"] = False
             if not dotenv.load_dotenv(dotenv.find_dotenv(filename=".env.miner")):
                 logger.warning(
                     "No .env.miner file found. The use of args when running a miner will be deprecated in the near future."
@@ -105,21 +109,42 @@ class Settings(BaseModel):
         values["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY")
         values["WALLET_NAME"] = bt_config.wallet.name or os.environ.get("WALLET_NAME")
         values["HOTKEY"] = bt_config.wallet.hotkey or os.environ.get("HOTKEY")
+        values["NEURON_DISABLE_SET_WEIGHTS"] = os.environ.get("NEURON_DISABLE_SET_WEIGHTS", False)
+
         values["AXON_PORT"] = bt_config.axon.port or int(os.environ.get("AXON_PORT"))
+        values["HF_TOKEN"] = os.environ.get("HF_TOKEN")
         values["ORGANIC_WHITELIST_HOTKEY"] = os.environ.get(
             "ORGANIC_WHITELIST_HOTKEY",
             # OTF hotkey.
             "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
         )
+        values["ORGANIC_TIMEOUT"] = os.environ.get("ORGANIC_TIMEOUT", 15)
+        values["ORGANIC_SAMPLE_SIZE"] = os.environ.get("ORGANIC_SAMPLE_SIZE", 5)
+        values["ORGANIC_REUSE_RESPONSE_DISABLED"] = os.environ.get("ORGANIC_REUSE_RESPONSE_DISABLED", False)
+        values["ORGANIC_REFERENCE_MAX_TOKENS"] = os.environ.get("ORGANIC_REFERENCE_MAX_TOKENS", 1024)
+        values["ORGANIC_SYNTH_REWARD_SCALE"] = os.environ.get("ORGANIC_SYNTH_REWARD_SCALE", 0.1)
+        values["ORGANIC_SET_WEIGHTS_ENABLED"] = os.environ.get("ORGANIC_SET_WEIGHTS_ENABLED", True)
+        values["ORGANIC_DISABLED"] = os.environ.get("ORGANIC_DISABLED", False)
+        values["ORGANIC_TRIGGER_FREQUENCY"] = os.environ.get("ORGANIC_TRIGGER_FREQUENCY", 120)
+        values["ORGANIC_TRIGGER_FREQUENCY_MIN"] = os.environ.get("ORGANIC_TRIGGER_FREQUENCY_MIN", 5)
+        values["ORGANIC_TRIGGER"] = os.environ.get("ORGANIC_TRIGGER", "seconds")
+        values["ORGANIC_SCALING_FACTOR"] = os.environ.get("ORGANIC_SCALING_FACTOR", 1)
 
+        values["LOG_WEIGHTS"] = os.environ.get("LOG_WEIGHTS", False)
         if values["TEST"] and os.environ.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
-        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get("LLM_MODEL", "casperhansen/llama-3-70b-instruct-awq")
+        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get("LLM_MODEL", "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4")
+        values["LLM_MAX_MODEL_LEN"] = int(os.environ.get("LLM_MAX_MODEL_LEN", 4096))
         values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = os.environ.get("MAX_ALLOWED_VRAM_GB", 62)
         values["NEURON_GPUS"] = os.environ.get("NEURON_GPUS", 1)
         values["MINER_LLM_MODEL"] = os.environ.get("MINER_LLM_MODEL")
 
-        values["SUBTENSOR_NETWORK"] = "test" if values["TEST"] else None
+        if os.environ.get("SUBTENSOR_NETWORK") == "local":
+            values["SUBTENSOR_NETWORK"] = bt_config.subtensor.chain_endpoint or os.environ.get(
+                "SUBTENSOR_CHAIN_ENDPOINT"
+            )
+        else:
+            values["SUBTENSOR_NETWORK"] = bt_config.subtensor.network or os.environ.get("SUBTENSOR_NETWORK")
 
         logger.info(
             f"Instantiating bittensor objects with NETUID: {values['NETUID']}, WALLET_NAME: {values['WALLET_NAME']}, HOTKEY: {values['HOTKEY']}"

@@ -1,7 +1,9 @@
+import os
 import asyncio
 import copy
 import sys
 import threading
+import pandas as pd
 from traceback import print_exception
 
 import bittensor as bt
@@ -23,7 +25,8 @@ class BaseValidatorNeuron(BaseNeuron):
 
     def __init__(self, config=None):
         super().__init__(config=config)
-        init_wandb(neuron="validator")
+        if settings.WANDB_ON:
+            init_wandb(neuron="validator")
         self.axon: bt.axon | None = None
         self.latest_block = -1
 
@@ -57,8 +60,8 @@ class BaseValidatorNeuron(BaseNeuron):
     def _serve_axon(self):
         """Serve axon to enable external connections"""
         validator_uid = settings.METAGRAPH.hotkeys.index(settings.WALLET.hotkey.ss58_address)
-        logger.info(f"Serving validator IP of UID {validator_uid} to chain...")
         self.axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR).start()
+        logger.info(f"Serving validator UID {validator_uid} on {self.axon.ip}:{self.axon.port} to chain")
 
     def run(self):
         """
@@ -222,6 +225,23 @@ class BaseValidatorNeuron(BaseNeuron):
         logger.debug("uint_weights", uint_weights)
         logger.debug("uint_uids", uint_uids)
 
+        # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
+        if settings.LOG_WEIGHTS:
+            weights_df = pd.DataFrame({
+                "step": self.step,
+                "uids": uint_uids,
+                "weights": uint_weights,
+                "block": self.block,
+            })
+            step_filename = "weights.csv"
+            file_exists = os.path.isfile(step_filename)
+            # Append to the file if it exists, otherwise write a new file.
+            weights_df.to_csv(step_filename, mode="a", index=False, header=not file_exists)
+
+        if settings.NEURON_DISABLE_SET_WEIGHTS:
+            logger.debug(f"Set weights disabled: {settings.NEURON_DISABLE_SET_WEIGHTS}")
+            return
+
         # Set the weights on chain via our subtensor connection.
         result = settings.SUBTENSOR.set_weights(
             wallet=settings.WALLET,
@@ -232,6 +252,7 @@ class BaseValidatorNeuron(BaseNeuron):
             wait_for_inclusion=False,
             version_key=__spec_version__,
         )
+
         if result is True:
             logger.info("set_weights on chain successfully!")
         else:

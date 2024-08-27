@@ -25,12 +25,6 @@ def _get_page(
     """Cached Wikipedia page loading."""
     try:
         page = wikipedia.page(title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
-        page = wikipedia.page(title=title, pageid=pageid, auto_suggest=auto_suggest, redirect=redirect)
-        # create sections manually if not found
-        if not page.sections:
-            page._sections = [
-                line.strip("= ") for line in page.content.splitlines() if re.search(r"=+\s+.*\s+=+", line)
-            ]
         return page
 
     except wikipedia.DisambiguationError as e:
@@ -71,7 +65,6 @@ def get_article_sections(title: str) -> dict[str, str]:
 
     # Parse the HTML using BeautifulSoup
     soup = BeautifulSoup(html_content, "html.parser")
-    soup = BeautifulSoup(html_content, "html.parser")
 
     sections = {}
     for section in soup.find_all("h2"):
@@ -82,7 +75,7 @@ def get_article_sections(title: str) -> dict[str, str]:
 
 
 def process_page(
-    page: wikipedia.WikipediaPage, exclude_sections: Optional[list] | None = None, valid_section: callable = None
+    page: wikipedia.WikipediaPage, exclude_sections: list | None = None, valid_section: callable = None
 ) -> dict:
     """Process a Wikipedia page and return a dictionary of sections with their content.
 
@@ -120,7 +113,6 @@ def most_relevant_links(
     for link in page.links:
         link_words = set(link.split())
         iou = len(summary_words.intersection(link_words)) / len(summary_words.union(link_words))
-        iou = len(summary_words.intersection(link_words)) / len(summary_words.union(link_words))
         link_scores[link] = iou / len(link.split())
 
     sorted_links = sorted(link_scores.items(), key=lambda x: x[1], reverse=True)
@@ -134,9 +126,7 @@ def filter_categories(categories: list[str], exclude: list[str] = [], include: l
     """Filter categories based on a list of categories to exclude and/or include."""
     if exclude:
         categories = [cat for cat in categories if not re.search("|".join(exclude), cat, re.IGNORECASE)]
-        categories = [cat for cat in categories if not re.search("|".join(exclude), cat, re.IGNORECASE)]
     if include:
-        categories = [cat for cat in categories if re.search("|".join(include), cat, re.IGNORECASE)]
         categories = [cat for cat in categories if re.search("|".join(include), cat, re.IGNORECASE)]
     return categories
 
@@ -217,9 +207,10 @@ class WikiDataset(BaseDataset):
 
     def random(self, pages=10) -> dict:
         titles = _get_random_titles(pages=pages)
-        title = random.choice(titles)
-        return self.get(title)
-
+        for title in titles[:self.max_tries]:
+            if context := self.get(title):
+                return context
+        return None
 
 class DateContext(Context):
     date: str = None
@@ -233,7 +224,7 @@ class DateContext(Context):
 
 
 class WikiDateDataset(BaseDataset):
-    name: str = "wikipedia_date"
+    name: ClassVar[str] = "wikipedia_date"
     INCLUDE_HEADERS: tuple = ("Events", "Births", "Deaths")
     MONTHS: tuple = (
         "January",
@@ -249,12 +240,7 @@ class WikiDateDataset(BaseDataset):
         "November",
         "December",
     )
-    EXCLUDE_CATEGORIES = ("articles", "wiki", "pages", "cs1")
-    max_tries: int = 10
-    rng: Optional[random.Random] = random.Random()
-
     EXCLUDE_CATEGORIES: tuple = ("articles", "wikipedia", "pages", "cs1")
-    max_tries: int = 10
     seed: int | None = None
     rng: Optional[random.Random] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -307,12 +293,12 @@ class WikiDateDataset(BaseDataset):
                     continue
 
                 date_sentence = self._extract_dates_and_sentences(context.content)
-                if not date_sentence:
-                    continue
 
-                content, date = date_sentence[1], date_sentence[0]
-                date_context = DateContext.from_context(context, date=date)
-                date_context.content = content
+                if date_sentence and all(date_sentence):
+                    content, date = date_sentence
+                    date_context = DateContext.from_context(context, date=date)
+                    date_context.content = content
+
                 return date_context
 
             except Empty:
