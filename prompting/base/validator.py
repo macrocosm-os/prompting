@@ -1,37 +1,21 @@
-# The MIT License (MIT)
-# Copyright © 2024 Yuma Rao
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-# documentation files (the “Software”), to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
-# the Software.
-
-# THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
-# THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-# DEALINGS IN THE SOFTWARE.
-
-import argparse
+import os
 import asyncio
 import copy
 import sys
 import threading
+import pandas as pd
 from traceback import print_exception
-from typing import Optional
 
 import bittensor as bt
+import numpy as np
 import torch
-from organic_scoring.synth_dataset import SynthDatasetConversation
+from loguru import logger
 
+from prompting import __spec_version__
 from prompting.base.neuron import BaseNeuron
-from prompting.mock import MockDendrite
-from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
-from prompting.utils.config import add_validator_args
+from prompting.settings import settings
 from prompting.utils.exceptions import MaxRetryError
+from prompting.utils.logging import init_wandb
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -39,38 +23,33 @@ class BaseValidatorNeuron(BaseNeuron):
     Base class for Bittensor validators. Your validator should inherit from this class.
     """
 
-    @classmethod
-    def add_args(cls, parser: argparse.ArgumentParser):
-        super().add_args(parser)
-        add_validator_args(cls, parser)
-
     def __init__(self, config=None):
         super().__init__(config=config)
+        if settings.WANDB_ON:
+            init_wandb(neuron="validator")
+        self.axon: bt.axon | None = None
+        self.latest_block = -1
 
         # Save a copy of the hotkeys to local memory.
-        self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
+        self.hotkeys = copy.deepcopy(settings.METAGRAPH.hotkeys)
 
         # Dendrite lets us send messages to other nodes (axons) in the network.
-        if self.config.mock:
-            self.dendrite = MockDendrite(wallet=self.wallet)
-        else:
-            self.dendrite = bt.dendrite(wallet=self.wallet)
-        bt.logging.info(f"Dendrite: {self.dendrite}")
+        self.dendrite = bt.dendrite(wallet=settings.WALLET)
+        logger.info(f"Dendrite: {self.dendrite}")
 
         # Set up initial scoring weights for validation
-        bt.logging.info("Building validation weights.")
-        self.scores = torch.zeros(
-            self.metagraph.n, dtype=torch.float32, device=self.device
-        )
+        logger.info("Building validation weights.")
+        self.scores = np.zeros(settings.METAGRAPH.n, dtype=np.float32)
 
         # Init sync with the network. Updates the metagraph.
         self.sync()
 
-        self.axon: Optional[bt.axon] = None
-        if not self.config.neuron.axon_off:
-            self.axon = bt.axon(wallet=self.wallet, config=self.config)
+        # Serve axon to enable external connections.
+        self.axon = bt.axon(wallet=settings.WALLET, port=settings.AXON_PORT)
+        if self.axon is not None:
+            self._serve_axon()
         else:
-            bt.logging.warning("axon off, not serving ip to chain.")
+            logger.warning("axon off, not serving ip to chain.")
 
         # Create asyncio event loop to manage async tasks.
         self.loop = asyncio.get_event_loop()
@@ -79,41 +58,12 @@ class BaseValidatorNeuron(BaseNeuron):
         self.should_exit: bool = False
         self.is_running: bool = False
         self.thread: threading.Thread = None
-        self.lock = asyncio.Lock()
-
-        self._organic_scoring: Optional[OrganicScoringPrompting] = None
-        if self.axon is not None and not self.config.neuron.organic_disabled:
-            dataset = SynthDatasetConversation()
-            if dataset.exception is not None:
-                bt.logging.error(
-                    f"Organic scoring on synthetic data is disabled. Failed to load dataset: {dataset.exception}"
-                )
-                dataset = None
-            self._organic_scoring = OrganicScoringPrompting(
-                axon=self.axon,
-                synth_dataset=dataset,
-                trigger_frequency=self.config.neuron.organic_trigger_frequency,
-                trigger_frequency_min=self.config.neuron.organic_trigger_frequency_min,
-                trigger=self.config.neuron.organic_trigger,
-                trigger_scaling_factor=self.config.neuron.organic_scaling_factor,
-                validator=self,
-            )
-        else:
-            bt.logging.warning(
-                "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
-            )
-        
-        if self.axon is not None:
-            self._serve_axon()
-
-        if self._organic_scoring is not None:
-            self.loop.create_task(self._organic_scoring.start_loop())
 
     def _serve_axon(self):
         """Serve axon to enable external connections"""
-        validator_uid = self.metagraph.hotkeys.index(self.wallet.hotkey.ss58_address)
-        bt.logging.info(f"Serving validator IP of UID {validator_uid} to chain...")
-        self.axon.serve(netuid=self.config.netuid, subtensor=self.subtensor).start()
+        validator_uid = settings.METAGRAPH.hotkeys.index(settings.WALLET.hotkey.ss58_address)
+        self.axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR).start()
+        logger.info(f"Serving validator UID {validator_uid} on {self.axon.ip}:{self.axon.port} to chain")
 
     def run(self):
         """
@@ -137,39 +87,35 @@ class BaseValidatorNeuron(BaseNeuron):
         # Check that validator is registered on the network.
         self.sync()
 
-        if not self.config.neuron.axon_off:
-            bt.logging.info(
-                f"Running validator {self.axon} on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
-            )
+        if not settings.NEURON_AXON_OFF:
+            logger.info(f"Running validator {self.axon} with netuid: {settings.NETUID}")
         else:
-            bt.logging.info(
-                f"Running validator on network: {self.config.subtensor.chain_endpoint} with netuid: {self.config.netuid}"
-            )
+            logger.info(f"Running validator with netuid: {settings.NETUID}")
 
-        bt.logging.info(f"Validator starting at block: {self.latest_block}")
+        logger.info(f"Validator starting at block: {self.latest_block}")
 
         # This loop maintains the validator's operations until intentionally stopped.
         try:
             while True:
-                bt.logging.info(f"step({self.step}) block({self.latest_block})")
+                logger.info(f"step({self.step}) block({self.latest_block})")
 
-                forward_timeout = self.config.neuron.forward_max_time
+                forward_timeout = settings.NEURON_FORWARD_MAX_TIME
                 try:
                     task = self.loop.create_task(self.forward())
-                    self.loop.run_until_complete(
-                        asyncio.wait_for(task, timeout=forward_timeout)
-                    )
+                    self.loop.run_until_complete(asyncio.wait_for(task, timeout=forward_timeout))
                 except torch.cuda.OutOfMemoryError as e:
-                    bt.logging.error(f"Out of memory error: {e}")
+                    logger.error(f"Out of memory error: {e}")
                     continue
                 except MaxRetryError as e:
-                    bt.logging.error(f"MaxRetryError: {e}")
+                    logger.error(f"MaxRetryError: {e}")
                     continue
                 except asyncio.TimeoutError as e:
-                    bt.logging.error(
+                    logger.error(
                         f"Forward timeout: Task execution exceeded {forward_timeout} seconds and was cancelled.: {e}"
                     )
                     continue
+                except Exception as e:
+                    logger.exception(e)
 
                 # Check if we should exit.
                 if self.should_exit:
@@ -183,13 +129,13 @@ class BaseValidatorNeuron(BaseNeuron):
         # If someone intentionally stops the validator, it'll safely terminate operations.
         except KeyboardInterrupt:
             self.axon.stop()
-            bt.logging.success("Validator killed by keyboard interrupt.")
+            logger.success("Validator killed by keyboard interrupt.")
             sys.exit()
 
         # In case of unforeseen errors, the validator will log the error and quit
         except Exception as err:
-            bt.logging.error("Error during validation", str(err))
-            bt.logging.debug(print_exception(type(err), err, err.__traceback__))
+            logger.error("Error during validation", str(err))
+            logger.debug(print_exception(type(err), err, err.__traceback__))
             self.should_exit = True
 
     def run_in_background_thread(self):
@@ -198,23 +144,23 @@ class BaseValidatorNeuron(BaseNeuron):
         This method facilitates the use of the validator in a 'with' statement.
         """
         if not self.is_running:
-            bt.logging.debug("Starting validator in background thread.")
+            logger.debug("Starting validator in background thread.")
             self.should_exit = False
             self.thread = threading.Thread(target=self.run, daemon=True)
             self.thread.start()
             self.is_running = True
-            bt.logging.debug("Started")
+            logger.debug("Started")
 
     def stop_run_thread(self):
         """
         Stops the validator's operations that are running in the background thread.
         """
         if self.is_running:
-            bt.logging.debug("Stopping validator in background thread.")
+            logger.debug("Stopping validator in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False
-            bt.logging.debug("Stopped")
+            logger.debug("Stopped")
 
     def __enter__(self):
         self.run_in_background_thread()
@@ -234,11 +180,11 @@ class BaseValidatorNeuron(BaseNeuron):
                        None if the context was exited without an exception.
         """
         if self.is_running:
-            bt.logging.debug("Stopping validator in background thread.")
+            logger.debug("Stopping validator in background thread.")
             self.should_exit = True
             self.thread.join(5)
             self.is_running = False
-            bt.logging.debug("Stopped")
+            logger.debug("Stopped")
 
     def set_weights(self):
         """
@@ -246,30 +192,30 @@ class BaseValidatorNeuron(BaseNeuron):
         """
 
         # Check if self.scores contains any NaN values and log a warning if it does.
-        if torch.isnan(self.scores).any():
-            bt.logging.warning(
+        if any(np.isnan(self.scores).flatten()):
+            logger.warning(
                 "Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
             )
 
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
-        raw_weights = torch.nn.functional.normalize(self.scores, p=1, dim=0)
+        raw_weights = self.scores / np.linalg.norm(self.scores, ord=1, axis=0, keepdims=True)
 
-        bt.logging.debug("raw_weights", raw_weights)
-        bt.logging.debug("raw_weight_uids", self.metagraph.uids)
+        logger.debug("raw_weights", raw_weights)
+        logger.debug("raw_weight_uids", settings.METAGRAPH.uids)
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
             processed_weights,
         ) = bt.utils.weight_utils.process_weights_for_netuid(
-            uids=self.metagraph.uids,
-            weights=raw_weights.to("cpu").numpy(),
-            netuid=self.config.netuid,
-            subtensor=self.subtensor,
-            metagraph=self.metagraph,
+            uids=settings.METAGRAPH.uids,
+            weights=raw_weights,
+            netuid=settings.NETUID,
+            subtensor=settings.SUBTENSOR,
+            metagraph=settings.METAGRAPH,
         )
-        bt.logging.debug("processed_weights", processed_weights)
-        bt.logging.debug("processed_weight_uids", processed_weight_uids)
+        logger.debug("processed_weights", processed_weights)
+        logger.debug("processed_weight_uids", processed_weight_uids)
 
         # Convert to uint16 weights and uids.
         (
@@ -278,102 +224,111 @@ class BaseValidatorNeuron(BaseNeuron):
         ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
             uids=processed_weight_uids, weights=processed_weights
         )
-        bt.logging.debug("uint_weights", uint_weights)
-        bt.logging.debug("uint_uids", uint_uids)
+        logger.debug("uint_weights", uint_weights)
+        logger.debug("uint_uids", uint_uids)
+
+        # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
+        if settings.LOG_WEIGHTS:
+            weights_df = pd.DataFrame({
+                "step": self.step,
+                "uids": uint_uids,
+                "weights": uint_weights,
+                "block": self.block,
+            })
+            step_filename = "weights.csv"
+            file_exists = os.path.isfile(step_filename)
+            # Append to the file if it exists, otherwise write a new file.
+            weights_df.to_csv(step_filename, mode="a", index=False, header=not file_exists)
+
+        if settings.NEURON_DISABLE_SET_WEIGHTS:
+            logger.debug(f"Set weights disabled: {settings.NEURON_DISABLE_SET_WEIGHTS}")
+            return
 
         # Set the weights on chain via our subtensor connection.
-        result = self.subtensor.set_weights(
-            wallet=self.wallet,
-            netuid=self.config.netuid,
+        result = settings.SUBTENSOR.set_weights(
+            wallet=settings.WALLET,
+            netuid=settings.NETUID,
             uids=uint_uids,
             weights=uint_weights,
             wait_for_finalization=False,
             wait_for_inclusion=False,
-            version_key=self.spec_version,
+            version_key=__spec_version__,
         )
+
         if result is True:
-            bt.logging.info("set_weights on chain successfully!")
+            logger.info("set_weights on chain successfully!")
         else:
-            bt.logging.error("set_weights failed")
+            logger.error("set_weights failed")
 
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
-        bt.logging.info("resync_metagraph()")
+        logger.info("resync_metagraph()")
 
         # Copies state of metagraph before syncing.
-        previous_metagraph = copy.deepcopy(self.metagraph)
+        previous_metagraph = copy.deepcopy(settings.METAGRAPH)
 
         # Sync the metagraph.
-        self.metagraph.sync(subtensor=self.subtensor)
+        settings.METAGRAPH.sync(subtensor=settings.SUBTENSOR)
 
         # Check if the metagraph axon info has changed.
-        if previous_metagraph.axons == self.metagraph.axons:
+        if previous_metagraph.axons == settings.METAGRAPH.axons:
             return
 
-        bt.logging.info(
-            "Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages"
-        )
+        logger.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
+        logger.info("Metagraph updated, re-syncing hotkeys, dendrite pool and moving averages")
         # Zero out all hotkeys that have been replaced.
         for uid, hotkey in enumerate(self.hotkeys):
-            if hotkey != self.metagraph.hotkeys[uid]:
+            if hotkey != settings.METAGRAPH.hotkeys[uid]:
                 self.scores[uid] = 0  # hotkey has been replaced
 
         # Check to see if the metagraph has changed size.
         # If so, we need to add new hotkeys and moving averages.
-        if len(self.hotkeys) < len(self.metagraph.hotkeys):
+        if len(self.hotkeys) < len(settings.METAGRAPH.hotkeys):
             # Update the size of the moving average scores.
-            new_moving_average = torch.zeros((self.metagraph.n)).to(self.device)
+            new_moving_average = np.zeros((settings.METAGRAPH.n))
             min_len = min(len(self.hotkeys), len(self.scores))
             new_moving_average[:min_len] = self.scores[:min_len]
             self.scores = new_moving_average
 
         # Update the hotkeys.
-        self.hotkeys = copy.deepcopy(self.metagraph.hotkeys)
+        self.hotkeys = copy.deepcopy(settings.METAGRAPH.hotkeys)
 
-    def update_scores(self, rewards: torch.FloatTensor, uids: list[int]):
+    def update_scores(self, rewards: np.ndarray, uids: list[int]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
 
         # Check if rewards contains NaN values.
-        if torch.isnan(rewards).any():
-            bt.logging.warning(f"NaN values detected in rewards: {rewards}")
+        if any(np.isnan(rewards).flatten()):
+            # if
+            logger.warning(f"NaN values detected in rewards: {rewards}")
             # Replace any NaN values in rewards with 0.
-            rewards = torch.nan_to_num(rewards, 0)
+            rewards = np.nan_to_num(rewards)
 
         # Compute forward pass rewards, assumes uids are mutually exclusive.
         # shape: [ metagraph.n ]
-        step_rewards = self.scores.scatter(
-            0, torch.tensor(uids).to(self.device), rewards.to(self.device)
-        ).to(self.device)
-
-        bt.logging.debug(f"Scattered rewards: {rewards}")
+        step_rewards = np.copy(self.scores)
+        step_rewards[uids] = rewards
+        logger.debug(f"Scattered rewards: {rewards}")
 
         # Update scores with rewards produced by this step.
         # shape: [ metagraph.n ]
-        alpha = self.config.neuron.moving_average_alpha
+        alpha = settings.NEURON_MOVING_AVERAGE_ALPHA
         self.scores = alpha * step_rewards + (1 - alpha) * self.scores
-        self.scores = (self.scores - self.config.neuron.decay_alpha).clamp(min=0)
-        bt.logging.debug(f"Updated moving avg scores: {self.scores}")
+        self.scores = np.clip(self.scores - settings.NEURON_DECAY_ALPHA, 0, 1)
+        logger.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):
         """Saves the state of the validator to a file."""
-        bt.logging.info("Saving validator state.")
+        logger.info("Saving validator state.")
 
         # Save the state of the validator to file.
-        torch.save(
-            {
-                "step": self.step,
-                "scores": self.scores,
-                "hotkeys": self.hotkeys,
-            },
-            self.config.neuron.full_path + "/state.pt",
-        )
+        np.savez(settings.SAVE_PATH + "/state.npz", step=self.step, scores=self.scores, hotkeys=self.hotkeys)
 
     def load_state(self):
         """Loads the state of the validator from a file."""
-        bt.logging.info("Loading validator state.")
+        logger.info("Loading validator state.")
 
         # Load the state of the validator from file.
-        state = torch.load(self.config.neuron.full_path + "/state.pt")
+        state = np.load(settings.SAVE_PATH + "/state.npz")
         self.step = state["step"]
         self.scores = state["scores"]
         self.hotkeys = state["hotkeys"]

@@ -42,14 +42,12 @@ def test_task_field_is_not_null(task: Task, field: str):
 @pytest.mark.parametrize("task", TASKS)
 def test_task_complete_is_false_on_init(task: Task):
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
-    assert task.complete == False
+    assert task.complete is False
 
 
 @pytest.mark.parametrize("task", TASKS)
 def test_task_contains_no_reference_if_not_static(task: Task):
-    task(
-        llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task], create_reference=False
-    )
+    task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task], create_reference=False)
     assert task.static_reference or not task.reference
 
 
@@ -69,7 +67,7 @@ def test_task_contains_reference_time(task: Task):
 @pytest.mark.parametrize("full", (True, False))
 def test_task_state_dict(task: Task, full: bool):
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
-    assert type(task.__state_dict__(full)) == dict
+    assert isinstance(task.__state_dict__(full), dict)
 
 
 @pytest.mark.parametrize("task", TASKS)
@@ -77,9 +75,7 @@ def test_task_state_dict(task: Task, full: bool):
     "definition, expected_weight",
     [("reward_definition", 1), ("penalty_definition", None)],
 )
-def test_task_contains_required_definition(
-    task: Task, definition: str, expected_weight: float
-):
+def test_task_contains_required_definition(task: Task, definition: str, expected_weight: float):
     task = task(llm_pipeline=mock_llm_pipeline(), context=CONTEXTS[task])
     model_infos = getattr(task, definition)
     total_weight = 0
@@ -96,9 +92,7 @@ def test_task_contains_required_definition(
         for k, v in params.items():
             assert k in cls_params
             # check that the type of the parameter is correct or not annotated
-            assert cls_params[k].annotation == inspect._empty or isinstance(
-                v, cls_params[k].annotation
-            )
+            assert cls_params[k].annotation == inspect._empty or isinstance(v, cls_params[k].annotation)
 
         # check that all class parameters without default values are in the model_info
         for k, v in cls_params.items():

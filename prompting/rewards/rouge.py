@@ -1,32 +1,27 @@
 import time
-import torch
+import numpy as np
 from typing import List
 from rouge import Rouge
-from prompting.rewards import (
+from prompting.rewards.reward import (
     BaseRewardModel,
     BatchRewardOutput,
 )
-from prompting.dendrite import DendriteResponseEvent
+from prompting.base.dendrite import DendriteResponseEvent
+from pydantic import ConfigDict
 
 
 class RougeRewardModel(BaseRewardModel):
-    @property
-    def name(self) -> str:
-        return "rouge"
-
-    def __init__(self, ngram="rouge-l", metric="f", avg=False, device=None, **kwargs):
-        super().__init__()
-        self.ngram = ngram
-        self.metric = metric
-        self.avg = avg
-        self.rouge = Rouge(**kwargs)
+    ngram: str = "rouge-l"  # TODO: Make proper literal
+    metric: str = "f"  # TODO: Make proper literal
+    avg: bool = False
+    rouge: Rouge = Rouge()
+    name: str = "rouge"
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def rouge_score(self, reference, completion):
         if not completion or not reference:
             return 0.0
-        return self.rouge.get_scores(reference, completion, avg=self.avg)[0][
-            self.ngram
-        ][self.metric]
+        return self.rouge.get_scores(reference, completion, avg=self.avg)[0][self.ngram][self.metric]
 
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         """Compute ROUGE scores given a completion and reference pair."""
@@ -40,13 +35,8 @@ class RougeRewardModel(BaseRewardModel):
             timings.append(time.time() - t0)
 
         output = BatchRewardOutput(
-            rewards=torch.FloatTensor(rewards),
-            timings=torch.FloatTensor(timings),
-            extra_info={
-                "ngram": self.ngram,
-                "metric": self.metric,
-                "avg": self.avg,
-            },
+            rewards=np.array(rewards),
+            timings=np.array(timings),
         )
 
         return output

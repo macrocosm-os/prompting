@@ -1,17 +1,17 @@
 from prompting.mock import MockPipeline
-from prompting.llms import vLLM_LLM, HuggingFaceLLM, HuggingFacePipeline, vLLMPipeline
+from prompting.llms.vllm_llm import vLLM_LLM, vLLMPipeline
 
 
-def mock_llm_pipeline():
-    return MockPipeline("This is just another test.")
+def mock_llm_pipeline(message="This is just another test."):
+    return MockPipeline(message)
 
 
 def llms():
     pipeline = MockPipeline("This is just another test.")
-    llms = [vLLM_LLM(pipeline, ""), HuggingFaceLLM(pipeline, "")]
+    llms = [vLLM_LLM(pipeline, "")]
     return llms
 
 
 def pipelines():
     # Return pipeline types to be instantiated downstream
-    return [HuggingFacePipeline, vLLMPipeline]
+    return [vLLMPipeline]
