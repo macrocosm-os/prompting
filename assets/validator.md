@@ -4,7 +4,7 @@
 
 | Resource      | Requirement       |
 |---------------|-------------------|
-| **VRAM**      | 65 GB             |
+| **VRAM**      | 62 GB             |
 | **vCPU**      | 24 vCPU           |
 | **RAM**       | 60 GB             |
 | **Storage**   | 150 GB            |
