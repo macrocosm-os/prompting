@@ -236,7 +236,6 @@ class BaseValidatorNeuron(BaseNeuron):
                 "block": self.block,
             })
             step_filename = "weights.csv"
-            weights_df.to_csv(step_filename, index=False)
             file_exists = os.path.isfile(step_filename)
             # Append to the file if it exists, otherwise write a new file.
             weights_df.to_csv(step_filename, mode="a", index=False, header=not file_exists)

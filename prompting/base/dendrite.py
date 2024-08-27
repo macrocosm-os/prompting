@@ -43,8 +43,12 @@ class DendriteResponseEvent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="after")
-    def stream_results(self) -> "DendriteResponseEvent":
+    def process_stream_results(self) -> "DendriteResponseEvent":
         for stream_result in self.stream_results:
+            # when passing this to a pydantic model, this method can be called multiple times, leading
+            # to duplicating the arrays. If the arrays are already filled, we can skip this step
+            if len(self.completions) > 0:
+                return self
             # for some reason the language server needs this line to understand the type of stream_result
             stream_result: SynapseStreamResult
 
