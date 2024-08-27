@@ -1,7 +1,5 @@
 # ruff: noqa: E402
 import asyncio
-# ruff: noqa: E402
-import asyncio
 import time
 from typing import Optional
 
