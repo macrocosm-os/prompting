@@ -302,10 +302,6 @@ class WikiDateDataset(BaseDataset):
             except Empty:
                 logger.debug("Cache is empty. Skipping date until cache is filled.")
                 return None
-            
-            except Exception as e:
-                bt.logging.error(f"Error fetching date: {e}")
-                continue
 
             except Exception as e:
                 logger.exception(f"Error fetching date: {e}")
