@@ -1,6 +1,7 @@
 from typing import ClassVar
 from prompting.rewards.reward import WeightedRewardModel, BaseRewardConfig
-from prompting.rewards.exact_match import ExactMatchRewardModel
+from prompting.rewards.inference_reward_model import InferenceRewardModel
+from loguru import logger
 
 from prompting.tasks.base_task import BaseTextTask
 from prompting.datasets.base import DatasetEntry
@@ -15,14 +16,14 @@ from prompting.datasets.mmlu import MMLUEntry
 
 class InferenceRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=1, reward_model=ExactMatchRewardModel()),
+        WeightedRewardModel(weight=1, reward_model=InferenceRewardModel()),
     ]
 
 
 class BaseInferenceTask(BaseTextTask):
     query: str | None = None
     reference: str | None = None
-    model: ModelConfig
+    model: ModelConfig | None = None
     seed: int = random.randint(0, 1_000_000)
 
     @abstractmethod
@@ -30,15 +31,20 @@ class BaseInferenceTask(BaseTextTask):
         raise NotImplementedError("Method make_query must be implemented")
 
     def make_reference(self, dataset_entry: DatasetEntry) -> str:
-        if self.model in model_manager.active_models.keys():
-            output: RequestOutput = model_manager.active_models[self.model].generate(
-                self.query, SamplingParams(seed=self.seed)
-            )[0]
-            self.reference = output.outputs[0].text
-            return self.reference
+        if self.model is None:
+            self.model = random.choice(list(model_manager.active_models.keys()))
+        if self.model not in model_manager.active_models.keys():
+            raise Exception(f"Model {self.model} not found in active models")
+        output: RequestOutput = model_manager.active_models[self.model].generate(
+            self.query, SamplingParams(seed=self.seed)
+        )[0]
+        self.reference = output.outputs[0].text
+        if self.reference is None:
+            logger.error(f"Model {self.model} returned None for reference generation")
+        return self.reference
 
 
-class OrganicInferenceData(BaseInferenceTask):
+class OrganicInferenceTask(BaseInferenceTask):
     seed: int = random.randint(0, 1_000_000)
 
     def make_query(self, dataset_entry: DatasetEntry) -> str:
@@ -47,7 +53,11 @@ class OrganicInferenceData(BaseInferenceTask):
 
 
 class SyntheticInferenceTask(BaseInferenceTask):
+    # TODO: Once we want to enable the 'actual' inference task with exact models
+    # this should be uncommented. For now, we're allowing non-exact responses, same
+    # as the organic scoring task.
     model: ModelConfig = ModelZoo.get_random()
+    # model: ModelConfig = None
 
     def make_query(self, dataset_entry: MMLUEntry) -> str:
         self.query = dataset_entry.query

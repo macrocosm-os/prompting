@@ -48,6 +48,9 @@ class BaseNeuron(ABC):
     @abstractmethod
     def run(self): ...
 
+    def set_weights():
+        raise NotImplementedError("set_weights() not implemented for this neuron.")
+
     def sync(self):
         """
         Wrapper for synchronizing the state of the network for the given miner or validator.
@@ -60,7 +63,7 @@ class BaseNeuron(ABC):
             self.resync_metagraph()
 
         if self.should_set_weights():
-            logger.debug(f"Setting weights...")
+            logger.debug("Setting weights...")
             self.set_weights()
 
         # Always save state.

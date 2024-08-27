@@ -88,7 +88,9 @@ async def generate_reference(task: BaseTextTask, pipeline: BasePipeline) -> str:
 
 
 def log_stream_results(stream_results: List[SynapseStreamResult]):
-    failed_responses = [response for response in stream_results if response.exception is not None]
+    failed_responses = [
+        response for response in stream_results if response.exception is not None or response.synapse is None
+    ]
     empty_responses = [
         response for response in stream_results if response.exception is None and response.synapse.completion == ""
     ]

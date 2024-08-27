@@ -83,10 +83,12 @@ class BaseTextTask(BaseTask):
     def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
-        reference = vLLM_LLM(
+        self.reference = vLLM_LLM(
             llm=model_manager.get_model(self.model), system_prompt=self.reference_system_prompt or ""
         ).query(cleaner=self.cleaner, message=messages)
-        return reference
+        if self.reference is None:
+            raise Exception("Reference generation failed")
+        return self.reference
 
     def generate_query(
         self,
@@ -94,10 +96,12 @@ class BaseTextTask(BaseTask):
     ) -> str:
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
-        query = vLLM_LLM(llm=model_manager.get_model(self.model), system_prompt=self.query_system_prompt or "").query(
-            message=messages
-        )
-        return self.augment_query(query)
+        self.query = vLLM_LLM(
+            llm=model_manager.get_model(self.model), system_prompt=self.query_system_prompt or ""
+        ).query(message=messages)
+        if self.query is None:
+            raise Exception("Query generation failed")
+        return self.augment_query(self.query)
 
     def augment_query(
         self,
@@ -108,8 +112,8 @@ class BaseTextTask(BaseTask):
             return query
         challenge = vLLM_LLM(
             llm=model_manager.get_model(self.model),
-            max_new_tokens=256,
-            settings.NEURON_MAX_TOKENS,
+            max_new_tokens=settings.NEURON_MAX_TOKENS,
             system_prompt=self.augmentation_system_prompt,
         ).query(message=query)
+        self.query = challenge
         return challenge

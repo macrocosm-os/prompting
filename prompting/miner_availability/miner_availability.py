@@ -8,16 +8,16 @@ from prompting.settings import settings
 from prompting.tasks.date_qa import DateQuestionAnsweringTask
 from prompting.tasks.qa import QuestionAnsweringTask
 from prompting.tasks.summarization import SummarizationTask
-from prompting.tasks.inference import SyntheticInferenceTask, BaseInferenceTask
+from prompting.tasks.inference import SyntheticInferenceTask, OrganicInferenceTask
 from prompting.utils.uids import get_uids
 import random
 
 task_config: dict[str, bool] = {
-    DateQuestionAnsweringTask.__name__: False,
-    QuestionAnsweringTask.__name__: False,
-    SummarizationTask.__name__: False,
-    SyntheticInferenceTask.__name__: False,
-    BaseInferenceTask.__name__: False,
+    DateQuestionAnsweringTask.__name__: True,
+    QuestionAnsweringTask.__name__: True,
+    SummarizationTask.__name__: True,
+    SyntheticInferenceTask.__name__: True,
+    OrganicInferenceTask.__name__: True,
 }
 model_config: dict[str, bool] = {conf.model_id: False for conf in ModelZoo.models_configs}
 
@@ -60,13 +60,13 @@ class CheckMinerAvailability(AsyncLoopRunner):
     async def run_step(self):
         uids = settings.TEST_MINER_IDS or get_uids(sampling_mode="all")
         logger.info(f"Collecting miner availabilities on uids: {uids}")
+        if any([len(settings.METAGRAPH.axons) <= uid for uid in uids]):
+            raise Exception("Some UIDs are out of bounds. Make sure all the TEST_MINER_IDS are valid.")
         axons = [settings.METAGRAPH.axons[uid] for uid in uids]
-        availability_synapse = AvailabilitySynapse(task_availabilities=task_config, model_availabilities=model_config)
         responses: list[AvailabilitySynapse] = await settings.DENDRITE(
             axons=axons,
-            synapse=availability_synapse,
+            synapse=AvailabilitySynapse(task_availabilities=task_config, model_availabilities=model_config),
             timeout=settings.NEURON_TIMEOUT,
-            # timeout=100,
             deserialize=False,
             streaming=False,
         )
@@ -80,4 +80,4 @@ class CheckMinerAvailability(AsyncLoopRunner):
 
 
 miner_availabilities = MinerAvailabilities()
-checking_loop = CheckMinerAvailability()
+availability_checking_loop = CheckMinerAvailability()

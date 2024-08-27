@@ -38,7 +38,7 @@ class DateQuestionAnsweringTask(BaseTextTask):
     def make_query(self, dataset_entry: DateContext, **kwargs) -> str:
         query_prompt = QUERY_PROMPT_TEMPLATE.format(content=dataset_entry.content, topic=dataset_entry.topic)
         self.query = self.generate_query(messages=[query_prompt])
-        return self.reference
+        return self.query
 
     def make_reference(self, dataset_entry: DateContext) -> str:
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(

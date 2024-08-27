@@ -207,10 +207,11 @@ class WikiDataset(BaseDataset):
 
     def random(self, pages=10) -> dict:
         titles = _get_random_titles(pages=pages)
-        for title in titles[:self.max_tries]:
+        for title in titles[: self.max_tries]:
             if context := self.get(title):
                 return context
         return None
+
 
 class DateContext(Context):
     date: str = None
@@ -298,8 +299,7 @@ class WikiDateDataset(BaseDataset):
                     content, date = date_sentence
                     date_context = DateContext.from_context(context, date=date)
                     date_context.content = content
-
-                return date_context
+                    return date_context
 
             except Empty:
                 logger.debug("Cache is empty. Skipping date until cache is filled.")

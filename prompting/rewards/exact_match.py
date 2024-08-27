@@ -9,7 +9,7 @@ from prompting.base.dendrite import DendriteResponseEvent
 
 class ExactMatchRewardModel(BaseRewardModel):
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
-        """Compute ROUGE scores given a completion and reference pair."""
+        """Gives an exact reward of 1 if the response matches the reference, 0 otherwise"""
         rewards = []
         timings = []
         completions: List[str] = response_event.completions

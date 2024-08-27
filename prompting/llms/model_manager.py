@@ -6,6 +6,7 @@ from prompting.llms.utils import GPUInfo
 from vllm.distributed.parallel_state import destroy_model_parallel
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.base.loop_runner import AsyncLoopRunner
+from prompting.mutable_globals import scoring_queue
 
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work
@@ -118,8 +119,10 @@ class AsyncModelScheduler(AsyncLoopRunner):
 
     async def run_step(self):
         """This method is called periodically according to the interval."""
-        # TODO: Make it load whichever model is in highest demand (based on the list of tasks) rather than a random model
-        selected_model = ModelZoo.get_random(max_ram=self.model_manager.total_ram)
+        # try to load the model belonging to the oldest task in the queue
+        selected_model = scoring_queue[0].task.model if scoring_queue else None
+        if not selected_model:
+            selected_model = ModelZoo.get_random(max_ram=self.model_manager.total_ram)
         logger.info(f"Loading model {selected_model.model_id} for {self.interval} seconds.")
 
         if selected_model in self.model_manager.active_models:

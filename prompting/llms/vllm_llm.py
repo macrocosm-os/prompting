@@ -190,6 +190,6 @@ class vLLM_LLM(BaseLLM):
         composed_prompt = self._make_prompt(messages)
         response: RequestOutput = self.llm.generate(composed_prompt, SamplingParams(**self.model_kwargs))[0]
 
-        logger.info(f"{self.__class__.__name__} generated the following output:\n{response}")
+        logger.info(f"{self.__class__.__name__} generated the following output:\n{response.outputs[0].text}")
 
         return response.outputs[0].text

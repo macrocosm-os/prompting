@@ -1,3 +1,4 @@
+# TODO: Add back weight setting for validator
 # ruff: noqa: E402
 import asyncio
 import time
@@ -16,9 +17,10 @@ from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.logging import log_event
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from prompting.rewards.scoring import task_scorer
-from prompting.miner_availability.miner_availability import checking_loop, miner_availabilities
+from prompting.miner_availability.miner_availability import availability_checking_loop, miner_availabilities
 from prompting.llms.model_manager import model_scheduler
 from prompting.utils.timer import Timer
+from prompting.mutable_globals import scoring_queue
 
 NEURON_SAMPLE_SIZE = 100
 SCORING_QUEUE_LENGTH_THRESHOLD = 10
@@ -27,10 +29,12 @@ SCORING_QUEUE_LENGTH_THRESHOLD = 10
 asyncio.run(model_scheduler.start())
 
 # will start checking the availability of miners at regular intervals
-asyncio.run(checking_loop.start())
+asyncio.run(availability_checking_loop.start())
 
 # start scoring tasks in separate loop
 asyncio.run(task_scorer.start())
+# TODO: Think about whether we want to store the task queue locally in case of a crash
+# TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
 
 
 class Validator(BaseValidatorNeuron):
@@ -60,7 +64,7 @@ class Validator(BaseValidatorNeuron):
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
 
-        if len(task_scorer.scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
+        if len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Skipping task generation.")
             return None
 
@@ -209,12 +213,3 @@ if __name__ == "__main__":
             if v.should_exit:
                 logger.warning("Ending validator...")
                 break
-
-###
-
-
-# ProgrammingTask -> return code
-# Multiple choice -> return answer
-# Online lookup -> return context from website
-# Inference -> just run a model
-# AgentTask -> uses the other model in an agentic to respond

@@ -18,26 +18,25 @@ class RewardEvent(BaseModel):
     reward_model_type: RewardTypeLiteral
     batch_time: float
     threshold: float | None = None
+    extra_info: dict | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
         return {
-            f"{self.reward_model_name}_raw_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards),
-            f"{self.reward_model_name}_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards_normalized, 4),
-            f"{self.reward_model_name}_{self.model_type.value}_timings": self.tensor_to_rounded_list(self.timings),
+            f"{self.reward_model_name}_raw_{self.model_type.value}": self.rewards,
+            f"{self.reward_model_name}_{self.model_type.value}": self.rewards_normalized,
+            f"{self.reward_model_name}_{self.model_type.value}_timings": self.timings,
             f"{self.reward_model_name}_{self.model_type.value}_batch_time": self.batch_time,
             f"{self.reward_model_name}_{self.model_type.value}_threshold": self.threshold,
+            f"{self.reward_model_name}_{self.model_type.value}_extra_info": self.extra_info,
         }
-
-    def tensor_to_rounded_list(self, tensor, decimals=6):
-        # Convert the tensor elements to floats and round them to 6 decimal places
-        return [round(float(element), decimals) for element in tensor]
 
 
 class BatchRewardOutput(BaseModel):
     rewards: np.ndarray
     timings: np.ndarray
+    threshold: float | None = None
     extra_info: dict = {}
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -45,13 +44,15 @@ class BatchRewardOutput(BaseModel):
     def rewards_normalized(self) -> np.ndarray:
         if self.rewards.shape != self.timings.shape:
             raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
-        return (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min() + 1e-6)
+        if self.rewards.min() == self.rewards.max():
+            return np.array([1 / len(self.rewards)] * len(self.rewards))
+        return (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min())
 
 
 class BaseRewardModel(ABC, BaseModel):
     @abstractmethod
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
-        pass
+        raise NotImplementedError("You must implement the reward method")
 
     def apply(
         self,
@@ -59,6 +60,7 @@ class BaseRewardModel(ABC, BaseModel):
         reference: str | None = None,
         challenge: str | None = None,
         reward_type: Literal["reward", "penalty"] = "reward",
+        **kwargs,
     ) -> RewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
@@ -73,6 +75,7 @@ class BaseRewardModel(ABC, BaseModel):
             batch_time=batch_rewards_time,
             threshold=batch_rewards_output.threshold,
             timings=batch_rewards_output.timings,
+            extra_info=kwargs,
         )
 
 
@@ -118,7 +121,11 @@ class BaseRewardConfig(ABC, BaseModel):
 
     @classmethod
     def apply(
-        cls, response_event: DendriteResponseEvent, reference: str, challenge: str | None = None
+        cls,
+        response_event: DendriteResponseEvent,
+        reference: str,
+        challenge: str | None = None,
+        model_id: str | None = None,
     ) -> tuple[list[WeightedRewardEvent], list[WeightedRewardEvent], list[float]]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
@@ -126,7 +133,11 @@ class BaseRewardConfig(ABC, BaseModel):
                 WeightedRewardEvent(
                     weight=weighted_reward.weight,
                     reward_event=weighted_reward.reward_model.apply(
-                        reference=reference, response_event=response_event, challenge=challenge, reward_type="reward"
+                        reference=reference,
+                        response_event=response_event,
+                        challenge=challenge,
+                        reward_type="reward",
+                        model_id=model_id,
                     ),
                 )
             )
