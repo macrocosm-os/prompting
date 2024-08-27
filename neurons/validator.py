@@ -94,7 +94,6 @@ class Validator(BaseValidatorNeuron):
             - Rewarding the network
             - Updating the scores
             - Logging the event
-
         Args:
             agent (HumanAgent): The agent to run the step for.
             roles (List[str]): The roles for the synapse.

@@ -33,7 +33,6 @@ Ask a specific question about the following context:
 You must ask a question that can be answered by the context.
 """
 
-
 # Used to obtain reference answer
 REFERENCE_PROMPT_TEMPLATE = """\
 Answer the question you will receive in detail, utilizing the following context.
