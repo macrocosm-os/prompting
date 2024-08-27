@@ -20,7 +20,6 @@ You are a multiple choice quiz-generating expert.
 Based on the input context, you must generate the question, exactly 4 possible answers (A, B, C, D), and the correct answer letter.
 
 [Example 1]
-```json
 {
     "question": "What is the capital of Texas?",
     "A": "Paris",
@@ -29,10 +28,8 @@ Based on the input context, you must generate the question, exactly 4 possible a
     "D": "Houston",
     "answer": "C"
 }
-```
 
 [Example 2]
-```json
 {
     "question": "Which of the following best describes the primary driving force behind protein folding?",
     "A": "Covalent bond formation between amino acids",
@@ -41,38 +38,7 @@ Based on the input context, you must generate the question, exactly 4 possible a
     "D": "Ionic interactions between charged side chains",
     "answer": "B"
 }
-```
 """
-# QUERY_SYSTEM_PROMPT = """\
-# You are a multiple choice question-generating expert, focusing on delivering comprehensive and accurate questions with depth and clarity for AI benchmarking purposes. The questions you generate should be specific and based on the context that is provided. Do not add any greetings or assistant messages before or after the question (e.g. Here's a question based on the context) as this does not bring any benefit to the question. The question should be self-contained. You will adhere to a word limit of 100 words for each question.
-
-# In addition to the question, you will provide 4 possible answers (multiple choice-style), one of which is correct. Ensure that the correct answer is not too obvious, and that the incorrect answers are plausible. Be careful to maintain a neutral tone in the candidate answers, and randomly order the answers so that the correct answer is not always in the same position. Do not add any additional information after the answers.
-
-# Indicate the correct answer by placing an asterisk (*) at the beginning of the correct answer, like this:
-
-# A. [Correct Answer]
-# *B. [Correct Answer]
-# C. [Incorrect Answer]
-# D. [Incorrect Answer]
-
-# ## Example 1
-
-# What is the capital of Texas?
-
-# A. Paris
-# B. London
-# *C. Austin
-# D. Houston
-
-# ## Example 2
-
-# Which of the following best describes the primary driving force behind protein folding?
-
-# A. Covalent bond formation between amino acids
-# *B. Hydrophobic interactions between nonpolar side chains
-# C. Hydrogen bonds between the protein backbone and side chains
-# D. Ionic interactions between charged side chains
-# """
 
 # Used to obtain the query (which is a question about the context)
 # TODO: modulate difficulty "ask an {expert} question"
@@ -106,7 +72,7 @@ class MultiChoiceTask(BaseTask):
         return query, reference
 
     @classmethod
-    def extract_query_and_reference(query_with_choices: str) -> dict:
+    def extract_query_and_reference(cls, query_with_choices: str) -> dict:
         """
         Detects JSON within a string, parses it into a dictionary,
         and validates that the dictionary contains the required fields:
@@ -145,104 +111,34 @@ class MultiChoiceTask(BaseTask):
             if field not in quiz_data:
                 raise TaskCreationError(f"Missing required field: '{field}'")
 
-        return quiz_data
+        quiz, new_reference = cls.shuffle_and_format(quiz_data)
+        return quiz, new_reference
 
     @classmethod
-    def extract_query_and_reference(cls, query_with_choices: str) -> tuple[str, str]:
-        """Extract the query and reference answer from the generated query.
-
-        To do this we extract the reference answer by searching for the choice with a * symbol,
-        and then removing the * to form the query
+    def shuffle_and_format(cls, quiz_data: dict) -> tuple[str, str]:
         """
-        # get the index of first occurrence of the choices
-        index = re.search(cls.choices_pattern, query_with_choices).start()
-
-        items, choices = list(
-            zip(*re.findall(cls.choices_pattern, query_with_choices[index:]))
-        )
-        if len(choices) != 4:
-            raise TaskCreationError(
-                f"{cls.__name__} the number of choices is not 4 in query_with_choices:\n{query_with_choices}"
-            )
-
-        correct_item = [i for i, item in enumerate(items) if "*" in item]
-        if len(correct_item) == 0:
-            raise TaskCreationError(
-                f"{cls.__name__} no reference was found in query_with_choices:\n{query_with_choices}"
-            )
-        elif len(correct_item) != 1:
-            raise TaskCreationError(
-                f"{cls.__name__} found multiple reference matches in query_with_choices:\n{query_with_choices}"
-            )
-        reference_label = choices[correct_item[0]]
-
-        shuffled_choices, new_reference = cls.shuffle_choices(choices, reference_label)
-        shuffled_query_with_choices = (
-            query_with_choices[:index] + "\n\n" + shuffled_choices
-        )
-        return shuffled_query_with_choices, new_reference
-
-    # @classmethod
-    # def extract_query_and_reference(cls, query_with_choices: str) -> tuple[str, str]:
-    #     """Extract the query and reference answer from the generated query.
-
-    #     To do this we extract the reference answer by searching for the choice with a * symbol,
-    #     and then removing the * to form the query
-    #     """
-    #     # get the index of first occurrence of the choices
-    #     index = re.search(cls.choices_pattern, query_with_choices).start()
-
-    #     items, choices = list(
-    #         zip(*re.findall(cls.choices_pattern, query_with_choices[index:]))
-    #     )
-    #     if len(choices) != 4:
-    #         raise TaskCreationError(
-    #             f"{cls.__name__} the number of choices is not 4 in query_with_choices:\n{query_with_choices}"
-    #         )
-
-    #     correct_item = [i for i, item in enumerate(items) if "*" in item]
-    #     if len(correct_item) == 0:
-    #         raise TaskCreationError(
-    #             f"{cls.__name__} no reference was found in query_with_choices:\n{query_with_choices}"
-    #         )
-    #     elif len(correct_item) != 1:
-    #         raise TaskCreationError(
-    #             f"{cls.__name__} found multiple reference matches in query_with_choices:\n{query_with_choices}"
-    #         )
-    #     reference_label = choices[correct_item[0]]
-
-    #     shuffled_choices, new_reference = cls.shuffle_choices(choices, reference_label)
-    #     shuffled_query_with_choices = (
-    #         query_with_choices[:index] + "\n\n" + shuffled_choices
-    #     )
-    #     return shuffled_query_with_choices, new_reference
-
-    @classmethod
-    def shuffle_choices(cls, choices: list[str], reference_label: str) -> tuple[str, str]:
-        """Shuffle the choices and return the new reference.
-        
-        By itself, the LLM will almost always assign the reference to option B or C.
-        This method overcomes the highly biased ordering by manually reshuffling the choices so that the reference is
-        uniformly distributed across the options.
+        Shuffles the choices and formats them into a string with the question.
 
         Args:
-            choices (list): list of choices
-            reference_label (str): the reference answer label
+            quiz_data (dict): The dictionary containing the quiz data.
 
         Returns:
-            tuple[str, str]: The shuffled choices; The new reference, in {A, B, C, D}.
+            str: The formatted string with the question and shuffled choices.
         """
-        # shuffle the choices
-        shuffled_choice_list = list(
-            zip("ABCD", np.random.choice(choices, len(choices), replace=False))
-        )
+        # Extract choices and the correct answer
+        choices = ["A", "B", "C", "D"]
+        choice_texts = [quiz_data[choice] for choice in choices]
+        correct_answer = quiz_data["answer"]
 
-        # match the reference and get the letter
-        new_reference = [c[0] for c in shuffled_choice_list if c[1] == reference_label][
-            0
-        ]
+        # Shuffle the choices
+        shuffled_choices = list(zip(choices, np.random.permutation(choice_texts)))
 
-        # reconstruct the shuffled choices (without indicating which is correct)
-        shuffled_choices = "\n".join([f"{c[0]}. {c[1]}" for c in shuffled_choice_list])
+        # Determine the new correct answer after shuffling
+        new_reference = [choice for choice, text in shuffled_choices if text == quiz_data[correct_answer]][0]
 
-        return shuffled_choices, new_reference
+        # Format the shuffled question and choices
+        formatted_string = f"{quiz_data['question']}\n\n"
+        formatted_string += "\n".join([f"{choice}. {text}" for choice, text in shuffled_choices])
+        formatted_string += "\nAnswer: "
+
+        return formatted_string, new_reference
