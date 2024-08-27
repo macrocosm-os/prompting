@@ -14,10 +14,6 @@ class MultiChoiceRewardModel(BaseRewardModel):
     def name(self) -> str:
         return "multiple_choice"
 
-    # def __init__(self, **kwargs):
-    #     super().__init__()
-    #     self.choices = ("A", "B", "C", "D")
-
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
         rewards = []

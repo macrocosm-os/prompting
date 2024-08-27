@@ -120,6 +120,7 @@ class Settings(BaseModel):
         values["ORGANIC_SAMPLE_SIZE"] = os.environ.get("ORGANIC_SAMPLE_SIZE", 5)
         values["ORGANIC_REUSE_RESPONSE_DISABLED"] = os.environ.get("ORGANIC_REUSE_RESPONSE_DISABLED", False)
         values["ORGANIC_REFERENCE_MAX_TOKENS"] = os.environ.get("ORGANIC_REFERENCE_MAX_TOKENS", 1024)
+        # TODO: Set to 0.1 when task-isolated rewards are implemented.
         values["ORGANIC_SYNTH_REWARD_SCALE"] = os.environ.get("ORGANIC_SYNTH_REWARD_SCALE", 1.0)
         values["ORGANIC_SET_WEIGHTS_ENABLED"] = os.environ.get("ORGANIC_SET_WEIGHTS_ENABLED", True)
         values["ORGANIC_DISABLED"] = os.environ.get("ORGANIC_DISABLED", False)
