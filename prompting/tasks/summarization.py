@@ -21,7 +21,7 @@ You are an expert question-answering LLM. You will receive context and a questio
 """
 
 QUERY_PROMPT_TEMPLATE = """\
-Request an exhaustive summary about the topic {title}"""
+Request an exhaustive summary about the topic: {title}"""
 
 # Used to obtain reference answer
 REFERENCE_PROMPT_TEMPLATE = """\
