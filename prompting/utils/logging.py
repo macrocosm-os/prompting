@@ -14,7 +14,12 @@ from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.tasks.task_registry import TaskRegistry
+from prompting.base.dendrite import DendriteResponseEvent
+from prompting.rewards.reward import WeightedRewardEvent
+from prompting.settings import settings
+from prompting.tasks.task_registry import TaskRegistry
 
+WANDB: Run
 WANDB: Run
 
 
@@ -27,12 +32,18 @@ class Log:
     miners_ids: list[str]
     responses: list[str]
     miners_time: list[float]
+    miners_ids: list[str]
+    responses: list[str]
+    miners_time: list[float]
     challenge_time: float
     reference_time: float
+    rewards: list[float]
     rewards: list[float]
     task: dict
 
 
+def export_logs(logs: list[Log]):
+    logger.info("📝 Exporting logs...")
 def export_logs(logs: list[Log]):
     logger.info("📝 Exporting logs...")
 
@@ -58,20 +69,33 @@ def export_logs(logs: list[Log]):
 
 
 def should_reinit_wandb(step: int):
+def should_reinit_wandb(step: int):
     # Check if wandb run needs to be rolled over.
+    return settings.WANDB_ON and step and step % settings.WANDB_RUN_STEP_LENGTH == 0
     return settings.WANDB_ON and step and step % settings.WANDB_RUN_STEP_LENGTH == 0
 
 
 def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator", custom_tags: list = []):
+def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator", custom_tags: list = []):
     """Starts a new wandb run."""
+    global WANDB
     global WANDB
     tags = [
         f"Wallet: {settings.WALLET.hotkey.ss58_address}",
         f"Version: {prompting.__version__}",
         # str(prompting.__spec_version__),
         f"Netuid: {settings.NETUID}",
+        f"Wallet: {settings.WALLET.hotkey.ss58_address}",
+        f"Version: {prompting.__version__}",
+        # str(prompting.__spec_version__),
+        f"Netuid: {settings.NETUID}",
     ]
 
+    if settings.MOCK:
+        tags.append("Mock")
+    for task_config in TaskRegistry.task_configs:
+        tags.append(task_config.task.__name__)
+    if settings.NEURON_DISABLE_SET_WEIGHTS:
     if settings.MOCK:
         tags.append("Mock")
     for task_config in TaskRegistry.task_configs:
@@ -92,19 +116,40 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
         f"Logging in to wandb on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}"
     )
     WANDB = wandb.init(
+        tags += [
+            f"Neuron UID: {settings.METAGRAPH.hotkeys.index(settings.WALLET.hotkey.ss58_address)}",
+            f"Time: {datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}",
+        ]
+
+    tags += custom_tags
+
+    # wandb_config = {key: copy.deepcopy(self.config.get(key, None)) for key in ("neuron", "reward", "netuid", "wandb")}
+    # wandb_config["neuron"].pop("full_path", None)
+    wandb.login(anonymous="allow", key=settings.WANDB_API_KEY, verify=True)
+    logger.info(
+        f"Logging in to wandb on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}"
+    )
+    WANDB = wandb.init(
         reinit=reinit,
+        project=settings.WANDB_PROJECT_NAME,
+        entity=settings.WANDB_ENTITY,
+        mode="offline" if settings.WANDB_OFFLINE else "online",
+        dir=settings.SAVE_PATH,
         project=settings.WANDB_PROJECT_NAME,
         entity=settings.WANDB_ENTITY,
         mode="offline" if settings.WANDB_OFFLINE else "online",
         dir=settings.SAVE_PATH,
         tags=tags,
         notes=settings.WANDB_NOTES,
+        notes=settings.WANDB_NOTES,
     )
+    logger.success(f"Started a new wandb run <blue> {WANDB.name} </blue>")
     logger.success(f"Started a new wandb run <blue> {WANDB.name} </blue>")
 
 
 def reinit_wandb(self):
     """Reinitializes wandb, rolling over the run."""
+    WANDB.finish()
     WANDB.finish()
     init_wandb(self, reinit=True)
 

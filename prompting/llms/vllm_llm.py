@@ -2,7 +2,32 @@ import time
 from typing import Optional, Any
 from prompting.utils.cleaners import CleanerPipeline
 from prompting.llms.base_llm import BasePipeline, BaseLLM
+from typing import Optional, Any
+from prompting.utils.cleaners import CleanerPipeline
+from prompting.llms.base_llm import BasePipeline, BaseLLM
 from prompting.llms.utils import calculate_gpu_requirements
+from vllm import LLM
+from transformers import PreTrainedTokenizerFast
+from pydantic import model_validator, ConfigDict
+from loguru import logger
+
+try:
+    from vllm import SamplingParams
+except ImportError:
+    raise ImportError(
+        "Could not import vllm library.  Please install via poetry: " 'poetry install --extras "validator" '
+    )
+
+
+def load_vllm_pipeline(
+    model_id: str,
+    device: str,
+    gpus: int,
+    max_allowed_memory_in_gb: int,
+    max_model_len: int,
+    mock: bool = False,
+    quantization: bool = True,
+):
 from vllm import LLM
 from transformers import PreTrainedTokenizerFast
 from pydantic import model_validator, ConfigDict
@@ -41,7 +66,14 @@ def load_vllm_pipeline(
     try:
         # Attempt to initialize the LLM
         logger.info(f"Loading VLLM pipeline with model_id {model_id}: Max. VRAM: {gpu_mem_utilization}; GPUs: {gpus}")
+        logger.info(f"Loading VLLM pipeline with model_id {model_id}: Max. VRAM: {gpu_mem_utilization}; GPUs: {gpus}")
         llm = LLM(
+            model=model_id,
+            gpu_memory_utilization=gpu_mem_utilization,
+            max_model_len=max_model_len,
+            quantization="AWQ" if quantization else None,
+            tensor_parallel_size=gpus,
+            enforce_eager=True,
             model=model_id,
             gpu_memory_utilization=gpu_mem_utilization,
             max_model_len=max_model_len,
@@ -56,6 +88,7 @@ def load_vllm_pipeline(
         llm.llm_engine.tokenizer.eos_token_id = 128009
         return llm
     except Exception as e:
+        logger.error(f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}")
         logger.error(f"Error loading the VLLM pipeline within {max_allowed_memory_in_gb}GB: {e}")
         raise e
 
@@ -85,7 +118,32 @@ class vLLMPipeline(BasePipeline):
             quantization=self.quantization,
         )
         self.tokenizer = self.llm.llm_engine.get_tokenizer()
+    llm_model_id: str
+    llm_max_allowed_memory_in_gb: int
+    llm_max_model_len: int
+    mock: bool = False
+    gpus: int = 1
+    device: str = None
+    quantization: bool = True
 
+    llm: Optional[LLM] = None
+    tokenizer: Optional[PreTrainedTokenizerFast] = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @model_validator(mode="after")
+    def load_llm_and_tokenizer(self) -> "vLLMPipeline":
+        self.llm = load_vllm_pipeline(
+            model_id=self.llm_model_id,
+            device=self.device,
+            gpus=self.gpus,
+            max_allowed_memory_in_gb=self.llm_max_allowed_memory_in_gb,
+            max_model_len=self.llm_max_model_len,
+            mock=self.mock,
+            quantization=self.quantization,
+        )
+        self.tokenizer = self.llm.llm_engine.get_tokenizer()
+
+    def __call__(self, composed_prompt: str, **model_kwargs: dict) -> str:
     def __call__(self, composed_prompt: str, **model_kwargs: dict) -> str:
         if self.mock:
             return self.llm(composed_prompt, **model_kwargs)
@@ -97,6 +155,7 @@ class vLLMPipeline(BasePipeline):
 
         sampling_params = SamplingParams(temperature=temperature, top_p=top_p, max_tokens=max_tokens)
 
+        output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
         output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
         response = output[0].outputs[0].text
         return response
@@ -158,11 +217,13 @@ class vLLM_LLM(BaseLLM):
         message: str,
         role: str = "user",
         cleaner: CleanerPipeline = CleanerPipeline(),
+        cleaner: CleanerPipeline = CleanerPipeline(),
     ):
         # Adds the message to the list of messages for tracking purposes, even though it's not used downstream
         messages = self.messages + [{"content": message, "role": role}]
 
         t0 = time.time()
+        response = self._forward(messages=messages)
         response = self._forward(messages=messages)
         response = self.clean_response(cleaner, response)
 
@@ -172,6 +233,8 @@ class vLLM_LLM(BaseLLM):
 
         return response
 
+    def _make_prompt(self, messages: list[dict[str, str]]) -> str:
+        composed_prompt: list[str] = []
     def _make_prompt(self, messages: list[dict[str, str]]) -> str:
         composed_prompt: list[str] = []
 
@@ -187,10 +250,12 @@ class vLLM_LLM(BaseLLM):
         return "".join(composed_prompt)
 
     def _forward(self, messages: list[dict[str, str]]):
+    def _forward(self, messages: list[dict[str, str]]):
         # make composed prompt from messages
         composed_prompt = self._make_prompt(messages)
         response = self.llm_pipeline(composed_prompt, **self.model_kwargs)
 
+        logger.info(f"{self.__class__.__name__} generated the following output:\n{response}")
         logger.info(f"{self.__class__.__name__} generated the following output:\n{response}")
 
         return response

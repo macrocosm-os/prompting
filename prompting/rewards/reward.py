@@ -1,7 +1,16 @@
 import numpy as np
+import numpy as np
 import time
 from typing import Literal, ClassVar
+from typing import Literal, ClassVar
 from abc import ABC, abstractmethod
+from prompting.base.dendrite import DendriteResponseEvent
+from pydantic import BaseModel, ConfigDict
+
+RewardTypeLiteral = Literal["reward", "penalty"]
+
+
+class RewardEvent(BaseModel):
 from prompting.base.dendrite import DendriteResponseEvent
 from pydantic import BaseModel, ConfigDict
 
@@ -16,13 +25,25 @@ class RewardEvent(BaseModel):
     rewards_normalized: np.ndarray
     timings: np.ndarray
     reward_model_type: RewardTypeLiteral
+    reward_model_name: str
+    rewards: np.ndarray
+    rewards_normalized: np.ndarray
+    timings: np.ndarray
+    reward_model_type: RewardTypeLiteral
     batch_time: float
+    threshold: float | None = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     threshold: float | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
         return {
+            f"{self.reward_model_name}_raw_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards),
+            f"{self.reward_model_name}_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards_normalized, 4),
+            f"{self.reward_model_name}_{self.model_type.value}_timings": self.tensor_to_rounded_list(self.timings),
+            f"{self.reward_model_name}_{self.model_type.value}_batch_time": self.batch_time,
+            f"{self.reward_model_name}_{self.model_type.value}_threshold": self.threshold,
             f"{self.reward_model_name}_raw_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards),
             f"{self.reward_model_name}_{self.model_type.value}": self.tensor_to_rounded_list(self.rewards_normalized, 4),
             f"{self.reward_model_name}_{self.model_type.value}_timings": self.tensor_to_rounded_list(self.timings),
@@ -43,11 +64,21 @@ class BatchRewardOutput(BaseModel):
 
     @property
     def rewards_normalized(self) -> np.ndarray:
+class BatchRewardOutput(BaseModel):
+    rewards: np.ndarray
+    timings: np.ndarray
+    threshold: float | None = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @property
+    def rewards_normalized(self) -> np.ndarray:
         if self.rewards.shape != self.timings.shape:
             raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
         return (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min() + 1e-6)
+        return (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min() + 1e-6)
 
 
+class BaseRewardModel(ABC, BaseModel):
 class BaseRewardModel(ABC, BaseModel):
     @abstractmethod
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
@@ -59,18 +90,28 @@ class BaseRewardModel(ABC, BaseModel):
         reference: str | None = None,
         challenge: str | None = None,
         reward_type: Literal["reward", "penalty"] = "reward",
+        self,
+        response_event: DendriteResponseEvent,
+        reference: str | None = None,
+        challenge: str | None = None,
+        reward_type: Literal["reward", "penalty"] = "reward",
     ) -> RewardEvent:
         t0 = time.time()
+        comparator = reference if reward_type == "reward" else challenge
+        batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event)
         comparator = reference if reward_type == "reward" else challenge
         batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event)
         batch_rewards_time = time.time() - t0
 
         return RewardEvent(
             reward_model_name=self.__class__.__name__,
+            reward_model_name=self.__class__.__name__,
             rewards=batch_rewards_output.rewards,
             rewards_normalized=batch_rewards_output.rewards_normalized,
             reward_model_type=reward_type,
+            reward_model_type=reward_type,
             batch_time=batch_rewards_time,
+            threshold=batch_rewards_output.threshold,
             threshold=batch_rewards_output.threshold,
             timings=batch_rewards_output.timings,
         )

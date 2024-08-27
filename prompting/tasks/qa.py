@@ -9,6 +9,17 @@ from prompting.utils.cleaners import CleanerPipeline
 from prompting.datasets.base import Context
 from prompting.rewards.reward import BaseRewardConfig
 from typing import ClassVar
+from prompting.rewards.rouge import RougeRewardModel
+from prompting.rewards.relevance import RelevanceRewardModel
+from prompting.tasks.base_task import BaseTask
+from prompting.rewards.reward import WeightedRewardModel
+
+# from prompting.rewards.reward import BaseRewardModel
+from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding, RemovePostQuestionText
+from prompting.utils.cleaners import CleanerPipeline
+from prompting.datasets.base import Context
+from prompting.rewards.reward import BaseRewardConfig
+from typing import ClassVar
 
 # TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 
@@ -17,6 +28,10 @@ QUERY_SYSTEM_PROMPT = """\
 You are a question-generating expert, focusing on delivering comprehensive and accurate questions with depth and clarity. The questions you generate should be based on the context that is provided.
 You will maintain a neutral tone in your questions.
 You will adhere to a word limit of 50 words for each question.
+"""
+
+REFERENCE_SYSTEM_PROMPT = """\
+You are an expert question-answering LLM. You will receive context and a question, and you will generate a detailed and accurate answer to the question. Your answer should be based on the context provided.
 """
 
 REFERENCE_SYSTEM_PROMPT = """\

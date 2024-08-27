@@ -1,5 +1,7 @@
 # ruff: noqa: E402
 import asyncio
+# ruff: noqa: E402
+import asyncio
 import time
 from typing import Optional
 
@@ -255,9 +257,18 @@ if __name__ == "__main__":
                 f"| last updated: {v.block - settings.METAGRAPH.last_update[v.uid]} "
                 f"| vtrust: {settings.METAGRAPH.validator_trust[v.uid]:.3f} "
                 f"| emission {settings.METAGRAPH.emission[v.uid]:.3f}"
+            logger.info(
+                f"Validator running:: network: {settings.SUBTENSOR.network} "
+                f"| block: {v.block} "
+                f"| step: {v.step} "
+                f"| uid: {v.uid} "
+                f"| last updated: {v.block - settings.METAGRAPH.last_update[v.uid]} "
+                f"| vtrust: {settings.METAGRAPH.validator_trust[v.uid]:.3f} "
+                f"| emission {settings.METAGRAPH.emission[v.uid]:.3f}"
             )
             time.sleep(5)
 
             if v.should_exit:
+                logger.warning("Ending validator...")
                 logger.warning("Ending validator...")
                 break
