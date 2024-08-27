@@ -58,6 +58,7 @@ class MultiChoiceRewardConfig(BaseRewardConfig):
 
 @dataclass
 class MultiChoiceTask(BaseTask):
+    name: ClassVar[str] = "multi_choice"
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
 
@@ -67,7 +68,7 @@ class MultiChoiceTask(BaseTask):
     @classmethod
     def generate_query_reference(cls, llm_pipeline: BasePipeline, context: Context) -> tuple:
         query_prompt = QUERY_PROMPT_TEMPLATE.format(source=context.source, title=context.title, context=context.content)
-        query_with_choices = cls.generate_query(llm_pipeline=llm_pipeline, messages=[query_prompt])
+        query_with_choices = cls.generate_query(llm_pipeline=llm_pipeline, message=query_prompt)
         query, reference = cls.extract_query_and_reference(query_with_choices)
         return query, reference
 
