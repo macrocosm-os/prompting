@@ -1,8 +1,3 @@
-# TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
-
-# TODO: Also add a query system prompt and a query prompt template
-# TODO: Add the option to generate the summary query from the context. e.g. "the childhood of Abraham Lincoln" which is more specific than summarizing the entire article (Abraham Lincoln)
-
 from prompting.tasks.base_task import BaseTextTask
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel

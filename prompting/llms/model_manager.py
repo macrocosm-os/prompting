@@ -21,11 +21,6 @@ class ModelManager(BaseModel):
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    # @model_validator(mode="after")
-    # def load_always_active_models(self) -> "ModelManager":
-    #     for model_config in self.always_active_models:
-    #         self.load_model(model_config)
-    #     return self
     def load_always_active_models(self):
         for model_config in self.always_active_models:
             self.load_model(model_config)
@@ -63,6 +58,10 @@ class ModelManager(BaseModel):
             )
 
         try:
+            logger.debug(
+                f"Loading model... {model_config.model_id} with GPU Utilization: {model_config.min_ram / GPUInfo.free_memory}"
+            )
+            GPUInfo.log_gpu_info()
             model = vllm.LLM(
                 model_config.model_id,
                 max_model_len=8_000,
@@ -129,6 +128,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
             logger.info(f"Model {selected_model.model_id} is already loaded.")
             return
 
+        logger.debug(f"Active models: {model_manager.active_models.keys()}")
         # Load the selected model
         model_manager.load_model(selected_model)
 

@@ -308,7 +308,6 @@ class WikiDateDataset(BaseDataset):
     def get(
         self,
     ) -> dict:
-        # TODO: Implement deterministic get method
         raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
 
     def search(self, name: str, results: int = 5) -> dict:

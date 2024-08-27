@@ -23,7 +23,6 @@ class MMLUEntry(DatasetEntry):
 
 
 class Context(DatasetEntry):
-    # TODO: Pydantic model
     title: str
     topic: str
     subtopic: str

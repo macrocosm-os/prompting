@@ -2,6 +2,7 @@ from typing import ClassVar
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 from loguru import logger
+from prompting.settings import settings
 
 
 class ModelConfig(BaseModel):
@@ -15,12 +16,19 @@ class ModelConfig(BaseModel):
 
 
 class ModelZoo:
+    # Currently, we are only using one single model - the one the validator is running
     models_configs: ClassVar[list[ModelConfig]] = [
-        # ModelConfig(model_id="casperhansen/mistral-nemo-instruct-2407-awq", reward=0.1, min_ram=24),
-        # ModelConfig(model_id="casperhansen/llama-3-8b-instruct-awq", reward=0.1, min_ram=24),
-        ModelConfig(model_id="casperhansen/qwen2-0.5b-instruct-awq", reward=0.1, min_ram=10),
-        # ModelConfig(model_id="casperhansen/llama-3-70b-instruct-awq", reward=0.8, min_ram=70),
+        ModelConfig(
+            model_id=settings.NEURON_MODEL_ID_VALIDATOR, reward=1, min_ram=settings.NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB
+        )
     ]
+
+    # Code below can be uncommended for testing purposes and demonstrates how we rotate multiple LLMs in the future
+    # models_configs: ClassVar[list[ModelConfig]] = [
+    # ModelConfig(model_id="casperhansen/mistral-nemo-instruct-2407-awq", reward=0.1, min_ram=24),
+    # ModelConfig(model_id="casperhansen/llama-3-8b-instruct-awq", reward=0.1, min_ram=24),
+    # ModelConfig(model_id="casperhansen/qwen2-0.5b-instruct-awq", reward=0.1, min_ram=10),
+    # ]
 
     @classmethod
     def get_all_models(cls) -> list[str]:

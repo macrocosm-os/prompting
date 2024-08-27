@@ -10,7 +10,6 @@ import random
 from prompting.llms.model_manager import model_manager
 from vllm import RequestOutput, SamplingParams
 from abc import abstractmethod
-from prompting.llms.model_zoo import ModelZoo
 from prompting.datasets.mmlu import MMLUEntry
 
 
@@ -54,10 +53,10 @@ class OrganicInferenceTask(BaseInferenceTask):
 
 class SyntheticInferenceTask(BaseInferenceTask):
     # TODO: Once we want to enable the 'actual' inference task with exact models
+    model: ModelConfig = None
     # this should be uncommented. For now, we're allowing non-exact responses, same
     # as the organic scoring task.
-    model: ModelConfig = ModelZoo.get_random()
-    # model: ModelConfig = None
+    # model: ModelConfig = ModelZoo.get_random()
 
     def make_query(self, dataset_entry: MMLUEntry) -> str:
         self.query = dataset_entry.query

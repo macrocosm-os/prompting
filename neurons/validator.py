@@ -1,4 +1,3 @@
-# TODO: Add back weight setting for validator
 # ruff: noqa: E402
 import asyncio
 import time
@@ -35,6 +34,7 @@ asyncio.run(availability_checking_loop.start())
 asyncio.run(task_scorer.start())
 # TODO: Think about whether we want to store the task queue locally in case of a crash
 # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
+# TODO: Make weight setting happen as specific intervals as we load/unload models
 
 
 class Validator(BaseValidatorNeuron):

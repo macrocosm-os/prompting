@@ -15,13 +15,13 @@ class SynapseStreamResult(BaseModel):
 
     def model_dump(self):
         # without a custom model dump, this leads to serialization errors in DendriteResponseEvent...
-        # TODO: This isn't great, ideally find a cleaner workaround
         return {
             "exception": self.exception,
             "uid": self.uid,
             "accumulated_chunks": self.accumulated_chunks,
             "accumulated_chunks_timings": self.accumulated_chunks_timings,
             "tokens_per_chunk": self.tokens_per_chunk,
+            "synapse": self.synapse.model_dump(),
         }
 
 
