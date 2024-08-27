@@ -21,11 +21,15 @@ from prompting.base.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.llms.vllm_llm import vLLMPipeline
 from prompting.organic.organic_task import OrganicRewardConfig, OrganicTask
+from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
+from prompting.utils.logging import log_event, ValidatorOrganicEvent
 
 # TODO: Implement Sample dataclass for SynthDatasets, Queues, and OrganicScoringBase methods.
 # Fields: "messages", "roles", "uids", "is_organic", "completions".
 SAMPLE_TYPE = dict[str, Union[list[str], bool, list[int], dict[int, dict[str, Any]]]]
+ORGANIC_TASK = "organic"
+ORGANIC_SYNTH_TASK = "organic_synth"
 
 
 @dataclass
@@ -33,6 +37,9 @@ class RewardResult:
     rewards: list[float]
     uids: list[int]
     is_organic: bool
+    reward_events: list[WeightedRewardEvent]
+    penalty_events: list[WeightedRewardEvent]
+    response_event: DendriteResponseEvent
 
 
 class OrganicScoringPrompting(OrganicScoringBase):
@@ -42,8 +49,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
         llm_pipeline: vLLMPipeline,
         tokenizer: PreTrainedTokenizerFast,
         update_scores_fn: Callable[[np.ndarray, list[int]], None],
-        get_random_uids_fn: Callable[[int, Optional[list[int]]], np.ndarray],
-        lock: asyncio.Lock,
+        get_random_uids_fn: Callable[[], np.ndarray],
+        get_step_fn: Callable[[], int],
+        get_block_fn: Callable[[], int],
         organic_queue: Optional[OrganicQueueBase] = None,
     ):
         super().__init__(
@@ -59,16 +67,17 @@ class OrganicScoringPrompting(OrganicScoringBase):
         self._tokenizer = tokenizer
         self._update_scores_fn = update_scores_fn
         self._get_random_uids_fn = get_random_uids_fn
-        self._lock = lock
+        self._get_step_fn = get_step_fn
+        self._get_block_fn = get_block_fn
 
     async def _generate_rewards(
         self, sample: SAMPLE_TYPE, responses: dict[str, SynapseStreamResult], reference: str
     ) -> RewardResult:
         stream_results = list(responses.values())
-        uids = np.asarray(responses.keys())
+        uids = np.asarray(list(responses.keys()))
         timeout = settings.ORGANIC_TIMEOUT
         response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
-        _, _, rewards = OrganicRewardConfig.apply(
+        reward_events, penalty_events, rewards = OrganicRewardConfig.apply(
             response_event=response_event,
             reference=reference,
             challenge=sample["messages"][-1]
@@ -77,6 +86,9 @@ class OrganicScoringPrompting(OrganicScoringBase):
             rewards=rewards,
             uids=list(responses.keys()),
             is_organic=sample.get("is_organic", False),
+            reward_events=reward_events,
+            penalty_events=penalty_events,
+            response_event=response_event,
         )
 
     @override
@@ -195,9 +207,6 @@ class OrganicScoringPrompting(OrganicScoringBase):
         Args:
             sample: Dict where the keys are miner UIDs and the values are the input streaming synapses.
         """
-        if not sample.get("is_organic", False):
-            return None
-
         uids = sample["uids"]
         responses: dict[int, SynapseStreamResult] = {}
         logger.info(f"[Organic] Reusing miner responses for organic data, UIDs: {uids}")
@@ -232,7 +241,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         return responses
 
     @override
-    async def _query_miners(self, sample: SAMPLE_TYPE) -> dict[str, SynapseStreamResult]:
+    async def _query_miners(self, sample: SAMPLE_TYPE) -> dict[int, SynapseStreamResult]:
         """Query miners with the given synthetic or organic sample."""
         if sample.get("is_organic", False) and not settings.ORGANIC_REUSE_RESPONSE_DISABLED:
             responses = await self._reuse_organic_response(sample)
@@ -267,3 +276,69 @@ class OrganicScoringPrompting(OrganicScoringBase):
         """Generate reference for the given organic or synthetic sample."""
         reference = await OrganicTask.generate_reference(sample["messages"], sample["roles"], self._llm_pipeline)
         return reference
+
+    async def _log_results(
+        self,
+        logs: dict[str, Any],
+        reference: Any,
+        responses: dict[str, Any],
+        rewards: RewardResult,
+        sample: dict[str, Any],
+        *args,
+        **kwargs,
+    ) -> dict[str, Any]:
+        """Log the results of the organic scoring iteration.
+
+        Args:
+            logs: The logs to record. Default values in the dict:
+                - "organic_time_sample": Time taken in seconds to sample the organic queue or synthetic dataset;
+                - "organic_time_responses": Time taken in seconds to query the miners and generate reference;
+                - "organic_time_rewards": Time taken in seconds to generate rewards;
+                - "organic_time_weights": Time taken in seconds to set the weights;
+                - "organic_time_total": Total time taken in seconds for the iteration;
+                - "organic_queue_len": Current length of the organic queue;
+                - "is_organic_sample": If the sample is from the organic queue.
+            reference: The reference data.
+            responses: The responses from the miners.
+            rewards: The generated rewards.
+            sample: The sample used.
+
+        Returns:
+            dict[str, Any]: The logs recorded.
+        """
+        # Create W&B logs for organic event.
+        challenge = sample["messages"][-1]
+        task_name = ORGANIC_SYNTH_TASK
+
+        if sample.get("is_organic", False):
+            # Clean all conversations for user organic prompts.
+            rewards.response_event.stream_results = [None for _ in rewards.response_event.stream_results]
+            chunks = rewards.response_event.stream_results_all_chunks
+            rewards.response_event.stream_results_all_chunks = [None for _ in chunks]
+            reference = ""
+            challenge = ""
+            task_name = ORGANIC_TASK
+
+        event = ValidatorOrganicEvent(
+            best="",
+            block=self._get_block_fn(),
+            step=self._get_step_fn(),
+            step_time=logs.get("organic_time_total"),
+            reward_events=rewards.reward_events,
+            penalty_events=rewards.penalty_events,
+            reference=reference,
+            challenge=challenge,
+            task=task_name,
+            rewards=rewards.rewards,
+            response_event=rewards.response_event,
+
+            organic_turn=len(sample["messages"]) // 2,
+            organic_time_sample=logs.get("organic_time_sample"),
+            organic_time_responses=logs.get("organic_time_responses"),
+            organic_time_rewards=logs.get("organic_time_rewards"),
+            organic_time_weights=logs.get("organic_time_weights"),
+            organic_queue_size=self._organic_queue.size,
+        )
+
+        log_event(event)
+        return logs
