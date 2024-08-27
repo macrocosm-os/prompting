@@ -1,5 +1,7 @@
 # ruff: noqa: E402
 import asyncio
+# ruff: noqa: E402
+import asyncio
 import time
 from typing import Optional
 
@@ -258,5 +260,6 @@ if __name__ == "__main__":
             time.sleep(5)
 
             if v.should_exit:
+                logger.warning("Ending validator...")
                 logger.warning("Ending validator...")
                 break

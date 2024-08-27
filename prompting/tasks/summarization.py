@@ -40,6 +40,14 @@ class SummarizationRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
         WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
         WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
+def make_query_prompt(context: Context) -> str:
+    return "Creatively ask for a summary of the following context:\n\n" + context.title
+
+
+class SummarizationRewardConfig(BaseRewardConfig):
+    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
+        WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
+        WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
     ]
     penalty_definition: ClassVar[list[WeightedRewardModel]] = [
         WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel())
