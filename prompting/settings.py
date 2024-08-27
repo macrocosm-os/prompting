@@ -76,6 +76,7 @@ class Settings(BaseModel):
     SUBTENSOR: bt.subtensor
     METAGRAPH: bt.metagraph
     NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB: int
+    LLM_MAX_MODEL_LEN: int
     NEURON_MODEL_ID_VALIDATOR: str
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)  # freeze all variables
