@@ -73,7 +73,7 @@ class MultiChoiceTask(BaseTask):
         return query, reference
 
     @classmethod
-    def extract_query_and_reference(cls, query_with_choices: str) -> dict:
+    def extract_query_and_reference(query_with_choices: str) -> dict:
         """
         Detects JSON within a string, parses it into a dictionary,
         and validates that the dictionary contains the required fields:
@@ -89,14 +89,21 @@ class MultiChoiceTask(BaseTask):
             ValueError: If JSON extraction or parsing fails, or required fields are missing.
         """
         # Regular expression pattern to match JSON object in the string.
-        json_pattern = r"{.*?}"
-        match = re.search(json_pattern, query_with_choices, re.DOTALL)
-        
-        if not match:
+        def extract_json_from_string(string: str):
+            start = string.find("{")
+            end = string.rfind("}") + 1
+            if start != -1 and end != -1:
+                json_string = string[start:end]
+                try:
+                    return json.loads(json_string)
+                except json.JSONDecodeError:
+                    pass
+            return None
+
+        json_data = extract_json_from_string(query_with_choices)
+        if not json_data:
             raise TaskCreationError(f"No JSON object could be found in the provided string: {query_with_choices}.")
-        
-        json_data = match.group()
-        
+
         try:
             # Attempt to parse the JSON string into a dictionary
             quiz_data = json.loads(json_data)
@@ -112,8 +119,11 @@ class MultiChoiceTask(BaseTask):
             if field not in quiz_data:
                 raise TaskCreationError(f"Missing required field: '{field}'")
 
-        quiz, new_reference = cls.shuffle_and_format(quiz_data)
-        return quiz, new_reference
+        # Answer must be exactly one of the choices.
+        if quiz_data["answer"] not in ["A", "B", "C", "D"]:
+            raise TaskCreationError(f"Invalid answer: '{quiz_data['answer']}")
+
+        return quiz_data
 
     @classmethod
     def shuffle_and_format(cls, quiz_data: dict) -> tuple[str, str]:
