@@ -136,6 +136,9 @@ class Settings(BaseModel):
         values["LLM_MAX_MODEL_LEN"] = int(os.environ.get("LLM_MAX_MODEL_LEN", 4096))
         values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = os.environ.get("MAX_ALLOWED_VRAM_GB", 62)
         values["NEURON_GPUS"] = os.environ.get("NEURON_GPUS", 1)
+        if values["NEURON_GPUS"] != 1:
+            # Set the start method to spawn for vllm
+            os.environ['VLLM_WORKER_MULTIPROC_METHOD'] = 'spawn'
 
         if os.environ.get("SUBTENSOR_NETWORK") == "local":
             values["SUBTENSOR_NETWORK"] = bt_config.subtensor.chain_endpoint or os.environ.get(
