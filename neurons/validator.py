@@ -20,6 +20,7 @@ from prompting.miner_availability.miner_availability import availability_checkin
 from prompting.llms.model_manager import model_scheduler
 from prompting.utils.timer import Timer
 from prompting.mutable_globals import scoring_queue
+from prompting import mutable_globals
 
 NEURON_SAMPLE_SIZE = 100
 SCORING_QUEUE_LENGTH_THRESHOLD = 10
@@ -129,6 +130,10 @@ class Validator(BaseValidatorNeuron):
 
             # scoring_manager will score the responses as and when the correct model is loaded
             task_scorer.add_to_queue(task=task, response=response_event, dataset_entry=dataset_entry)
+
+            for uids, rewards in mutable_globals.rewards_and_uids:
+                self.update_scores(uids=uids, rewards=rewards)
+            mutable_globals.rewards_and_uids = []
 
             # Log the step event.
             return ValidatorLoggingEvent(

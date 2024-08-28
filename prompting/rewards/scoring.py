@@ -11,7 +11,7 @@ from prompting.datasets.base import DatasetEntry
 from dataclasses import dataclass
 from prompting.base.loop_runner import AsyncLoopRunner
 import asyncio
-from prompting.mutable_globals import scoring_queue
+from prompting.mutable_globals import scoring_queue, rewards_and_uids
 
 
 @dataclass
@@ -75,6 +75,8 @@ class TaskScorer(AsyncLoopRunner):
                 task_id=scoring_config.task.task_id,
             )
         )
+        logger.info("Adding scores to rewards_and_uids")
+        rewards_and_uids.append((scoring_config.response.uids, rewards))
 
 
 class WeightSetter(AsyncLoopRunner):
