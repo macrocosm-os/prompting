@@ -138,7 +138,7 @@ class Settings(BaseModel):
         values["NEURON_GPUS"] = os.environ.get("NEURON_GPUS", 1)
         if values["NEURON_GPUS"] != 1:
             # Set the start method to spawn for vllm
-            os.environ['VLLM_WORKER_MULTIPROC_METHOD'] = 'spawn'
+            os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 
         if os.environ.get("SUBTENSOR_NETWORK") == "local":
             values["SUBTENSOR_NETWORK"] = bt_config.subtensor.chain_endpoint or os.environ.get(
