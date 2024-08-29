@@ -19,6 +19,7 @@ class RewardEvent(BaseModel):
     batch_time: float
     threshold: float | None = None
     extra_info: dict | None = None
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name

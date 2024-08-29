@@ -33,8 +33,6 @@ class BaseValidatorNeuron(BaseNeuron):
         # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(settings.METAGRAPH.hotkeys)
 
-        # Dendrite lets us send messages to other nodes (axons) in the network.
-
         # Set up initial scoring weights for validation
         logger.info("Building validation weights.")
         self.scores = np.zeros(settings.METAGRAPH.n, dtype=np.float32)

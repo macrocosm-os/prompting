@@ -54,7 +54,6 @@ class BaseStreamMinerNeuron(BaseModel, BaseNeuron):
         logger.info(f"Axon created: {self.streaming_axon}; miner uid: {self.uid}")
         self.streaming_axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR)
         # self.availability_axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR)
-
         if settings.WANDB_ON:
             init_wandb(neuron="miner")
         return self

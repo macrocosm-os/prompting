@@ -49,7 +49,6 @@ class RelevanceRewardModel(BaseRewardModel):
                 timings.append(0)
                 continue
             t0 = time.time()
-
             emb = self.embedding_model.encode(comp, to_numpy=True)
             # Calculate cosine similarity between reference and completion embeddings, and subtract baseline
             score = spatial.distance.cosine(reference_embedding.flatten(), emb.flatten()) - baseline

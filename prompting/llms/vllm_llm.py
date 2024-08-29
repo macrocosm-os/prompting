@@ -64,11 +64,12 @@ class vLLMPipeline(BasePipeline):
     llm_model_id: str
     llm_max_allowed_memory_in_gb: int
     llm: LLM
+    llm_max_model_len: int
     mock: bool = False
     gpus: int = 1
     device: str = None
     quantization: bool = True
-
+    llm: Optional[LLM] = None
     tokenizer: Optional[PreTrainedTokenizerFast] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -118,7 +119,7 @@ class vLLM_LLM(BaseLLM):
         super().__init__(llm, system_prompt, model_kwargs)
 
         # Keep track of generation data using messages and times
-
+        self.system_prompt = system_prompt
         self.messages = [{"content": self.system_prompt, "role": "system"}] if self.system_prompt else []
         self.times: list[float] = [0]
         self._role_template = {

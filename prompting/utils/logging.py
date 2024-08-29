@@ -3,7 +3,7 @@ import numpy as np
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Any
 
 import wandb
 from loguru import logger
@@ -182,4 +182,34 @@ def log_event(event: ValidatorLoggingEvent | MinerLoggingEvent | ErrorLoggingEve
         logger.info(f"{event}")
 
     if settings.WANDB_ON:
-        wandb.log(event.model_dump())
+        unpacked_event = unpack_events(event)
+        unpacked_event = convert_arrays_to_lists(unpacked_event)
+        wandb.log(unpacked_event)
+
+
+def unpack_events(event: ValidatorLoggingEvent | MinerLoggingEvent | ErrorLoggingEvent) -> dict[str, Any]:
+    """reward_events and penalty_events are unpacked into a list of dictionaries."""
+    event_dict = event.model_dump()
+    for key in list(event_dict.keys()):
+        if key.endswith("_events"):
+            event_dict.update(extract_reward_event(event_dict.pop(key)))
+        if key == "response_event":
+            nested_dict = event_dict.pop(key)
+            if isinstance(nested_dict, dict):
+                event_dict.update(nested_dict)
+    return event_dict
+
+
+def extract_reward_event(reward_event: list[dict[str, Any]]) -> dict[str, Any]:
+    flattened_reward_dict = {}
+    for element in reward_event:
+        name = element["reward_event"].pop("reward_model_name")
+        element["reward_event"]["weight"] = element.pop("weight")
+        reward_event = element.pop("reward_event")
+        new_reward_event = {f"{name}_{key}": value for key, value in reward_event.items()}
+        flattened_reward_dict.update(new_reward_event)
+    return flattened_reward_dict
+
+
+def convert_arrays_to_lists(data: dict) -> dict:
+    return {key: value.tolist() if hasattr(value, "tolist") else value for key, value in data.items()}

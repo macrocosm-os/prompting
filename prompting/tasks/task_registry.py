@@ -3,7 +3,7 @@ from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.date_qa import DateQuestionAnsweringTask, DateQARewardConfig
 from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
 from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
-
+from prompting.tasks.multi_choice import MultiChoiceTask, MultiChoiceRewardConfig
 from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.datasets.base import BaseDataset
 from prompting.tasks.inference import SyntheticInferenceTask, InferenceRewardConfig
@@ -37,6 +37,12 @@ class TaskRegistry(BaseModel):
             probability=0.4,
             datasets=[MMLUDataset],
             reward_model=InferenceRewardConfig,
+        ),
+        TaskConfig(
+            task=MultiChoiceTask,
+            probability=0.05,
+            datasets=[WikiDataset],
+            reward_model=MultiChoiceRewardConfig,
         ),
     ]
 

@@ -1,7 +1,6 @@
 import numpy as np
 from typing import Literal
 import random
-from typing import List
 from prompting.settings import settings
 from loguru import logger
 
@@ -115,7 +114,7 @@ def get_top_incentive_uids(k: int, vpermit_tao_limit: int) -> np.ndarray:
 def get_uids(
     sampling_mode: Literal["random", "top_incentive", "all"],
     k: int | None = None,
-    exclude: List[int] = [],
+    exclude: list[int] = [],
     own_uid: int | None = None,
 ) -> np.ndarray:
     if settings.TEST and settings.TEST_MINER_IDS:

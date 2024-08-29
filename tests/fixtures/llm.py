@@ -2,8 +2,8 @@ from prompting.mock import MockPipeline
 from prompting.llms.vllm_llm import vLLM_LLM, vLLMPipeline
 
 
-def mock_llm_pipeline():
-    return MockPipeline("This is just another test.")
+def mock_llm_pipeline(message="This is just another test."):
+    return MockPipeline(message)
 
 
 def llms():

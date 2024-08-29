@@ -1,4 +1,4 @@
-from prompting.tasks.base_task import BaseTextTask
+from prompting.tasks.base_task import BaseTask
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
@@ -7,8 +7,7 @@ from prompting.llms.vllm_llm import vLLM_LLM
 from prompting.llms.base_llm import BasePipeline
 from prompting.settings import settings
 from prompting.tasks.base_task import CHATTENSOR_SYSTEM_PROMPT
-from typing import ClassVar, Any
-from prompting.llms.model_manager import model_manager
+from typing import ClassVar
 
 
 class OrganicRewardConfig(BaseRewardConfig):
@@ -21,7 +20,7 @@ class OrganicRewardConfig(BaseRewardConfig):
     ]
 
 
-class OrganicTask(BaseTextTask):
+class OrganicTask(BaseTask):
     """Task with defined reward and penalty mechanisms for organic prompts."""
 
     cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline()
@@ -30,7 +29,7 @@ class OrganicTask(BaseTextTask):
     async def generate_reference(cls, messages: list[str], roles: list[str], pipeline: BasePipeline) -> str:
         """Generate reference for the given organic or synthetic sample."""
         reference = vLLM_LLM(
-            llm_pipeline=model_manager.get_model(settings.NEURON_MODEL_ID_VALIDATOR),
+            llm_pipeline=pipeline,
             system_prompt=CHATTENSOR_SYSTEM_PROMPT(),
             max_new_tokens=settings.ORGANIC_REFERENCE_MAX_TOKENS,
         ).query_conversation(

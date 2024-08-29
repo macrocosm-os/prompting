@@ -28,8 +28,9 @@ Ask a specific question about the following context:
 
 #Context:
 {context}
-"""
 
+You must ask a question that can be answered by the context.
+"""
 
 # Used to obtain reference answer
 REFERENCE_PROMPT_TEMPLATE = """\

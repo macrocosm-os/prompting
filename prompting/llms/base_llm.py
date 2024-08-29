@@ -3,7 +3,6 @@ from prompting.utils.cleaners import CleanerPipeline
 from typing import Any
 from loguru import logger
 from pydantic import BaseModel
-from vllm import LLM
 
 
 class BasePipeline(ABC, BaseModel):
@@ -12,7 +11,7 @@ class BasePipeline(ABC, BaseModel):
 
 
 class BaseLLM(ABC):
-    llm: LLM
+    llm: Any
     model_kwargs: dict
     system_prompt: str | None = None
     messages: list[dict] = []

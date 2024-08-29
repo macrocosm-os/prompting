@@ -48,11 +48,12 @@ poetry install --extras validator
 poetry run pip uninstall -y uvloop
 ```
 
-If you are running a validator, logging in to Hugging Face is required:
-```shell
-huggingface-cli login
-```
-You also need to accept the License Agreement for the LMSYS-Chat-1M dataset: https://huggingface.co/datasets/lmsys/lmsys-chat-1m
+
+# Usage
+
+<div align="center">
+
+**[For Validators](./assets/validator.md)** · **[For Miners](./assets/miner.md)**
 
 </div>
 

@@ -305,6 +305,10 @@ class WikiDateDataset(BaseDataset):
                 logger.debug("Cache is empty. Skipping date until cache is filled.")
                 return None
 
+            except Exception as e:
+                logger.exception(f"Error fetching date: {e}")
+                continue
+
     def get(
         self,
     ) -> dict:

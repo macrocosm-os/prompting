@@ -1,8 +1,6 @@
 # ruff: noqa: E402
 import asyncio
 import time
-
-
 from prompting import settings
 
 settings.settings = settings.Settings(mode="validator")
@@ -55,7 +53,6 @@ class Validator(BaseValidatorNeuron):
         - Rewarding the network
         - Updating the scores
         - Logging the event
-
         Args:
             agent (HumanAgent): The agent to run the step for.
             roles (List[str]): The roles for the synapse.
@@ -64,7 +61,6 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-
         if len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Skipping task generation.")
             return None
@@ -102,7 +98,6 @@ class Validator(BaseValidatorNeuron):
             if len(uids) == 0:
                 logger.debug("No available miners. Skipping step.")
                 return
-
             axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
             # Directly call dendrite and process responses in parallel
@@ -223,4 +218,3 @@ if __name__ == "__main__":
 
             if v.should_exit:
                 logger.warning("Ending validator...")
-                break

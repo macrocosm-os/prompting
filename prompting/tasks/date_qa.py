@@ -10,7 +10,6 @@ from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
 QUERY_SYSTEM_PROMPT = """You are a question creation expert. When asked to create a question, you use the context to make a specific question that would have the answer <date>. Your question should contain the topic."""
 QUERY_PROMPT_TEMPLATE = """\
 Create a question about {topic} that would have <date> as the answer using the following context:
-topic: {topic}
 context: {content}
 """
 REFERENCE_PROMPT_TEMPLATE = """\
