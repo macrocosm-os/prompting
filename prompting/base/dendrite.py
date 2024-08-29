@@ -31,7 +31,7 @@ class SynapseStreamResult(BaseModel):
 
 
 class DendriteResponseEvent(BaseModel):
-    uids: np.ndarray
+    uids: np.ndarray | list[float]
     timeout: float
     stream_results: list[SynapseStreamResult]
     completions: list[str] = []
@@ -78,5 +78,4 @@ class DendriteResponseEvent(BaseModel):
             self.stream_results_exceptions.append(serialize_exception_to_string(stream_result.exception))
             self.stream_results_all_chunks.append(stream_result.accumulated_chunks)
             self.stream_results_all_chunks_timings.append(stream_result.accumulated_chunks_timings)
-            self.stream_results_all_tokens_per_chunk.append(stream_result.tokens_per_chunk)
         return self

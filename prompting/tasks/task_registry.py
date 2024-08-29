@@ -12,6 +12,7 @@ import random
 from typing import ClassVar
 from loguru import logger
 from prompting.datasets.mmlu import MMLUDataset
+import numpy as np
 
 
 class TaskConfig(BaseModel):
@@ -83,3 +84,6 @@ class TaskRegistry(BaseModel):
         task_config = cls.random()
         dataset = cls.get_random_task_dataset(task_config.task)
         return task_config.task(), dataset()
+
+
+assert np.sum([conf.probability for conf in TaskRegistry.task_configs]) == 1, "Task probabilities must sum to 1"

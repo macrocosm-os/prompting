@@ -1,10 +1,9 @@
 import json
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 import numpy as np
 
 from prompting.datasets.base import Context
-from prompting.llms.base_llm import BasePipeline
 from prompting.rewards.multi_choice import MultiChoiceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
 from prompting.tasks.base_task import BaseTask
@@ -65,38 +64,38 @@ class MultiChoiceRewardConfig(BaseRewardConfig):
 
 
 class MultiChoiceTask(BaseTask):
-    # TODO: Remove context, legacy code.
-    context: Optional[dict] = None
-    name: ClassVar[str] = "multi_choice"
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
 
     # Specific pattern (semi-flexible) which detects multiple choices.
     choices_pattern: ClassVar[str] = r"\n\s*(\*?\s*\W?[A-D]\W?)\s*(.*)"
 
-    @classmethod
-    def generate_query_reference(cls, llm_pipeline: BasePipeline, context: Context) -> tuple[str, str]:
+    def make_query(self, context: Context) -> tuple[str, str]:
         query_prompt = QUERY_PROMPT_TEMPLATE.format(source=context.source, title=context.title, context=context.content)
-        query_with_choices = cls.generate_query(llm_pipeline=llm_pipeline, message=query_prompt)
-        query, reference = cls.extract_query_and_reference(query_with_choices)
-        return query, reference
+        query_with_choices = self.generate_query(messages=query_prompt)
+        self.query, self.reference = self.extract_query_and_reference(query_with_choices)
+        return self.query
+
+    def make_reference(self, context: Context) -> str:
+        return self.reference
 
     @classmethod
-    def extract_query_and_reference(cls, query_with_choices: str) -> tuple[str, str]:
+    def extract_query_and_reference(self, query_with_choices: str) -> tuple[str, str]:
         """
         Detects JSON within a string, parses it into a dictionary,
         and validates that the dictionary contains the required fields:
         "question", "answer", "A", "B", "C", and "D".
-        
+
         Args:
             json_string (str): The string containing the JSON data, possibly with extra text.
-            
+
         Returns:
             dict: The parsed and validated dictionary.
-        
+
         Raises:
             ValueError: If JSON extraction or parsing fails, or required fields are missing.
         """
+
         # Regular expression pattern to match JSON object in the string.
         def extract_json_from_string(string: str):
             start = string.find("{")
@@ -124,11 +123,10 @@ class MultiChoiceTask(BaseTask):
         if quiz_data["answer"] not in ("A", "B", "C", "D"):
             raise TaskCreationError(f"Invalid answer: '{quiz_data['answer']}'")
 
-        quiz, reference = cls.shuffle_and_format(quiz_data)
+        quiz, reference = self.shuffle_and_format(quiz_data)
         return quiz, reference
 
-    @classmethod
-    def shuffle_and_format(cls, quiz_data: dict[str, str]) -> tuple[str, str]:
+    def shuffle_and_format(self, quiz_data: dict[str, str]) -> tuple[str, str]:
         """Shuffles the choices and formats them into a string with the question.
 
         Args:
