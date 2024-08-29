@@ -6,7 +6,6 @@ from prompting.base.dendrite import SynapseStreamResult
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from prompting.tasks.base_task import BaseTextTask
-from transformers import PreTrainedTokenizerFast as Tokenizer
 from prompting.llms.base_llm import BasePipeline
 from loguru import logger
 
@@ -17,13 +16,12 @@ async def execute_dendrite_call(dendrite_call):
     return responses
 
 
-async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokenizer) -> SynapseStreamResult:
+async def process_stream(uid: int, async_iterator: Awaitable) -> SynapseStreamResult:
     """Process a single response asynchronously."""
     synapse = None  # Initialize chunk with a default value
     exception = None
     accumulated_chunks = []
     accumulated_chunks_timings = []
-    accumulated_tokens_per_chunk = []
     start_time = time.time()
 
     try:
@@ -31,8 +29,6 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
             if isinstance(chunk, str):
                 accumulated_chunks.append(chunk)
                 accumulated_chunks_timings.append(time.time() - start_time)
-                tokens_in_chunk = len(tokenizer.tokenize(chunk))
-                accumulated_tokens_per_chunk.append(tokens_in_chunk)
                 logger.debug(f"\nchunk for uid {uid}: {chunk}")
 
         # Assuming last chunk of async_iterator holds the last value yielded as a StreamingSynapse
@@ -51,7 +47,6 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
         return SynapseStreamResult(
             accumulated_chunks=accumulated_chunks,
             accumulated_chunks_timings=accumulated_chunks_timings,
-            tokens_per_chunk=accumulated_tokens_per_chunk,
             synapse=synapse,
             uid=uid,
             exception=exception,
@@ -59,7 +54,7 @@ async def process_stream(uid: int, async_iterator: Awaitable, tokenizer: Tokeniz
 
 
 @async_log
-async def handle_response(stream_results_dict: Dict[int, Awaitable], tokenizer: Tokenizer) -> List[SynapseStreamResult]:
+async def handle_response(stream_results_dict: Dict[int, Awaitable]) -> List[SynapseStreamResult]:
     """The handle_response function is responsible for creating asyncio tasks around acquiring streamed miner chunks
     and processing them asynchronously. It then pairs the results with their original UIDs and returns a list of StreamResults.
 
@@ -77,7 +72,7 @@ async def handle_response(stream_results_dict: Dict[int, Awaitable], tokenizer: 
     ]  # Pair UIDs with their tasks
 
     # Start tasks, preserving order and their associated UIDs
-    process_stream_tasks = [process_stream(uid, resp, tokenizer) for uid, resp in tasks_with_uid]
+    process_stream_tasks = [process_stream(uid, resp) for uid, resp in tasks_with_uid]
     processed_stream_results = await asyncio.gather(*process_stream_tasks, return_exceptions=True)
 
     return processed_stream_results
