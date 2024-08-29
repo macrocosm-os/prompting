@@ -22,7 +22,7 @@ class InferenceRewardConfig(BaseRewardConfig):
 class BaseInferenceTask(BaseTextTask):
     query: str | None = None
     reference: str | None = None
-    model: ModelConfig | None = None
+    llm_model: ModelConfig | None = None
     seed: int = random.randint(0, 1_000_000)
 
     @abstractmethod
@@ -30,16 +30,16 @@ class BaseInferenceTask(BaseTextTask):
         raise NotImplementedError("Method make_query must be implemented")
 
     def make_reference(self, dataset_entry: DatasetEntry) -> str:
-        if self.model is None:
-            self.model = random.choice(list(model_manager.active_models.keys()))
-        if self.model not in model_manager.active_models.keys():
-            raise Exception(f"Model {self.model} not found in active models")
-        output: RequestOutput = model_manager.active_models[self.model].generate(
+        if self.llm_model is None:
+            self.llm_model = random.choice(list(model_manager.active_models.keys()))
+        if self.llm_model not in model_manager.active_models.keys():
+            raise Exception(f"Model {self.llm_model} not found in active models")
+        output: RequestOutput = model_manager.active_models[self.llm_model].generate(
             self.query, SamplingParams(seed=self.seed)
         )[0]
         self.reference = output.outputs[0].text
         if self.reference is None:
-            logger.error(f"Model {self.model} returned None for reference generation")
+            logger.error(f"Model {self.llm_model} returned None for reference generation")
         return self.reference
 
 

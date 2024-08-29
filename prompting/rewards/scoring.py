@@ -41,7 +41,8 @@ class TaskScorer(AsyncLoopRunner):
         scorable = [
             scoring_config
             for scoring_config in scoring_queue
-            if (scoring_config.task.model in model_manager.active_models.keys()) or (scoring_config.task.model is None)
+            if (scoring_config.task.llm_model in model_manager.active_models.keys())
+            or (scoring_config.task.llm_model is None)
         ]
         if len(scorable) == 0:
             logger.debug("Nothing to score. Skipping scoring step.")
@@ -50,7 +51,7 @@ class TaskScorer(AsyncLoopRunner):
             await asyncio.sleep(5)
             return
         scoring_queue.remove(scorable[0])
-        scoring_config = scorable.pop(0)
+        scoring_config: ScoringConfig = scorable.pop(0)
 
         # here we generate the actual reference
         scoring_config.task.make_reference(
@@ -59,11 +60,15 @@ class TaskScorer(AsyncLoopRunner):
 
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
+        logger.debug(
+            f"""{len(scoring_config.response.completions)} completions to score for task {scoring_config.task.task_id}
+            COMPLETIONS: {scoring_config.response.completions}"""
+        )
         reward_events, penalty_events, rewards = reward_pipeline.apply(
             response_event=scoring_config.response,
             challenge=scoring_config.task.query,
             reference=scoring_config.task.reference,
-            model_id=scoring_config.task.model,
+            model_id=scoring_config.task.llm_model,
         )
         best_response = scoring_config.response.completions[np.argmax(rewards)]
         logger.debug(f"SCORING: Scored {scoring_config.task.task_id} with reward {rewards}")

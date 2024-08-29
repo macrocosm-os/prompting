@@ -24,12 +24,12 @@ class RewardEvent(BaseModel):
     # implement custom asdict to return a dict with the same keys as the dataclass using the model name
     def asdict(self) -> dict:
         return {
-            f"{self.reward_model_name}_raw_{self.model_type.value}": self.rewards,
-            f"{self.reward_model_name}_{self.model_type.value}": self.rewards_normalized,
-            f"{self.reward_model_name}_{self.model_type.value}_timings": self.timings,
-            f"{self.reward_model_name}_{self.model_type.value}_batch_time": self.batch_time,
-            f"{self.reward_model_name}_{self.model_type.value}_threshold": self.threshold,
-            f"{self.reward_model_name}_{self.model_type.value}_extra_info": self.extra_info,
+            f"{self.reward_model_name}_raw_{self.reward_model_type.value}": self.rewards,
+            f"{self.reward_model_name}_{self.reward_model_type.value}": self.rewards_normalized,
+            f"{self.reward_model_name}_{self.reward_model_type.value}_timings": self.timings,
+            f"{self.reward_model_name}_{self.reward_model_type.value}_batch_time": self.batch_time,
+            f"{self.reward_model_name}_{self.reward_model_type.value}_threshold": self.threshold,
+            f"{self.reward_model_name}_{self.reward_model_type.value}_extra_info": self.extra_info,
         }
 
 

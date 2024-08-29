@@ -6,20 +6,22 @@ from prompting.settings import settings
 
 
 class ModelConfig(BaseModel):
-    model_id: str
+    llm_model_id: str
     reward: float
     min_ram: float
     model_config = ConfigDict(frozen=True)
 
     def __hash__(self):
-        return hash((self.model_id, self.reward, self.min_ram))
+        return hash((self.llm_model_id, self.reward, self.min_ram))
 
 
 class ModelZoo:
     # Currently, we are only using one single model - the one the validator is running
     models_configs: ClassVar[list[ModelConfig]] = [
         ModelConfig(
-            model_id=settings.NEURON_MODEL_ID_VALIDATOR, reward=1, min_ram=settings.NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB
+            llm_model_id=settings.NEURON_MODEL_ID_VALIDATOR,
+            reward=1,
+            min_ram=settings.NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB,
         )
     ]
 
@@ -32,7 +34,7 @@ class ModelZoo:
 
     @classmethod
     def get_all_models(cls) -> list[str]:
-        return [model.model_id for model in cls.models_configs]
+        return [model.llm_model_id for model in cls.models_configs]
 
     @classmethod
     def get_random(cls, max_ram: float = np.inf) -> ModelConfig:
@@ -42,6 +44,6 @@ class ModelZoo:
     @classmethod
     def get_model_by_id(cls, model_id: str) -> ModelConfig:
         try:
-            return [model for model in cls.models_configs if model.model_id == model_id][0]
+            return [model for model in cls.models_configs if model.llm_model_id == model_id][0]
         except Exception as ex:
             logger.error(f"Model {model_id} not found in ModelZoo: {ex}")

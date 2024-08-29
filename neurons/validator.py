@@ -78,9 +78,9 @@ class Validator(BaseValidatorNeuron):
                 except Exception as ex:
                     logger.exception(ex)
 
-            if len(miner_availabilities.get_available_miners(task=task, model=task.model_id)) == 0:
+            if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
                 logger.debug(
-                    f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.model_id}. Skipping step."
+                    f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."
                 )
                 return None
 
@@ -97,7 +97,7 @@ class Validator(BaseValidatorNeuron):
             start_time = time.time()
 
             # Get the list of uids and their axons to query for this step.
-            uids = miner_availabilities.get_available_miners(task=task, model=task.model_id, k=k)
+            uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=k)
             logger.debug(f"🔍 Querying uids: {uids}")
             if len(uids) == 0:
                 logger.debug("No available miners. Skipping step.")
@@ -111,7 +111,7 @@ class Validator(BaseValidatorNeuron):
                 synapse=StreamPromptingSynapse(
                     task_name=task.__class__.__name__,
                     seed=task.seed,
-                    target_model=task.model_id,
+                    target_model=task.llm_model_id,
                     roles=["user"],
                     messages=[query],
                 ),

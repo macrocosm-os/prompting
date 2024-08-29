@@ -151,8 +151,8 @@ class VLLMMiner(BaseStreamMinerNeuron):
             for task, _ in synapse.task_availabilities.items()
             if task == "SyntheticInferenceTask" or "OrganicInferenceTask"
         }
-        synapse.model_availabilities = {
-            model: True for model, _ in synapse.model_availabilities.items() if model == settings.MINER_LLM_MODEL
+        synapse.llm_model_availabilities = {
+            model: True for model, _ in synapse.llm_model_availabilities.items() if model == settings.MINER_LLM_MODEL
         }
         return synapse
 

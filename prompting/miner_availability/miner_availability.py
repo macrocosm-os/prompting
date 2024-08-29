@@ -19,17 +19,17 @@ task_config: dict[str, bool] = {
     SyntheticInferenceTask.__name__: True,
     OrganicInferenceTask.__name__: True,
 }
-model_config: dict[str, bool] = {conf.model_id: False for conf in ModelZoo.models_configs}
+model_config: dict[str, bool] = {conf.llm_model_id: False for conf in ModelZoo.models_configs}
 
 
 class MinerAvailability(BaseModel):
     """This class keeps track of one miner's availability"""
 
     task_availabilities: dict[str, bool] = task_config
-    model_availabilities: dict[str, bool] = model_config
+    llm_model_availabilities: dict[str, bool] = model_config
 
     def is_model_available(self, model: str) -> bool:
-        return self.model_availabilities[model]
+        return self.llm_model_availabilities[model]
 
     def is_task_available(self, task: BaseTask) -> bool:
         return self.task_availabilities[task.__class__.__name__]
@@ -65,7 +65,7 @@ class CheckMinerAvailability(AsyncLoopRunner):
         axons = [settings.METAGRAPH.axons[uid] for uid in uids]
         responses: list[AvailabilitySynapse] = await settings.DENDRITE(
             axons=axons,
-            synapse=AvailabilitySynapse(task_availabilities=task_config, model_availabilities=model_config),
+            synapse=AvailabilitySynapse(task_availabilities=task_config, llm_model_availabilities=model_config),
             timeout=settings.NEURON_TIMEOUT,
             deserialize=False,
             streaming=False,
@@ -73,7 +73,7 @@ class CheckMinerAvailability(AsyncLoopRunner):
         for response, uid in zip(responses, uids):
             miner_availabilities.miners[uid] = MinerAvailability(
                 task_availabilities=response.task_availabilities,
-                model_availabilities=response.model_availabilities,
+                llm_model_availabilities=response.llm_model_availabilities,
             )
         logger.debug("Miner availabilities updated.")
 

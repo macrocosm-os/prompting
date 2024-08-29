@@ -15,7 +15,7 @@ class AvailabilitySynapse(bt.Synapse):
     about their status/availability to server certain tasks"""
 
     task_availabilities: dict[str, bool]
-    model_availabilities: dict[str, bool]
+    llm_model_availabilities: dict[str, bool]
 
 
 class StreamPromptingSynapse(bt.StreamingSynapse):

@@ -1,4 +1,5 @@
 import time
+from typing import Any
 from loguru import logger
 from abc import ABC
 from pydantic import BaseModel, Field, ConfigDict, model_validator
@@ -28,8 +29,8 @@ def CHATTENSOR_SYSTEM_PROMPT():
 
 
 class BaseTask(BaseModel, ABC):
-    query: ... = None
-    reference: ... = None
+    query: Any = None
+    reference: Any = None
     task_id: str = Field(default_factory=lambda: str(uuid4()), allow_mutation=False)
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -51,8 +52,8 @@ class BaseTask(BaseModel, ABC):
 class BaseTextTask(BaseTask):
     query: str | None = None
     reference: str | None = None
-    model: ModelConfig = None
-    model_id: str = None
+    llm_model: ModelConfig = None
+    llm_model_id: str = None
     seed: str = None
     query_system_prompt: ClassVar[str | None] = None
     reference_system_prompt: ClassVar[str | None] = None
@@ -62,8 +63,8 @@ class BaseTextTask(BaseTask):
 
     @model_validator(mode="after")
     def get_model_id_and_seed(self) -> "BaseTextTask":
-        if self.model:
-            self.model_id = self.model.model_id if self.model else None
+        if self.llm_model:
+            self.llm_model_id = self.llm_model.llm_model_id if self.llm_model else None
             self.seed = random.randint(0, 1000000)
         return self
 
@@ -84,7 +85,7 @@ class BaseTextTask(BaseTask):
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
         self.reference = vLLM_LLM(
-            llm=model_manager.get_model(self.model), system_prompt=self.reference_system_prompt or ""
+            llm=model_manager.get_model(self.llm_model), system_prompt=self.reference_system_prompt or ""
         ).query(cleaner=self.cleaner, message=messages)
         if self.reference is None:
             raise Exception("Reference generation failed")
@@ -97,7 +98,7 @@ class BaseTextTask(BaseTask):
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
         self.query = vLLM_LLM(
-            llm=model_manager.get_model(self.model), system_prompt=self.query_system_prompt or ""
+            llm=model_manager.get_model(self.llm_model), system_prompt=self.query_system_prompt or ""
         ).query(message=messages)
         if self.query is None:
             raise Exception("Query generation failed")
@@ -111,7 +112,7 @@ class BaseTextTask(BaseTask):
         if self.augmentation_system_prompt:
             return query
         challenge = vLLM_LLM(
-            llm=model_manager.get_model(self.model),
+            llm=model_manager.get_model(self.llm_model),
             max_new_tokens=settings.NEURON_MAX_TOKENS,
             system_prompt=self.augmentation_system_prompt,
         ).query(message=query)

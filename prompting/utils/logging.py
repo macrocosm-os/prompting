@@ -1,4 +1,5 @@
 import json
+import numpy as np
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -122,6 +123,20 @@ class ValidatorLoggingEvent(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True, copy_on_model_validation=False)
 
+    def __str__(self):
+        sample_completions = [completion for completion in self.response_event.completions if len(completion) > 0]
+        sample_completion = sample_completions[0] if sample_completions else "All completions are empty"
+        return f"""ValidatorLoggingEvent:
+            Block: {self.block}
+            Step: {self.step}
+            Step Time: {self.step_time}
+            forward_time: {self.forward_time}
+            task_id: {self.task_id}
+            Number of total completions: {len(self.response_event.completions)}
+            Number of non-empty completions: {len(sample_completions)}
+            Completions: {sample_completions}
+            Sample completion: {sample_completion}"""
+
 
 class RewardLoggingEvent(BaseModel):
     best: str
@@ -130,6 +145,19 @@ class RewardLoggingEvent(BaseModel):
     task_id: str
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def __str__(self):
+        rewards = [r.reward_event.rewards for r in self.reward_events]
+
+        return f"""RewardLoggingEvent:
+            Best: {self.best}
+            Rewards:
+                Rewards: {rewards}
+                Min: {np.min(rewards)}
+                Max: {np.max(rewards)}
+                Average: {np.mean(rewards)}
+            Penalty Events: {self.penalty_events}
+            task_id: {self.task_id}"""
 
 
 class MinerLoggingEvent(BaseModel):
