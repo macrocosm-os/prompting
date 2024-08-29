@@ -86,4 +86,6 @@ class TaskRegistry(BaseModel):
         return task_config.task(), dataset()
 
 
-assert np.sum([conf.probability for conf in TaskRegistry.task_configs]) == 1, "Task probabilities must sum to 1"
+assert (
+    np.around(np.sum([conf.probability for conf in TaskRegistry.task_configs]), 5) == 1
+), f"Task probabilities must sum to 1 but sum to {np.sum([conf.probability for conf in TaskRegistry.task_configs]) }"
