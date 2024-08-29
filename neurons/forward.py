@@ -98,7 +98,10 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
         response for response in stream_results if response.exception is None and response.synapse.completion != ""
     ]
 
-    logger.debug(f"Total of non_empty responses: ({len(non_empty_responses)})")
+    logger.debug(
+        f""""Total of non_empty responses: ({len(non_empty_responses)})
+                 RESPONSES: {non_empty_responses}"""
+    )
     logger.debug(f"Total of empty responses: ({len(empty_responses)})")
     logger.debug(f"Total of failed responses: ({len(failed_responses)}):\n {failed_responses}")
 
