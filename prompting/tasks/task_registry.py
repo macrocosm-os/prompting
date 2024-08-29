@@ -35,13 +35,13 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=SyntheticInferenceTask,
-            probability=0.4,
+            probability=0.3,
             datasets=[MMLUDataset],
             reward_model=InferenceRewardConfig,
         ),
         TaskConfig(
             task=MultiChoiceTask,
-            probability=0.05,
+            probability=0.1,
             datasets=[WikiDataset],
             reward_model=MultiChoiceRewardConfig,
         ),
