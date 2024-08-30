@@ -118,11 +118,9 @@ class Validator(BaseValidatorNeuron):
             # Prepare the task for handling stream responses
             stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
             logger.debug(
-                f"""
-                         Non-empty: {len([r.completion for r in stream_results if len(r.completion) > 0])}
-                         Empty: {len([r.completion for r in stream_results if len(r.completion) == 0])}"""
+                f"Non-empty: {len([r.completion for r in stream_results if len(r.completion) > 0])}\n"
+                f"Empty: {len([r.completion for r in stream_results if len(r.completion) == 0])}"
             )
-            logger.debug(f"Stream results for task {task.task_id}: {stream_results}")
 
             log_stream_results(stream_results)
 

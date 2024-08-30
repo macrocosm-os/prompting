@@ -2,6 +2,7 @@ import numpy as np
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.utils.misc import serialize_exception_to_string
 from pydantic import BaseModel, model_validator, ConfigDict
+from loguru import logger
 
 
 class SynapseStreamResult(BaseModel):
@@ -15,6 +16,9 @@ class SynapseStreamResult(BaseModel):
 
     @property
     def completion(self) -> str:
+        if not self.synapse:
+            logger.warning("Synapse is None")
+            return
         return self.synapse.completion
 
     def model_dump(self):

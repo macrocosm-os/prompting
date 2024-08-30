@@ -9,7 +9,7 @@ from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_uids
 import random
 
-task_config = dict[str, bool] = {task_config.task.__name__: True for task_config in TaskRegistry.task_configs}
+task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
 # task_config: dict[str, bool] = {
 #     DateQuestionAnsweringTask.__name__: True,
 #     QuestionAnsweringTask.__name__: True,
