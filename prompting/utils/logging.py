@@ -108,12 +108,16 @@ def reinit_wandb(self):
     init_wandb(self, reinit=True)
 
 
-class ErrorLoggingEvent(BaseModel):
+class BaseEvent(BaseModel):
+    forward_time: float | None = None
+
+
+class ErrorLoggingEvent(BaseEvent):
     error: str
     forward_time: float | None = None
 
 
-class ValidatorLoggingEvent(BaseModel):
+class ValidatorLoggingEvent(BaseEvent):
     block: int
     step: int
     step_time: float
@@ -138,7 +142,7 @@ class ValidatorLoggingEvent(BaseModel):
             Sample completion: {sample_completion}"""
 
 
-class RewardLoggingEvent(BaseModel):
+class RewardLoggingEvent(BaseEvent):
     best: str
     reward_events: list[WeightedRewardEvent]
     penalty_events: list[WeightedRewardEvent]
@@ -160,7 +164,7 @@ class RewardLoggingEvent(BaseModel):
             task_id: {self.task_id}"""
 
 
-class MinerLoggingEvent(BaseModel):
+class MinerLoggingEvent(BaseEvent):
     epoch_time: float
     messages: int
     accumulated_chunks: int
@@ -177,7 +181,7 @@ class MinerLoggingEvent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-def log_event(event: ValidatorLoggingEvent | MinerLoggingEvent | ErrorLoggingEvent):
+def log_event(event: BaseEvent):
     if not settings.LOGGING_DONT_SAVE_EVENTS:
         logger.info(f"{event}")
 
@@ -187,7 +191,7 @@ def log_event(event: ValidatorLoggingEvent | MinerLoggingEvent | ErrorLoggingEve
         wandb.log(unpacked_event)
 
 
-def unpack_events(event: ValidatorLoggingEvent | MinerLoggingEvent | ErrorLoggingEvent) -> dict[str, Any]:
+def unpack_events(event: BaseEvent) -> dict[str, Any]:
     """reward_events and penalty_events are unpacked into a list of dictionaries."""
     event_dict = event.model_dump()
     for key in list(event_dict.keys()):

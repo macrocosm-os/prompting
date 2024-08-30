@@ -23,18 +23,6 @@ from prompting import mutable_globals
 NEURON_SAMPLE_SIZE = 100
 SCORING_QUEUE_LENGTH_THRESHOLD = 10
 
-# will start rotating the different LLMs in/out of memory
-asyncio.run(model_scheduler.start())
-
-# will start checking the availability of miners at regular intervals
-asyncio.run(availability_checking_loop.start())
-
-# start scoring tasks in separate loop
-asyncio.run(task_scorer.start())
-# TODO: Think about whether we want to store the task queue locally in case of a crash
-# TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
-# TODO: Make weight setting happen as specific intervals as we load/unload models
-
 
 class Validator(BaseValidatorNeuron):
     """
@@ -201,6 +189,17 @@ class Validator(BaseValidatorNeuron):
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
+    # will start rotating the different LLMs in/out of memory
+    asyncio.run(model_scheduler.start())
+
+    # will start checking the availability of miners at regular intervals
+    asyncio.run(availability_checking_loop.start())
+
+    # start scoring tasks in separate loop
+    asyncio.run(task_scorer.start())
+    # TODO: Think about whether we want to store the task queue locally in case of a crash
+    # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
+    # TODO: Make weight setting happen as specific intervals as we load/unload models
     with Validator() as v:
         while True:
             logger.info(
