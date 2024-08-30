@@ -109,10 +109,10 @@ class BaseRewardConfig(ABC, BaseModel):
     penalty_definitions: ClassVar[list[WeightedRewardModel]] = []
 
     @classmethod
-    def sum_rewards(cls, reward_events: list[WeightedRewardEvent]) -> list[float]:
+    def sum_rewards(cls, reward_events: list[WeightedRewardEvent]) -> np.ndarray:
         if not reward_events:
             return 0
-        return np.sum([r.reward_event.rewards for r in reward_events], axis=0)
+        return np.sum([r.reward_event.rewards * r.weight for r in reward_events], axis=0)
 
     @classmethod
     def final_rewards(

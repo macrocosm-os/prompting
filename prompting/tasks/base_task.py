@@ -109,7 +109,7 @@ class BaseTextTask(BaseTask):
         query: str,
     ) -> str:
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
-        if self.augmentation_system_prompt:
+        if not self.augmentation_system_prompt:
             return query
         challenge = vLLM_LLM(
             llm=model_manager.get_model(self.llm_model),

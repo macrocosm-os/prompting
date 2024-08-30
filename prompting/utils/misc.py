@@ -10,10 +10,10 @@ from prompting.settings import settings
 
 
 class classproperty:
-    def __init__(self, func):
+    def __init__(self, func: Callable):
         self.fget = func
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance, owner: Any):
         return self.fget(owner)
 
 

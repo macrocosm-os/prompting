@@ -79,7 +79,6 @@ class MultiChoiceTask(BaseTask):
     def make_reference(self, context: Context) -> str:
         return self.reference
 
-    @classmethod
     def extract_query_and_reference(self, query_with_choices: str) -> tuple[str, str]:
         """
         Detects JSON within a string, parses it into a dictionary,

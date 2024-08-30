@@ -5,20 +5,18 @@ from prompting.llms.model_zoo import ModelZoo
 from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.base.protocol import AvailabilitySynapse
 from prompting.settings import settings
-from prompting.tasks.date_qa import DateQuestionAnsweringTask
-from prompting.tasks.qa import QuestionAnsweringTask
-from prompting.tasks.summarization import SummarizationTask
-from prompting.tasks.inference import SyntheticInferenceTask, OrganicInferenceTask
+from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_uids
 import random
 
-task_config: dict[str, bool] = {
-    DateQuestionAnsweringTask.__name__: True,
-    QuestionAnsweringTask.__name__: True,
-    SummarizationTask.__name__: True,
-    SyntheticInferenceTask.__name__: True,
-    OrganicInferenceTask.__name__: True,
-}
+task_config = dict[str, bool] = {task_config.task.__name__: True for task_config in TaskRegistry.task_configs}
+# task_config: dict[str, bool] = {
+#     DateQuestionAnsweringTask.__name__: True,
+#     QuestionAnsweringTask.__name__: True,
+#     SummarizationTask.__name__: True,
+#     SyntheticInferenceTask.__name__: True,
+#     OrganicInferenceTask.__name__: True,
+# }
 model_config: dict[str, bool] = {conf.llm_model_id: False for conf in ModelZoo.models_configs}
 
 
