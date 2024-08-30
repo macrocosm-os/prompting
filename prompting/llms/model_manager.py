@@ -8,6 +8,7 @@ from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.mutable_globals import scoring_queue
 from prompting.settings import settings
+from vllm.sampling_params import SamplingParams
 
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work
@@ -108,6 +109,18 @@ class ModelManager(BaseModel):
             return self.active_models.get(llm_model)
         else:
             return self.load_model(llm_model, force=True)
+
+    def generate(
+        self, prompts: list[str], model: ModelConfig | str | None = None, sampling_params: SamplingParams | None = None
+    ) -> str:
+        if isinstance(model, str):
+            model = ModelZoo.get_model_by_id(model)
+        if not model:
+            model = ModelZoo.get_random(max_ram=self.total_ram)
+
+        model: vllm.LLM = self.get_model(model)
+        responses = model.generate(prompts=prompts, sampling_params=sampling_params)
+        return [r.outputs[0].text for r in responses]
 
 
 class AsyncModelScheduler(AsyncLoopRunner):
