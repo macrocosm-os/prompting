@@ -7,6 +7,7 @@ from vllm.distributed.parallel_state import destroy_model_parallel
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.mutable_globals import scoring_queue
+from prompting.settings import settings
 
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work
@@ -16,7 +17,7 @@ open_tasks = []
 
 class ModelManager(BaseModel):
     always_active_models: list[ModelConfig] = []
-    total_ram: float = 40.0
+    total_ram: float = settings.LLM_MODEL_RAM
     active_models: dict[ModelConfig, vllm.LLM] = {}
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)

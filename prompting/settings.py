@@ -81,6 +81,7 @@ class Settings(BaseModel):
     NEURON_MODEL_ID_VALIDATOR: str
     DENDRITE: bt.dendrite = None
     MINER_LLM_MODEL: str | None = None
+    LLM_MODEL_RAM: float = 70
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)  # freeze all variables
 
     @model_validator(mode="before")
@@ -118,6 +119,7 @@ class Settings(BaseModel):
             # OTF hotkey.
             "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
         )
+        values["LLM_MODEL_RAM"] = os.environ.get("LLM_MODEL_RAM", 70)
         values["ORGANIC_TIMEOUT"] = os.environ.get("ORGANIC_TIMEOUT", 15)
         values["ORGANIC_SAMPLE_SIZE"] = os.environ.get("ORGANIC_SAMPLE_SIZE", 5)
         values["ORGANIC_REUSE_RESPONSE_DISABLED"] = os.environ.get("ORGANIC_REUSE_RESPONSE_DISABLED", False)
