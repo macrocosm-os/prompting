@@ -66,6 +66,7 @@ class MultiChoiceRewardConfig(BaseRewardConfig):
 class MultiChoiceTask(BaseTask):
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
+    llm_model_id: str | None = None
 
     # Specific pattern (semi-flexible) which detects multiple choices.
     choices_pattern: ClassVar[str] = r"\n\s*(\*?\s*\W?[A-D]\W?)\s*(.*)"
