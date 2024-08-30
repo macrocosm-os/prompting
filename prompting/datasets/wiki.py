@@ -8,13 +8,13 @@ import wikipedia
 from queue import Queue, Full, Empty
 from functools import lru_cache
 from prompting.datasets.base import BaseDataset
-from prompting.datasets.base import Context
+from prompting.datasets.base import DatasetEntry
 from typing import ClassVar
 from typing import Optional
 from pydantic import model_validator, ConfigDict
 
 # Create a queue called CACHED_ARTICLES to store wikipedia articles that have been fetched
-CACHED_ARTICLES: Queue[Context] = Queue(maxsize=300)
+CACHED_ARTICLES: Queue[DatasetEntry] = Queue(maxsize=300)
 
 
 # speed up page loading
@@ -147,7 +147,7 @@ class WikiDataset(BaseDataset):
         name: str,
         exclude: list = None,
         **kwargs,
-    ) -> Context:
+    ) -> DatasetEntry:
         """Get a specified Wikipedia page and extract a section based on the selector.
 
         Args:
@@ -179,7 +179,7 @@ class WikiDataset(BaseDataset):
 
         section_length = len(selected_section[1].split())
 
-        context = Context(
+        context = DatasetEntry(
             title=name,
             topic=header or section_title,
             subtopic=section_title,
@@ -200,7 +200,7 @@ class WikiDataset(BaseDataset):
             logger.debug("Cache is full. Skipping article until cache is emptied.")
         return context
 
-    def search(self, name, results=3) -> Context:
+    def search(self, name, results=3) -> DatasetEntry:
         titles = _wikipedia_search(name, results=results)
         title = random.choice(titles)
         return self.get(title)
@@ -213,11 +213,11 @@ class WikiDataset(BaseDataset):
         return None
 
 
-class DateContext(Context):
+class DateContext(DatasetEntry):
     date: str = None
 
     @classmethod
-    def from_context(cls, context: Context, date: str) -> "DateContext":
+    def from_context(cls, context: DatasetEntry, date: str) -> "DateContext":
         return cls(
             **context.model_dump(),
             date=date,

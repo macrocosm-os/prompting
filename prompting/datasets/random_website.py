@@ -2,7 +2,7 @@ import random
 from typing import Optional
 from duckduckgo_search import DDGS
 import trafilatura
-from prompting.datasets.base import BaseDataset, Context, DatasetEntry
+from prompting.datasets.base import BaseDataset, DatasetEntry
 from loguru import logger
 
 
@@ -59,5 +59,5 @@ class DDGDataset(BaseDataset):
     def get(self) -> Optional[DDGDatasetEntry]:
         return self.next()
 
-    def random(self) -> Context:
+    def random(self) -> DatasetEntry:
         return self.next()
