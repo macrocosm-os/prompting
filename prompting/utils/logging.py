@@ -102,6 +102,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
     )
     signature = settings.WALLET.hotkey.sign(WANDB.id.encode()).hex()
     wandb_config["SIGNATURE"] = signature
+    wandb_config["HOTKEY_SS58"] = settings.WALLET.hotkey.ss58_address
     WANDB.config.update(wandb_config)
     logger.success(f"Started a new wandb run <blue> {WANDB.name} </blue>")
 
