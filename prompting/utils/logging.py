@@ -1,6 +1,5 @@
 import json
 import os
-import copy
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Literal, Optional
@@ -103,7 +102,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
     )
     signature = settings.WALLET.hotkey.sign(WANDB.id.encode()).hex()
     wandb_config["SIGNATURE"] = signature
-    wandb.config.update(wandb_config)
+    WANDB.config.update(wandb_config)
     logger.success(f"Started a new wandb run <blue> {WANDB.name} </blue>")
 
 
