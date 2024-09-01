@@ -1,5 +1,6 @@
 import json
 import os
+import copy
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Any, Literal, Optional
@@ -85,8 +86,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
 
     tags += custom_tags
 
-    # wandb_config = {key: copy.deepcopy(self.config.get(key, None)) for key in ("neuron", "reward", "netuid", "wandb")}
-    # wandb_config["neuron"].pop("full_path", None)
+    wandb_config = {key: getattr(settings, key) for key in ("WALLET_NAME", "HOTKEY", "NETUID")}
     wandb.login(anonymous="allow", key=settings.WANDB_API_KEY, verify=True)
     logger.info(
         f"Logging in to wandb on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}"
@@ -99,7 +99,11 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
         dir=settings.SAVE_PATH,
         tags=tags,
         notes=settings.WANDB_NOTES,
+        config=wandb_config
     )
+    signature = settings.WALLET.hotkey.sign(WANDB.id.encode()).hex()
+    wandb_config["SIGNATURE"] = signature
+    wandb.config.update(wandb_config)
     logger.success(f"Started a new wandb run <blue> {WANDB.name} </blue>")
 
 
