@@ -4,18 +4,7 @@ import copy
 import requests
 from loguru import logger
 import random
-
-
-def load_words(file_path):
-    """Random words are used to create a random search term for the github API so we can find
-    repositories to use for the coding challenge. If we find a better way to find a random repository
-    that'd be great - but for now that's the best I got"""
-    with open(file_path, "r") as file:
-        words = file.read().splitlines()
-    return words
-
-
-WORDS = load_words("prompting/datasets/english_words.txt")
+from prompting.datasets.utils import ENGLISH_WORDS
 
 ALLOWED_FILE_ENDINGS = {
     "python": [".py"],
@@ -37,10 +26,10 @@ class GithubDatasetEntry(DatasetEntry):
 
 
 def get_repositories(language, sort="stars", order="desc"):
-    # TODO: We may want to introduce some contraints, e.g. a minimum number of stars to ensure decent code quality or so
+    # TODO: We may want to introduce some constraints, e.g. a minimum number of stars to ensure decent code quality or so
     for _ in range(10):
         try:
-            search_term = "+".join(random.sample(WORDS, 1))
+            search_term = "+".join(random.sample(ENGLISH_WORDS, 1))
             url = f"https://api.github.com/search/repositories?q={search_term}+language:{language}&sort={sort}&order={order}"
             logger.info(f"Searching for repositories with term: {search_term}")
             response = requests.get(url)
@@ -81,7 +70,6 @@ class GithubRepo(BaseModel):
             if files.status_code == 200:
                 self.branch = branch
                 logger.info(f"Working with repository https://github.com/{self.owner}/{self.name} on branch {branch}")
-                # print(f"branch \"{branch}\" found!")
                 break
         file_names = [
             f["path"] for f in files.json()["tree"] if "size" in f.keys() and MIN_FILE_SIZE < f["size"] < MAX_FILE_SIZE
@@ -89,54 +77,62 @@ class GithubRepo(BaseModel):
         self.valid_files = [f for f in file_names if f.endswith(tuple(ALLOWED_FILE_ENDINGS[self.language]))]
         return self.valid_files
 
-    async def download_file(self, file: str):
+    def download_file(self, file: str):
         return requests.get(f"https://raw.githubusercontent.com/{self.owner}/{self.name}/{self.branch}/{file}").text
 
-    async def _process_file(self, file_name: str) -> GithubDatasetEntry:
-        file_content = await self.download_file(file_name)
-        if len(file_content.split("\n")) < MIN_INPUT_LINES + OUTPUT_LINES:
+    def _process_file(self, file_name: str) -> GithubDatasetEntry:
+        file_content = self.download_file(file_name)
+        if len(file_content.split("\n")) < (MIN_INPUT_LINES + OUTPUT_LINES):
             raise Exception(f"File {file_name} has too few lines")
 
         file_content = "\n".join(file_content.split("\n")[:MAX_LINES])
-        logger.info(f"modifying file with {len(file_content.split("\n"))} lines")
+        n_lines = len(file_content.split("\n"))
+        logger.info(f"modifying file with {n_lines} lines")
         return GithubDatasetEntry(
             github_url=f"https://github.com/{self.owner}/{self.name}", file_path=file_name, file_content=file_content
         )
 
-    async def next(self) -> GithubDatasetEntry:
+    def next(self) -> GithubDatasetEntry:
         for i in range(len(self.valid_files) - self._current_file_idx):
             file_name = self.valid_files[self._current_file_idx]
             try:
-                return await self._process_file(file_name)
+                return self._process_file(file_name)
             except Exception as ex:
                 logger.error(f"Error processing file {file_name}: {ex}")
             self._current_file_idx += 1
 
-    async def random(self) -> GithubDatasetEntry:
+    def random(self) -> GithubDatasetEntry:
         valid_files = copy.deepcopy(self.valid_files)
         random.shuffle(valid_files)
 
         for file_name in valid_files:
             try:
-                return await self._process_file(file_name)
+                return self._process_file(file_name)
             except Exception as ex:
                 logger.error(f"Error processing file {file_name}: {ex}")
 
 
 class GithubDataset(BaseDataset):
-    def __init__(self, language: str = "python"):
-        self.language = language
-        self.current_repo = GithubRepo(language=language)
+    language: str = "python"
+    current_repo: GithubRepo = None
 
-    async def get(self) -> GithubDatasetEntry:
-        return await self.next()
-
-    async def next(self) -> GithubDatasetEntry:
-        return await self.current_repo.next()
-
-    async def random(self) -> GithubDatasetEntry:
-        self.reset()
-        return await self.current_repo.random()
-
-    async def reset(self):
+    @model_validator(mode="after")
+    def get_repo(self) -> "GithubDataset":
         self.current_repo = GithubRepo(language=self.language)
+        return self
+
+    def get(self) -> GithubDatasetEntry:
+        return self.next()
+
+    def next(self) -> GithubDatasetEntry:
+        return self.current_repo.next()
+
+    def random(self) -> GithubDatasetEntry:
+        self.reset()
+        return self.current_repo.random()
+
+    def reset(self):
+        self.current_repo = GithubRepo(language=self.language)
+
+
+print(GithubDataset().next())

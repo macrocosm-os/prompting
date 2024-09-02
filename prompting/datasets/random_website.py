@@ -2,17 +2,12 @@ import random
 from typing import Optional
 from duckduckgo_search import DDGS
 import trafilatura
-from prompting.datasets.base import BaseDataset, DatasetEntry
+from prompting.datasets.base import BaseDataset, Context, DatasetEntry
 from loguru import logger
-
-
-def load_words(file_path: str) -> list[str]:
-    with open(file_path, "r") as file:
-        return file.read().splitlines()
+from prompting.datasets.utils import ENGLISH_WORDS
 
 
 MAX_CHARS = 5000
-WORDS = load_words("prompting/datasets/english_words.txt")
 
 
 class DDGDatasetEntry(DatasetEntry):
@@ -22,12 +17,13 @@ class DDGDatasetEntry(DatasetEntry):
 
 
 class DDGDataset(BaseDataset):
-    @staticmethod
-    def search_random_term(retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
+    english_words: list[str] = None
+
+    def search_random_term(self, retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
         try:
             ddg = DDGS()
             for _ in range(retries):
-                random_words = " ".join(random.sample(WORDS, 5))
+                random_words = " ".join(random.sample(ENGLISH_WORDS, 5))
                 results = list(ddg.text(random_words))
                 if results:
                     return random_words, results
@@ -35,8 +31,7 @@ class DDGDataset(BaseDataset):
             logger.error(f"Failed to get search results from DuckDuckGo: {ex}")
         return None, None
 
-    @staticmethod
-    def extract_website_content(url: str) -> Optional[str]:
+    def extract_website_content(self, url: str) -> Optional[str]:
         try:
             website = trafilatura.fetch_url(url)
             extracted = trafilatura.extract(website)
@@ -48,7 +43,7 @@ class DDGDataset(BaseDataset):
         search_term, results = self.search_random_term(retries=3)
         if not results:
             return None
-        website_url = random.choice(results)["href"]
+        website_url = results[0]["href"]
         website_content = self.extract_website_content(website_url)
         if not website_content or len(website_content) == 0:
             logger.error(f"Failed to extract content from website {website_url}")
@@ -59,5 +54,5 @@ class DDGDataset(BaseDataset):
     def get(self) -> Optional[DDGDatasetEntry]:
         return self.next()
 
-    def random(self) -> DatasetEntry:
+    def random(self) -> Context:
         return self.next()
