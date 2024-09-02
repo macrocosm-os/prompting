@@ -4,6 +4,7 @@ from prompting.tasks.date_qa import DateQuestionAnsweringTask, DateQARewardConfi
 from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
 from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
 from prompting.tasks.multi_choice import MultiChoiceTask, MultiChoiceRewardConfig
+from prompting.datasets.random_website import DDGDataset
 from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.datasets.base import BaseDataset
 from prompting.tasks.inference import SyntheticInferenceTask, InferenceRewardConfig
@@ -11,7 +12,6 @@ from pydantic import BaseModel, ConfigDict
 import random
 from typing import ClassVar
 from loguru import logger
-from prompting.datasets.mmlu import MMLUDataset
 import numpy as np
 
 
@@ -39,7 +39,7 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=SyntheticInferenceTask,
             probability=0.2,
-            datasets=[MMLUDataset],
+            datasets=[DDGDataset],
             reward_model=InferenceRewardConfig,
         ),
         TaskConfig(

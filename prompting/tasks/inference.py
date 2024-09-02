@@ -10,7 +10,7 @@ import random
 from prompting.llms.model_manager import model_manager
 from vllm import RequestOutput, SamplingParams
 from abc import abstractmethod
-from prompting.datasets.mmlu import MMLUEntry
+from prompting.datasets.random_website import DDGDatasetEntry
 
 
 class InferenceRewardConfig(BaseRewardConfig):
@@ -30,14 +30,10 @@ class BaseInferenceTask(BaseTextTask):
         raise NotImplementedError("Method make_query must be implemented")
 
     def make_reference(self, dataset_entry: DatasetEntry) -> str:
-        if self.llm_model is None:
-            self.llm_model = random.choice(list(model_manager.active_models.keys()))
-        if self.llm_model not in model_manager.active_models.keys():
-            raise Exception(f"Model {self.llm_model} not found in active models")
-        output: RequestOutput = model_manager.active_models[self.llm_model].generate(
-            self.query, SamplingParams(seed=self.seed)
+        responses: RequestOutput = model_manager.generate(
+            prompts=[self.query], model=self.llm_model, sampling_params=SamplingParams(seed=self.seed)
         )[0]
-        self.reference = output.outputs[0].text
+        self.reference = responses[0]
         if self.reference is None:
             logger.error(f"Model {self.llm_model} returned None for reference generation")
         return self.reference
@@ -51,13 +47,23 @@ class OrganicInferenceTask(BaseInferenceTask):
         return self.query
 
 
+QUERY_PROMPT = """
+Ask a question about the following text:
+
+{website_content}
+
+---
+
+Ask a question about the text and nothing else:"""
+
+
 class SyntheticInferenceTask(BaseInferenceTask):
     # TODO: Once we want to enable the 'actual' inference task with exact models
     model: ModelConfig = None
-    # this should be uncommented. For now, we're allowing non-exact responses, same
-    # as the organic scoring task.
-    # model: ModelConfig = ModelZoo.get_random()
 
-    def make_query(self, dataset_entry: MMLUEntry) -> str:
-        self.query = dataset_entry.query
+    def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
+        website_content = dataset_entry.website_content
+        self.query = model_manager.generate(
+            prompts=QUERY_PROMPT.format(website_content=website_content), model=self.llm_model
+        )[0]
         return self.query
