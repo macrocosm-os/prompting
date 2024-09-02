@@ -48,14 +48,13 @@ class OrganicInferenceTask(BaseInferenceTask):
 
 
 QUERY_PROMPT = """
-Ask a question about the following website content:
+Ask a question about the following text:
 
-Website content:
 {website_content}
 
 ---
 
-Ask the question and nothing else:"""
+Ask a question about the text and nothing else:"""
 
 
 class SyntheticInferenceTask(BaseInferenceTask):
