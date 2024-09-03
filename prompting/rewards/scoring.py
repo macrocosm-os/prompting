@@ -7,7 +7,6 @@ from prompting.base.dendrite import DendriteResponseEvent
 from prompting.llms.model_manager import model_manager, model_scheduler
 from prompting.utils.logging import RewardLoggingEvent, log_event
 import numpy as np
-from prompting.datasets.base import DatasetEntry
 from dataclasses import dataclass
 from prompting.base.loop_runner import AsyncLoopRunner
 import asyncio
@@ -18,7 +17,6 @@ from prompting.mutable_globals import scoring_queue, rewards_and_uids
 class ScoringConfig:
     task: BaseTextTask
     response: DendriteResponseEvent
-    dataset_entry: DatasetEntry
 
 
 class TaskScorer(AsyncLoopRunner):
@@ -32,12 +30,11 @@ class TaskScorer(AsyncLoopRunner):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def add_to_queue(self, task: BaseTextTask, response: DendriteResponseEvent, dataset_entry: DatasetEntry) -> None:
+    def add_to_queue(self, task: BaseTextTask, response: DendriteResponseEvent) -> None:
         logger.debug(f"SCORING: Added to queue: {task.task_id}")
-        scoring_queue.append(ScoringConfig(task=task, response=response, dataset_entry=dataset_entry))
+        scoring_queue.append(ScoringConfig(task=task, response=response))
 
     async def run_step(self) -> RewardLoggingEvent:
-        # Only score responses for which the model is loaded
         scorable = [
             scoring_config
             for scoring_config in scoring_queue
@@ -55,7 +52,7 @@ class TaskScorer(AsyncLoopRunner):
 
         # here we generate the actual reference
         scoring_config.task.make_reference(
-            dataset_entry=scoring_config.dataset_entry,
+            dataset_entry=scoring_config.task.dataset_entry,
         )
 
         # and there we then calculate the reward

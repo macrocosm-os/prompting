@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Literal
 from pydantic import BaseModel
 from typing import ClassVar
-from prompting.utils.timer import Timer
 import json
 
 
@@ -45,30 +43,7 @@ class BaseDataset(ABC, BaseModel):
     def random(self) -> DatasetEntry: ...
 
     def get(self) -> DatasetEntry:
-        return self.next()
+        return self.random()
 
-    def next(self, method: Literal["random", "search", "get"] = "random", **kwargs) -> dict:
-        tries = 1
-        context: DatasetEntry  # for some reason the ls doesn't understand it's of type Context without this
-
-        with Timer() as timer:
-            while True:
-                # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
-                if method == "random":
-                    context = self.random(**kwargs)
-                elif method == "search":
-                    context = self.search(**kwargs)
-                elif method == "get":
-                    context = self.get(**kwargs)
-
-                if context:
-                    break
-
-        context.source = self.__class__.__name__
-        context.stats = {
-            "fetch_time": timer.elapsed_time,
-            "num_tries": tries,
-            "fetch_method": method,
-            "next_kwargs": kwargs,
-        }
-        return context
+    def next(self) -> DatasetEntry:
+        return self.random()

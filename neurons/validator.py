@@ -10,18 +10,21 @@ from loguru import logger
 from prompting.base.validator import BaseValidatorNeuron
 from neurons.forward import log_stream_results, handle_response
 from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
-from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.logging import log_event
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from prompting.rewards.scoring import task_scorer
-from prompting.miner_availability.miner_availability import availability_checking_loop, miner_availabilities
+from prompting.miner_availability.miner_availability import availability_checking_loop, availability_manager
 from prompting.llms.model_manager import model_scheduler
 from prompting.utils.timer import Timer
-from prompting.mutable_globals import scoring_queue
+from prompting.mutable_globals import task_queue
 from prompting import mutable_globals
+from prompting.tasks.base_task import BaseTextTask
+from prompting.tasks.task_loop import task_loop
 
 NEURON_SAMPLE_SIZE = 100
-SCORING_QUEUE_LENGTH_THRESHOLD = 10
+
+
+task_queue: list[BaseTextTask]
 
 
 class Validator(BaseValidatorNeuron):
@@ -49,75 +52,19 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        if len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
-            logger.debug("Scoring queue is full. Skipping task generation.")
+        if len(task_queue) == 0:
+            logger.debug("Task queue is empty. Skipping step.")
             return None
 
+        start_time = time.time()
         try:
-            # Getting task & Dataset
-            while True:
-                try:
-                    task, dataset = TaskRegistry.create_random_task_with_dataset()
-                    break
-                except Exception as ex:
-                    logger.exception(ex)
+            task = task_queue.pop(0)
 
-            if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
-                logger.debug(
-                    f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."
-                )
-                return None
-
-            if not (dataset_entry := dataset.random()):
-                logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
-                return None
-
-            # Generate the query and reference for the task
-            if not task.query:
-                logger.debug(f"Generating query for task: {task.__class__.__name__}.")
-                query = task.make_query(dataset_entry=dataset_entry)
-
-            # Record event start time.
-            start_time = time.time()
-
-            # Get the list of uids and their axons to query for this step.
-            uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=k)
-            logger.debug(f"🔍 Querying uids: {uids}")
-            if len(uids) == 0:
-                logger.debug("No available miners. Skipping step.")
-                return
-            axons = [settings.METAGRAPH.axons[uid] for uid in uids]
-
-            # Directly call dendrite and process responses in parallel
-            synapse = StreamPromptingSynapse(
-                task_name=task.__class__.__name__,
-                seed=task.seed,
-                target_model=task.llm_model_id,
-                roles=["user"],
-                messages=[query],
-            )
-            streams_responses = await settings.DENDRITE(
-                axons=axons,
-                synapse=synapse,
-                timeout=timeout,
-                deserialize=False,
-                streaming=True,
-            )
-
-            # Prepare the task for handling stream responses
-            stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
-            logger.debug(
-                f"Non-empty: {len([r.completion for r in stream_results if len(r.completion) > 0])}\n"
-                f"Empty: {len([r.completion for r in stream_results if len(r.completion) == 0])}"
-            )
-
-            log_stream_results(stream_results)
-
-            # Encapsulate the responses in a response event (dataclass)
-            response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
+            # send the task to the miners and collect the responses
+            response_event = await self.collect_responses(task=task)
 
             # scoring_manager will score the responses as and when the correct model is loaded
-            task_scorer.add_to_queue(task=task, response=response_event, dataset_entry=dataset_entry)
+            task_scorer.add_to_queue(task=task, response=response_event)
 
             for uids, rewards in mutable_globals.rewards_and_uids:
                 self.update_scores(uids=uids, rewards=rewards)
@@ -137,6 +84,46 @@ class Validator(BaseValidatorNeuron):
             return ErrorLoggingEvent(
                 error=str(ex),
             )
+
+    async def collect_responses(self, task: BaseTextTask):
+        # Get the list of uids and their axons to query for this step.
+        uids = availability_manager.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
+        logger.debug(f"🔍 Querying uids: {uids}")
+        if len(uids) == 0:
+            logger.debug("No available miners. Skipping step.")
+            return
+        axons = [settings.METAGRAPH.axons[uid] for uid in uids]
+
+        # Directly call dendrite and process responses in parallel
+        synapse = StreamPromptingSynapse(
+            task_name=task.__class__.__name__,
+            seed=task.seed,
+            target_model=task.llm_model_id,
+            roles=["user"],
+            messages=[task.query],
+        )
+        streams_responses = await settings.DENDRITE(
+            axons=axons,
+            synapse=synapse,
+            timeout=settings.NEURON_TIMEOUT,
+            deserialize=False,
+            streaming=True,
+        )
+
+        # Prepare the task for handling stream responses
+        stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
+        logger.debug(
+            f"Non-empty: {len([r.completion for r in stream_results if len(r.completion) > 0])}\n"
+            f"Empty: {len([r.completion for r in stream_results if len(r.completion) == 0])}"
+        )
+
+        log_stream_results(stream_results)
+
+        # Encapsulate the responses in a response event (dataclass)
+        response_event = DendriteResponseEvent(
+            stream_results=stream_results, uids=uids, timeout=settings.NEURON_TIMEOUT
+        )
+        return response_event
 
     async def forward(self):
         """
@@ -195,6 +182,9 @@ if __name__ == "__main__":
 
     # will start checking the availability of miners at regular intervals
     asyncio.run(availability_checking_loop.start())
+
+    # start task generation loop
+    asyncio.run(task_loop.start())
 
     # start scoring tasks in separate loop
     asyncio.run(task_scorer.start())

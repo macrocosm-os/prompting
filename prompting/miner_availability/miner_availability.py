@@ -69,12 +69,12 @@ class CheckMinerAvailability(AsyncLoopRunner):
             streaming=False,
         )
         for response, uid in zip(responses, uids):
-            miner_availabilities.miners[uid] = MinerAvailability(
+            availability_manager.miners[uid] = MinerAvailability(
                 task_availabilities=response.task_availabilities,
                 llm_model_availabilities=response.llm_model_availabilities,
             )
         logger.debug("Miner availabilities updated.")
 
 
-miner_availabilities = MinerAvailabilities()
+availability_manager = MinerAvailabilities()
 availability_checking_loop = CheckMinerAvailability()
