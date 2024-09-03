@@ -1,5 +1,9 @@
 from typing import ClassVar
-from prompting.datasets.github import GithubDatasetEntry, MIN_INPUT_LINES, OUTPUT_LINES
+from prompting.datasets.huggingface_github import (
+    HuggingFaceGithubDatasetEntry,
+    MIN_INPUT_LINES,
+    OUTPUT_LINES,
+)
 from prompting.tasks.base_task import BaseTextTask
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
 from prompting.rewards.rouge import RougeRewardModel
@@ -36,7 +40,7 @@ class ProgrammingTask(BaseTextTask):
     query: str | None = None
     reference: str | None = None
 
-    def make_query(self, dataset_entry: GithubDatasetEntry):
+    def make_query(self, dataset_entry: HuggingFaceGithubDatasetEntry):
         modified_code = model_manager.generate(
             [CODE_MODIFICATION_PROMPT.format(file_content=dataset_entry.file_content)]
         )[0]
