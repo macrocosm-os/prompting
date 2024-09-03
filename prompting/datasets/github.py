@@ -5,6 +5,7 @@ import requests
 from loguru import logger
 import random
 from prompting.datasets.utils import ENGLISH_WORDS
+import time
 
 ALLOWED_FILE_ENDINGS = {
     "python": [".py"],
@@ -15,7 +16,8 @@ MAX_FILE_SIZE = 100_000
 MIN_INPUT_LINES = 10
 OUTPUT_LINES = 10
 MAX_LINES = 500
-
+RETRIES = 5
+WORD_FREQUENCY_THRESHOLD = 5000
 BRANCHES = ["main", "master", "dev", "development", "staging", "production", "prod", "testing", "test", "staging"]
 
 
@@ -29,13 +31,24 @@ def get_repositories(language, sort="stars", order="desc"):
     # TODO: We may want to introduce some constraints, e.g. a minimum number of stars to ensure decent code quality or so
     for _ in range(10):
         try:
-            search_term = "+".join(random.sample(ENGLISH_WORDS, 1))
+            search_term = "+".join(random.sample(ENGLISH_WORDS[:WORD_FREQUENCY_THRESHOLD], 1))
             url = f"https://api.github.com/search/repositories?q={search_term}+language:{language}&sort={sort}&order={order}"
             logger.info(f"Searching for repositories with term: {search_term}")
             response = requests.get(url)
             response.raise_for_status()  # Check for request errors
             if response.json()["items"]:
+                if len(response.json()["items"]) == 0:
+                    logger.warning(f"No repositories found for term: {search_term}")
                 return response.json()["items"]
+        except requests.exceptions.HTTPError as ex:
+            if (response.status_code == 403 and "rate limit exceeded" in str(ex)) or (
+                response.status_code == 429 and "too many requests" in str(ex)
+            ):
+                logger.warning("Rate limit exceeded. Waiting for 60 seconds before retrying...")
+                time.sleep(60)
+            else:
+                logger.exception(ex)
+                logger.error(f"Error fetching repositories: {ex}")
         except Exception as ex:
             logger.error(f"Error fetching repositories: {ex}")
 
@@ -60,7 +73,8 @@ class GithubRepo(BaseModel):
                         return self
                 except Exception as ex:
                     logger.exception(ex)
-                    logger.error(f"Error fetching repositories: {ex}")
+                    logger.warning(f"Error fetching repositories: {ex}")
+            logger.error("Failed to get a valid repository")
 
     def find_files(self):
         for branch in BRANCHES:
@@ -71,6 +85,8 @@ class GithubRepo(BaseModel):
                 self.branch = branch
                 logger.info(f"Working with repository https://github.com/{self.owner}/{self.name} on branch {branch}")
                 break
+        jsons = files.json()
+        logger.debug(jsons)
         file_names = [
             f["path"] for f in files.json()["tree"] if "size" in f.keys() and MIN_FILE_SIZE < f["size"] < MAX_FILE_SIZE
         ]
@@ -125,7 +141,13 @@ class GithubDataset(BaseDataset):
         return self.next()
 
     def next(self) -> GithubDatasetEntry:
-        return self.current_repo.next()
+        for _ in range(RETRIES):
+            try:
+                return self.current_repo.next()
+            except Exception as ex:
+                logger.error(f"Error getting next file: {ex}")
+                self.reset()
+        raise Exception("Failed to get a valid file")
 
     def random(self) -> GithubDatasetEntry:
         self.reset()
@@ -133,6 +155,3 @@ class GithubDataset(BaseDataset):
 
     def reset(self):
         self.current_repo = GithubRepo(language=self.language)
-
-
-print(GithubDataset().next())
