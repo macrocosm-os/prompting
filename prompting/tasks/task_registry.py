@@ -24,7 +24,7 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
-        TaskConfig(task=QuestionAnsweringTask, probability=0.55, datasets=[WikiDataset], reward_model=QARewardConfig),
+        TaskConfig(task=QuestionAnsweringTask, probability=0.4, datasets=[WikiDataset], reward_model=QARewardConfig),
         TaskConfig(
             task=SummarizationTask, probability=0.2, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
         ),
@@ -32,7 +32,7 @@ class TaskRegistry(BaseModel):
             task=DateQuestionAnsweringTask, probability=0.2, datasets=[WikiDateDataset], reward_model=DateQARewardConfig
         ),
         TaskConfig(
-            task=MultiChoiceTask, probability=0.05, datasets=[WikiDataset], reward_model=MultiChoiceRewardConfig
+            task=MultiChoiceTask, probability=0.2, datasets=[WikiDataset], reward_model=MultiChoiceRewardConfig
         ),
     ]
 
