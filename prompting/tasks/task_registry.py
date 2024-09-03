@@ -8,8 +8,13 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.datasets.base import BaseDataset
 from prompting.tasks.programming_task import ProgrammingTask, ProgrammingRewardConfig
-
-# from prompting.datasets.github import GithubDataset
+from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
+from prompting.tasks.summarization import SummarizationTask, SummarizationRewardConfig
+from prompting.tasks.date_qa import DateQuestionAnsweringTask, DateQARewardConfig
+from prompting.tasks.inference import SyntheticInferenceTask, InferenceRewardConfig
+from prompting.tasks.multi_choice import MultiChoiceTask, MultiChoiceRewardConfig
+from prompting.datasets.wiki import WikiDataset, WikiDateDataset
+from prompting.datasets.random_website import DDGDataset
 from prompting.datasets.huggingface_github import HuggingFaceGithubDataset
 
 
@@ -24,31 +29,31 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
-        # TaskConfig(task=QuestionAnsweringTask, probability=0.4, datasets=[WikiDataset], reward_model=QARewardConfig),
-        # TaskConfig(
-        #     task=SummarizationTask, probability=0.15, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
-        # ),
-        # TaskConfig(
-        #     task=DateQuestionAnsweringTask,
-        #     probability=0.15,
-        #     datasets=[WikiDateDataset],
-        #     reward_model=DateQARewardConfig,
-        # ),
-        # TaskConfig(
-        #     task=SyntheticInferenceTask,
-        #     probability=0.2,
-        #     datasets=[DDGDataset],
-        #     reward_model=InferenceRewardConfig,
-        # ),
-        # TaskConfig(
-        #     task=MultiChoiceTask,
-        #     probability=0.1,
-        #     datasets=[WikiDataset],
-        #     reward_model=MultiChoiceRewardConfig,
-        # ),
+        TaskConfig(task=QuestionAnsweringTask, probability=0.2, datasets=[WikiDataset], reward_model=QARewardConfig),
+        TaskConfig(
+            task=SummarizationTask, probability=0.15, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
+        ),
+        TaskConfig(
+            task=DateQuestionAnsweringTask,
+            probability=0.15,
+            datasets=[WikiDateDataset],
+            reward_model=DateQARewardConfig,
+        ),
+        TaskConfig(
+            task=SyntheticInferenceTask,
+            probability=0.2,
+            datasets=[DDGDataset],
+            reward_model=InferenceRewardConfig,
+        ),
+        TaskConfig(
+            task=MultiChoiceTask,
+            probability=0.2,
+            datasets=[WikiDataset],
+            reward_model=MultiChoiceRewardConfig,
+        ),
         TaskConfig(
             task=ProgrammingTask,
-            probability=1,
+            probability=0.1,
             datasets=[HuggingFaceGithubDataset],
             reward_model=ProgrammingRewardConfig,
         ),
