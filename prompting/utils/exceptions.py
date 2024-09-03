@@ -19,3 +19,4 @@ class TaskCreationError(Exception):
 
     def __init__(self, message="Task creation failed"):
         self.message = message
+        super().__init__(self.message)
