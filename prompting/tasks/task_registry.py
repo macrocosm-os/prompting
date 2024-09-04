@@ -42,9 +42,7 @@ class TaskRegistry(BaseModel):
             datasets=[DDGDataset],
             reward_model=InferenceRewardConfig,
         ),
-        TaskConfig(
-            task=MultiChoiceTask, probability=0.2, datasets=[WikiDataset], reward_model=MultiChoiceRewardConfig
-        ),
+        TaskConfig(task=MultiChoiceTask, probability=0.2, datasets=[WikiDataset], reward_model=MultiChoiceRewardConfig),
     ]
 
     @classmethod
