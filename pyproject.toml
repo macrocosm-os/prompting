@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prompting"
-version = "2.7.1"
+version = "2.7.2"
 description = "Subnetwork 1 runs on Bittensor and is maintained by Macrocosmos. It's an effort to create decentralised AI"
 authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz"]
 readme = "README.md"
@@ -152,6 +152,8 @@ vllm = { version = "0.5.3.post1", optional = true }
 organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main", optional = true}
 autoawq = "0.2"
 loguru = "^0.7.2"
+duckduckgo-search = "^6.2.11"
+trafilatura = "^1.12.1"
 
 [tool.poetry.extras]
 validator = ["vllm", "organic-scoring"]

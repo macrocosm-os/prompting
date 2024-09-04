@@ -43,7 +43,8 @@ class RewardResult:
 
 
 class OrganicScoringPrompting(OrganicScoringBase):
-    def __init__(self,
+    def __init__(
+        self,
         axon: bt.axon,
         synth_dataset: Optional[Union[SynthDatasetBase, Sequence[SynthDatasetBase]]],
         llm_pipeline: vLLMPipeline,
@@ -78,9 +79,7 @@ class OrganicScoringPrompting(OrganicScoringBase):
         timeout = settings.ORGANIC_TIMEOUT
         response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
         reward_events, penalty_events, rewards = OrganicRewardConfig.apply(
-            response_event=response_event,
-            reference=reference,
-            challenge=sample["messages"][-1]
+            response_event=response_event, reference=reference, challenge=sample["messages"][-1]
         )
         return RewardResult(
             rewards=rewards,
@@ -331,7 +330,6 @@ class OrganicScoringPrompting(OrganicScoringBase):
             task=task_name,
             rewards=rewards.rewards,
             response_event=rewards.response_event,
-
             organic_turn=len(sample["messages"]) // 2,
             organic_time_sample=logs.get("organic_time_sample"),
             organic_time_responses=logs.get("organic_time_responses"),

@@ -7,7 +7,7 @@ from prompting.llms.vllm_llm import vLLM_LLM
 from prompting.llms.base_llm import BasePipeline
 from prompting.settings import settings
 from prompting.tasks.base_task import CHATTENSOR_SYSTEM_PROMPT
-from typing import ClassVar, Any
+from typing import ClassVar
 
 
 class OrganicRewardConfig(BaseRewardConfig):

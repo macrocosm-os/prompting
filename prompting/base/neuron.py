@@ -48,6 +48,9 @@ class BaseNeuron(ABC):
     @abstractmethod
     def run(self): ...
 
+    def set_weights():
+        raise NotImplementedError("set_weights() not implemented for this neuron.")
+
     def sync(self):
         """
         Wrapper for synchronizing the state of the network for the given miner or validator.

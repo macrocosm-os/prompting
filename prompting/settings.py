@@ -8,6 +8,7 @@ from typing import Literal, Optional
 from prompting.utils.config import config
 
 # TODO: Remove in future as we deprecate config
+# TODO: Explicitly check that all required env variables are there an give readable errors
 bt_config = config()
 logger.info(f"Config: {bt_config}")
 
@@ -78,7 +79,9 @@ class Settings(BaseModel):
     NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB: int
     LLM_MAX_MODEL_LEN: int
     NEURON_MODEL_ID_VALIDATOR: str
-
+    DENDRITE: bt.dendrite = None
+    MINER_LLM_MODEL: str | None = None
+    LLM_MODEL_RAM: float = 70
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)  # freeze all variables
 
     @model_validator(mode="before")
@@ -116,6 +119,7 @@ class Settings(BaseModel):
             # OTF hotkey.
             "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3",
         )
+        values["LLM_MODEL_RAM"] = os.environ.get("LLM_MODEL_RAM", 70)
         values["ORGANIC_TIMEOUT"] = os.environ.get("ORGANIC_TIMEOUT", 15)
         values["ORGANIC_SAMPLE_SIZE"] = os.environ.get("ORGANIC_SAMPLE_SIZE", 5)
         values["ORGANIC_REUSE_RESPONSE_DISABLED"] = os.environ.get("ORGANIC_REUSE_RESPONSE_DISABLED", False)
@@ -132,20 +136,19 @@ class Settings(BaseModel):
         values["LOG_WEIGHTS"] = os.environ.get("LOG_WEIGHTS", False)
         if values["TEST"] and os.environ.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
-        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get("LLM_MODEL", "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4")
+        values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get(
+            "LLM_MODEL", "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4"
+        )
         values["LLM_MAX_MODEL_LEN"] = int(os.environ.get("LLM_MAX_MODEL_LEN", 4096))
         values["NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB"] = os.environ.get("MAX_ALLOWED_VRAM_GB", 62)
         values["NEURON_GPUS"] = os.environ.get("NEURON_GPUS", 1)
-        if int(values["NEURON_GPUS"]) > 1:
-            # Set the start method to spawn for vllm
-            os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
-
-        if os.environ.get("SUBTENSOR_NETWORK") == "local":
+        values["MINER_LLM_MODEL"] = os.environ.get("MINER_LLM_MODEL")
+        if os.environ.get("SUBTENSOR_NETWORK").lower() == "local":
             values["SUBTENSOR_NETWORK"] = bt_config.subtensor.chain_endpoint or os.environ.get(
                 "SUBTENSOR_CHAIN_ENDPOINT"
             )
         else:
-            values["SUBTENSOR_NETWORK"] = bt_config.subtensor.network or os.environ.get("SUBTENSOR_NETWORK")
+            values["SUBTENSOR_NETWORK"] = bt_config.subtensor.network or os.environ.get("SUBTENSOR_NETWORK").lower()
 
         logger.info(
             f"Instantiating bittensor objects with NETUID: {values['NETUID']}, WALLET_NAME: {values['WALLET_NAME']}, HOTKEY: {values['HOTKEY']}"
@@ -162,7 +165,7 @@ class Settings(BaseModel):
         values["SAVE_PATH"] = os.environ.get("SAVE_PATH") or "./storage"
         if not os.path.exists(values["SAVE_PATH"]):
             os.makedirs(values["SAVE_PATH"])
-
+        values["DENDRITE"] = bt.dendrite(wallet=values["WALLET"])
         return values
 
 

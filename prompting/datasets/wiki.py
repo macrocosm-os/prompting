@@ -43,6 +43,7 @@ def _get_page(
         return None
 
 
+@lru_cache(maxsize=1000)
 def _get_random_titles(pages: int = 10) -> list:
     """Cached wikipedia random page. Approximately deterministic random titles. This is useful for testing.
     NOTE: the actually cached result will change each session, but the result will be the same within a session.
@@ -206,10 +207,11 @@ class WikiDataset(BaseDataset):
 
     def random(self, pages=10) -> dict:
         titles = _get_random_titles(pages=pages)
-        for title in titles[:self.max_tries]:
+        for title in titles[: self.max_tries]:
             if context := self.get(title):
                 return context
         return None
+
 
 class DateContext(Context):
     date: str = None
@@ -310,7 +312,6 @@ class WikiDateDataset(BaseDataset):
     def get(
         self,
     ) -> dict:
-        # TODO: Implement deterministic get method
         raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
 
     def search(self, name: str, results: int = 5) -> dict:

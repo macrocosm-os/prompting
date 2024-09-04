@@ -3,6 +3,20 @@ import bittensor as bt
 from typing import List, AsyncIterator
 from starlette.responses import StreamingResponse
 
+# from prompting.tasks.date_qa import DateQuestionAnsweringTask
+# from prompting.tasks.qa import QuestionAnsweringTask
+# from prompting.tasks.summarization import SummarizationTask
+# from prompting.llms.model_zoo import ModelZoo
+# from prompting.tasks.inference import InferenceTask
+
+
+class AvailabilitySynapse(bt.Synapse):
+    """AvailabilitySynapse is a specialized implementation of the `Synapse` class used to allow miners to let validators know
+    about their status/availability to server certain tasks"""
+
+    task_availabilities: dict[str, bool]
+    llm_model_availabilities: dict[str, bool]
+
 
 class StreamPromptingSynapse(bt.StreamingSynapse):
     """
@@ -39,6 +53,27 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
     Note: While you can directly use the `StreamPromptingSynapse` class, it's designed to be extensible. Thus, you can create
     subclasses to further customize behavior for specific prompting scenarios or requirements.
     """
+
+    task_name: str = pydantic.Field(
+        ...,
+        title="Task",
+        description="The task for the current StreamPromptingSynapse object. This attribute is immutable.",
+        allow_mutation=False,
+    )
+
+    target_model: str | None = pydantic.Field(
+        None,
+        title="Target Model",
+        description="The model the miner should use for generations. If none, the miner should respond with whatever he thinks is best.",
+        allow_mutation=False,
+    )
+
+    seed: int | None = pydantic.Field(
+        None,
+        title="Seed",
+        description="The seed for that the miner must use for generations. This is only used in combination with the target_model.",
+        allow_mutation=False,
+    )
 
     roles: List[str] = pydantic.Field(
         ...,

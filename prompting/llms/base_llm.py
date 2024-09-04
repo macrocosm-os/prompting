@@ -11,7 +11,7 @@ class BasePipeline(ABC, BaseModel):
 
 
 class BaseLLM(ABC):
-    llm_pipeline: BasePipeline
+    llm: Any
     model_kwargs: dict
     system_prompt: str | None = None
     messages: list[dict] = []
@@ -24,7 +24,7 @@ class BaseLLM(ABC):
         system_prompt: str,
         model_kwargs: dict,
     ):
-        self.llm_pipeline = llm_pipeline
+        self.llm = llm_pipeline
         self.system_prompt = system_prompt
         self.model_kwargs = model_kwargs
         self.messages = []
