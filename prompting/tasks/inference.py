@@ -15,7 +15,7 @@ from prompting.datasets.random_website import DDGDatasetEntry
 
 class InferenceRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=1, reward_model=InferenceRewardModel()),
+        InferenceRewardModel(),
     ]
 
 

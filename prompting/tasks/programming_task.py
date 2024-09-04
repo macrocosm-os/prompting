@@ -11,8 +11,8 @@ import textwrap
 
 class ProgrammingRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
-        WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
+        RougeRewardModel(weight=0.5),
+        RelevanceRewardModel(weight=0.5),
     ]
 
 

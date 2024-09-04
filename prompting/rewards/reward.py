@@ -4,13 +4,15 @@ from typing import Literal, ClassVar
 from abc import ABC, abstractmethod
 from prompting.base.dendrite import DendriteResponseEvent
 from pydantic import BaseModel, ConfigDict
+from prompting.tasks.base_task import BaseTextTask
 
 RewardTypeLiteral = Literal["reward", "penalty"]
 
 
-class RewardEvent(BaseModel):
-    """Contains rewards for all the responses in a batch"""
-
+class WeightedRewardEvent(BaseModel):
+    weight: float
+    uids: list[int]
+    task: BaseTextTask
     reward_model_name: str
     rewards: np.ndarray
     rewards_normalized: np.ndarray
@@ -31,6 +33,9 @@ class RewardEvent(BaseModel):
             f"{self.reward_model_name}_{self.reward_model_type.value}_batch_time": self.batch_time,
             f"{self.reward_model_name}_{self.reward_model_type.value}_threshold": self.threshold,
             f"{self.reward_model_name}_{self.reward_model_type.value}_extra_info": self.extra_info,
+            f"{self.reward_model_name}_{self.reward_model_type.value}_uids": self.uids,
+            f"{self.reward_model_name}_{self.reward_model_type.value}_task": self.task,
+            f"{self.reward_model_name}_{self.reward_model_type.value}_weight": self.weight,
         }
 
 
@@ -51,6 +56,8 @@ class BatchRewardOutput(BaseModel):
 
 
 class BaseRewardModel(ABC, BaseModel):
+    weight: float = 1.0
+
     @abstractmethod
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         raise NotImplementedError("You must implement the reward method")
@@ -61,14 +68,19 @@ class BaseRewardModel(ABC, BaseModel):
         reference: str | None = None,
         challenge: str | None = None,
         reward_type: Literal["reward", "penalty"] = "reward",
+        uids: list[int] | None = None,
+        task: BaseTextTask | None = None,
         **kwargs,
-    ) -> RewardEvent:
+    ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
         batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event)
         batch_rewards_time = time.time() - t0
 
-        return RewardEvent(
+        return WeightedRewardEvent(
+            weight=self.weight,
+            uids=uids,
+            task=task,
             reward_model_name=self.__class__.__name__,
             rewards=batch_rewards_output.rewards,
             rewards_normalized=batch_rewards_output.rewards_normalized,
@@ -83,11 +95,6 @@ class BaseRewardModel(ABC, BaseModel):
 class WeightedRewardModel(BaseModel):
     weight: float
     reward_model: BaseRewardModel
-
-
-class WeightedRewardEvent(BaseModel):
-    weight: float
-    reward_event: RewardEvent
 
 
 class BaseRewardConfig(ABC, BaseModel):
@@ -127,20 +134,21 @@ class BaseRewardConfig(ABC, BaseModel):
         reference: str,
         challenge: str | None = None,
         model_id: str | None = None,
+        uids: list[int] | None = None,
+        task: BaseTextTask | None = None,
     ) -> tuple[list[WeightedRewardEvent], list[WeightedRewardEvent], list[float]]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
             reward_events.append(
-                WeightedRewardEvent(
-                    weight=weighted_reward.weight,
-                    reward_event=weighted_reward.reward_model.apply(
-                        reference=reference,
-                        response_event=response_event,
-                        challenge=challenge,
-                        reward_type="reward",
-                        model_id=model_id,
-                    ),
-                )
+                reward_event=weighted_reward.reward_model.apply(
+                    reference=reference,
+                    response_event=response_event,
+                    challenge=challenge,
+                    reward_type="reward",
+                    model_id=model_id,
+                    uids=uids,
+                    task=task,
+                ),
             )
 
         if cls.penalty_definitions and not challenge:
@@ -152,7 +160,11 @@ class BaseRewardConfig(ABC, BaseModel):
                 WeightedRewardEvent(
                     weight=weighted_reward.weight,
                     reward_event=weighted_reward.reward_model.apply(
-                        reference=challenge, response_event=response_event, reward_type="penalty"
+                        reference=challenge,
+                        response_event=response_event,
+                        reward_type="penalty",
+                        uids=uids,
+                        task=task,
                     ),
                 )
             )

@@ -10,7 +10,7 @@ import numpy as np
 from dataclasses import dataclass
 from prompting.base.loop_runner import AsyncLoopRunner
 import asyncio
-from prompting.mutable_globals import scoring_queue, rewards_and_uids
+from prompting.mutable_globals import scoring_queue
 
 
 @dataclass
@@ -66,6 +66,8 @@ class TaskScorer(AsyncLoopRunner):
             challenge=scoring_config.task.query,
             reference=scoring_config.task.reference,
             model_id=scoring_config.task.llm_model,
+            uids=scoring_config.response.uids,
+            task=scoring_config.task,
         )
         best_response = scoring_config.response.completions[np.argmax(rewards)]
         logger.debug(f"SCORING: Scored {scoring_config.task.task_id} with reward {rewards}")
@@ -78,7 +80,7 @@ class TaskScorer(AsyncLoopRunner):
             )
         )
         logger.info("Adding scores to rewards_and_uids")
-        rewards_and_uids.append((scoring_config.response.uids, rewards))
+        reward_events.append(reward_events)
 
 
 class WeightSetter(AsyncLoopRunner):

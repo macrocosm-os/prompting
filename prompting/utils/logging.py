@@ -15,6 +15,7 @@ from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.tasks.task_registry import TaskRegistry
+from prompting.tasks.base_task import BaseTextTask
 
 WANDB: Run
 
@@ -147,6 +148,8 @@ class RewardLoggingEvent(BaseEvent):
     reward_events: list[WeightedRewardEvent]
     penalty_events: list[WeightedRewardEvent]
     task_id: str
+    uids: list[int]
+    task: BaseTextTask
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

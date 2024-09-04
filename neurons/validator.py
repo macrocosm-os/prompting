@@ -12,12 +12,11 @@ from neurons.forward import log_stream_results, handle_response
 from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
 from prompting.utils.logging import log_event
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
-from prompting.rewards.scoring import task_scorer
+from prompting.scoring.scoring import task_scorer
 from prompting.miner_availability.miner_availability import availability_checking_loop, availability_manager
 from prompting.llms.model_manager import model_scheduler
 from prompting.utils.timer import Timer
 from prompting.mutable_globals import task_queue
-from prompting import mutable_globals
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_loop import task_loop
 
@@ -58,6 +57,7 @@ class Validator(BaseValidatorNeuron):
 
         start_time = time.time()
         try:
+            # get task from the task queue
             task = task_queue.pop(0)
 
             # send the task to the miners and collect the responses
@@ -66,9 +66,9 @@ class Validator(BaseValidatorNeuron):
             # scoring_manager will score the responses as and when the correct model is loaded
             task_scorer.add_to_queue(task=task, response=response_event)
 
-            for uids, rewards in mutable_globals.rewards_and_uids:
-                self.update_scores(uids=uids, rewards=rewards)
-            mutable_globals.rewards_and_uids = []
+            # for uids, rewards in mutable_globals.rewards_and_uids:
+            #     self.update_scores(uids=uids, rewards=rewards)
+            # mutable_globals.rewards_and_uids = []
 
             # Log the step event.
             return ValidatorLoggingEvent(
