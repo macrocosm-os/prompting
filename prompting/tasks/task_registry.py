@@ -43,10 +43,7 @@ class TaskRegistry(BaseModel):
             reward_model=InferenceRewardConfig,
         ),
         TaskConfig(
-            task=MultiChoiceTask,
-            probability=0.1,
-            datasets=[WikiDataset],
-            reward_model=MultiChoiceRewardConfig,
+            task=MultiChoiceTask, probability=0.2, datasets=[WikiDataset], reward_model=MultiChoiceRewardConfig
         ),
     ]
 
