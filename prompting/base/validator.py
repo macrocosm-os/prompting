@@ -33,10 +33,6 @@ class BaseValidatorNeuron(BaseNeuron):
         # Save a copy of the hotkeys to local memory.
         self.hotkeys = copy.deepcopy(settings.METAGRAPH.hotkeys)
 
-        # Dendrite lets us send messages to other nodes (axons) in the network.
-        self.dendrite = bt.dendrite(wallet=settings.WALLET)
-        logger.info(f"Dendrite: {self.dendrite}")
-
         # Set up initial scoring weights for validation
         logger.info("Building validation weights.")
         self.scores = np.zeros(settings.METAGRAPH.n, dtype=np.float32)
@@ -229,12 +225,14 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
         if settings.LOG_WEIGHTS:
-            weights_df = pd.DataFrame({
-                "step": self.step,
-                "uids": uint_uids,
-                "weights": uint_weights,
-                "block": self.block,
-            })
+            weights_df = pd.DataFrame(
+                {
+                    "step": self.step,
+                    "uids": uint_uids,
+                    "weights": uint_weights,
+                    "block": self.block,
+                }
+            )
             step_filename = "weights.csv"
             file_exists = os.path.isfile(step_filename)
             # Append to the file if it exists, otherwise write a new file.

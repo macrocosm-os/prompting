@@ -1,8 +1,9 @@
 import json
+import numpy as np
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Literal, Any
 
 import wandb
 from loguru import logger
@@ -90,9 +91,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
         "NETUID": settings.NETUID,
     }
     wandb.login(anonymous="allow", key=settings.WANDB_API_KEY, verify=True)
-    logger.info(
-        f"Logging in to wandb on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}"
-    )
+    logger.info(f"Logging in to wandb on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}")
     WANDB = wandb.init(
         reinit=reinit,
         project=settings.WANDB_PROJECT_NAME,
@@ -101,7 +100,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
         dir=settings.SAVE_PATH,
         tags=tags,
         notes=settings.WANDB_NOTES,
-        config=wandb_config
+        config=wandb_config,
     )
     signature = settings.WALLET.hotkey.sign(WANDB.id.encode()).hex()
     wandb_config["SIGNATURE"] = signature
@@ -119,35 +118,59 @@ class BaseEvent(BaseModel):
     forward_time: float | None = None
 
 
-class ErrorEvent(BaseEvent):
+class ErrorLoggingEvent(BaseEvent):
     error: str
+    forward_time: float | None = None
 
 
-class ValidatorEvent(BaseEvent):
-    best: str
+class ValidatorLoggingEvent(BaseEvent):
     block: int
     step: int
     step_time: float
+    response_event: DendriteResponseEvent
+    forward_time: float | None = None
+    task_id: str
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, copy_on_model_validation=False)
+
+    def __str__(self):
+        sample_completions = [completion for completion in self.response_event.completions if len(completion) > 0]
+        sample_completion = sample_completions[0] if sample_completions else "All completions are empty"
+        return f"""ValidatorLoggingEvent:
+            Block: {self.block}
+            Step: {self.step}
+            Step Time: {self.step_time}
+            forward_time: {self.forward_time}
+            task_id: {self.task_id}
+            Number of total completions: {len(self.response_event.completions)}
+            Number of non-empty completions: {len(sample_completions)}
+            Completions: {sample_completions}
+            Sample completion: {sample_completion}"""
+
+
+class RewardLoggingEvent(BaseEvent):
+    best: str
     reward_events: list[WeightedRewardEvent]
     penalty_events: list[WeightedRewardEvent]
-    response_event: DendriteResponseEvent
-    reference: str
-    challenge: str
-    task: str
-    rewards: list[float]
+    task_id: str
+
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    def __str__(self):
+        rewards = [r.reward_event.rewards for r in self.reward_events]
 
-class ValidatorOrganicEvent(ValidatorEvent):
-    organic_turn: Optional[int]
-    organic_time_sample: Optional[float]
-    organic_time_responses: Optional[float]
-    organic_time_rewards: Optional[float]
-    organic_time_weights: Optional[float]
-    organic_queue_size: Optional[int]
+        return f"""RewardLoggingEvent:
+            Best: {self.best}
+            Rewards:
+                Rewards: {rewards}
+                Min: {np.min(rewards)}
+                Max: {np.max(rewards)}
+                Average: {np.mean(rewards)}
+            Penalty Events: {self.penalty_events}
+            task_id: {self.task_id}"""
 
 
-class MinerEvent(BaseEvent):
+class MinerLoggingEvent(BaseEvent):
     epoch_time: float
     messages: int
     accumulated_chunks: int
@@ -196,6 +219,7 @@ def extract_reward_event(reward_event: list[dict[str, Any]]) -> dict[str, Any]:
         new_reward_event = {f"{name}_{key}": value for key, value in reward_event.items()}
         flattened_reward_dict.update(new_reward_event)
     return flattened_reward_dict
+
 
 def convert_arrays_to_lists(data: dict) -> dict:
     return {key: value.tolist() if hasattr(value, "tolist") else value for key, value in data.items()}
