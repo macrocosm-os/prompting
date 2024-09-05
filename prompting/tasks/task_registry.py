@@ -32,7 +32,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=DateQuestionAnsweringTask,
-            probability=0.15,
+            probability=0.1,
             datasets=[WikiDateDataset],
             reward_model=DateQARewardConfig,
         ),
@@ -45,6 +45,12 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=MultiChoiceTask,
             probability=0.1,
+            datasets=[WikiDataset],
+            reward_model=MultiChoiceRewardConfig,
+        ),
+        TaskConfig(
+            task=MultiChoiceTask,
+            probability=0.05,
             datasets=[WikiDataset],
             reward_model=MultiChoiceRewardConfig,
         ),
