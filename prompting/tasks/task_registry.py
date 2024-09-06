@@ -9,6 +9,9 @@ from typing import ClassVar
 from loguru import logger
 import numpy as np
 
+from prompting.tasks.programming_task import ProgrammingTask, ProgrammingRewardConfig
+from prompting.datasets.huggingface_github import HuggingFaceGithubDataset
+
 
 class TaskConfig(BaseModel):
     task: BaseTextTask.__class__
@@ -21,13 +24,13 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
-        TaskConfig(task=QuestionAnsweringTask, probability=0.3, datasets=[WikiDataset], reward_model=QARewardConfig),
+        TaskConfig(task=QuestionAnsweringTask, probability=0.1, datasets=[WikiDataset], reward_model=QARewardConfig),
         TaskConfig(
-            task=SummarizationTask, probability=0.15, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
+            task=SummarizationTask, probability=0.1, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
         ),
         TaskConfig(
             task=DateQuestionAnsweringTask,
-            probability=0.15,
+            probability=0.1,
             datasets=[WikiDateDataset],
             reward_model=DateQARewardConfig,
         ),
@@ -36,6 +39,18 @@ class TaskRegistry(BaseModel):
             probability=0.2,
             datasets=[LMSysDataset],
             reward_model=InferenceRewardConfig,
+        ),
+        TaskConfig(
+            task=MultiChoiceTask,
+            probability=0.2,
+            datasets=[WikiDataset],
+            reward_model=MultiChoiceRewardConfig,
+        ),
+        TaskConfig(
+            task=ProgrammingTask,
+            probability=0.1,
+            datasets=[HuggingFaceGithubDataset],
+            reward_model=ProgrammingRewardConfig,
         ),
         TaskConfig(task=MultiChoiceTask, probability=0.2, datasets=[WikiDataset], reward_model=MultiChoiceRewardConfig),
     ]
