@@ -1,16 +1,12 @@
-import json
 from typing import ClassVar, Optional
 
-import numpy as np
 import textwrap
 
 from prompting.datasets.base import Context
 from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
-from prompting.rewards.web_retrieval import WebRetrievalRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
-from prompting.tasks.base_task import BaseTask, BaseTextTask
-from prompting.utils.exceptions import TaskCreationError
+from prompting.tasks.base_task import BaseTextTask
 
 
 # Used to instruct the LLM to provide a query when given a context.
@@ -32,12 +28,12 @@ class WebRetrievalRewardConfig(BaseRewardConfig):
 
 
 class WebRetrievalTask(BaseTextTask):
-    query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
     # llm_model_id: Optional[str] = None
-    query_system_prompt: ClassVar[str | None] = QUERY_SYSTEM_PROMPT
+    query_system_prompt: ClassVar[Optional[str]] = QUERY_SYSTEM_PROMPT
 
     def make_query(self, context: DDGDatasetEntry) -> str:
+        self.reference = context.website_content
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.website_content)
         query = self.generate_query(messages=query_prompt)
         return query
