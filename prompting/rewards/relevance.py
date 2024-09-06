@@ -35,8 +35,8 @@ class RelevanceRewardModel(BaseRewardModel):
         """
         reference_embedding = self.embedding_model.encode(reference, to_numpy=True)
         reference_emb_flatten = reference_embedding.flatten()
-        rewards = []
-        timings = []
+        rewards: list[float] = []
+        timings: list[float] = []
         completions: List[str] = response_event.completions
         # baseline is the cosine similarity between the reference and an empty string
         baseline = 1 - float(
