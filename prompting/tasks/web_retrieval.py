@@ -2,7 +2,6 @@ from typing import ClassVar, Optional
 
 import textwrap
 
-from prompting.datasets.base import Context
 from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
@@ -32,11 +31,13 @@ class WebRetrievalTask(BaseTextTask):
     # llm_model_id: Optional[str] = None
     query_system_prompt: ClassVar[Optional[str]] = QUERY_SYSTEM_PROMPT
 
-    def make_query(self, context: DDGDatasetEntry) -> str:
-        self.reference = context.website_content
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.website_content)
-        query = self.generate_query(messages=query_prompt)
-        return query
+    def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
+        # self.reference = dataset_entry.website_content
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.website_content)
+        self.reference = dataset_entry.website_content
+        self.query = self.generate_query(messages=query_prompt)
+        return self.query
 
-    def make_reference(self, context: Context) -> str:
+    def make_reference(self, dataset_entry: DDGDatasetEntry) -> str:
+        self.reference = dataset_entry.website_content
         return self.reference

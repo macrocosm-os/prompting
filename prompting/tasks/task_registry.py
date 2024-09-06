@@ -36,7 +36,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=DateQuestionAnsweringTask,
-            probability=0.15,
+            probability=0.1,
             datasets=[WikiDateDataset],
             reward_model=DateQARewardConfig,
         ),
@@ -60,7 +60,8 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=WebRetrievalTask,
-            probability=0.05,
+            probability=0.1,
+            # probability=1.0,
             datasets=[DDGDataset],
             reward_model=WebRetrievalRewardConfig,
         ),
