@@ -4,9 +4,7 @@ from duckduckgo_search import DDGS
 import trafilatura
 from prompting.datasets.base import BaseDataset, Context, DatasetEntry
 from loguru import logger
-from nltk.corpus import words
-import nltk
-from pydantic import model_validator
+from prompting.datasets.utils import ENGLISH_WORDS
 
 
 MAX_CHARS = 5000
@@ -21,17 +19,11 @@ class DDGDatasetEntry(DatasetEntry):
 class DDGDataset(BaseDataset):
     english_words: list[str] = None
 
-    @model_validator(mode="after")
-    def validate_english_words(self) -> "DDGDataset":
-        nltk.download("words")
-        self.english_words = words.words()
-        return self
-
     def search_random_term(self, retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
         try:
             ddg = DDGS()
             for _ in range(retries):
-                random_words = " ".join(random.sample(self.english_words, 5))
+                random_words = " ".join(random.sample(ENGLISH_WORDS, 5))
                 results = list(ddg.text(random_words))
                 if results:
                     return random_words, results
