@@ -153,8 +153,8 @@ class ModelManager(BaseModel):
     ) -> str:
         dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
         composed_prompt = self._make_prompt(dict_messages)
-        responses = self.generate([composed_prompt], model=model, sampling_params=sampling_params)
-        return [r.outputs[0].text for r in responses]
+        logger.debug(f"Generating Chat with prompt: {composed_prompt}")
+        return self.generate([composed_prompt], model=model, sampling_params=sampling_params)
 
 
 class AsyncModelScheduler(AsyncLoopRunner):
