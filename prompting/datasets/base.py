@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import ClassVar
 from prompting.utils.timer import Timer
 import json
+from pydantic import model_validator
 
 
 class DatasetEntry(BaseModel):
@@ -13,6 +14,20 @@ class DatasetEntry(BaseModel):
 
     def __hash__(self) -> int:
         return self.hash
+
+
+class ChatEntry(DatasetEntry):
+    messages: list[str]
+    roles: list[str]
+    organic: bool
+    source: str
+    query: str | None = None
+
+    @model_validator(mode="after")
+    def check_query(self) -> "ChatEntry":
+        if self.query is None:
+            self.query = self.messages[-1]
+        return self
 
 
 class MMLUEntry(DatasetEntry):

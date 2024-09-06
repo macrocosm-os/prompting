@@ -110,6 +110,28 @@ class ModelManager(BaseModel):
         else:
             return self.load_model(llm_model, force=True)
 
+    def _make_prompt(self, messages: list[dict[str, str]]) -> str:
+        role_template = {
+            "system": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{{{{ {} }}}}<|eot_id|>",
+            "user": "<|start_header_id|>user<|end_header_id|>\n{{{{ {} }}}}<|eot_id|>",
+            "assistant": "<|start_header_id|>assistant<|end_header_id|>\n{{{{ {} }}}}<|eot_id|>",
+            "end": "<|start_header_id|>assistant<|end_header_id|>",
+        }
+
+        composed_prompt: list[str] = []
+
+        for message in messages:
+            role = message["role"]
+            if role not in role_template:
+                continue
+            content = message["content"]
+            composed_prompt.append(role_template[role].format(content))
+
+        # Adds final tag indicating the assistant's turn
+        composed_prompt.append(role_template["end"])
+        return "".join(composed_prompt)
+
+    # TODO: Merge generate and chat_generate into a single method
     def generate(
         self, prompts: list[str], model: ModelConfig | str | None = None, sampling_params: SamplingParams | None = None
     ) -> str:
@@ -121,6 +143,18 @@ class ModelManager(BaseModel):
         model: vllm.LLM = self.get_model(model)
         responses = model.generate(prompts=prompts, sampling_params=sampling_params)
         return [r.outputs[0].text for r in responses]
+
+    def chat_generate(
+        self,
+        messages: list[str],
+        roles: list[str],
+        model: ModelConfig | str | None = None,
+        sampling_params: SamplingParams | None = None,
+    ) -> str:
+        dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
+        composed_prompt = self._make_prompt(dict_messages)
+        logger.debug(f"Generating Chat with prompt: {composed_prompt}")
+        return self.generate([composed_prompt], model=model, sampling_params=sampling_params)
 
 
 class AsyncModelScheduler(AsyncLoopRunner):

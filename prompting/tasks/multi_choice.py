@@ -6,7 +6,7 @@ import numpy as np
 from prompting.datasets.base import Context
 from prompting.rewards.multi_choice import MultiChoiceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
-from prompting.tasks.base_task import BaseTask
+from prompting.tasks.base_task import BaseTextTask
 from prompting.utils.exceptions import TaskCreationError
 
 # TODO: Introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments.
@@ -63,7 +63,7 @@ class MultiChoiceRewardConfig(BaseRewardConfig):
     ]
 
 
-class MultiChoiceTask(BaseTask):
+class MultiChoiceTask(BaseTextTask):
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
     llm_model_id: str | None = None
@@ -71,13 +71,15 @@ class MultiChoiceTask(BaseTask):
     # Specific pattern (semi-flexible) which detects multiple choices.
     choices_pattern: ClassVar[str] = r"\n\s*(\*?\s*\W?[A-D]\W?)\s*(.*)"
 
-    def make_query(self, context: Context) -> tuple[str, str]:
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(source=context.source, title=context.title, context=context.content)
+    def make_query(self, dataset_entry: Context) -> tuple[str, str]:
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(
+            source=dataset_entry.source, title=dataset_entry.title, context=dataset_entry.content
+        )
         query_with_choices = self.generate_query(messages=query_prompt)
         self.query, self.reference = self.extract_query_and_reference(query_with_choices)
         return self.query
 
-    def make_reference(self, context: Context) -> str:
+    def make_reference(self, dataset_entry: Context) -> str:
         return self.reference
 
     def extract_query_and_reference(self, query_with_choices: str) -> tuple[str, str]:
