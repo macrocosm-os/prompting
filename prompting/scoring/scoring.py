@@ -10,7 +10,8 @@ import numpy as np
 from dataclasses import dataclass
 from prompting.base.loop_runner import AsyncLoopRunner
 import asyncio
-from prompting.mutable_globals import scoring_queue
+from prompting.mutable_globals import scoring_queue, reward_events
+from prompting.rewards.reward import BaseRewardConfig
 
 
 @dataclass
@@ -61,7 +62,7 @@ class TaskScorer(AsyncLoopRunner):
             f"""{len(scoring_config.response.completions)} completions to score for task {scoring_config.task.task_id}
             COMPLETIONS: {scoring_config.response.completions}"""
         )
-        reward_events, penalty_events, rewards = reward_pipeline.apply(
+        events = reward_pipeline.apply(
             response_event=scoring_config.response,
             challenge=scoring_config.task.query,
             reference=scoring_config.task.reference,
@@ -69,18 +70,20 @@ class TaskScorer(AsyncLoopRunner):
             uids=scoring_config.response.uids,
             task=scoring_config.task,
         )
+        rewards = BaseRewardConfig.final_rewards(events)
         best_response = scoring_config.response.completions[np.argmax(rewards)]
         logger.debug(f"SCORING: Scored {scoring_config.task.task_id} with reward {rewards}")
         log_event(
             RewardLoggingEvent(
                 best=best_response,
-                reward_events=reward_events,
-                penalty_events=penalty_events,
+                reward_events=events,
                 task_id=scoring_config.task.task_id,
+                task=scoring_config.task,
+                uids=scoring_config.response.uids,
             )
         )
         logger.info("Adding scores to rewards_and_uids")
-        reward_events.append(reward_events)
+        reward_events.append(events)
 
 
 class WeightSetter(AsyncLoopRunner):

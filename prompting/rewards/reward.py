@@ -21,6 +21,7 @@ class WeightedRewardEvent(BaseModel):
     batch_time: float
     threshold: float | None = None
     extra_info: dict | None = None
+    reward_type: Literal["reward", "penalty"] = "reward"
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -119,12 +120,12 @@ class BaseRewardConfig(ABC, BaseModel):
     def sum_rewards(cls, reward_events: list[WeightedRewardEvent]) -> np.ndarray:
         if not reward_events:
             return 0
-        return np.sum([r.reward_event.rewards * r.weight for r in reward_events], axis=0)
+        return np.sum([r.rewards * r.weight for r in reward_events], axis=0)
 
     @classmethod
-    def final_rewards(
-        cls, reward_events: list[WeightedRewardEvent], penalty_events: list[WeightedRewardEvent]
-    ) -> list[float]:
+    def final_rewards(cls, reward_events: list[WeightedRewardEvent]) -> list[float]:
+        penalty_events = [r for r in reward_events if r.reward_type == "penalty"]
+        reward_events = [r for r in reward_events if r.reward_type == "reward"]
         return cls.sum_rewards(reward_events) - cls.sum_rewards(penalty_events)
 
     @classmethod
@@ -136,11 +137,11 @@ class BaseRewardConfig(ABC, BaseModel):
         model_id: str | None = None,
         uids: list[int] | None = None,
         task: BaseTextTask | None = None,
-    ) -> tuple[list[WeightedRewardEvent], list[WeightedRewardEvent], list[float]]:
+    ) -> tuple[list[WeightedRewardEvent]]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
             reward_events.append(
-                reward_event=weighted_reward.reward_model.apply(
+                weighted_reward.apply(
                     reference=reference,
                     response_event=response_event,
                     challenge=challenge,
@@ -154,18 +155,14 @@ class BaseRewardConfig(ABC, BaseModel):
         if cls.penalty_definitions and not challenge:
             raise Exception("You must be providing the challenge to apply penalties")
 
-        penalty_events = []
         for weighted_reward in cls.penalty_definitions:
-            penalty_events.append(
-                WeightedRewardEvent(
-                    weight=weighted_reward.weight,
-                    reward_event=weighted_reward.reward_model.apply(
-                        reference=challenge,
-                        response_event=response_event,
-                        reward_type="penalty",
-                        uids=uids,
-                        task=task,
-                    ),
-                )
+            reward_events.append(
+                weighted_reward.apply(
+                    reference=challenge,
+                    response_event=response_event,
+                    reward_type="penalty",
+                    uids=uids,
+                    task=task,
+                ),
             )
-        return reward_events, penalty_events, cls.final_rewards(reward_events, penalty_events)
+        return reward_events

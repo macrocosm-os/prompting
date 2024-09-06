@@ -146,7 +146,6 @@ class ValidatorLoggingEvent(BaseEvent):
 class RewardLoggingEvent(BaseEvent):
     best: str
     reward_events: list[WeightedRewardEvent]
-    penalty_events: list[WeightedRewardEvent]
     task_id: str
     uids: list[int]
     task: BaseTextTask
@@ -154,7 +153,7 @@ class RewardLoggingEvent(BaseEvent):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __str__(self):
-        rewards = [r.reward_event.rewards for r in self.reward_events]
+        rewards = [r.rewards for r in self.reward_events]
 
         return f"""RewardLoggingEvent:
             Best: {self.best}
@@ -163,7 +162,6 @@ class RewardLoggingEvent(BaseEvent):
                 Min: {np.min(rewards)}
                 Max: {np.max(rewards)}
                 Average: {np.mean(rewards)}
-            Penalty Events: {self.penalty_events}
             task_id: {self.task_id}"""
 
 
@@ -210,11 +208,7 @@ def unpack_events(event: BaseEvent) -> dict[str, Any]:
 def extract_reward_event(reward_event: list[dict[str, Any]]) -> dict[str, Any]:
     flattened_reward_dict = {}
     for element in reward_event:
-        name = element["reward_event"].pop("reward_model_name")
-        element["reward_event"]["weight"] = element.pop("weight")
-        reward_event = element.pop("reward_event")
-        new_reward_event = {f"{name}_{key}": value for key, value in reward_event.items()}
-        flattened_reward_dict.update(new_reward_event)
+        flattened_reward_dict.update(element)
     return flattened_reward_dict
 
 

@@ -19,6 +19,7 @@ from prompting.utils.timer import Timer
 from prompting.mutable_globals import task_queue
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_loop import task_loop
+from prompting.scoring.weight_setting import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
 
@@ -188,6 +189,10 @@ if __name__ == "__main__":
 
     # start scoring tasks in separate loop
     asyncio.run(task_scorer.start())
+
+    # start weight setting loop
+    asyncio.run(weight_setter.start())
+
     # TODO: Think about whether we want to store the task queue locally in case of a crash
     # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
     # TODO: Make weight setting happen as specific intervals as we load/unload models
