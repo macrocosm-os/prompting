@@ -31,26 +31,11 @@ Validators and miners are based on large language models (LLM). The validation p
 
 </div>
 
-# Installation
-
-Clone this repository and run the [install.sh](./install.sh) script.
-
-```bash
-git clone https://github.com/opentensor/prompting.git
-cd prompting
-bash install.sh
-```
-
-If you are running a validator, you will need to install the extras via poetry.  Linux is required to run a validator.
-
-```bash
-poetry install --extras validator
-poetry run pip uninstall -y uvloop
-```
-
-
 # Usage
 
 <div align="center">
 
 **[For Validators](./assets/validator.md)** · **[For Miners](./assets/miner.md)**
+
+
+</div>
