@@ -1,14 +1,13 @@
 import time
-import numpy as np
 from typing import List, Optional
+
+import numpy as np
 from angle_emb import AnglE
-from prompting.rewards.reward import (
-    BaseRewardModel,
-    BatchRewardOutput,
-)
-from prompting.base.dendrite import DendriteResponseEvent
-from pydantic import model_validator, ConfigDict
+from pydantic import ConfigDict, model_validator
 from scipy import spatial
+
+from prompting.base.dendrite import DendriteResponseEvent
+from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from prompting.settings import settings
 
 MODEL = AnglE.from_pretrained("WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=settings.NEURON_DEVICE)
