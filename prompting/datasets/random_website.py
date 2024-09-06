@@ -18,7 +18,7 @@ class DDGDatasetEntry(DatasetEntry):
 
 class DDGDataset(BaseDataset):
     english_words: list[str] = None
-      
+
     def search_random_term(self, retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
         try:
             ddg = DDGS()
