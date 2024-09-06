@@ -63,7 +63,6 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=WebRetrievalTask,
             probability=0.1,
-            # probability=1.0,
             datasets=[DDGDataset],
             reward_model=WebRetrievalRewardConfig,
         ),
