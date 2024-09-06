@@ -42,14 +42,14 @@ class BaseDataset(ABC, BaseModel):
     max_tries: int = 10
 
     @abstractmethod
-    def random(self) -> Context: ...
+    def random(self) -> DatasetEntry: ...
 
-    @abstractmethod
-    def get(self) -> Context: ...
+    def get(self) -> DatasetEntry:
+        return self.next()
 
     def next(self, method: Literal["random", "search", "get"] = "random", **kwargs) -> dict:
         tries = 1
-        context: Context  # for some reason the ls doesn't understand it's of type Context without this
+        context: DatasetEntry  # for some reason the ls doesn't understand it's of type Context without this
 
         with Timer() as timer:
             while True:

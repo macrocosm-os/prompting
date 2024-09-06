@@ -6,7 +6,7 @@ from prompting.rewards.reward import WeightedRewardModel
 # from prompting.rewards.reward import BaseRewardModel
 from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding, RemovePostQuestionText
 from prompting.utils.cleaners import CleanerPipeline
-from prompting.datasets.base import Context
+from prompting.datasets.base import DatasetEntry
 from prompting.rewards.reward import BaseRewardConfig
 from typing import ClassVar
 
@@ -87,12 +87,12 @@ class QuestionAnsweringTask(BaseTextTask):
     query: str | None = None
     reference: str | None = None
 
-    def make_query(self, dataset_entry: Context):
+    def make_query(self, dataset_entry: DatasetEntry):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.content)
         self.query = self.generate_query(messages=[query_prompt])
         return self.query
 
-    def make_reference(self, dataset_entry: Context):
+    def make_reference(self, dataset_entry: DatasetEntry):
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.content, question=self.query)
         self.reference = self.generate_reference(messages=[reference_prompt])
         return self.reference

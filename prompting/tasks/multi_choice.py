@@ -3,7 +3,7 @@ from typing import ClassVar
 
 import numpy as np
 
-from prompting.datasets.base import Context
+from prompting.datasets.base import DatasetEntry
 from prompting.rewards.multi_choice import MultiChoiceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
 from prompting.tasks.base_task import BaseTask
@@ -71,13 +71,13 @@ class MultiChoiceTask(BaseTask):
     # Specific pattern (semi-flexible) which detects multiple choices.
     choices_pattern: ClassVar[str] = r"\n\s*(\*?\s*\W?[A-D]\W?)\s*(.*)"
 
-    def make_query(self, context: Context) -> tuple[str, str]:
+    def make_query(self, context: DatasetEntry) -> tuple[str, str]:
         query_prompt = QUERY_PROMPT_TEMPLATE.format(source=context.source, title=context.title, context=context.content)
         query_with_choices = self.generate_query(messages=query_prompt)
         self.query, self.reference = self.extract_query_and_reference(query_with_choices)
         return self.query
 
-    def make_reference(self, context: Context) -> str:
+    def make_reference(self, context: DatasetEntry) -> str:
         return self.reference
 
     def extract_query_and_reference(self, query_with_choices: str) -> tuple[str, str]:
