@@ -1,5 +1,5 @@
 import time
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 from angle_emb import AnglE
@@ -37,7 +37,7 @@ class RelevanceRewardModel(BaseRewardModel):
         reference_emb_flatten = reference_embedding.flatten()
         rewards: list[float] = []
         timings: list[float] = []
-        completions: List[str] = response_event.completions
+        completions: list[str] = response_event.completions
         # baseline is the cosine similarity between the reference and an empty string
         baseline = 1 - float(
             spatial.distance.cosine(
