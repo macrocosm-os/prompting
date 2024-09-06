@@ -87,6 +87,7 @@ class WebRetrievalRewardModel(BaseRewardModel):
         t0 = time.perf_counter()
         completions: list[str] = response_event.completions
 
+        rewards.append()
 
         output = BatchRewardOutput(
             rewards=np.asarray(rewards),

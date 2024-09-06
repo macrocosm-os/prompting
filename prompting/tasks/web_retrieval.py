@@ -2,11 +2,14 @@ import json
 from typing import ClassVar, Optional
 
 import numpy as np
+import textwrap
 
 from prompting.datasets.base import Context
+from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
 from prompting.rewards.web_retrieval import WebRetrievalRewardModel
-from prompting.tasks.base_task import BaseTask
+from prompting.rewards.relevance import RelevanceRewardModel
+from prompting.tasks.base_task import BaseTask, BaseTextTask
 from prompting.utils.exceptions import TaskCreationError
 
 
@@ -18,25 +21,26 @@ question can be answered by doing a thorough search on the internet.
 """
 )
 
-QUERY_PROMPT_TEMPLATE = "[Input Text]\n{extracted}"
+QUERY_PROMPT_TEMPLATE = "[Input Text]\n{context}"
 
 
 class WebRetrievalRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=1.0, reward_model=WebRetrievalRewardModel()),
+        # WeightedRewardModel(weight=1.0, reward_model=WebRetrievalRewardModel()),
+        WeightedRewardModel(weight=1.0, reward_model=RelevanceRewardModel()),
     ]
 
 
-class WebRetrievalTask(BaseTask):
+class WebRetrievalTask(BaseTextTask):
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
-    llm_model_id: Optional[str] = None
+    # llm_model_id: Optional[str] = None
+    query_system_prompt: ClassVar[str | None] = QUERY_SYSTEM_PROMPT
 
-    def make_query(self, context: Context) -> tuple[str, str]:
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(source=context.source, title=context.title, context=context.content)
-        query_with_choices = self.generate_query(messages=query_prompt)
-        self.query, self.reference = self.extract_query_and_reference(query_with_choices)
-        return self.query
+    def make_query(self, context: DDGDatasetEntry) -> str:
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.website_content)
+        query = self.generate_query(messages=query_prompt)
+        return query
 
     def make_reference(self, context: Context) -> str:
         return self.reference

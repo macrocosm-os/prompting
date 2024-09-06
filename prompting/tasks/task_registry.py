@@ -14,6 +14,8 @@ from typing import ClassVar
 from loguru import logger
 import numpy as np
 
+from prompting.tasks.web_retrieval import WebRetrievalRewardConfig, WebRetrievalTask
+
 
 class TaskConfig(BaseModel):
     task: BaseTextTask.__class__
@@ -49,10 +51,10 @@ class TaskRegistry(BaseModel):
             reward_model=MultiChoiceRewardConfig,
         ),
         TaskConfig(
-            task=MultiChoiceTask,
+            task=WebRetrievalTask,
             probability=0.05,
-            datasets=[WikiDataset],
-            reward_model=MultiChoiceRewardConfig,
+            datasets=[DDGDataset],
+            reward_model=WebRetrievalRewardConfig,
         ),
     ]
 
