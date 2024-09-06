@@ -10,7 +10,7 @@ import random
 from prompting.llms.model_manager import model_manager
 from vllm import RequestOutput, SamplingParams
 from abc import abstractmethod
-from prompting.datasets.random_website import DDGDatasetEntry
+from prompting.datasets.lmsys import ChatEntry
 
 
 class InferenceRewardConfig(BaseRewardConfig):
@@ -61,9 +61,11 @@ class SyntheticInferenceTask(BaseInferenceTask):
     # TODO: Once we want to enable the 'actual' inference task with exact models
     model: ModelConfig = None
 
-    def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
-        website_content = dataset_entry.website_content
-        self.query = model_manager.generate(
-            prompts=QUERY_PROMPT.format(website_content=website_content), model=self.llm_model
-        )[0]
+    def make_query(self, dataset_entry: ChatEntry) -> str:
+        # website_content = dataset_entry.website_content
+        # self.query = model_manager.generate(
+        #     prompts=QUERY_PROMPT.format(website_content=website_content), model=self.llm_model
+        # )[0]
+        self.query = dataset_entry.messages[-1]
+        self.messages = dataset_entry.messages
         return self.query

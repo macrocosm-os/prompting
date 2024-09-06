@@ -96,7 +96,7 @@ class Validator(BaseValidatorNeuron):
                     seed=task.seed,
                     target_model=task.llm_model_id,
                     roles=["user"],
-                    messages=[query],
+                    messages=task.messages or [query],
                 ),
                 timeout=timeout,
                 deserialize=False,
