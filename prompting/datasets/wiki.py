@@ -1,17 +1,17 @@
+import random
 import re
 import sys
-import random
+from functools import lru_cache
+from queue import Empty, Full, Queue
+from typing import ClassVar, Optional
+
 import requests
+import wikipedia
 from bs4 import BeautifulSoup
 from loguru import logger
-import wikipedia
-from queue import Queue, Full, Empty
-from functools import lru_cache
-from prompting.datasets.base import BaseDataset
-from prompting.datasets.base import Context
-from typing import ClassVar
-from typing import Optional
-from pydantic import model_validator, ConfigDict
+from pydantic import ConfigDict, model_validator
+
+from prompting.datasets.base import BaseDataset, Context
 
 # Create a queue called CACHED_ARTICLES to store wikipedia articles that have been fetched
 CACHED_ARTICLES: Queue[Context] = Queue(maxsize=300)
