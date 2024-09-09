@@ -124,19 +124,12 @@ class ErrorLoggingEvent(BaseEvent):
 
 
 class ValidatorLoggingEvent(BaseEvent):
-    best: str
     block: int
     step: int
     step_time: float
-    reward_events: list[WeightedRewardEvent]
-    penalty_events: list[WeightedRewardEvent]
     response_event: DendriteResponseEvent
-    reference: str
-    challenge: str
-    task: str
-    rewards: list[float]
-    forward_time: float | None = None
     task_id: str
+    forward_time: float | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, copy_on_model_validation=False)
 

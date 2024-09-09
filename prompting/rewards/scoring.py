@@ -78,6 +78,10 @@ class TaskScorer(AsyncLoopRunner):
                 reward_events=reward_events,
                 penalty_events=penalty_events,
                 task_id=scoring_config.task.task_id,
+                reference=scoring_config.task.reference,
+                challenge=scoring_config.task.query,
+                task=scoring_config.task.__class__.__name__,
+                rewards=rewards,
             )
         )
         logger.info("Adding scores to rewards_and_uids")
