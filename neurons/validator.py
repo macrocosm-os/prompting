@@ -89,15 +89,16 @@ class Validator(BaseValidatorNeuron):
             axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
             # Directly call dendrite and process responses in parallel
+            synapse = StreamPromptingSynapse(
+                task_name=task.__class__.__name__,
+                seed=task.seed,
+                target_model=task.llm_model_id,
+                roles=["user"],
+                messages=[query],
+            )
             streams_responses = await settings.DENDRITE(
                 axons=axons,
-                synapse=StreamPromptingSynapse(
-                    task_name=task.__class__.__name__,
-                    seed=task.seed,
-                    target_model=task.llm_model_id,
-                    roles=["user"],
-                    messages=[query],
-                ),
+                synapse=synapse,
                 timeout=timeout,
                 deserialize=False,
                 streaming=True,

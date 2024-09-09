@@ -1,14 +1,13 @@
 import time
+from typing import Optional
+
 import numpy as np
-from typing import List
 from angle_emb import AnglE
-from prompting.rewards.reward import (
-    BaseRewardModel,
-    BatchRewardOutput,
-)
-from prompting.base.dendrite import DendriteResponseEvent
-from pydantic import model_validator, ConfigDict
+from pydantic import ConfigDict, model_validator
 from scipy import spatial
+
+from prompting.base.dendrite import DendriteResponseEvent
+from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from prompting.settings import settings
 
 MODEL = AnglE.from_pretrained("WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=settings.NEURON_DEVICE)
@@ -18,9 +17,9 @@ if settings.NEURON_DEVICE.startswith("cuda"):
 
 
 class RelevanceRewardModel(BaseRewardModel):
-    threshold: float | None = None
+    threshold: Optional[float] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    embedding_model: AnglE | None = None
+    embedding_model: Optional[AnglE] = None
 
     @model_validator(mode="after")
     def init_model(self) -> "RelevanceRewardModel":
@@ -28,18 +27,21 @@ class RelevanceRewardModel(BaseRewardModel):
         return self
 
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
-        """Calculates the cosine similarity between sentence embeddings of the reference and completions.
-        We subtract a baseline score which is what an empty string would get (a failed completion). This is usually around 0.35
-        We also clip the rewards between 0 and 1. The maximum effective score is around 0.65
+        """Calculate the cosine similarity between sentence embeddings of the reference and completions.
+
+        We subtract a baseline score which is what an empty string would get (a failed completion).
+        This is usually around 0.35. We also clip the rewards between 0 and 1.
+        The maximum effective score is around 0.65.
         """
         reference_embedding = self.embedding_model.encode(reference, to_numpy=True)
-        rewards = []
-        timings = []
-        completions: List[str] = response_event.completions
+        reference_emb_flatten = reference_embedding.flatten()
+        rewards: list[float] = []
+        timings: list[float] = []
+        completions: list[str] = response_event.completions
         # baseline is the cosine similarity between the reference and an empty string
         baseline = 1 - float(
             spatial.distance.cosine(
-                reference_embedding.flatten(), self.embedding_model.encode("", to_numpy=True).flatten()
+                reference_emb_flatten, self.embedding_model.encode("", to_numpy=True).flatten()
             )
         )
 
@@ -51,8 +53,7 @@ class RelevanceRewardModel(BaseRewardModel):
             t0 = time.time()
             emb = self.embedding_model.encode(comp, to_numpy=True)
             # Calculate cosine similarity between reference and completion embeddings, and subtract baseline
-            score = spatial.distance.cosine(reference_embedding.flatten(), emb.flatten()) - baseline
-            score = 1 - float(spatial.distance.cosine(reference_embedding.flatten(), emb.flatten() - baseline))
+            score = 1 - float(spatial.distance.cosine(reference_emb_flatten, emb.flatten() - baseline))
 
             rewards.append(score)
             timings.append(time.time() - t0)

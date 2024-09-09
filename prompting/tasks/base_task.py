@@ -51,6 +51,7 @@ class BaseTask(BaseModel, ABC):
 
 class BaseTextTask(BaseTask):
     query: str | None = None
+    messages: list[str] | None = None
     reference: str | None = None
     llm_model: ModelConfig = None
     llm_model_id: str = None
@@ -68,13 +69,11 @@ class BaseTextTask(BaseTask):
             self.seed = random.randint(0, 1000000)
         return self
 
-    @abstractmethod
     def make_query(self, dataset_entry: DatasetEntry, **kwargs) -> str:
-        raise NotImplementedError("Method generate_query_reference must be implemented")
+        return self.query
 
-    @abstractmethod
     def make_reference(self, dataset_entry: DatasetEntry) -> str:
-        raise NotImplementedError("Method generate_query_reference must be implemented")
+        return self.reference
 
     def generate_query_reference(self, dataset_entry: DatasetEntry) -> str:
         self.make_query(dataset_entry=dataset_entry)
