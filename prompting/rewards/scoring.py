@@ -33,7 +33,7 @@ class TaskScorer(AsyncLoopRunner):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def add_to_queue(self, task: BaseTextTask, response: DendriteResponseEvent, dataset_entry: DatasetEntry) -> None:
-        logger.debug(f"SCORING: Added to queue: {task.task_id}")
+        logger.debug(f"SCORING: Added to queue: {task.__class__.__name__} {task.task_id}")
         scoring_queue.append(ScoringConfig(task=task, response=response, dataset_entry=dataset_entry))
 
     async def run_step(self) -> RewardLoggingEvent:
@@ -75,7 +75,9 @@ class TaskScorer(AsyncLoopRunner):
             if (rewards is not None and len(rewards) > 0)
             else None
         )
-        logger.debug(f"SCORING: Scored {scoring_config.task.task_id} with reward {rewards}")
+        logger.debug(
+            f"SCORING: Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with reward {rewards}"
+        )
         log_event(
             RewardLoggingEvent(
                 best=best_response,

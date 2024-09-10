@@ -12,8 +12,9 @@ from bittensor.dendrite import dendrite
 from prompting.rewards.scoring import task_scorer
 from prompting.datasets.base import ChatEntry
 from prompting.utils.uids import get_random_uids
+from prompting.base.forward import SynapseStreamResult
 from prompting.base.dendrite import DendriteResponseEvent
-from prompting.base.forward import handle_response
+from functools import partial
 
 
 async def priority_fn(synapse: StreamPromptingSynapse) -> float:
@@ -28,50 +29,73 @@ async def blacklist_fn(synapse: StreamPromptingSynapse) -> Tuple[bool, str]:
     return synapse.dendrite.hotkey != settings.ORGANIC_WHITELIST_HOTKEY, ""
 
 
-def on_organic_entry(synapse: StreamPromptingSynapse):
+async def on_organic_entry(synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+    """Organic query handle."""
     logger.info(f"[Organic] Received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}")
     task = InferenceTask(query=synapse.messages[-1], messages=synapse.messages)
-
-    # Create a new synapse masquerading as an inference task.
     miner_synapse = StreamPromptingSynapse(
         task_name=task.__class__.__name__,
         seed=task.seed,
         target_model=task.llm_model_id,
         roles=["user"],
-        messages=[task.query],
+        messages=task.messages,
     )
-
     # TODO: Query one of the top N incentive miners, keep the rest random.
     uids = list(get_random_uids(k=settings.ORGANIC_SAMPLE_SIZE))
-    axons = [settings.METAGRAPH.axons[uid] for uid in uids]
+    completions: dict[int, dict] = {}
+    token_streamer = partial(
+        stream_miner_response,
+        miner_synapse,
+        uids,
+        completions,
+    )
 
-    streams_responses = asyncio.run(
-        settings.DENDRITE(
-            axons=axons,
-            synapse=miner_synapse,
+    streaming_response = miner_synapse.create_streaming_response(token_streamer)
+    logger.debug(f"Message: {miner_synapse.messages}; Completions: {completions}")
+    asyncio.create_task(wait_and_add(task, completions, synapse=synapse))
+    return streaming_response
+
+
+async def wait_and_add(task: InferenceTask, completions: dict[int, dict], synapse: StreamPromptingSynapse):
+    logger.debug("[ORGANIC] Waiting for responses to be collected")
+    for _ in range(15):
+        if completions and all(
+            "completed" in completions[uid] and completions[uid]["completed"] for uid in completions
+        ):
+            break
+        await asyncio.sleep(1)
+    else:
+        logger.error("[ORGANIC] Some responses couldn't be collected in time...")
+
+    if completions:
+        logger.debug(f"[ORGANIC] Responses collected. Completions: {completions}")
+        stream_results = [
+            SynapseStreamResult(
+                accumulated_chunks=data["accumulated_chunks"] if "accumulated_chunks" in data else [],
+                accumulated_chunks_timings=(
+                    data["accumulated_chunk_timings"] if "accumulated_chunk_timings" in data else []
+                ),
+                synapse=synapse,
+                uid=uid,
+            )
+            for uid, data in completions.items()
+            if data["completed"]
+        ]
+        logger.debug(f"[ORGANIC] Number of responses collected: {len(completions)}")
+        # return streaming_response
+        response_event = DendriteResponseEvent(
+            uids=list(completions.keys()),
+            stream_results=stream_results,
             timeout=settings.NEURON_TIMEOUT,
-            deserialize=False,
-            streaming=True,
         )
-    )
-
-    # Prepare the task for handling stream responses
-    stream_results = asyncio.run(handle_response(stream_results_dict=dict(zip(uids, streams_responses))))
-
-    # return streaming_response
-    response_event = DendriteResponseEvent(
-        uids=uids,
-        stream_results=stream_results,
-        timeout=settings.NEURON_TIMEOUT,
-    )
-
-    task_scorer.add_to_queue(
-        task=task,
-        response=response_event,
-        dataset_entry=ChatEntry(messages=synapse.messages, roles=synapse.roles, organic=True, source=None),
-    )
-
-    return response_event
+        logger.debug("[ORGANIC] Adding to scoring queue")
+        task_scorer.add_to_queue(
+            task=task,
+            response=response_event,
+            dataset_entry=ChatEntry(messages=synapse.messages, roles=synapse.roles, organic=True, source=None),
+        )
+    else:
+        logger.error("[ORGANIC] No responses collected...")
 
 
 async def stream_miner_response(
@@ -81,19 +105,6 @@ async def stream_miner_response(
     send: Send,
 ):
     """Stream back miner's responses."""
-    logger.info(f"[Organic] Querying miner UIDs: {uids}")
-    try:
-        async with dendrite(wallet=settings.WALLET) as dend:
-            responses = await dend(
-                axons=[settings.METAGRAPH.axons[uid] for uid in uids],
-                synapse=synapse,
-                timeout=settings.ORGANIC_TIMEOUT,
-                deserialize=False,
-                streaming=True,
-            )
-    except Exception as e:
-        logger.exception(f"[Organic] Error querying dendrite: {e}")
-        return
 
     async def stream_miner_chunks(uid: int, chunks: AsyncGenerator):
         accumulated_chunks: list[str] = []
@@ -126,6 +137,20 @@ async def stream_miner_response(
         completions[uid]["accumulated_tokens_per_chunk"] = accumulated_tokens_per_chunk
         completions[uid]["completed"] = True
         completions[uid]["synapse"] = synapse
+
+    logger.info(f"[Organic] Querying miner UIDs: {uids}")
+    try:
+        async with dendrite(wallet=settings.WALLET) as dend:
+            responses = await dend(
+                axons=[settings.METAGRAPH.axons[uid] for uid in uids],
+                synapse=synapse,
+                timeout=settings.ORGANIC_TIMEOUT,
+                deserialize=False,
+                streaming=True,
+            )
+    except Exception as e:
+        logger.exception(f"[Organic] Error querying dendrite: {e}")
+        return
 
     logger.info(f"[Organic] Awaiting miner streams UIDs: {uids}")
     await asyncio.gather(
