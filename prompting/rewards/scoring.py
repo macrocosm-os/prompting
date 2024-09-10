@@ -70,7 +70,11 @@ class TaskScorer(AsyncLoopRunner):
             reference=scoring_config.task.reference,
             model_id=scoring_config.task.llm_model,
         )
-        best_response = scoring_config.response.completions[np.argmax(rewards)]
+        best_response = (
+            scoring_config.response.completions[np.argmax(rewards)]
+            if (rewards is not None and len(rewards) > 0)
+            else None
+        )
         logger.debug(f"SCORING: Scored {scoring_config.task.task_id} with reward {rewards}")
         log_event(
             RewardLoggingEvent(

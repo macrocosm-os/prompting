@@ -13,7 +13,7 @@ from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.date_qa import DateQARewardConfig, DateQuestionAnsweringTask
-from prompting.tasks.inference import InferenceRewardConfig, SyntheticInferenceTask
+from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
 from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTask
 from prompting.tasks.programming_task import ProgrammingRewardConfig, ProgrammingTask
 from prompting.tasks.qa import QARewardConfig, QuestionAnsweringTask
@@ -43,7 +43,7 @@ class TaskRegistry(BaseModel):
             reward_model=DateQARewardConfig,
         ),
         TaskConfig(
-            task=SyntheticInferenceTask,
+            task=InferenceTask,
             probability=0.2,
             datasets=[LMSysDataset],
             reward_model=InferenceRewardConfig,
