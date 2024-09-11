@@ -41,7 +41,7 @@ async def blacklist_fn(synapse: StreamPromptingSynapse) -> Tuple[bool, str]:
 
 async def on_organic_entry(synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
     """Organic query handle."""
-    if not isinstance(synapse, StreamPromptingSynapse) or synapse.task_name != "InferenceTask":
+    if not isinstance(synapse, StreamPromptingSynapse) or synapse.task_name != InferenceTask.__name__:
         logger.error(f"[Organic] Received non-inference task: {synapse.task_name}")
         return
     logger.info(f"[Organic] Received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}")
