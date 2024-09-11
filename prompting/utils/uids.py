@@ -83,9 +83,9 @@ def get_random_uids(k: int | None = 10**6, exclude: list[int] = None, own_uid: i
         logger.warning(
             f"Requested {k} uids but only {len(candidate_uids)} were available. To disable this warning reduce the sample size (--neuron.sample_size)"
         )
-        return np.array(candidate_uids)
+        return np.array(candidate_uids).astype(int)
     elif len(candidate_uids) >= k:
-        return np.array(random.sample(candidate_uids, k))
+        return np.array(random.sample(candidate_uids, k)).astype(int)
     else:
         raise ValueError(f"No eligible uids were found. Cannot return {k} uids")
 

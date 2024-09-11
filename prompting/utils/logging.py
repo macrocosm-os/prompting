@@ -158,7 +158,7 @@ class ValidatorLoggingOrganicEvent(ValidatorLoggingEvent):
 
 
 class RewardLoggingEvent(BaseEvent):
-    best: str
+    best: str | None
     reward_events: list[WeightedRewardEvent]
     penalty_events: list[WeightedRewardEvent]
     task_id: str
@@ -176,9 +176,9 @@ class RewardLoggingEvent(BaseEvent):
             Best: {self.best}
             Rewards:
                 Rewards: {rewards}
-                Min: {np.min(rewards)}
-                Max: {np.max(rewards)}
-                Average: {np.mean(rewards)}
+                Min: {np.min(rewards) if len(rewards) > 0 else None}
+                Max: {np.max(rewards) if len(rewards) > 0 else None}
+                Average: {np.mean(rewards) if len(rewards) > 0 else None}
             Penalty Events: {self.penalty_events}
             task_id: {self.task_id}"""
 

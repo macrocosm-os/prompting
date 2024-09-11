@@ -20,7 +20,7 @@ class ChatEntry(DatasetEntry):
     messages: list[str]
     roles: list[str]
     organic: bool
-    source: str
+    source: str | None = None
     query: str | None = None
 
     @model_validator(mode="after")

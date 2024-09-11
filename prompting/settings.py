@@ -50,7 +50,7 @@ class Settings(BaseModel):
     NEURON_MAX_TOKENS: int = 256
 
     # ORGANIC
-    ORGANIC_TIMEOUT: int = 15
+    ORGANIC_TIMEOUT: int = 30
     ORGANIC_SAMPLE_SIZE: int = 5
     ORGANIC_REUSE_RESPONSE_DISABLED: bool = False
     ORGANIC_REFERENCE_MAX_TOKENS: int = 1024
