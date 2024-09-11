@@ -15,16 +15,16 @@ from prompting.utils.uids import get_random_uids
 from prompting.base.forward import SynapseStreamResult
 from prompting.base.dendrite import DendriteResponseEvent
 from functools import partial
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
 class Completion:
     uid: int
     completed: bool = False
-    accumulated_chunks: list[str] = []
-    accumulated_chunks_timings: list[float] = []
-    accumulated_tokens_per_chunk: list[int] = []
+    accumulated_chunks: list[str] = field(default_factory=list)
+    accumulated_chunks_timings: list[float] = field(default_factory=list)
+    accumulated_tokens_per_chunk: list[int] = field(default_factory=list)
 
 
 async def priority_fn(synapse: StreamPromptingSynapse) -> float:
@@ -41,6 +41,9 @@ async def blacklist_fn(synapse: StreamPromptingSynapse) -> Tuple[bool, str]:
 
 async def on_organic_entry(synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
     """Organic query handle."""
+    if not isinstance(synapse, StreamPromptingSynapse) or synapse.task_name != "InferenceTask":
+        logger.error(f"[Organic] Received non-inference task: {synapse.task_name}")
+        return
     logger.info(f"[Organic] Received from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}")
     task = InferenceTask(query=synapse.messages[-1], messages=synapse.messages)
     miner_synapse = StreamPromptingSynapse(

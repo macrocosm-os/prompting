@@ -180,7 +180,8 @@ class RewardLoggingEvent(BaseEvent):
                 Max: {np.max(rewards) if len(rewards) > 0 else None}
                 Average: {np.mean(rewards) if len(rewards) > 0 else None}
             Penalty Events: {self.penalty_events}
-            task_id: {self.task_id}"""
+            task_id: {self.task_id}
+            task_name: {self.task}"""
 
 
 class MinerLoggingEvent(BaseEvent):
