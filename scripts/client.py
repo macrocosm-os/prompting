@@ -1,3 +1,7 @@
+from prompting import settings
+settings.settings = settings.Settings(mode="validator")
+settings = settings.settings
+
 import argparse
 import asyncio
 
