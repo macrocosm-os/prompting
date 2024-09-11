@@ -69,13 +69,14 @@ async def wait_and_add(
     task: InferenceTask, completions: list[Completion], synapse: StreamPromptingSynapse, uids: list[int]
 ):
     logger.debug("[ORGANIC] Waiting for responses to be collected")
-    for _ in range(settings.ORGANIC_TIMEOUT):
-        logger.debug(f"[ORGANIC] {len(completions)} responses collected")
+    async def wait_for_responses():
+        while len(completions) < len(uids):
+            await asyncio.sleep(0.1)
 
-        if len(completions) == len(uids):
-            break
-        await asyncio.sleep(1)
-    else:
+    try:
+        await asyncio.wait_for(wait_for_responses(), timeout=settings.ORGANIC_TIMEOUT)
+        logger.debug(f"[ORGANIC] All {len(uids)} responses collected successfully.")
+    except asyncio.TimeoutError:
         logger.error("[ORGANIC] Some responses couldn't be collected in time...")
 
     if len(completions) == 0:
