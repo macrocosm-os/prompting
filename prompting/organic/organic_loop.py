@@ -15,8 +15,10 @@ from prompting.utils.uids import get_random_uids
 from prompting.base.forward import SynapseStreamResult
 from prompting.base.dendrite import DendriteResponseEvent
 from functools import partial
+from dataclasses import dataclass
 
 
+@dataclass
 class Completion:
     uid: int
     completed: bool = False
@@ -69,6 +71,7 @@ async def wait_and_add(
     task: InferenceTask, completions: list[Completion], synapse: StreamPromptingSynapse, uids: list[int]
 ):
     logger.debug("[ORGANIC] Waiting for responses to be collected")
+
     async def wait_for_responses():
         while len(completions) < len(uids):
             await asyncio.sleep(0.1)
@@ -93,7 +96,6 @@ async def wait_and_add(
         for completion in completions
     ]
     logger.debug(f"[ORGANIC] Number of responses collected: {len(completions)}")
-    # return streaming_response
     response_event = DendriteResponseEvent(
         uids=uids,
         stream_results=stream_results,
