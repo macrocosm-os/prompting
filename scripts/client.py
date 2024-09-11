@@ -25,7 +25,7 @@ Steps:
 - Iterate over the async generator to extract the yielded tokens on the server side
 """
 
-assert settings.TEST_MINER_IDS, "Please provide the miner ids to query in the .env file as variable TEST_MINER_IDS"
+assert settings.TEST_MINER_IDS, "Please provide the miner ids to query in the .env.validator file as variable TEST_MINER_IDS"
 
 
 async def handle_response(responses: list[Awaitable]) -> List[str]:
