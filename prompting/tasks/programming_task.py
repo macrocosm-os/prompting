@@ -36,6 +36,7 @@ CODE_MODIFICATION_PROMPT = textwrap.dedent(
 
 
 class ProgrammingTask(BaseTextTask):
+    name: ClassVar[str] = "programming"
     cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline()
     query: str | None = None
     reference: str | None = None

@@ -83,7 +83,7 @@ class Validator(BaseValidatorNeuron):
                 response_event = await self.collect_responses(task=task)
 
                 # scoring_manager will score the responses as and when the correct model is loaded
-                task_scorer.add_to_queue(task=task, response=response_event, dataset_entry=dataset_entry, block=self.block, step=self.step, step_time=timer.elapsed_time, task_id=task.task_id)
+                task_scorer.add_to_queue(task=task, response=response_event, dataset_entry=dataset_entry, block=self.block, step=self.step, task_id=task.task_id)
 
                 for uids, rewards in mutable_globals.rewards_and_uids:
                     self.update_scores(uids=uids, rewards=rewards)

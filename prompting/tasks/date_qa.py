@@ -28,6 +28,7 @@ class DateQARewardConfig(BaseRewardConfig):
 
 
 class DateQuestionAnsweringTask(BaseTextTask):
+    name: ClassVar[str] = "date_qa"
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline(cleaning_pipeline=[RemoveTags(), FirstQuestion()])
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""

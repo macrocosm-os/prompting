@@ -26,6 +26,7 @@ Ask a question about the text and nothing else:"""
 
 
 class InferenceTask(BaseTextTask):
+    name: ClassVar[str] = "inference"
     # TODO: Once we want to enable the 'actual' inference task with exact models
     query: str | None = None
     reference: str | None = None

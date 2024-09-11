@@ -123,10 +123,33 @@ class ErrorLoggingEvent(BaseEvent):
     forward_time: float | None = None
 
 
-class RewardLoggingEvent(BaseEvent):
+class ValidatorLoggingEvent(BaseEvent):
     block: int
     step: int
     step_time: float
+    response_event: DendriteResponseEvent
+    task_id: str
+    forward_time: float | None = None
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, copy_on_model_validation=False)
+
+    def __str__(self):
+        sample_completions = [completion for completion in self.response_event.completions if len(completion) > 0]
+        sample_completion = sample_completions[0] if sample_completions else "All completions are empty"
+        return f"""ValidatorLoggingEvent:
+            Block: {self.block}
+            Step: {self.step}
+            Step Time: {self.step_time}
+            forward_time: {self.forward_time}
+            task_id: {self.task_id}
+            Number of total completions: {len(self.response_event.completions)}
+            Number of non-empty completions: {len(sample_completions)}
+            Completions: {sample_completions}
+            Sample completion: {sample_completion}"""
+
+class RewardLoggingEvent(BaseEvent):
+    block: int
+    step: int
     best: str | None
     response_event: DendriteResponseEvent
     reward_events: list[WeightedRewardEvent]
