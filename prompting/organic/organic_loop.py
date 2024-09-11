@@ -17,6 +17,14 @@ from prompting.base.dendrite import DendriteResponseEvent
 from functools import partial
 
 
+class Completion:
+    uid: int
+    completed: bool = False
+    accumulated_chunks: list[str] = []
+    accumulated_chunks_timings: list[float] = []
+    accumulated_tokens_per_chunk: list[int] = []
+
+
 async def priority_fn(synapse: StreamPromptingSynapse) -> float:
     """Priority function for the axon."""
     return 10000000.0
@@ -42,7 +50,8 @@ async def on_organic_entry(synapse: StreamPromptingSynapse) -> StreamPromptingSy
     )
     # TODO: Query one of the top N incentive miners, keep the rest random.
     uids = list(get_random_uids(k=settings.ORGANIC_SAMPLE_SIZE))
-    completions: dict[int, dict] = {}
+    # completions: dict[int, dict] = {}
+    completions: list[Completion] = []
     token_streamer = partial(
         stream_miner_response,
         miner_synapse,
@@ -52,66 +61,65 @@ async def on_organic_entry(synapse: StreamPromptingSynapse) -> StreamPromptingSy
 
     streaming_response = miner_synapse.create_streaming_response(token_streamer)
     logger.debug(f"Message: {miner_synapse.messages}; Completions: {completions}")
-    asyncio.create_task(wait_and_add(task, completions, synapse=synapse))
+    asyncio.create_task(wait_and_add(task, completions, synapse=synapse, uids=uids))
     return streaming_response
 
 
-async def wait_and_add(task: InferenceTask, completions: dict[int, dict], synapse: StreamPromptingSynapse):
+async def wait_and_add(
+    task: InferenceTask, completions: list[Completion], synapse: StreamPromptingSynapse, uids: list[int]
+):
     logger.debug("[ORGANIC] Waiting for responses to be collected")
-    for _ in range(15):
-        if completions and all(
-            "completed" in completions[uid] and completions[uid]["completed"] for uid in completions
-        ):
+    for _ in range(settings.ORGANIC_TIMEOUT):
+        logger.debug(f"[ORGANIC] {len(completions)} responses collected")
+
+        if len(completions) == len(uids):
             break
         await asyncio.sleep(1)
     else:
         logger.error("[ORGANIC] Some responses couldn't be collected in time...")
 
-    if completions:
-        logger.debug(f"[ORGANIC] Responses collected. Completions: {completions}")
-        stream_results = [
-            SynapseStreamResult(
-                accumulated_chunks=data["accumulated_chunks"] if "accumulated_chunks" in data else [],
-                accumulated_chunks_timings=(
-                    data["accumulated_chunk_timings"] if "accumulated_chunk_timings" in data else []
-                ),
-                synapse=synapse,
-                uid=uid,
-            )
-            for uid, data in completions.items()
-            if data["completed"]
-        ]
-        logger.debug(f"[ORGANIC] Number of responses collected: {len(completions)}")
-        # return streaming_response
-        response_event = DendriteResponseEvent(
-            uids=list(completions.keys()),
-            stream_results=stream_results,
-            timeout=settings.NEURON_TIMEOUT,
-        )
-        logger.debug("[ORGANIC] Adding to scoring queue")
-        task_scorer.add_to_queue(
-            task=task,
-            response=response_event,
-            dataset_entry=ChatEntry(messages=synapse.messages, roles=synapse.roles, organic=True, source=None),
-        )
-    else:
+    if len(completions) == 0:
         logger.error("[ORGANIC] No responses collected...")
+        return
+    logger.debug(f"[ORGANIC] Responses collected. Completions: {completions}")
+    stream_results = [
+        SynapseStreamResult(
+            accumulated_chunks=completion.accumulated_chunks,
+            accumulated_chunks_timings=(completion.accumulated_chunks_timings),
+            synapse=synapse,
+            uid=completion.uid,
+        )
+        for completion in completions
+    ]
+    logger.debug(f"[ORGANIC] Number of responses collected: {len(completions)}")
+    # return streaming_response
+    response_event = DendriteResponseEvent(
+        uids=uids,
+        stream_results=stream_results,
+        timeout=settings.NEURON_TIMEOUT,
+    )
+    logger.debug("[ORGANIC] Adding to scoring queue")
+    task_scorer.add_to_queue(
+        task=task,
+        response=response_event,
+        dataset_entry=ChatEntry(messages=synapse.messages, roles=synapse.roles, organic=True, source=None),
+    )
 
 
 async def stream_miner_response(
     synapse: StreamPromptingSynapse,
     uids: list[int],
-    completions: dict[int, dict],
+    completions: list[Completion],
     send: Send,
 ):
     """Stream back miner's responses."""
 
     async def stream_miner_chunks(uid: int, chunks: AsyncGenerator):
+        logger.debug(f"[ORGANIC] Streaming chunks for UID: {uid}")
         accumulated_chunks: list[str] = []
         accumulated_chunks_timings: list[float] = []
         accumulated_tokens_per_chunk: list[int] = []
         synapse: StreamPromptingSynapse | None = None
-        completions[uid] = {"completed": False}
         timer_start = time.perf_counter()
         async for chunk in chunks:
             try:
@@ -132,11 +140,17 @@ async def stream_miner_response(
                 logger.exception("[Organic] Error while streaming chunks")
                 break
         await send({"type": "http.response.body", "body": b"", "more_body": False})
-        completions[uid]["accumulated_chunks"] = accumulated_chunks
-        completions[uid]["accumulated_chunks_timings"] = accumulated_chunks_timings
-        completions[uid]["accumulated_tokens_per_chunk"] = accumulated_tokens_per_chunk
-        completions[uid]["completed"] = True
-        completions[uid]["synapse"] = synapse
+        logger.debug(f"[ORGANIC] Appending completion for UID: {uid}")
+        completions.append(
+            Completion(
+                uid=uid,
+                accumulated_chunks=accumulated_chunks,
+                accumulated_chunks_timings=accumulated_chunks_timings,
+                accumulated_tokens_per_chunk=accumulated_tokens_per_chunk,
+                completed=True,
+                synapse=synapse,
+            )
+        )
 
     logger.info(f"[Organic] Querying miner UIDs: {uids}")
     try:
