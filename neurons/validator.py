@@ -1,6 +1,5 @@
 # ruff: noqa: E402
 import asyncio
-import cProfile
 import time
 from prompting import settings
 
@@ -80,7 +79,9 @@ class Validator(BaseValidatorNeuron):
                     logger.debug(f"Generating query for task: {task.__class__.__name__}.")
                     task.make_query(dataset_entry=dataset_entry)
 
-                response_event = await self.collect_responses(task=task)
+                with Timer() as timer:
+                    response_event = await self.collect_responses(task=task)
+                logger.debug(f"Collected responses in {timer.elapsed_time:.2f} seconds")
 
                 # scoring_manager will score the responses as and when the correct model is loaded
                 task_scorer.add_to_queue(
@@ -230,5 +231,5 @@ async def main():
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
-    cProfile.run(asyncio.run(main()))
+    asyncio.run(main())
     # will start rotating the different LLMs in/out of memory
