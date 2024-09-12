@@ -133,8 +133,11 @@ class ModelManager(BaseModel):
 
     # TODO: Merge generate and chat_generate into a single method
     def generate(
-        self, prompts: list[str], model: ModelConfig | str | None = None, sampling_params: SamplingParams | None = None
-    ) -> str:
+        self,
+        prompts: list[str],
+        model: ModelConfig | str | None = None,
+        sampling_params: SamplingParams | None = SamplingParams(max_tokens=settings.NEURON_MAX_TOKENS),
+    ) -> list[str]:
         if isinstance(model, str):
             model = ModelZoo.get_model_by_id(model)
         if not model:

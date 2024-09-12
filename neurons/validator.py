@@ -11,7 +11,6 @@ from prompting.base.validator import BaseValidatorNeuron
 from prompting.base.forward import log_stream_results, handle_response
 from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
 from prompting.tasks.task_registry import TaskRegistry
-from prompting.utils.logging import log_event
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from prompting.rewards.scoring import task_scorer
 from prompting.miner_availability.miner_availability import availability_checking_loop, miner_availabilities
@@ -83,7 +82,14 @@ class Validator(BaseValidatorNeuron):
                 response_event = await self.collect_responses(task=task)
 
                 # scoring_manager will score the responses as and when the correct model is loaded
-                task_scorer.add_to_queue(task=task, response=response_event, dataset_entry=dataset_entry, block=self.block, step=self.step, task_id=task.task_id)
+                task_scorer.add_to_queue(
+                    task=task,
+                    response=response_event,
+                    dataset_entry=dataset_entry,
+                    block=self.block,
+                    step=self.step,
+                    task_id=task.task_id,
+                )
 
                 for uids, rewards in mutable_globals.rewards_and_uids:
                     self.update_scores(uids=uids, rewards=rewards)

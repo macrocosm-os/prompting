@@ -47,7 +47,7 @@ class Settings(BaseModel):
     NEURON_QUERY_UNIQUE_COLDKEYS: bool = False
     NEURON_QUERY_UNIQUE_IPS: bool = False
     NEURON_FORWARD_MAX_TIME: int = 120
-    NEURON_MAX_TOKENS: int = 256
+    NEURON_MAX_TOKENS: int = 512
 
     # ORGANIC
     ORGANIC_TIMEOUT: int = 30
