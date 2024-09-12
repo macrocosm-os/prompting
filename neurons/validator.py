@@ -1,5 +1,6 @@
 # ruff: noqa: E402
 import asyncio
+import cProfile
 import time
 from prompting import settings
 
@@ -199,16 +200,14 @@ class Validator(BaseValidatorNeuron):
             logger.debug("Stopped")
 
 
-# The main function parses the configuration and runs the validator.
-if __name__ == "__main__":
-    # will start rotating the different LLMs in/out of memory
-    asyncio.run(model_scheduler.start())
+async def main():
+    asyncio.create_task(model_scheduler.start())
 
     # will start checking the availability of miners at regular intervals
-    asyncio.run(availability_checking_loop.start())
+    asyncio.create_task(availability_checking_loop.start())
 
     # start scoring tasks in separate loop
-    asyncio.run(task_scorer.start())
+    asyncio.create_task(task_scorer.start())
     # TODO: Think about whether we want to store the task queue locally in case of a crash
     # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
     # TODO: Make weight setting happen as specific intervals as we load/unload models
@@ -227,3 +226,9 @@ if __name__ == "__main__":
 
             if v.should_exit:
                 logger.warning("Ending validator...")
+
+
+# The main function parses the configuration and runs the validator.
+if __name__ == "__main__":
+    cProfile.run(asyncio.run(main()))
+    # will start rotating the different LLMs in/out of memory
