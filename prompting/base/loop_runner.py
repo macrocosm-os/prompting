@@ -8,6 +8,7 @@ class AsyncLoopRunner(BaseModel, ABC):
     interval: int = 10  # interval to run the main function in
     running: bool = False
     _task: asyncio.Task = None
+    step: int = 0
 
     @abstractmethod
     async def run_step(self):
@@ -43,6 +44,7 @@ class AsyncLoopRunner(BaseModel, ABC):
             while self.running:
                 try:
                     await self.run_step()
+                    self.step += 1
                 except Exception as ex:
                     logger.exception(ex)
                 await asyncio.sleep(self.interval)

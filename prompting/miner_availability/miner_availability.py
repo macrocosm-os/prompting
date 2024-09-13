@@ -66,6 +66,8 @@ class CheckMinerAvailability(AsyncLoopRunner):
         start_index = self.current_index
         end_index = min(start_index + self.uids_per_step, len(self.uids))
         uids_to_query = self.uids[start_index:end_index]
+        if self.step == 0:
+            uids_to_query = self.uids
 
         logger.info(f"Collecting miner availabilities on uids: {uids_to_query}")
 
