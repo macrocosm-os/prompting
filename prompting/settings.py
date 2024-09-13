@@ -46,7 +46,7 @@ class Settings(BaseModel):
     NEURON_VPERMIT_TAO_LIMIT: int = 4096
     NEURON_QUERY_UNIQUE_COLDKEYS: bool = False
     NEURON_QUERY_UNIQUE_IPS: bool = False
-    NEURON_FORWARD_MAX_TIME: int = 120
+    NEURON_FORWARD_MAX_TIME: int = 240
     NEURON_MAX_TOKENS: int = 512
 
     # ORGANIC

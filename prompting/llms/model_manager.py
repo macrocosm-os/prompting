@@ -162,7 +162,7 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    interval: int = 10
+    interval: int = 14400
 
     async def initialise_loop(self):
         model_manager.load_always_active_models()

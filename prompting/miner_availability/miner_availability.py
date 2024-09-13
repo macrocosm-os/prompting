@@ -53,7 +53,7 @@ class MinerAvailabilities(BaseModel):
 
 
 class CheckMinerAvailability(AsyncLoopRunner):
-    interval: int = 10
+    interval: int = 20
 
     async def run_step(self):
         uids = settings.TEST_MINER_IDS or get_uids(sampling_mode="all")
@@ -74,6 +74,7 @@ class CheckMinerAvailability(AsyncLoopRunner):
                 llm_model_availabilities=response.llm_model_availabilities,
             )
         logger.debug("Miner availabilities updated.")
+        self.interval = 14400
 
 
 miner_availabilities = MinerAvailabilities()

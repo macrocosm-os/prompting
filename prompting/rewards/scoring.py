@@ -30,7 +30,7 @@ class TaskScorer(AsyncLoopRunner):
 
     is_running: bool = False
     thread: threading.Thread = None
-    interval: int = 0
+    interval: int = 10
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
