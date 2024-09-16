@@ -75,12 +75,7 @@ class BaseTextTask(BaseTask):
     def make_reference(self, dataset_entry: DatasetEntry) -> str:
         return self.reference
 
-    def generate_query_reference(self, dataset_entry: DatasetEntry) -> str:
-        self.make_query(dataset_entry=dataset_entry)
-        self.make_reference(dataset_entry=dataset_entry)
-        return self.query, self.reference
-
-    def generate_reference(self, messages: list[str]) -> str:
+    def generate_reference(self, messages: str) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
         self.reference = vLLM_LLM(

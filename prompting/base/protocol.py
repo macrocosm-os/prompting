@@ -1,6 +1,6 @@
 import pydantic
 import bittensor as bt
-from typing import List, AsyncIterator
+from typing import List, AsyncIterator, Optional
 from starlette.responses import StreamingResponse
 
 # from prompting.tasks.date_qa import DateQuestionAnsweringTask
@@ -54,21 +54,21 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
     subclasses to further customize behavior for specific prompting scenarios or requirements.
     """
 
-    task_name: str = pydantic.Field(
+    task_name: Optional[str] = pydantic.Field(
         ...,
         title="Task",
         description="The task for the current StreamPromptingSynapse object. This attribute is immutable.",
         allow_mutation=False,
     )
 
-    target_model: str | None = pydantic.Field(
+    target_model: Optional[str] = pydantic.Field(
         None,
         title="Target Model",
         description="The model the miner should use for generations. If none, the miner should respond with whatever he thinks is best.",
         allow_mutation=False,
     )
 
-    seed: int | None = pydantic.Field(
+    seed: Optional[int] = pydantic.Field(
         None,
         title="Seed",
         description="The seed for that the miner must use for generations. This is only used in combination with the target_model.",
