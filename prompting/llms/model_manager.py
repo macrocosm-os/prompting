@@ -133,8 +133,11 @@ class ModelManager(BaseModel):
 
     # TODO: Merge generate and chat_generate into a single method
     def generate(
-        self, prompts: list[str], model: ModelConfig | str | None = None, sampling_params: SamplingParams | None = None
-    ) -> str:
+        self,
+        prompts: list[str],
+        model: ModelConfig | str | None = None,
+        sampling_params: SamplingParams | None = SamplingParams(max_tokens=settings.NEURON_MAX_TOKENS),
+    ) -> list[str]:
         if isinstance(model, str):
             model = ModelZoo.get_model_by_id(model)
         if not model:
@@ -159,7 +162,7 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    interval: int = 10
+    interval: int = 14400
 
     async def initialise_loop(self):
         model_manager.load_always_active_models()

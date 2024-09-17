@@ -81,6 +81,7 @@ class QuestionAnsweringTask(BaseTextTask):
             RemovePostQuestionText(),
         ]
     )
+    name: ClassVar[str] = "qa"
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     reference_system_prompt: ClassVar[str] = REFERENCE_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""

@@ -147,18 +147,11 @@ class ValidatorLoggingEvent(BaseEvent):
             Completions: {sample_completions}
             Sample completion: {sample_completion}"""
 
-
-class ValidatorLoggingOrganicEvent(ValidatorLoggingEvent):
-    organic_turn: Optional[int]
-    organic_time_sample: Optional[float]
-    organic_time_responses: Optional[float]
-    organic_time_rewards: Optional[float]
-    organic_time_weights: Optional[float]
-    organic_queue_size: Optional[int]
-
-
 class RewardLoggingEvent(BaseEvent):
+    block: int
+    step: int
     best: str | None
+    response_event: DendriteResponseEvent
     reward_events: list[WeightedRewardEvent]
     penalty_events: list[WeightedRewardEvent]
     task_id: str

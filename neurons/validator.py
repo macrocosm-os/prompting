@@ -11,7 +11,6 @@ from prompting.base.validator import BaseValidatorNeuron
 from prompting.base.forward import log_stream_results, handle_response
 from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
 from prompting.tasks.task_registry import TaskRegistry
-from prompting.utils.logging import log_event
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from prompting.rewards.scoring import task_scorer
 from prompting.miner_availability.miner_availability import availability_checking_loop, miner_availabilities
@@ -80,10 +79,19 @@ class Validator(BaseValidatorNeuron):
                     logger.debug(f"Generating query for task: {task.__class__.__name__}.")
                     task.make_query(dataset_entry=dataset_entry)
 
-                response_event = await self.collect_responses(task=task)
+                with Timer() as timer:
+                    response_event = await self.collect_responses(task=task)
+                logger.debug(f"Collected responses in {timer.elapsed_time:.2f} seconds")
 
                 # scoring_manager will score the responses as and when the correct model is loaded
-                task_scorer.add_to_queue(task=task, response=response_event, dataset_entry=dataset_entry)
+                task_scorer.add_to_queue(
+                    task=task,
+                    response=response_event,
+                    dataset_entry=dataset_entry,
+                    block=self.block,
+                    step=self.step,
+                    task_id=task.task_id,
+                )
 
                 for uids, rewards in mutable_globals.rewards_and_uids:
                     self.update_scores(uids=uids, rewards=rewards)
@@ -162,7 +170,6 @@ class Validator(BaseValidatorNeuron):
             return
 
         event.forward_time = timer.elapsed_time
-        log_event(event)
 
     def __enter__(self):
         if settings.NO_BACKGROUND_THREAD:
@@ -194,16 +201,14 @@ class Validator(BaseValidatorNeuron):
             logger.debug("Stopped")
 
 
-# The main function parses the configuration and runs the validator.
-if __name__ == "__main__":
-    # will start rotating the different LLMs in/out of memory
-    asyncio.run(model_scheduler.start())
+async def main():
+    asyncio.create_task(model_scheduler.start())
 
     # will start checking the availability of miners at regular intervals
-    asyncio.run(availability_checking_loop.start())
+    asyncio.create_task(availability_checking_loop.start())
 
     # start scoring tasks in separate loop
-    asyncio.run(task_scorer.start())
+    asyncio.create_task(task_scorer.start())
     # TODO: Think about whether we want to store the task queue locally in case of a crash
     # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
     # TODO: Make weight setting happen as specific intervals as we load/unload models
@@ -222,3 +227,9 @@ if __name__ == "__main__":
 
             if v.should_exit:
                 logger.warning("Ending validator...")
+
+
+# The main function parses the configuration and runs the validator.
+if __name__ == "__main__":
+    asyncio.run(main())
+    # will start rotating the different LLMs in/out of memory

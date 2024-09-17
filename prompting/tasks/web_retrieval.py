@@ -24,6 +24,7 @@ class WebRetrievalRewardConfig(BaseRewardConfig):
 
 
 class WebRetrievalTask(BaseTextTask):
+    name: ClassVar[str] = "web_retrieval"
     augmentation_system_prompt: ClassVar[str] = ""
     query_system_prompt: ClassVar[Optional[str]] = QUERY_SYSTEM_PROMPT
 

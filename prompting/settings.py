@@ -46,8 +46,8 @@ class Settings(BaseModel):
     NEURON_VPERMIT_TAO_LIMIT: int = 4096
     NEURON_QUERY_UNIQUE_COLDKEYS: bool = False
     NEURON_QUERY_UNIQUE_IPS: bool = False
-    NEURON_FORWARD_MAX_TIME: int = 120
-    NEURON_MAX_TOKENS: int = 256
+    NEURON_FORWARD_MAX_TIME: int = 240
+    NEURON_MAX_TOKENS: int = 512
 
     # ORGANIC
     ORGANIC_TIMEOUT: int = 30
@@ -134,7 +134,7 @@ class Settings(BaseModel):
         values["ORGANIC_SCALING_FACTOR"] = os.environ.get("ORGANIC_SCALING_FACTOR", 1)
 
         values["LOG_WEIGHTS"] = os.environ.get("LOG_WEIGHTS", False)
-        if values["TEST"] and os.environ.get("TEST_MINER_IDS"):
+        if os.environ.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in os.environ.get("TEST_MINER_IDS").split(",")]
         values["NEURON_MODEL_ID_VALIDATOR"] = os.environ.get(
             "LLM_MODEL", "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4"

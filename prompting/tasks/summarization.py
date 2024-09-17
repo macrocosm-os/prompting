@@ -50,6 +50,7 @@ class SummarizationTask(BaseTextTask):
             RemoveRoles(),
         ]
     )
+    name: ClassVar[str] = "summarization"
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     reference_system_prompt: ClassVar[str] = REFERENCE_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""

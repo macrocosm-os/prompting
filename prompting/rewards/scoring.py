@@ -19,7 +19,9 @@ class ScoringConfig:
     task: BaseTextTask
     response: DendriteResponseEvent
     dataset_entry: DatasetEntry
-
+    block: int
+    step: int
+    task_id: str
 
 class TaskScorer(AsyncLoopRunner):
     """The scoring manager maintains a queue of tasks & responses to score and then runs a scoring loop in a background thread.
@@ -28,13 +30,13 @@ class TaskScorer(AsyncLoopRunner):
 
     is_running: bool = False
     thread: threading.Thread = None
-    interval: int = 0
+    interval: int = 10
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def add_to_queue(self, task: BaseTextTask, response: DendriteResponseEvent, dataset_entry: DatasetEntry) -> None:
+    def add_to_queue(self, task: BaseTextTask, response: DendriteResponseEvent, dataset_entry: DatasetEntry, block: int, step: int, task_id: str) -> None:
         logger.debug(f"SCORING: Added to queue: {task.__class__.__name__} {task.task_id}")
-        scoring_queue.append(ScoringConfig(task=task, response=response, dataset_entry=dataset_entry))
+        scoring_queue.append(ScoringConfig(task=task, response=response, dataset_entry=dataset_entry, block=block, step=step, task_id=task_id))
 
     async def run_step(self) -> RewardLoggingEvent:
         # Only score responses for which the model is loaded
@@ -61,7 +63,7 @@ class TaskScorer(AsyncLoopRunner):
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
         logger.debug(
-            f"""{len(scoring_config.response.completions)} completions to score for task {scoring_config.task.task_id}
+            f"""{len(scoring_config.response.completions)} completions to score for task {scoring_config.task}
             COMPLETIONS: {scoring_config.response.completions}"""
         )
         reward_events, penalty_events, rewards = reward_pipeline.apply(
@@ -81,21 +83,22 @@ class TaskScorer(AsyncLoopRunner):
         log_event(
             RewardLoggingEvent(
                 best=best_response,
+                response_event=scoring_config.response,
                 reward_events=reward_events,
                 penalty_events=penalty_events,
-                task_id=scoring_config.task.task_id,
                 reference=scoring_config.task.reference,
                 challenge=scoring_config.task.query,
-                task=scoring_config.task.__class__.__name__,
+                task=scoring_config.task.name,
                 rewards=rewards,
+                block=scoring_config.block,
+                step=scoring_config.step,
+                task_id=scoring_config.task_id,
             )
         )
         logger.info("Adding scores to rewards_and_uids")
         rewards_and_uids.append((scoring_config.response.uids, rewards))
 
-
 class WeightSetter(AsyncLoopRunner):
     pass
-
 
 task_scorer = TaskScorer()
