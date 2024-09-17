@@ -31,7 +31,7 @@ CODE_MODIFICATION_PROMPT = textwrap.dedent(
     Original code:
     {file_content}
 
-    Respond only with the new and modified code! Make sure to respond the with the entire code, not just a part of it.
+    Respond only with the new and modified code! Make sure to respond with the entire code, not just a part of it.
     """
 )
 
