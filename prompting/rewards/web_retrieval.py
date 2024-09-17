@@ -7,43 +7,49 @@ from scipy import spatial
 import trafilatura
 
 from prompting.datasets.random_website import DDGDatasetEntry
-from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
+from prompting.rewards.relevance import RelevanceRewardModel
+from prompting.rewards.reward import BatchRewardOutput
 from prompting.base.dendrite import DendriteResponseEvent
 
 
 _SEARCH_TERM_THRESH = 0.1
-_VALID_URL_SCORE = 0.95
+_VALID_URL_SCORE = 0.8
 
 
-class WebRetrievalRewardModel(BaseRewardModel):
-    def _cosine_similarity(self, reference: str, response: str) -> float:
+class WebRetrievalRewardModel(RelevanceRewardModel):
+    def _cosine_similarity(self, content1: str, content2: str) -> float:
         """Calculate the cosine similarity between sentence embeddings of the reference and completions."""
-        reference_emb_flatten = self.embedding_model.encode(reference, to_numpy=True).flatten()
-        response_emb_flatten = self.embedding_model.encode(response, to_numpy=True).flatten()
+        reference_emb_flatten = self.embedding_model.encode(content1, to_numpy=True).flatten()
+        response_emb_flatten = self.embedding_model.encode(content2, to_numpy=True).flatten()
         return 1.0 - float(spatial.distance.cosine(reference_emb_flatten, response_emb_flatten))
 
-    def reward(self, reference: DDGDatasetEntry, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    # TODO: Change base class reference type to Reference pydantic model, in order to store additional data.
+    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         """Gives an exact reward of 1 if the response matches the reference, 0 otherwise"""
-        completion: str = "\n".join(response_event.completions)
         timer_start = time.perf_counter()
+        completion: str = "\n".join(response_event.completions)
 
-        # Initial search term.
-        search_term = reference.search_term
-        # Actual text from the website.
-        reference_content = reference.website_content
+        dataset_entry = DDGDatasetEntry.model_validate_json(reference)
+        search_term = dataset_entry.search_term
+        reference_content = dataset_entry.website_content
+
         # URL and the content provided in the completion.
         response_url, response_content = self._parse_response(completion)
         # Content scraped from the URL provided in the completion.
         response_url_scrape = self._extract_website_content(response_url)
 
-        # Similarity between search term and reference content.
-        search_reference_sim = self._cosine_similarity(reference=search_term, response=reference_content)
         # Similarity between search term and miner's scraped content.
-        search_response_sim = self._cosine_similarity(reference=search_term, response=response_content)
-        # If the URL provided in the completion is valid.
-        valid_url_score = self._cosine_similarity(reference=response_content, response=response_url_scrape)
+        search_response_sim = self._cosine_similarity(content1=search_term, content2=response_content)
 
+        # If the URL provided in the completion is valid.
+        valid_url_score = 0
+        if response_url_scrape is not None:
+            valid_url_score = self._cosine_similarity(content1=response_content, content2=response_url_scrape)
+
+        # Similarity between search term and reference content.
+        search_reference_sim = self._cosine_similarity(content1=search_term, content2=reference_content)
         response_reference_ratio = search_response_sim / search_reference_sim
+        score = (search_response_sim + valid_url_score) / 2
         if abs(response_reference_ratio - 1) > _SEARCH_TERM_THRESH:
             logger.info(
                 f"Reponse and reference scraped content relevance to the search term exceeds the threshold. "
@@ -55,16 +61,16 @@ class WebRetrievalRewardModel(BaseRewardModel):
                 f"Search term is not relevant to the scraped content, similarity {valid_url_score} < {_VALID_URL_SCORE}"
             )
             score = 0
-        else:
-            score = search_response_sim * valid_url_score
 
         return BatchRewardOutput(rewards=np.asarray([score]), timings=np.asarray([time.perf_counter() - timer_start]))
 
-    def _extract_website_content(self, url) -> str:
+    @staticmethod
+    def _extract_website_content(url) -> str:
         website = trafilatura.fetch_url(url)
         return trafilatura.extract(website)
 
-    def _parse_response(self, completion: str) -> tuple[str, str]:
+    @staticmethod
+    def _parse_response(completion: str) -> tuple[str, str]:
         """Parse the completion text and extracts the URL and content.
 
         Args:

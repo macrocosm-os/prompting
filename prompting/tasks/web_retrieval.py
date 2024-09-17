@@ -2,7 +2,6 @@ import textwrap
 from typing import ClassVar, Optional
 
 from prompting.datasets.random_website import DDGDatasetEntry
-from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
 from prompting.rewards.web_retrieval import WebRetrievalRewardModel
 from prompting.tasks.base_task import BaseTextTask
@@ -26,10 +25,7 @@ Make it such that the question can be answered by doing a thorough search on the
 )
 QUERY_PROMPT_TEMPLATE = "[Input Text]\n{context}"
 
-# REFERENCE_SYSTEM_PROMPT = textwrap.dedent(
-# """Your task is to answer the following question with the given context.
-# """
-# )
+# REFERENCE_SYSTEM_PROMPT = textwrap.dedent("Your task is to answer the following question with the given context.\n")
 # REFERENCE_PROMPT_TEMPLATE = "[Question]\n{question}\n[Context]\n{context}"
 
 
@@ -65,6 +61,5 @@ class WebRetrievalTask(BaseTextTask):
         # self.reference = dataset_entry.website_content
 
         # Approach #3: Search term and response content similarity.
-        # self.reference = dataset_entry.search_term
-        self.reference = dataset_entry
+        self.reference = dataset_entry.model_dump_json()
         return self.reference
