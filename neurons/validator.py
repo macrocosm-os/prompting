@@ -1,38 +1,28 @@
 # ruff: noqa: E402
 import asyncio
 import time
-from typing import Optional
-
-import numpy as np
-
 from prompting import settings
 
 settings.settings = settings.Settings(mode="validator")
 settings = settings.settings
 
-import huggingface_hub
 from loguru import logger
-
-from neurons.forward import handle_response, log_stream_results
-from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
 from prompting.base.validator import BaseValidatorNeuron
-from prompting.datasets.base import BaseDataset
-from prompting.llms.vllm_llm import vLLMPipeline
-from prompting.tasks.base_task import BaseTask
+from prompting.base.forward import log_stream_results, handle_response
+from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
 from prompting.tasks.task_registry import TaskRegistry
-from prompting.utils.logging import ErrorEvent, ValidatorEvent, log_event
-from prompting.utils.uids import get_random_uids
-
-try:
-    from organic_scoring.synth_dataset import SynthDatasetConversation
-
-    from prompting.organic.organic_scoring_prompting import OrganicScoringPrompting
-except ImportError:
-    raise ImportError(
-        "Could not import organic-scoring library.  Please install via poetry: `poetry install --extras 'validator'`"
-    )
+from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
+from prompting.rewards.scoring import task_scorer
+from prompting.miner_availability.miner_availability import availability_checking_loop, miner_availabilities
+from prompting.llms.model_manager import model_scheduler
+from prompting.utils.timer import Timer
+from prompting.mutable_globals import scoring_queue
+from prompting import mutable_globals
+from prompting.tasks.base_task import BaseTextTask
+from prompting.organic.organic_loop import start_organic
 
 NEURON_SAMPLE_SIZE = 100
+SCORING_QUEUE_LENGTH_THRESHOLD = 10
 
 
 class Validator(BaseValidatorNeuron):
@@ -42,58 +32,17 @@ class Validator(BaseValidatorNeuron):
 
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)
-        logger.info("load_state()")
         self.load_state()
         self._lock = asyncio.Lock()
+        start_organic(self.axon)
 
-        self.llm_pipeline = vLLMPipeline(
-            llm_model_id=settings.NEURON_MODEL_ID_VALIDATOR,
-            llm_max_allowed_memory_in_gb=settings.NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB,
-            llm_max_model_len=settings.LLM_MAX_MODEL_LEN,
-            gpus=settings.NEURON_GPUS,
-            device=self.device,
-            mock=settings.MOCK,
-        )
-
-        if self.axon is None or settings.ORGANIC_DISABLED:
-            logger.warning(
-                "Organic scoring is not enabled. To enable, remove '--neuron.axon_off' and '--neuron.organic_disabled'"
-            )
-            return
-
-        huggingface_hub.login(settings.HF_TOKEN)
-        dataset = SynthDatasetConversation()
-        if dataset.exception is not None:
-            logger.error(
-                "Organic scoring on synthetic data is disabled. Failed to load HF dataset.\nMake sure to:\n"
-                "1. Accept License on: https://huggingface.co/datasets/lmsys/lmsys-chat-1m\n"
-                "2. Create HF Access Token: https://huggingface.co/settings/tokens\n"
-                "3. Set Access Token 'HF_TOKEN' in .env.validator\n"
-            )
-            dataset = None
-
-        self._organic_scoring = OrganicScoringPrompting(
-            axon=self.axon,
-            synth_dataset=dataset,
-            llm_pipeline=self.llm_pipeline,
-            tokenizer=self.llm_pipeline.tokenizer,
-            update_scores_fn=self.update_scores,
-            get_random_uids_fn=lambda: get_random_uids(self, k=settings.ORGANIC_SAMPLE_SIZE, exclude=[]),
-            get_step_fn=lambda: self.step,
-            get_block_fn=lambda: self.block,
-        )
-        if self._organic_scoring is not None:
-            self.loop.create_task(self._organic_scoring.start_loop())
-
-    async def run_step(
-        self, task: BaseTask, dataset: BaseDataset, k: int, timeout: float, exclude: Optional[list] = None
-    ) -> ValidatorEvent | ErrorEvent | None:
+    async def run_step(self, k: int, timeout: float) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
         """Executes a single step of the agent, which consists of:
-            - Getting a list of uids to query
-            - Querying the network
-            - Rewarding the network
-            - Updating the scores
-            - Logging the event
+        - Getting a list of uids to query
+        - Querying the network
+        - Rewarding the network
+        - Updating the scores
+        - Logging the event
         Args:
             agent (HumanAgent): The agent to run the step for.
             roles (List[str]): The roles for the synapse.
@@ -102,76 +51,106 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
+        if len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
+            logger.debug("Scoring queue is full. Skipping task generation.")
+            return None
         try:
-            logger.debug("run_step", task.__class__.__name__)
-            if not (dataset_entry := dataset.random()):
-                logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
-                return None
-            # Generate the query and reference for the task
-            query, reference = task.generate_query_reference(self.llm_pipeline, dataset_entry)
-            # task.generate_reference(self.llm_pipeline)
+            # Getting task & Dataset
+            with Timer() as timer:
+                while True:
+                    try:
+                        task, dataset = TaskRegistry.create_random_task_with_dataset()
+                        break
+                    except Exception as ex:
+                        logger.exception(ex)
 
-            # Record event start time.
-            start_time = time.time()
+                if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
+                    logger.debug(
+                        f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."
+                    )
+                    return None
 
-            # Get the list of uids to query for this step.
-            uids = get_random_uids(self, k=k, exclude=exclude or [])
+                if not (dataset_entry := dataset.random()):
+                    logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
+                    return None
 
-            axons = [settings.METAGRAPH.axons[uid] for uid in uids]
+                # Generate the query and reference for the task
+                if not task.query:
+                    logger.debug(f"Generating query for task: {task.__class__.__name__}.")
+                    task.make_query(dataset_entry=dataset_entry)
 
-            # Directly call dendrite and process responses in parallel
-            streams_responses = await self.dendrite(
-                axons=axons,
-                synapse=StreamPromptingSynapse(roles=["user"], messages=[query]),
-                timeout=timeout,
-                deserialize=False,
-                streaming=True,
-            )
+                with Timer() as timer:
+                    response_event = await self.collect_responses(task=task)
+                logger.debug(f"Collected responses in {timer.elapsed_time:.2f} seconds")
 
-            # Prepare the task for handling stream responses
-            stream_results = await handle_response(
-                stream_results_dict=dict(zip(uids, streams_responses)), tokenizer=self.llm_pipeline.tokenizer
-            )
+                # scoring_manager will score the responses as and when the correct model is loaded
+                task_scorer.add_to_queue(
+                    task=task,
+                    response=response_event,
+                    dataset_entry=dataset_entry,
+                    block=self.block,
+                    step=self.step,
+                    task_id=task.task_id,
+                )
 
-            log_stream_results(stream_results)
-
-            # Encapsulate the responses in a response event (dataclass)
-            response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
-
-            logger.info(f"Created DendriteResponseEvent:\n {response_event}")
-
-            # Reward the responses and get the reward result (dataclass)
-            # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
-            reward_pipeline = TaskRegistry.get_task_reward(task)
-            reward_events, penalty_events, rewards = reward_pipeline.apply(
-                response_event=response_event, reference=reference, challenge=query
-            )
-
-            logger.info(f"Created RewardResult:\n {rewards}")
-
-            best_response = response_event.completions[np.argmax(rewards)]
-
-            self.update_scores(rewards, uids)
+                for uids, rewards in mutable_globals.rewards_and_uids:
+                    self.update_scores(uids=uids, rewards=rewards)
+                mutable_globals.rewards_and_uids = []
 
             # Log the step event.
-            return ValidatorEvent(
-                best=best_response or "",
+            return ValidatorLoggingEvent(
                 block=self.block,
                 step=self.step,
-                step_time=time.time() - start_time,
-                reward_events=reward_events or [],
-                penalty_events=penalty_events or [],
-                reference=reference,
-                challenge=query,
-                task=task.name,
-                rewards=rewards,
+                step_time=timer.elapsed_time,
                 response_event=response_event,
+                task_id=task.task_id,
             )
+
         except Exception as ex:
             logger.exception(ex)
-            return ErrorEvent(
+            return ErrorLoggingEvent(
                 error=str(ex),
             )
+
+    async def collect_responses(self, task: BaseTextTask) -> DendriteResponseEvent:
+        # Get the list of uids and their axons to query for this step.
+        uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
+        logger.debug(f"🔍 Querying uids: {uids}")
+        if len(uids) == 0:
+            logger.debug("No available miners. Skipping step.")
+            return
+        axons = [settings.METAGRAPH.axons[uid] for uid in uids]
+
+        # Directly call dendrite and process responses in parallel
+        synapse = StreamPromptingSynapse(
+            task_name=task.__class__.__name__,
+            seed=task.seed,
+            target_model=task.llm_model_id,
+            roles=["user"],
+            messages=[task.query],
+        )
+        streams_responses = await settings.DENDRITE(
+            axons=axons,
+            synapse=synapse,
+            timeout=settings.NEURON_TIMEOUT,
+            deserialize=False,
+            streaming=True,
+        )
+
+        # Prepare the task for handling stream responses
+        stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
+        logger.debug(
+            f"Non-empty responses: {len([r.completion for r in stream_results if len(r.completion) > 0])}\n"
+            f"Empty responses: {len([r.completion for r in stream_results if len(r.completion) == 0])}"
+        )
+
+        log_stream_results(stream_results)
+
+        # Encapsulate the responses in a response event (dataclass)
+        response_event = DendriteResponseEvent(
+            stream_results=stream_results, uids=uids, timeout=settings.NEURON_TIMEOUT
+        )
+        return response_event
 
     async def forward(self):
         """
@@ -179,38 +158,18 @@ class Validator(BaseValidatorNeuron):
 
         """
         logger.info("🚀 Starting forward loop...")
-        forward_start_time = time.time()
+        with Timer() as timer:
+            # in run_step, a task is generated and sent to the miners
+            async with self._lock:
+                event = await self.run_step(
+                    k=NEURON_SAMPLE_SIZE,
+                    timeout=settings.NEURON_TIMEOUT,
+                )
 
-        while True:
-            logger.info(f"📋 Selecting task... from {TaskRegistry.task_configs}")
-            task_config = TaskRegistry.random()
-            logger.info(f"📋 Creating {task_config.task.__name__} task... ")
-            try:
-                task, dataset = TaskRegistry.create_random_task_with_dataset()
-                break
-            except Exception as ex:
-                logger.exception(ex)
-
-        exclude_uids = []
-
-        # when run_step is called, the agent updates its progress
-        async with self._lock:
-            event = await self.run_step(
-                task=task,
-                dataset=dataset,
-                k=NEURON_SAMPLE_SIZE,
-                timeout=settings.NEURON_TIMEOUT,
-                exclude=exclude_uids,
-            )
-
-        # Adds forward time to event and logs it to wandb
         if not event:
             return
 
-        event.forward_time = time.time() - forward_start_time
-        log_event(event)
-
-        # accepted_answer = event["best"] if random.random() < 0.5 else agent.task.reference
+        event.forward_time = timer.elapsed_time
 
     def __enter__(self):
         if settings.NO_BACKGROUND_THREAD:
@@ -242,8 +201,17 @@ class Validator(BaseValidatorNeuron):
             logger.debug("Stopped")
 
 
-# The main function parses the configuration and runs the validator.
-if __name__ == "__main__":
+async def main():
+    asyncio.create_task(model_scheduler.start())
+
+    # will start checking the availability of miners at regular intervals
+    asyncio.create_task(availability_checking_loop.start())
+
+    # start scoring tasks in separate loop
+    asyncio.create_task(task_scorer.start())
+    # TODO: Think about whether we want to store the task queue locally in case of a crash
+    # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
+    # TODO: Make weight setting happen as specific intervals as we load/unload models
     with Validator() as v:
         while True:
             logger.info(
@@ -259,5 +227,9 @@ if __name__ == "__main__":
 
             if v.should_exit:
                 logger.warning("Ending validator...")
-                logger.warning("Ending validator...")
-                break
+
+
+# The main function parses the configuration and runs the validator.
+if __name__ == "__main__":
+    asyncio.run(main())
+    # will start rotating the different LLMs in/out of memory

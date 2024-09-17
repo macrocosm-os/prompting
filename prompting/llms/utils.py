@@ -1,3 +1,5 @@
+from prompting.utils.misc import classproperty
+import numpy as np
 import re
 import torch
 from loguru import logger
@@ -78,3 +80,33 @@ def calculate_gpu_requirements(
         return calculate_multiple_gpu_requirements(
             device, gpus, max_allowed_memory_allocation_in_bytes=max_allowed_memory_allocation_in_bytes
         )
+
+
+class GPUInfo:
+    def log_gpu_info():
+        logger.info(
+            f"""Total GPU memory: {GPUInfo.total_memory} GB
+                    Free GPU memory: {GPUInfo.free_memory} GB
+                    Used GPU memory: {GPUInfo.used_memory} GB
+                    GPU utilization: {GPUInfo.gpu_utilization * 100}%"""
+        )
+
+    @classproperty
+    def total_memory(cls):
+        return np.sum([torch.cuda.get_device_properties(i).total_memory / (1024**3) for i in range(cls.n_gpus)])
+
+    @classproperty
+    def used_memory(cls):
+        return cls.total_memory - cls.free_memory
+
+    @classproperty
+    def free_memory(cls):
+        return np.sum([torch.cuda.mem_get_info(i)[0] / (1024**3) for i in range(cls.n_gpus)])
+
+    @classproperty
+    def n_gpus(cls):
+        return torch.cuda.device_count()
+
+    @classproperty
+    def gpu_utilization(cls):
+        return cls.used_memory / cls.total_memory

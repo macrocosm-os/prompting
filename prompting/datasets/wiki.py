@@ -1,17 +1,17 @@
+import random
 import re
 import sys
-import random
+from functools import lru_cache
+from queue import Empty, Full, Queue
+from typing import ClassVar, Optional
+
 import requests
+import wikipedia
 from bs4 import BeautifulSoup
 from loguru import logger
-import wikipedia
-from queue import Queue, Full, Empty
-from functools import lru_cache
-from prompting.datasets.base import BaseDataset
-from prompting.datasets.base import Context
-from typing import ClassVar
-from typing import Optional
-from pydantic import model_validator, ConfigDict
+from pydantic import ConfigDict, model_validator
+
+from prompting.datasets.base import BaseDataset, Context
 
 # Create a queue called CACHED_ARTICLES to store wikipedia articles that have been fetched
 CACHED_ARTICLES: Queue[Context] = Queue(maxsize=300)
@@ -44,9 +44,6 @@ def _get_page(
 
 
 def _get_random_titles(pages: int = 10) -> list:
-    """Cached wikipedia random page. Approximately deterministic random titles. This is useful for testing.
-    NOTE: the actually cached result will change each session, but the result will be the same within a session.
-    """
     return wikipedia.random(pages=pages)
 
 
@@ -206,10 +203,11 @@ class WikiDataset(BaseDataset):
 
     def random(self, pages=10) -> dict:
         titles = _get_random_titles(pages=pages)
-        for title in titles[:self.max_tries]:
+        for title in titles[: self.max_tries]:
             if context := self.get(title):
                 return context
         return None
+
 
 class DateContext(Context):
     date: str = None
@@ -310,7 +308,6 @@ class WikiDateDataset(BaseDataset):
     def get(
         self,
     ) -> dict:
-        # TODO: Implement deterministic get method
         raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
 
     def search(self, name: str, results: int = 5) -> dict:

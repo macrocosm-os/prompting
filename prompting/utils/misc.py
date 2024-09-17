@@ -9,6 +9,14 @@ from loguru import logger
 from prompting.settings import settings
 
 
+class classproperty:
+    def __init__(self, func: Callable):
+        self.fget = func
+
+    def __get__(self, instance, owner: Any):
+        return self.fget(owner)
+
+
 # LRU Cache with TTL
 def ttl_cache(maxsize: int = 128, typed: bool = False, ttl: int = -1):
     """
@@ -105,14 +113,14 @@ def async_log(func):
         start_time = time.time()
         task_id = id(asyncio.current_task())
         func_name = func.__name__
-        logger.debug(f"Starting {func_name} on task {task_id} at {start_time}")
+        logger.debug(f"Starting {func_name} on asyncio task {task_id} at {start_time}")
 
         # Execute the wrapped function
         result = await func(*args, **kwargs)
 
         end_time = time.time()
         execution_time = end_time - start_time
-        logger.debug(f"Completed {func_name} on task {task_id} in {execution_time} seconds")
+        logger.debug(f"Completed {func_name} on asyncio task {task_id} in {execution_time} seconds")
 
         return result
 
