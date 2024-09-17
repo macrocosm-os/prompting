@@ -37,12 +37,8 @@ class TaskRegistry(BaseModel):
             reward_model=DateQARewardConfig,
         ),
         TaskConfig(
-            task=SyntheticInferenceTask,
-            probability=0.2,
-            datasets=[DDGDataset],
-            reward_model=InferenceRewardConfig,
+            task=MultiChoiceTask, probability=0.2, datasets=[WikiDataset], reward_model=MultiChoiceRewardConfig
         ),
-        TaskConfig(task=MultiChoiceTask, probability=0.2, datasets=[WikiDataset], reward_model=MultiChoiceRewardConfig),
     ]
 
     @classmethod
