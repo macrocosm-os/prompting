@@ -2,17 +2,7 @@ from typing import ClassVar
 
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.date import DateRewardModel
-from prompting.tasks.base_task import BaseTask
-from prompting.llms.base_llm import BasePipeline
-from prompting.utils.cleaners import RemoveTags, FirstQuestion, CleanerPipeline
-from prompting.datasets.wiki import DateContext
-from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
-from typing import ClassVar
-
-from prompting.rewards.rouge import RougeRewardModel
-from prompting.rewards.date import DateRewardModel
-from prompting.tasks.base_task import BaseTask
-from prompting.llms.base_llm import BasePipeline
+from prompting.tasks.base_task import BaseTextTask
 from prompting.utils.cleaners import RemoveTags, FirstQuestion, CleanerPipeline
 from prompting.datasets.wiki import DateContext
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
@@ -37,18 +27,22 @@ class DateQARewardConfig(BaseRewardConfig):
     ]
 
 
-class DateQuestionAnsweringTask(BaseTask):
+class DateQuestionAnsweringTask(BaseTextTask):
     name: ClassVar[str] = "date_qa"
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline(cleaning_pipeline=[RemoveTags(), FirstQuestion()])
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
+    query: str | None = None
+    reference: str | None = None
 
-    @classmethod
-    def generate_query_reference(cls, llm_pipeline: BasePipeline, context: DateContext):
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(content=context.date, topic=context.title) #TODO Sort out context dictionary
-        query = cls.generate_query(llm_pipeline=llm_pipeline, message=query_prompt)
+    def make_query(self, dataset_entry: DateContext, **kwargs) -> str:
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(content=dataset_entry.content, topic=dataset_entry.topic)
+        self.query = self.generate_query(messages=[query_prompt])
+        return self.query
 
-        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(date=context.content, query=query, content=context.subtopic)
-        reference = cls.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
-
-        return query, reference
+    def make_reference(self, dataset_entry: DateContext) -> str:
+        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
+            date=dataset_entry.date, query=self.query, content=dataset_entry.content
+        )
+        self.reference = self.generate_reference(messages=[reference_prompt])
+        return self.reference

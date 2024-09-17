@@ -1,17 +1,6 @@
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
-from prompting.tasks.base_task import BaseTask
-from prompting.rewards.reward import WeightedRewardModel
-
-# from prompting.rewards.reward import BaseRewardModel
-from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding, RemovePostQuestionText
-from prompting.utils.cleaners import CleanerPipeline
-from prompting.datasets.base import Context
-from prompting.rewards.reward import BaseRewardConfig
-from typing import ClassVar
-from prompting.rewards.rouge import RougeRewardModel
-from prompting.rewards.relevance import RelevanceRewardModel
-from prompting.tasks.base_task import BaseTask
+from prompting.tasks.base_task import BaseTextTask
 from prompting.rewards.reward import WeightedRewardModel
 
 # from prompting.rewards.reward import BaseRewardModel
@@ -21,17 +10,12 @@ from prompting.datasets.base import Context
 from prompting.rewards.reward import BaseRewardConfig
 from typing import ClassVar
 
-# TODO: introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments
 
 # Used to instruct the LLM to provide a good query when given a context
 QUERY_SYSTEM_PROMPT = """\
 You are a question-generating expert, focusing on delivering comprehensive and accurate questions with depth and clarity. The questions you generate should be based on the context that is provided.
 You will maintain a neutral tone in your questions.
 You will adhere to a word limit of 50 words for each question.
-"""
-
-REFERENCE_SYSTEM_PROMPT = """\
-You are an expert question-answering LLM. You will receive context and a question, and you will generate a detailed and accurate answer to the question. Your answer should be based on the context provided.
 """
 
 REFERENCE_SYSTEM_PROMPT = """\
@@ -59,6 +43,22 @@ Answer the question you will receive in detail, utilizing the following context.
 {question}
 """
 
+FOLLOWUP_REFERENCE_PROMPT_TEMPLATE = """\
+You are a helpful assistant. Answer the question below in detail, prioritizing the use of the provided conversation history. The context is available for additional information if needed, but it may not always be relevant.
+
+# Conversation History:
+{history}
+
+# Context (optional):
+{context}
+
+# Question:
+{question}
+
+Ensure your answer references relevant parts of the conversation history. Use the context only if it provides additional necessary information.
+"""
+
+
 class QARewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
         WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
@@ -69,10 +69,10 @@ class QARewardConfig(BaseRewardConfig):
     ]
 
 
-class QuestionAnsweringTask(BaseTask):
+class QuestionAnsweringTask(BaseTextTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
-    name: ClassVar[str] = "qa"
+
     cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline(
         cleaning_pipeline=[
             RemoveQuotes(),
@@ -81,14 +81,19 @@ class QuestionAnsweringTask(BaseTask):
             RemovePostQuestionText(),
         ]
     )
+    name: ClassVar[str] = "qa"
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     reference_system_prompt: ClassVar[str] = REFERENCE_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
+    query: str | None = None
+    reference: str | None = None
 
-    @classmethod
-    def generate_query_reference(cls, llm_pipeline, context: Context):
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=context.content)
-        query = cls.generate_query(llm_pipeline=llm_pipeline, message=query_prompt)
-        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=context.content, question=query)
-        reference = cls.generate_reference(llm_pipeline=llm_pipeline, messages=[reference_prompt])
-        return query, reference
+    def make_query(self, dataset_entry: Context):
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.content)
+        self.query = self.generate_query(messages=[query_prompt])
+        return self.query
+
+    def make_reference(self, dataset_entry: Context):
+        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.content, question=self.query)
+        self.reference = self.generate_reference(messages=[reference_prompt])
+        return self.reference

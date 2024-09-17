@@ -2,6 +2,7 @@ import numpy as np
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.utils.misc import serialize_exception_to_string
 from pydantic import BaseModel, model_validator, ConfigDict
+from loguru import logger
 
 
 class SynapseStreamResult(BaseModel):
@@ -9,10 +10,16 @@ class SynapseStreamResult(BaseModel):
     uid: int | None = None
     accumulated_chunks: list[str] | None = None
     accumulated_chunks_timings: list[float] | None = None
-    tokens_per_chunk: list[int] | None = None
     synapse: StreamPromptingSynapse | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @property
+    def completion(self) -> str:
+        if not self.synapse:
+            logger.warning("Synapse is None")
+            return
+        return self.synapse.completion
 
     def model_dump(self):
         # without a custom model dump, this leads to serialization errors in DendriteResponseEvent...
@@ -23,11 +30,12 @@ class SynapseStreamResult(BaseModel):
             "accumulated_chunks": self.accumulated_chunks,
             "accumulated_chunks_timings": self.accumulated_chunks_timings,
             "tokens_per_chunk": self.tokens_per_chunk,
+            "synapse": self.synapse.model_dump(),
         }
 
 
 class DendriteResponseEvent(BaseModel):
-    uids: np.ndarray
+    uids: np.ndarray | list[float]
     timeout: float
     stream_results: list[SynapseStreamResult]
     completions: list[str] = []
@@ -44,11 +52,11 @@ class DendriteResponseEvent(BaseModel):
 
     @model_validator(mode="after")
     def process_stream_results(self) -> "DendriteResponseEvent":
+        # when passing this to a pydantic model, this method can be called multiple times, leading
+        # to duplicating the arrays. If the arrays are already filled, we can skip this step
+        if len(self.completions) > 0:
+            return self
         for stream_result in self.stream_results:
-            # when passing this to a pydantic model, this method can be called multiple times, leading
-            # to duplicating the arrays. If the arrays are already filled, we can skip this step
-            if len(self.completions) == len(self.stream_results):
-                return self
             # for some reason the language server needs this line to understand the type of stream_result
             stream_result: SynapseStreamResult
 
@@ -74,4 +82,4 @@ class DendriteResponseEvent(BaseModel):
             self.stream_results_exceptions.append(serialize_exception_to_string(stream_result.exception))
             self.stream_results_all_chunks.append(stream_result.accumulated_chunks)
             self.stream_results_all_chunks_timings.append(stream_result.accumulated_chunks_timings)
-            self.stream_results_all_tokens_per_chunk.append(stream_result.tokens_per_chunk)
+        return self
