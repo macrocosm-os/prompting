@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import ClassVar
 from prompting.utils.timer import Timer
 import json
+from pydantic import model_validator
 
 
 class DatasetEntry(BaseModel):
@@ -13,6 +14,20 @@ class DatasetEntry(BaseModel):
 
     def __hash__(self) -> int:
         return self.hash
+
+
+class ChatEntry(DatasetEntry):
+    messages: list[str]
+    roles: list[str]
+    organic: bool
+    source: str | None = None
+    query: str | None = None
+
+    @model_validator(mode="after")
+    def check_query(self) -> "ChatEntry":
+        if self.query is None:
+            self.query = self.messages[-1]
+        return self
 
 
 class MMLUEntry(DatasetEntry):
@@ -42,14 +57,14 @@ class BaseDataset(ABC, BaseModel):
     max_tries: int = 10
 
     @abstractmethod
-    def random(self) -> Context: ...
+    def random(self) -> DatasetEntry: ...
 
-    @abstractmethod
-    def get(self) -> Context: ...
+    def get(self) -> DatasetEntry:
+        return self.next()
 
     def next(self, method: Literal["random", "search", "get"] = "random", **kwargs) -> dict:
         tries = 1
-        context: Context  # for some reason the ls doesn't understand it's of type Context without this
+        context: DatasetEntry  # for some reason the ls doesn't understand it's of type Context without this
 
         with Timer() as timer:
             while True:

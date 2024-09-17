@@ -3,7 +3,7 @@ import numpy as np
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Literal, Any
+from typing import Literal, Any, Optional
 
 import wandb
 from loguru import logger
@@ -128,8 +128,8 @@ class ValidatorLoggingEvent(BaseEvent):
     step: int
     step_time: float
     response_event: DendriteResponseEvent
-    forward_time: float | None = None
     task_id: str
+    forward_time: float | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, copy_on_model_validation=False)
 
@@ -147,12 +147,18 @@ class ValidatorLoggingEvent(BaseEvent):
             Completions: {sample_completions}
             Sample completion: {sample_completion}"""
 
-
 class RewardLoggingEvent(BaseEvent):
-    best: str
+    block: int
+    step: int
+    best: str | None
+    response_event: DendriteResponseEvent
     reward_events: list[WeightedRewardEvent]
     penalty_events: list[WeightedRewardEvent]
     task_id: str
+    reference: str
+    challenge: str
+    task: str
+    rewards: list[float]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -163,11 +169,12 @@ class RewardLoggingEvent(BaseEvent):
             Best: {self.best}
             Rewards:
                 Rewards: {rewards}
-                Min: {np.min(rewards)}
-                Max: {np.max(rewards)}
-                Average: {np.mean(rewards)}
+                Min: {np.min(rewards) if len(rewards) > 0 else None}
+                Max: {np.max(rewards) if len(rewards) > 0 else None}
+                Average: {np.mean(rewards) if len(rewards) > 0 else None}
             Penalty Events: {self.penalty_events}
-            task_id: {self.task_id}"""
+            task_id: {self.task_id}
+            task_name: {self.task}"""
 
 
 class MinerLoggingEvent(BaseEvent):

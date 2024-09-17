@@ -8,6 +8,7 @@ from prompting.settings import settings
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_uids
 import random
+import numpy as np
 
 task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
 # task_config: dict[str, bool] = {
@@ -53,14 +54,27 @@ class MinerAvailabilities(BaseModel):
 
 
 class CheckMinerAvailability(AsyncLoopRunner):
-    interval: int = 10
+    interval: int = 30 # Miners will be queried approximately once every hour
+    uids: np.ndarray = settings.TEST_MINER_IDS or get_uids(sampling_mode="all")
+    current_index: int = 0
+    uids_per_step: int = 10
+
+    class Config:
+        arbitrary_types_allowed = True
 
     async def run_step(self):
-        uids = settings.TEST_MINER_IDS or get_uids(sampling_mode="all")
-        logger.info(f"Collecting miner availabilities on uids: {uids}")
-        if any([len(settings.METAGRAPH.axons) <= uid for uid in uids]):
-            raise Exception("Some UIDs are out of bounds. Make sure all the TEST_MINER_IDS are valid.")
-        axons = [settings.METAGRAPH.axons[uid] for uid in uids]
+        start_index = self.current_index
+        end_index = min(start_index + self.uids_per_step, len(self.uids))
+        uids_to_query = self.uids[start_index:end_index]
+        if self.step == 0:
+            uids_to_query = self.uids
+
+        logger.info(f"Collecting miner availabilities on uids: {uids_to_query}")
+
+        if any(uid >= len(settings.METAGRAPH.axons) for uid in uids_to_query):
+            raise ValueError("Some UIDs are out of bounds. Make sure all the TEST_MINER_IDS are valid.")
+
+        axons = [settings.METAGRAPH.axons[uid] for uid in uids_to_query]
         responses: list[AvailabilitySynapse] = await settings.DENDRITE(
             axons=axons,
             synapse=AvailabilitySynapse(task_availabilities=task_config, llm_model_availabilities=model_config),
@@ -68,12 +82,18 @@ class CheckMinerAvailability(AsyncLoopRunner):
             deserialize=False,
             streaming=False,
         )
-        for response, uid in zip(responses, uids):
+
+        for response, uid in zip(responses, uids_to_query):
             miner_availabilities.miners[uid] = MinerAvailability(
                 task_availabilities=response.task_availabilities,
                 llm_model_availabilities=response.llm_model_availabilities,
             )
+
         logger.debug("Miner availabilities updated.")
+        self.current_index = end_index
+
+        if self.current_index >= len(self.uids):
+            self.current_index = 0
 
 
 miner_availabilities = MinerAvailabilities()
