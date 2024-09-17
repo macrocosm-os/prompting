@@ -11,6 +11,7 @@ from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.utils.cleaners import CleanerPipeline
 from prompting.llms.model_manager import model_manager
 import textwrap
+from loguru import logger
 
 
 class ProgrammingRewardConfig(BaseRewardConfig):
@@ -30,7 +31,7 @@ CODE_MODIFICATION_PROMPT = textwrap.dedent(
     Original code:
     {file_content}
 
-    Respond only with the new and modified code!
+    Respond only with the new and modified code! Make sure to respond the with the entire code, not just a part of it.
     """
 )
 
@@ -43,9 +44,13 @@ class ProgrammingTask(BaseTextTask):
 
     def make_query(self, dataset_entry: HuggingFaceGithubDatasetEntry):
         modified_code = model_manager.generate(
-            [CODE_MODIFICATION_PROMPT.format(file_content=dataset_entry.file_content)]
+            [CODE_MODIFICATION_PROMPT.format(file_content=dataset_entry.file_content)],
         )[0]
-        line_cutoff = max(MIN_INPUT_LINES, len(modified_code) - OUTPUT_LINES)
+        logger.debug(f"Input code: {dataset_entry.file_content}\n Modified code: {modified_code}")
+        if len(modified_code.split("\n")) < MIN_INPUT_LINES + OUTPUT_LINES:
+            logger.error(f"Modified code is too short, Code: {modified_code}")
+            return
+        line_cutoff = max(MIN_INPUT_LINES, len(modified_code.split("\n")) - OUTPUT_LINES)
         self.query = "\n".join(modified_code.split("\n")[:line_cutoff])
-        self.reference = modified_code[line_cutoff : line_cutoff + OUTPUT_LINES]
+        self.reference = "\n".join(modified_code.split("\n")[line_cutoff : line_cutoff + OUTPUT_LINES])
         return self.query

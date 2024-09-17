@@ -1,3 +1,7 @@
+from prompting import settings
+settings.settings = settings.Settings(mode="validator")
+settings = settings.settings
+
 import argparse
 import asyncio
 
@@ -21,7 +25,7 @@ Steps:
 - Iterate over the async generator to extract the yielded tokens on the server side
 """
 
-assert settings.TEST_MINER_IDS, "Please provide the miner ids to query in the .env file as variable TEST_MINER_IDS"
+assert settings.TEST_MINER_IDS, "Please provide the miner ids to query in the .env.validator file as variable TEST_MINER_IDS"
 
 
 async def handle_response(responses: list[Awaitable]) -> List[str]:
@@ -54,6 +58,7 @@ async def query_stream_miner(
     synapse = synapse_protocol(
         roles=["user"],
         messages=[message],
+        task_name = 'inference'
     )
     dendrite = bt.dendrite(wallet=settings.WALLET)
 
