@@ -4,6 +4,7 @@ from typing import ClassVar, Optional
 from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
+from prompting.rewards.web_retrieval import WebRetrievalRewardModel
 from prompting.tasks.base_task import BaseTextTask
 
 
@@ -34,7 +35,8 @@ QUERY_PROMPT_TEMPLATE = "[Input Text]\n{context}"
 
 class WebRetrievalRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=1.0, reward_model=RelevanceRewardModel()),
+        # WeightedRewardModel(weight=1.0, reward_model=RelevanceRewardModel()),
+        WeightedRewardModel(weight=1.0, reward_model=WebRetrievalRewardModel()),
     ]
 
 
@@ -48,9 +50,9 @@ class WebRetrievalTask(BaseTextTask):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.website_content)
         question = self.generate_query(messages=query_prompt)
         prompt: list[str] = []
-        prompt.append("Search the web for given query, provide the content of the website and the URL.\n\n")
+        prompt.append("Search the web for the given query, provide the content of the website and the URL.\n\n")
         prompt.append(f"{MINER_EXAMPLE_1_SHOT}\n")
-        prompt.append(f"[Input Query]\n{question}\n\n")
+        prompt.append(f"[Input Query]\n{question}\n")
         self.query = "".join(prompt)
         return self.query
 
