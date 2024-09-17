@@ -30,13 +30,6 @@ class ChatEntry(DatasetEntry):
         return self
 
 
-class MMLUEntry(DatasetEntry):
-    query: str
-    subject: str
-    choices: list[str]
-    answer: str
-
-
 class Context(DatasetEntry):
     title: str
     topic: str
