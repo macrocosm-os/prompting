@@ -29,7 +29,7 @@ class Settings(BaseModel):
     SAVE_PATH: str | None = None
 
     # NEURON
-    NEURON_EPOCH_LENGTH: int = 1
+    NEURON_EPOCH_LENGTH: int = 100
     NEURON_DEVICE: str = "cuda" if torch.cuda.is_available() else "cpu"
     NEURON_GPUS: int = 1
 
