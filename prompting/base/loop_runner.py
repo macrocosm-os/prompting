@@ -4,7 +4,7 @@ from loguru import logger
 from pydantic import BaseModel, model_validator
 from datetime import datetime, timedelta
 import aiohttp
-import time
+from prompting.utils.timer import Timer
 
 
 class AsyncLoopRunner(BaseModel, ABC):
@@ -54,7 +54,7 @@ class AsyncLoopRunner(BaseModel, ABC):
     async def wait_for_next_interval(self, last_run_time):
         """Wait until the start of the next interval."""
         if self.sync:
-            current_time = await self.get_server_time()
+            current_time = await self.get_time()
         else:
             current_time = datetime.utcnow()
 
@@ -72,25 +72,22 @@ class AsyncLoopRunner(BaseModel, ABC):
         try:
             while self.running:
                 try:
-                    start_time = time.time()
+                    with Timer() as timer:
+                        if self.sync:
+                            try:
+                                current_time = await self.get_time()
+                            except Exception as e:
+                                logger.warning(f"Failed to get server time: {e}. Falling back to local time.")
+                                current_time = datetime.now(datetime.UTC)
 
-                    if self.sync:
-                        try:
-                            current_time = await self.get_server_time()
-                        except Exception as e:
-                            logger.warning(f"Failed to get server time: {e}. Falling back to local time.")
-                            current_time = datetime.utcnow()
-                    else:
-                        current_time = datetime.utcnow()
+                        await self.run_step()
+                        self.step += 1
 
-                    await self.run_step()
-                    self.step += 1
-
-                    execution_time = time.time() - start_time
+                    execution_time = timer.elapsed_time
 
                     if self.sync:
                         next_run = current_time.replace(microsecond=0) + timedelta(seconds=self.interval)
-                        wait_time = (next_run - datetime.utcnow()).total_seconds()
+                        wait_time = (next_run - datetime.now(datetime.UTC)).total_seconds()
                         if wait_time > 0:
                             logger.debug(f"{self.name}: Waiting for {wait_time} seconds")
                             await asyncio.sleep(wait_time)
@@ -111,7 +108,7 @@ class AsyncLoopRunner(BaseModel, ABC):
             self.running = False
             logger.info("Loop has been cleaned up.")
 
-    async def get_server_time(self):
+    async def get_time(self):
         """Get the current time from the time server with a timeout."""
         try:
             async with aiohttp.ClientSession() as session:
@@ -121,7 +118,6 @@ class AsyncLoopRunner(BaseModel, ABC):
                         return datetime.fromisoformat(data["datetime"].replace("Z", "+00:00"))
                     else:
                         raise Exception(f"Failed to get server time. Status: {response.status}")
-        except aiohttp.ClientError as e:
-            raise Exception(f"Network error when getting server time: {e}")
-        except asyncio.TimeoutError:
-            raise Exception("Timeout when getting server time")
+        except Exception as ex:
+            logger.warning(f"Could not get time from server: {ex}")
+        return datetime.now(datetime.UTC)
