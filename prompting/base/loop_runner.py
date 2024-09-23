@@ -2,17 +2,16 @@ import asyncio
 from abc import ABC, abstractmethod
 from loguru import logger
 from pydantic import BaseModel, model_validator
-from datetime import datetime, timedelta
+from datetime import timedelta
+import datetime
 import aiohttp
-from prompting.utils.timer import Timer
 
 
 class AsyncLoopRunner(BaseModel, ABC):
-    interval: int = 10  # interval to run the main function in
+    interval: int = 10  # interval to run the main function in seconds
     running: bool = False
     sync: bool = False  # New parameter to enable/disable synchronization
-    _task: asyncio.Task = None
-    time_server_url: str = "http://worldtimeapi.org/api/ip"  # Example time server
+    time_server_url: str = "http://worldtimeapi.org/api/ip"
     name: str | None = None
     step: int = 0
 
@@ -27,9 +26,78 @@ class AsyncLoopRunner(BaseModel, ABC):
         """Implement this method with the logic that needs to run periodically."""
         raise NotImplementedError("run_step method must be implemented")
 
-    async def initialise_loop(self):
-        """Optional method to initialise any resources before starting the loop."""
-        pass
+    async def get_time(self):
+        """Get the current time from the time server with a timeout."""
+        if not self.sync:
+            time = datetime.datetime.now(datetime.timezone.utc)
+            logger.debug(f"Time: {time}")
+            return time
+        try:
+            async with aiohttp.ClientSession() as session:
+                logger.info("Waiting for response time")
+                async with session.get(self.time_server_url, timeout=5) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        logger.info("Got response")
+                        return datetime.datetime.fromisoformat(data["datetime"].replace("Z", "+00:00"))
+                    else:
+                        raise Exception(f"Failed to get server time. Status: {response.status}")
+        except Exception as ex:
+            logger.warning(f"Could not get time from server: {ex}. Falling back to local time.")
+            return datetime.datetime.now(datetime.timezone.utc)
+
+    def next_sync_point(self, current_time):
+        """Calculate the next sync point based on the current time and interval."""
+        epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+        time_since_epoch = current_time - epoch
+        seconds_since_epoch = time_since_epoch.total_seconds()
+        next_interval = (seconds_since_epoch // self.interval + 1) * self.interval
+        return epoch + timedelta(seconds=next_interval)
+
+    async def wait_for_next_execution(self, last_run_time):
+        """Wait until the next execution time, either synced or based on last run."""
+        current_time = await self.get_time()
+        logger.debug("Current time")
+        if self.sync:
+            next_run = self.next_sync_point(current_time)
+        else:
+            next_run = last_run_time + timedelta(seconds=self.interval)
+        logger.debug(f"Next run: {next_run}")
+
+        wait_time = (next_run - current_time).total_seconds()
+        if wait_time > 0:
+            logger.debug(
+                f"{self.name}: Waiting for {wait_time:.2f} seconds until next {'sync point' if self.sync else 'execution'}"
+            )
+            await asyncio.sleep(wait_time)
+        return next_run
+
+    async def run_loop(self):
+        """Run the loop periodically, optionally synchronizing across all instances."""
+        logger.debug(f"Starting loop; running: {self.running}")
+
+        last_run_time = await self.get_time()
+        logger.debug(f"Got time of last run: {last_run_time}")
+        try:
+            while self.running:
+                logger.debug("Waiting...")
+                next_run = await self.wait_for_next_execution(last_run_time)
+                logger.debug("Wait ended")
+                try:
+                    await self.run_step()
+                    self.step += 1
+                    logger.debug(f"{self.name}: Step {self.step} completed at {next_run}")
+                    last_run_time = next_run
+                except Exception as ex:
+                    logger.exception(f"Error in loop iteration: {ex}")
+        except asyncio.CancelledError:
+            logger.info("Loop was stopped.")
+        except Exception as e:
+            logger.error(f"Fatal error in loop: {e}")
+        finally:
+            self.running = False
+            logger.info("Loop has been cleaned up.")
+        logger.debug("Exiting run_loop")
 
     async def start(self):
         """Start the loop."""
@@ -37,8 +105,7 @@ class AsyncLoopRunner(BaseModel, ABC):
             logger.warning("Loop is already running.")
             return
         self.running = True
-        logger.debug(f"{self.name}: Starting loop")
-        await self.initialise_loop()
+        logger.debug(f"{self.name}: Starting loop with {'synchronized' if self.sync else 'non-synchronized'} mode")
         self._task = asyncio.create_task(self.run_loop())
 
     async def stop(self):
@@ -50,74 +117,3 @@ class AsyncLoopRunner(BaseModel, ABC):
                 await self._task
             except asyncio.CancelledError:
                 logger.info("Loop task was cancelled.")
-
-    async def wait_for_next_interval(self, last_run_time):
-        """Wait until the start of the next interval."""
-        if self.sync:
-            current_time = await self.get_time()
-        else:
-            current_time = datetime.utcnow()
-
-        next_run = last_run_time + timedelta(seconds=self.interval)
-        next_run = next_run.replace(microsecond=0)  # Round to nearest second
-
-        wait_time = (next_run - current_time).total_seconds()
-        if wait_time > 0:
-            logger.debug(f"{self.name}: Waiting for {wait_time} seconds")
-            await asyncio.sleep(wait_time)
-        return next_run
-
-    async def run_loop(self):
-        """Run the loop periodically, respecting the interval and optionally synchronizing with server time."""
-        try:
-            while self.running:
-                try:
-                    with Timer() as timer:
-                        if self.sync:
-                            try:
-                                current_time = await self.get_time()
-                            except Exception as e:
-                                logger.warning(f"Failed to get server time: {e}. Falling back to local time.")
-                                current_time = datetime.now(datetime.UTC)
-
-                        await self.run_step()
-                        self.step += 1
-
-                    execution_time = timer.elapsed_time
-
-                    if self.sync:
-                        next_run = current_time.replace(microsecond=0) + timedelta(seconds=self.interval)
-                        wait_time = (next_run - datetime.now(datetime.UTC)).total_seconds()
-                        if wait_time > 0:
-                            logger.debug(f"{self.name}: Waiting for {wait_time} seconds")
-                            await asyncio.sleep(wait_time)
-                    else:
-                        remaining_time = self.interval - execution_time
-                        if remaining_time > 0:
-                            logger.debug(f"{self.name}: Waiting for {remaining_time} seconds")
-                            await asyncio.sleep(remaining_time)
-
-                except Exception as ex:
-                    logger.exception(f"Error in loop iteration: {ex}")
-                    await asyncio.sleep(self.interval)  # Wait before retrying
-        except asyncio.CancelledError:
-            logger.info("Loop was stopped.")
-        except Exception as e:
-            logger.error(f"Fatal error in loop: {e}")
-        finally:
-            self.running = False
-            logger.info("Loop has been cleaned up.")
-
-    async def get_time(self):
-        """Get the current time from the time server with a timeout."""
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(self.time_server_url, timeout=5) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return datetime.fromisoformat(data["datetime"].replace("Z", "+00:00"))
-                    else:
-                        raise Exception(f"Failed to get server time. Status: {response.status}")
-        except Exception as ex:
-            logger.warning(f"Could not get time from server: {ex}")
-        return datetime.now(datetime.UTC)
