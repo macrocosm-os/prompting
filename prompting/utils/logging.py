@@ -2,7 +2,7 @@ import json
 import numpy as np
 import os
 from dataclasses import asdict, dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Literal, Any, Optional
 
 import wandb
@@ -58,9 +58,20 @@ def export_logs(logs: list[Log]):
     return log_file
 
 
-def should_reinit_wandb(step: int):
-    # Check if wandb run needs to be rolled over.
-    return settings.WANDB_ON and step and step % settings.WANDB_RUN_STEP_LENGTH == 0
+def should_reinit_wandb():
+    """Checks if 24 hours have passed since the last wandb initialization."""
+    # Get the start time from the wandb config
+    wandb_start_time = wandb.run.config.get('wandb_start_time', None)
+
+    if wandb_start_time:
+        # Convert the stored time (string) back to a datetime object
+        wandb_start_time = datetime.strptime(wandb_start_time, '%Y-%m-%d %H:%M:%S')
+        current_time = datetime.now()
+        elapsed_time = current_time - wandb_start_time
+        # Check if more than 24 hours have passed
+        if elapsed_time > timedelta(hours=24):
+            return True
+    return False
 
 
 def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator", custom_tags: list = []):
@@ -89,6 +100,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
     wandb_config = {
         "HOTKEY_SS58": settings.WALLET.hotkey.ss58_address,
         "NETUID": settings.NETUID,
+        "wandb_start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
     wandb.login(anonymous="allow", key=settings.WANDB_API_KEY, verify=True)
     logger.info(f"Logging in to wandb on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}")
@@ -199,6 +211,8 @@ def log_event(event: BaseEvent):
         logger.info(f"{event}")
 
     if settings.WANDB_ON:
+        if should_reinit_wandb():
+            reinit_wandb()
         unpacked_event = unpack_events(event)
         unpacked_event = convert_arrays_to_lists(unpacked_event)
         wandb.log(unpacked_event)
