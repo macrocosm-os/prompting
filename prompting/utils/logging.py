@@ -69,7 +69,7 @@ def should_reinit_wandb():
         current_time = datetime.now()
         elapsed_time = current_time - wandb_start_time
         # Check if more than 24 hours have passed
-        if elapsed_time > timedelta(hours=24):
+        if elapsed_time > timedelta(settings.MAX_WANDB_DURATION):
             return True
     return False
 
