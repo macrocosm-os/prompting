@@ -34,7 +34,7 @@ class Settings(BaseModel):
     NEURON_GPUS: int = 1
 
     # LOGGING
-    LOGGING_DONT_SAVE_EVENTS: bool = False
+    LOGGING_DONT_SAVE_EVENTS: bool = True
     LOG_WEIGHTS: bool = False
 
     # NEURON PARAMETERS
