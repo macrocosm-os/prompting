@@ -3,7 +3,7 @@ import asyncio
 import time
 from prompting import settings
 
-settings.settings = settings.Settings(mode="validator")
+settings.settings = settings.load_settings(mode="validator")
 settings = settings.settings
 
 from loguru import logger
@@ -26,9 +26,7 @@ SCORING_QUEUE_LENGTH_THRESHOLD = 10
 
 
 class Validator(BaseValidatorNeuron):
-    """
-    Text prompt validator neuron.
-    """
+    """Text prompt validator neuron."""
 
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)

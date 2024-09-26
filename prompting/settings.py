@@ -5,8 +5,9 @@ from loguru import logger
 import bittensor as bt
 from pydantic_settings import BaseSettings
 from pydantic import Field, model_validator
-from typing import Any, Literal, Optional, List
+from typing import Literal, Optional, List
 from prompting.utils.config import config
+from functools import cached_property
 
 
 def load_env_file(mode: Literal["miner", "validator", "mock"]):
@@ -98,72 +99,59 @@ class Settings(BaseSettings):
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
 
-    # Bittensor Objects.
-    WALLET: Optional[bt.wallet] = None
-    SUBTENSOR: Optional[bt.subtensor] = None
-    METAGRAPH: Optional[bt.metagraph] = None
-    DENDRITE: Optional[bt.dendrite] = None
-
     model_config = {"frozen": True, "arbitrary_types_allowed": True}
 
-    @model_validator(mode="after")
-    def complete_settings(cls, settings: "Settings") -> "Settings":
-        mode = settings.mode
-        netuid = settings.NETUID
-
+    @model_validator(mode="before")
+    def complete_settings(cls, values):
+        mode = values.get("mode")
+        netuid = values.get("NETUID", 61)
         if netuid is None:
             raise ValueError("NETUID must be specified")
-
-        # Collect updates to avoid mutating the frozen instance.
-        updates: dict[str, Any] = {}
-
-        updates["TEST"] = netuid != 1
+        values["TEST"] = netuid != 1
 
         if mode == "mock":
-            updates["MOCK"] = True
+            values["MOCK"] = True
             logger.info("Running in mock mode. Bittensor objects will not be initialized.")
-            return settings.model_copy(update=updates)
+            return values
 
+        # Parse TEST_MINER_IDS if provided.
+        test_miner_ids = values.get("TEST_MINER_IDS")
+        if test_miner_ids and isinstance(test_miner_ids, str):
+            values["TEST_MINER_IDS"] = [int(miner_id) for miner_id in test_miner_ids.split(",")]
+
+        # Ensure SAVE_PATH exists.
+        save_path = values.get("SAVE_PATH", "./storage")
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        return values
+
+    @cached_property
+    def WALLET(self) -> bt.wallet:
+        wallet_name = self.WALLET_NAME or config().wallet.name
+        hotkey = self.HOTKEY or config().wallet.hotkey
+        logger.info(f"Instantiating wallet with name: {wallet_name}, hotkey: {hotkey}")
+        return bt.wallet(name=wallet_name, hotkey=hotkey)
+
+    @cached_property
+    def SUBTENSOR(self) -> bt.subtensor:
+        subtensor_network = self.SUBTENSOR_NETWORK or os.environ.get("SUBTENSOR_NETWORK", "local")
         bt_config = config()
-        wallet_name = settings.WALLET_NAME or bt_config.wallet.name
-        hotkey = settings.HOTKEY or bt_config.wallet.hotkey
-        updates["WALLET_NAME"] = wallet_name
-        updates["HOTKEY"] = hotkey
-
-        logger.info(
-            f"Instantiating bittensor objects with NETUID: {netuid}, WALLET_NAME: {wallet_name}, HOTKEY: {hotkey}"
-        )
-
-        subtensor_network = settings.SUBTENSOR_NETWORK or os.environ.get("SUBTENSOR_NETWORK", "local")
         if subtensor_network.lower() == "local":
             subtensor_network = bt_config.subtensor.chain_endpoint or os.environ.get("SUBTENSOR_CHAIN_ENDPOINT")
         else:
             subtensor_network = bt_config.subtensor.network or subtensor_network.lower()
-        updates["SUBTENSOR_NETWORK"] = subtensor_network
+        logger.info(f"Instantiating subtensor with network: {subtensor_network}")
+        return bt.subtensor(network=subtensor_network)
 
-        # Initialize Bittensor Objects.
-        wallet = bt.wallet(name=wallet_name, hotkey=hotkey)
-        updates["WALLET"] = wallet
-        subtensor = bt.subtensor(network=subtensor_network)
-        updates["SUBTENSOR"] = subtensor
-        metagraph = bt.metagraph(netuid=netuid, network=subtensor_network, sync=True, lite=True)
-        updates["METAGRAPH"] = metagraph
-        updates["DENDRITE"] = bt.dendrite(wallet=wallet)
+    @cached_property
+    def METAGRAPH(self) -> bt.metagraph:
+        logger.info(f"Instantiating metagraph with NETUID: {self.NETUID}")
+        return bt.metagraph(netuid=self.NETUID, network=self.SUBTENSOR_NETWORK, sync=True, lite=True)
 
-        logger.info(
-            f"Bittensor objects instantiated... WALLET: {wallet}, SUBTENSOR: {subtensor}, METAGRAPH: {metagraph}"
-        )
-
-        # Parse TEST_MINER_IDS if provided.
-        test_miner_ids = settings.TEST_MINER_IDS
-        if test_miner_ids and isinstance(test_miner_ids, str):
-            updates["TEST_MINER_IDS"] = [int(miner_id) for miner_id in test_miner_ids.split(",")]
-
-        save_path = settings.SAVE_PATH
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-
-        return settings.model_copy(update=updates)
+    @cached_property
+    def DENDRITE(self) -> bt.dendrite:
+        logger.info(f"Instantiating dendrite with wallet: {self.WALLET}")
+        return bt.dendrite(wallet=self.WALLET)
 
 
 def load_settings(mode: str) -> Settings:

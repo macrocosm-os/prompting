@@ -1,8 +1,7 @@
 import pytest
 from pydantic import ValidationError
 from prompting import settings
-settings.settings = settings.Settings(mode="mock")
-settings = settings.settings
+settings.settings = settings.load_settings(mode="mock")
 
 from prompting.base.dendrite import SynapseStreamResult, DendriteResponseEvent, StreamPromptingSynapse
 
