@@ -61,6 +61,8 @@ class Settings(BaseModel):
     ORGANIC_TRIGGER_FREQUENCY_MIN: int = 5
     ORGANIC_TRIGGER: str = "seconds"
     ORGANIC_SCALING_FACTOR: int = 1
+    TASK_QUEUE_LENGTH_THRESHOLD: int = 10
+    SCORING_QUEUE_LENGTH_THRESHOLD: int = 10
     HF_TOKEN: Optional[str] = None
 
     # ADDITIONAL FIELDS FROM model_validator
