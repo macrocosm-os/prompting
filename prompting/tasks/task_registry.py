@@ -101,10 +101,10 @@ class TaskRegistry(BaseModel):
             return []
 
     @classmethod
-    def create_random_task_with_dataset(cls) -> tuple[BaseTextTask, BaseDataset]:
+    def create_random_task_with_dataset(cls) -> BaseTextTask:
         task_config = cls.random()
         dataset = cls.get_random_task_dataset(task_config.task)
-        return task_config.task(), dataset()
+        return task_config.task(dataset_entry=dataset().next())
 
 
 assert (

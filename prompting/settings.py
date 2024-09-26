@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     WANDB_NOTES: str = Field("", env="WANDB_NOTES")
 
     # Neuron.
-    NEURON_EPOCH_LENGTH: int = Field(1, env="NEURON_EPOCH_LENGTH")
+    NEURON_EPOCH_LENGTH: int = Field(100, env="NEURON_EPOCH_LENGTH")
     NEURON_DEVICE: str = Field("cuda" if torch.cuda.is_available() else "cpu", env="NEURON_DEVICE")
     NEURON_GPUS: int = Field(1, env="NEURON_GPUS")
 
@@ -77,6 +77,8 @@ class Settings(BaseSettings):
     ORGANIC_TRIGGER_FREQUENCY_MIN: int = Field(5, env="ORGANIC_TRIGGER_FREQUENCY_MIN")
     ORGANIC_TRIGGER: str = Field("seconds", env="ORGANIC_TRIGGER")
     ORGANIC_SCALING_FACTOR: int = Field(1, env="ORGANIC_SCALING_FACTOR")
+    TASK_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="TASK_QUEUE_LENGTH_THRESHOLD")
+    SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
 
     # Additional Fields.

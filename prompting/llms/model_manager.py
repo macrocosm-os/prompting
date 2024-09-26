@@ -185,4 +185,4 @@ class AsyncModelScheduler(AsyncLoopRunner):
 
 
 model_manager = ModelManager()
-model_scheduler = AsyncModelScheduler(llm_model_manager=model_manager)
+model_scheduler = AsyncModelScheduler(llm_model_manager=model_manager, sync=True)

@@ -11,7 +11,6 @@ from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.utils.cleaners import CleanerPipeline
 from prompting.llms.model_manager import model_manager
 import textwrap
-from loguru import logger
 
 
 class ProgrammingRewardConfig(BaseRewardConfig):
@@ -46,9 +45,7 @@ class ProgrammingTask(BaseTextTask):
         modified_code = model_manager.generate(
             [CODE_MODIFICATION_PROMPT.format(file_content=dataset_entry.file_content)],
         )[0]
-        logger.debug(f"Input code: {dataset_entry.file_content}\n Modified code: {modified_code}")
         if len(modified_code.split("\n")) < MIN_INPUT_LINES + OUTPUT_LINES:
-            logger.error(f"Modified code is too short, Code: {modified_code}")
             return
         line_cutoff = max(MIN_INPUT_LINES, len(modified_code.split("\n")) - OUTPUT_LINES)
         self.query = "\n".join(modified_code.split("\n")[:line_cutoff])
