@@ -1,32 +1,15 @@
 import os
-import torch
-import dotenv
-from loguru import logger
-import bittensor as bt
-from pydantic_settings import BaseSettings
-from pydantic import Field, model_validator
-from typing import Literal, Optional, List
-from prompting.utils.config import config
 from functools import cached_property
+from typing import Any, Literal, Optional
 
+import bittensor as bt
+import dotenv
+import torch
+from loguru import logger
+from pydantic import Field, model_validator
+from pydantic_settings import BaseSettings
 
-def load_env_file(mode: Literal["miner", "validator", "mock"]):
-    """Load the appropriate .env file based on the mode."""
-    if mode == "miner":
-        dotenv_file = ".env.miner"
-    elif mode == "validator":
-        dotenv_file = ".env.validator"
-    elif mode == "mock":
-        dotenv_file = None
-    else:
-        raise ValueError(f"Invalid mode: {mode}")
-
-    if dotenv_file:
-        if not dotenv.load_dotenv(dotenv.find_dotenv(filename=dotenv_file)):
-            logger.warning(
-                f"No {dotenv_file} file found. The use of args when running a {mode} will be deprecated "
-                "in the near future."
-            )
+from prompting.utils.config import config
 
 
 class Settings(BaseSettings):
@@ -91,7 +74,7 @@ class Settings(BaseSettings):
     ORGANIC_WHITELIST_HOTKEY: Optional[str] = Field(
         "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3", env="ORGANIC_WHITELIST_HOTKEY"
     )
-    TEST_MINER_IDS: Optional[List[int]] = Field(None, env="TEST_MINER_IDS")
+    TEST_MINER_IDS: Optional[list[int]] = Field(None, env="TEST_MINER_IDS")
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
     NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
     LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
@@ -101,11 +84,45 @@ class Settings(BaseSettings):
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
 
-    model_config = {"frozen": True, "arbitrary_types_allowed": True}
+    model_config = {"frozen": True, "arbitrary_types_allowed": False}
+
+    # Class variables for singleton.
+    _instance: Optional["Settings"] = None
+    _instance_mode: Optional[str] = None
+
+    @classmethod
+    def load_env_file(cls, mode: Literal["miner", "validator", "mock"]):
+        """Load the appropriate .env file based on the mode."""
+        if mode == "miner":
+            dotenv_file = ".env.miner"
+        elif mode == "validator":
+            dotenv_file = ".env.validator"
+        elif mode == "mock":
+            dotenv_file = None
+        else:
+            raise ValueError(f"Invalid mode: {mode}")
+
+        if dotenv_file:
+            if not dotenv.load_dotenv(dotenv.find_dotenv(filename=dotenv_file)):
+                logger.warning(
+                    f"No {dotenv_file} file found. The use of args when running a {mode} will be deprecated "
+                    "in the near future."
+                )
+
+    @classmethod
+    def load(cls, mode: Literal["miner", "validator", "mock"]) -> "Settings":
+        """Load or retrieve the Settings instance based on the mode."""
+        if cls._instance is not None and cls._instance_mode == mode:
+            return cls._instance
+        else:
+            cls.load_env_file(mode)
+            cls._instance = cls(mode=mode)
+            cls._instance_mode = mode
+            return cls._instance
 
     @model_validator(mode="before")
-    def complete_settings(cls, values):
-        mode = values.get("mode")
+    def complete_settings(cls, values: dict[str, Any]) -> dict[str, Any]:
+        mode = values["mode"]
         netuid = values.get("NETUID", 61)
         if netuid is None:
             raise ValueError("NETUID must be specified")
@@ -156,10 +173,4 @@ class Settings(BaseSettings):
         return bt.dendrite(wallet=self.WALLET)
 
 
-def load_settings(mode: str) -> Settings:
-    load_env_file(mode)
-    settings = Settings(mode=mode)
-    return settings
-
-
-settings: Settings | None = None
+settings: Optional[Settings] = None

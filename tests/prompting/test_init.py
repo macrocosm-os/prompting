@@ -1,6 +1,7 @@
-import pytest
-from unittest.mock import patch
 import importlib
+from unittest.mock import patch
+
+import pytest
 
 
 @pytest.fixture
@@ -47,6 +48,7 @@ def test_version_and_spec_version(mock_version):
     mock_version.return_value = "2.5.7"
     # Import the module after mocking
     import prompting
+
     # Reload to apply mocks
     importlib.reload(prompting)
 

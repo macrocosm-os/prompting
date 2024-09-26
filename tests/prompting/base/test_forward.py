@@ -1,7 +1,9 @@
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock
 
 from prompting import settings
+
 settings.settings = settings.load_settings(mode="mock")
 
 from prompting.base.forward import execute_dendrite_call, generate_reference, handle_response, process_stream
