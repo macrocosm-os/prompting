@@ -23,6 +23,7 @@ class ScoringConfig:
     step: int
     task_id: str
 
+
 class TaskScorer(AsyncLoopRunner):
     """The scoring manager maintains a queue of tasks & responses to score and then runs a scoring loop in a background thread.
     This scoring loop will score the responses once the LLM needed is loaded in the model_manager and log the rewards.
@@ -34,9 +35,21 @@ class TaskScorer(AsyncLoopRunner):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def add_to_queue(self, task: BaseTextTask, response: DendriteResponseEvent, dataset_entry: DatasetEntry, block: int, step: int, task_id: str) -> None:
+    def add_to_queue(
+        self,
+        task: BaseTextTask,
+        response: DendriteResponseEvent,
+        dataset_entry: DatasetEntry,
+        block: int,
+        step: int,
+        task_id: str,
+    ) -> None:
         logger.debug(f"SCORING: Added to queue: {task.__class__.__name__} {task.task_id}")
-        scoring_queue.append(ScoringConfig(task=task, response=response, dataset_entry=dataset_entry, block=block, step=step, task_id=task_id))
+        scoring_queue.append(
+            ScoringConfig(
+                task=task, response=response, dataset_entry=dataset_entry, block=block, step=step, task_id=task_id
+            )
+        )
 
     async def run_step(self) -> RewardLoggingEvent:
         # Only score responses for which the model is loaded
@@ -98,7 +111,9 @@ class TaskScorer(AsyncLoopRunner):
         logger.info("Adding scores to rewards_and_uids")
         rewards_and_uids.append((scoring_config.response.uids, rewards))
 
+
 class WeightSetter(AsyncLoopRunner):
     pass
+
 
 task_scorer = TaskScorer()

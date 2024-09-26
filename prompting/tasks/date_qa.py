@@ -22,8 +22,8 @@ Context: {content}
 
 class DateQARewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=0.7, reward_model=DateRewardModel()),
-        WeightedRewardModel(weight=0.3, reward_model=RougeRewardModel()),
+        DateRewardModel(weight=0.7),
+        RougeRewardModel(weight=0.3),
     ]
 
 

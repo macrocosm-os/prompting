@@ -4,13 +4,15 @@ from typing import Literal, ClassVar
 from abc import ABC, abstractmethod
 from prompting.base.dendrite import DendriteResponseEvent
 from pydantic import BaseModel, ConfigDict
+from prompting.tasks.base_task import BaseTextTask
 
 RewardTypeLiteral = Literal["reward", "penalty"]
 
 
-class RewardEvent(BaseModel):
-    """Contains rewards for all the responses in a batch"""
-
+class WeightedRewardEvent(BaseModel):
+    weight: float
+    uids: list[int]
+    task: BaseTextTask
     reward_model_name: str
     rewards: np.ndarray
     rewards_normalized: np.ndarray
@@ -19,6 +21,7 @@ class RewardEvent(BaseModel):
     batch_time: float
     threshold: float | None = None
     extra_info: dict | None = None
+    reward_type: Literal["reward", "penalty"] = "reward"
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -31,6 +34,9 @@ class RewardEvent(BaseModel):
             f"{self.reward_model_name}_{self.reward_model_type.value}_batch_time": self.batch_time,
             f"{self.reward_model_name}_{self.reward_model_type.value}_threshold": self.threshold,
             f"{self.reward_model_name}_{self.reward_model_type.value}_extra_info": self.extra_info,
+            f"{self.reward_model_name}_{self.reward_model_type.value}_uids": self.uids,
+            f"{self.reward_model_name}_{self.reward_model_type.value}_task": self.task,
+            f"{self.reward_model_name}_{self.reward_model_type.value}_weight": self.weight,
         }
 
 
@@ -43,8 +49,6 @@ class BatchRewardOutput(BaseModel):
 
     @property
     def rewards_normalized(self) -> np.ndarray:
-        if len(self.rewards) == 0:
-            return np.array([])
         if self.rewards.shape != self.timings.shape:
             raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
         if self.rewards.min() == self.rewards.max():
@@ -53,6 +57,8 @@ class BatchRewardOutput(BaseModel):
 
 
 class BaseRewardModel(ABC, BaseModel):
+    weight: float = 1.0
+
     @abstractmethod
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         raise NotImplementedError("You must implement the reward method")
@@ -63,14 +69,19 @@ class BaseRewardModel(ABC, BaseModel):
         reference: str | None = None,
         challenge: str | None = None,
         reward_type: Literal["reward", "penalty"] = "reward",
+        uids: list[int] | None = None,
+        task: BaseTextTask | None = None,
         **kwargs,
-    ) -> RewardEvent:
+    ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
         batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event)
         batch_rewards_time = time.time() - t0
 
-        return RewardEvent(
+        return WeightedRewardEvent(
+            weight=self.weight,
+            uids=uids,
+            task=task,
             reward_model_name=self.__class__.__name__,
             rewards=batch_rewards_output.rewards,
             rewards_normalized=batch_rewards_output.rewards_normalized,
@@ -85,11 +96,6 @@ class BaseRewardModel(ABC, BaseModel):
 class WeightedRewardModel(BaseModel):
     weight: float
     reward_model: BaseRewardModel
-
-
-class WeightedRewardEvent(BaseModel):
-    weight: float
-    reward_event: RewardEvent
 
 
 class BaseRewardConfig(ABC, BaseModel):
@@ -114,12 +120,12 @@ class BaseRewardConfig(ABC, BaseModel):
     def sum_rewards(cls, reward_events: list[WeightedRewardEvent]) -> np.ndarray:
         if not reward_events:
             return 0
-        return np.sum([r.reward_event.rewards * r.weight for r in reward_events], axis=0)
+        return np.sum([r.rewards * r.weight for r in reward_events], axis=0)
 
     @classmethod
-    def final_rewards(
-        cls, reward_events: list[WeightedRewardEvent], penalty_events: list[WeightedRewardEvent]
-    ) -> list[float]:
+    def final_rewards(cls, reward_events: list[WeightedRewardEvent]) -> list[float]:
+        penalty_events = [r for r in reward_events if r.reward_type == "penalty"]
+        reward_events = [r for r in reward_events if r.reward_type == "reward"]
         return cls.sum_rewards(reward_events) - cls.sum_rewards(penalty_events)
 
     @classmethod
@@ -129,33 +135,34 @@ class BaseRewardConfig(ABC, BaseModel):
         reference: str,
         challenge: str | None = None,
         model_id: str | None = None,
-    ) -> tuple[list[WeightedRewardEvent], list[WeightedRewardEvent], list[float]]:
+        uids: list[int] | None = None,
+        task: BaseTextTask | None = None,
+    ) -> tuple[list[WeightedRewardEvent]]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
             reward_events.append(
-                WeightedRewardEvent(
-                    weight=weighted_reward.weight,
-                    reward_event=weighted_reward.reward_model.apply(
-                        reference=reference,
-                        response_event=response_event,
-                        challenge=challenge,
-                        reward_type="reward",
-                        model_id=model_id,
-                    ),
-                )
+                weighted_reward.apply(
+                    reference=reference,
+                    response_event=response_event,
+                    challenge=challenge,
+                    reward_type="reward",
+                    model_id=model_id,
+                    uids=uids,
+                    task=task,
+                ),
             )
 
         if cls.penalty_definitions and not challenge:
             raise Exception("You must be providing the challenge to apply penalties")
 
-        penalty_events = []
         for weighted_reward in cls.penalty_definitions:
-            penalty_events.append(
-                WeightedRewardEvent(
-                    weight=weighted_reward.weight,
-                    reward_event=weighted_reward.reward_model.apply(
-                        reference=challenge, response_event=response_event, reward_type="penalty"
-                    ),
-                )
+            reward_events.append(
+                weighted_reward.apply(
+                    reference=challenge,
+                    response_event=response_event,
+                    reward_type="penalty",
+                    uids=uids,
+                    task=task,
+                ),
             )
-        return reward_events, penalty_events, cls.final_rewards(reward_events, penalty_events)
+        return reward_events
