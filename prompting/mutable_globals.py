@@ -1,2 +1,3 @@
-rewards_and_uids: list[tuple[list[int], list[float]]] = []
+reward_events: list = []
+# rewards_and_uids: list[tuple[list[int], list[float]]] = []
 scoring_queue: list = []

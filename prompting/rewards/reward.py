@@ -11,7 +11,6 @@ RewardTypeLiteral = Literal["reward", "penalty"]
 
 class WeightedRewardEvent(BaseModel):
     weight: float
-    uids: list[int]
     task: BaseTextTask
     reward_model_name: str
     rewards: np.ndarray
@@ -19,6 +18,8 @@ class WeightedRewardEvent(BaseModel):
     timings: np.ndarray
     reward_model_type: RewardTypeLiteral
     batch_time: float
+    uids: list[float]
+
     threshold: float | None = None
     extra_info: dict | None = None
     reward_type: Literal["reward", "penalty"] = "reward"
@@ -69,7 +70,6 @@ class BaseRewardModel(ABC, BaseModel):
         reference: str | None = None,
         challenge: str | None = None,
         reward_type: Literal["reward", "penalty"] = "reward",
-        uids: list[int] | None = None,
         task: BaseTextTask | None = None,
         **kwargs,
     ) -> WeightedRewardEvent:
@@ -80,7 +80,6 @@ class BaseRewardModel(ABC, BaseModel):
 
         return WeightedRewardEvent(
             weight=self.weight,
-            uids=uids,
             task=task,
             reward_model_name=self.__class__.__name__,
             rewards=batch_rewards_output.rewards,
@@ -90,6 +89,7 @@ class BaseRewardModel(ABC, BaseModel):
             threshold=batch_rewards_output.threshold,
             timings=batch_rewards_output.timings,
             extra_info=kwargs,
+            uids=response_event.uids,
         )
 
 
@@ -135,7 +135,6 @@ class BaseRewardConfig(ABC, BaseModel):
         reference: str,
         challenge: str | None = None,
         model_id: str | None = None,
-        uids: list[int] | None = None,
         task: BaseTextTask | None = None,
     ) -> tuple[list[WeightedRewardEvent]]:
         reward_events = []
@@ -147,7 +146,6 @@ class BaseRewardConfig(ABC, BaseModel):
                     challenge=challenge,
                     reward_type="reward",
                     model_id=model_id,
-                    uids=uids,
                     task=task,
                 ),
             )
@@ -161,7 +159,6 @@ class BaseRewardConfig(ABC, BaseModel):
                     reference=challenge,
                     response_event=response_event,
                     reward_type="penalty",
-                    uids=uids,
                     task=task,
                 ),
             )
