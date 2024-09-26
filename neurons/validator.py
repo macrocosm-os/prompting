@@ -3,7 +3,7 @@ import asyncio
 import time
 from prompting import settings
 
-settings.settings = settings.load(mode="validator")
+settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
 
 from loguru import logger
