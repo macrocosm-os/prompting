@@ -22,7 +22,6 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
 
 NEURON_SAMPLE_SIZE = 100
-SCORING_QUEUE_LENGTH_THRESHOLD = 10
 
 
 class Validator(BaseValidatorNeuron):
@@ -51,7 +50,7 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        if len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
+        if len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Skipping task generation.")
             return None
         if len(mutable_globals.task_queue) == 0:

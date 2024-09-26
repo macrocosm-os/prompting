@@ -3,9 +3,8 @@ import threading
 from prompting.mutable_globals import (
     task_queue,
     scoring_queue,
-    TASK_QUEUE_LENGTH_THRESHOLD,
-    SCORING_QUEUE_LENGTH_THRESHOLD,
 )
+from prompting import settings
 from loguru import logger
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.miner_availability.miner_availability import miner_availabilities
@@ -21,10 +20,10 @@ class TaskLoop(AsyncLoopRunner):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def run_step(self) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
-        if len(task_queue) > TASK_QUEUE_LENGTH_THRESHOLD:
+        if len(task_queue) > settings.TASK_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Task queue is full. Skipping task generation.")
             return None
-        if len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
+        if len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Skipping task generation.")
             return None
 
