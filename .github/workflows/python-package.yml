@@ -24,7 +24,6 @@ jobs:
         python -m pip install --upgrade pip
         bash install.sh
         poetry install --all-extras
-        poetry run pip uninstall -y uvloop
     - name: Debug Environment
       run: |
         poetry run python -V
@@ -40,13 +39,18 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: "12.22.9"
-
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/poetry.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     - name: Cache Poetry Dependencies
       uses: actions/cache@v3
       with:
         path: |
           ~/.cache/pypoetry
-          ~/.virtualenvs
         key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
         restore-keys: |
           ${{ runner.os }}-poetry-
