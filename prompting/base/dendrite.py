@@ -31,7 +31,7 @@ class SynapseStreamResult(BaseModel):
             "accumulated_chunks": self.accumulated_chunks,
             "accumulated_chunks_timings": self.accumulated_chunks_timings,
             "tokens_per_chunk": self.tokens_per_chunk,
-            "synapse": self.synapse.model_dump(),
+            "synapse": self.synapse.model_dump() if self.synapse is not None else None,
         }
 
 
