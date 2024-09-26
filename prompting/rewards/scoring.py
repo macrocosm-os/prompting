@@ -1,17 +1,20 @@
+import asyncio
+import threading
+
+import numpy as np
+
 from pydantic import ConfigDict
 from loguru import logger
-import threading
+from dataclasses import dataclass
+
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.llms.model_manager import model_manager, model_scheduler
 from prompting.utils.logging import RewardLoggingEvent, log_event
-import numpy as np
+from prompting import mutable_globals
 from prompting.datasets.base import DatasetEntry
-from dataclasses import dataclass
 from prompting.base.loop_runner import AsyncLoopRunner
-import asyncio
-from prompting.mutable_globals import scoring_queue, rewards_and_uids
 
 
 @dataclass
@@ -36,13 +39,13 @@ class TaskScorer(AsyncLoopRunner):
 
     def add_to_queue(self, task: BaseTextTask, response: DendriteResponseEvent, dataset_entry: DatasetEntry, block: int, step: int, task_id: str) -> None:
         logger.debug(f"SCORING: Added to queue: {task.__class__.__name__} {task.task_id}")
-        scoring_queue.append(ScoringConfig(task=task, response=response, dataset_entry=dataset_entry, block=block, step=step, task_id=task_id))
+        mutable_globals.scoring_queue.append(ScoringConfig(task=task, response=response, dataset_entry=dataset_entry, block=block, step=step, task_id=task_id))
 
     async def run_step(self) -> RewardLoggingEvent:
         # Only score responses for which the model is loaded
         scorable = [
             scoring_config
-            for scoring_config in scoring_queue
+            for scoring_config in mutable_globals.scoring_queue
             if (scoring_config.task.llm_model in model_manager.active_models.keys())
             or (scoring_config.task.llm_model is None)
         ]
@@ -52,7 +55,7 @@ class TaskScorer(AsyncLoopRunner):
             await model_scheduler.run_step()
             await asyncio.sleep(5)
             return
-        scoring_queue.remove(scorable[0])
+        mutable_globals.scoring_queue.remove(scorable[0])
         scoring_config: ScoringConfig = scorable.pop(0)
 
         # here we generate the actual reference
@@ -96,7 +99,7 @@ class TaskScorer(AsyncLoopRunner):
             )
         )
         logger.info("Adding scores to rewards_and_uids")
-        rewards_and_uids.append((scoring_config.response.uids, rewards))
+        mutable_globals.rewards_and_uids.append((scoring_config.response.uids, rewards))
 
 class WeightSetter(AsyncLoopRunner):
     pass
