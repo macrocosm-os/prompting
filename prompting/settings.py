@@ -172,4 +172,4 @@ def load_settings(mode: str) -> Settings:
     return settings
 
 
-settings: Settings = None
+settings: Settings | None = None
