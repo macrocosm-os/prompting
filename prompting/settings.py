@@ -29,12 +29,12 @@ class Settings(BaseModel):
     SAVE_PATH: str | None = None
 
     # NEURON
-    NEURON_EPOCH_LENGTH: int = 1
+    NEURON_EPOCH_LENGTH: int = 100
     NEURON_DEVICE: str = "cuda" if torch.cuda.is_available() else "cpu"
     NEURON_GPUS: int = 1
 
     # LOGGING
-    LOGGING_DONT_SAVE_EVENTS: bool = False
+    LOGGING_DONT_SAVE_EVENTS: bool = True
     LOG_WEIGHTS: bool = False
 
     # NEURON PARAMETERS
