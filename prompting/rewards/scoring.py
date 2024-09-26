@@ -5,7 +5,7 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.llms.model_manager import model_manager, model_scheduler
-from prompting.utils.logging import RewardLoggingEvent
+from prompting.utils.logging import RewardLoggingEvent, log_event
 from prompting.datasets.base import DatasetEntry
 from dataclasses import dataclass
 from prompting.base.loop_runner import AsyncLoopRunner
@@ -91,31 +91,22 @@ class TaskScorer(AsyncLoopRunner):
             task=scoring_config.task,
         )
         mutable_globals.reward_events.append(reward_events)
-        # best_response = (
-        #     scoring_config.response.completions[np.argmax(rewards)]
-        #     if (rewards is not None and len(rewards) > 0)
-        #     else None
-        # )
-        # logger.debug(
-        #     f"SCORING: Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with reward {rewards}"
-        # )
-        # log_event(
-        #     RewardLoggingEvent(
-        #         best=best_response,
-        #         response_event=scoring_config.response,
-        #         reward_events=reward_events,
-        #         penalty_events=penalty_events,
-        #         reference=scoring_config.task.reference,
-        #         challenge=scoring_config.task.query,
-        #         task=scoring_config.task.name,
-        #         rewards=rewards,
-        #         block=scoring_config.block,
-        #         step=scoring_config.step,
-        #         task_id=scoring_config.task_id,
-        #     )
-        # )
+        logger.debug(
+            f"SCORING: Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with reward"
+        )
+        log_event(
+            RewardLoggingEvent(
+                response_event=scoring_config.response,
+                reward_events=reward_events,
+                reference=scoring_config.task.reference,
+                challenge=scoring_config.task.query,
+                task=scoring_config.task.name,
+                block=scoring_config.block,
+                step=scoring_config.step,
+                task_id=scoring_config.task_id,
+            )
+        )
         logger.info("Adding scores to rewards_and_uids")
-        # rewards_and_uids.append((scoring_config.response.uids, rewards))
 
 
 class WeightSetter(AsyncLoopRunner):

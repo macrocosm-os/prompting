@@ -3,7 +3,7 @@ import numpy as np
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Literal, Any, Optional
+from typing import Literal, Any
 
 import wandb
 from loguru import logger
@@ -147,18 +147,16 @@ class ValidatorLoggingEvent(BaseEvent):
             Completions: {sample_completions}
             Sample completion: {sample_completion}"""
 
+
 class RewardLoggingEvent(BaseEvent):
     block: int
     step: int
-    best: str | None
     response_event: DendriteResponseEvent
     reward_events: list[WeightedRewardEvent]
-    penalty_events: list[WeightedRewardEvent]
     task_id: str
     reference: str
     challenge: str
     task: str
-    rewards: list[float]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
