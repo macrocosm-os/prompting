@@ -4,7 +4,7 @@ import pytest
 
 from prompting import settings
 
-settings.settings = settings.load_settings(mode="mock")
+settings.settings = settings.load(mode="mock")
 
 from prompting.base.forward import execute_dendrite_call, generate_reference, handle_response, process_stream
 from prompting.base.protocol import StreamPromptingSynapse

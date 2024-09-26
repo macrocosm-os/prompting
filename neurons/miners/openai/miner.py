@@ -1,7 +1,7 @@
 # ruff: noqa: E402
 from prompting import settings
 
-settings.settings = settings.load_settings(mode="miner")
+settings.settings = settings.load(mode="miner")
 settings = settings.settings
 import time
 from functools import partial
