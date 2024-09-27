@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     )
     TEST_MINER_IDS: Optional[list[int]] = Field(None, env="TEST_MINER_IDS")
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
-    NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
+    MAX_ALLOWED_VRAM_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
     LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
     NEURON_MODEL_ID_VALIDATOR: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")

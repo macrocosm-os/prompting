@@ -21,7 +21,7 @@ class ModelZoo:
         ModelConfig(
             llm_model_id=settings.NEURON_MODEL_ID_VALIDATOR,
             reward=1,
-            min_ram=settings.NEURON_LLM_MAX_ALLOWED_MEMORY_IN_GB,
+            min_ram=settings.MAX_ALLOWED_VRAM_GB,
         )
     ]
 
