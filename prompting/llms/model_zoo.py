@@ -39,6 +39,8 @@ class ModelZoo:
     @classmethod
     def get_random(cls, max_ram: float = np.inf) -> ModelConfig:
         models = [model for model in cls.models_configs if model.min_ram <= max_ram]
+        if len(models) == 0:
+            raise Exception(f"No model with < {max_ram}GB memory requirements found")
         return np.random.choice(models)
 
     @classmethod
