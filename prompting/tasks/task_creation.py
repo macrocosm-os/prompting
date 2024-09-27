@@ -4,7 +4,7 @@ from prompting.mutable_globals import (
     task_queue,
     scoring_queue,
 )
-from prompting import settings
+from prompting.settings import settings
 from loguru import logger
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.miner_availability.miner_availability import miner_availabilities

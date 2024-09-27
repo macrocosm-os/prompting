@@ -10,6 +10,7 @@ class SynapseStreamResult(BaseModel):
     uid: int | None = None
     accumulated_chunks: list[str] | None = None
     accumulated_chunks_timings: list[float] | None = None
+    tokens_per_chunk: list[int] | None = None
     synapse: StreamPromptingSynapse | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -30,7 +31,7 @@ class SynapseStreamResult(BaseModel):
             "accumulated_chunks": self.accumulated_chunks,
             "accumulated_chunks_timings": self.accumulated_chunks_timings,
             "tokens_per_chunk": self.tokens_per_chunk,
-            "synapse": self.synapse.model_dump(),
+            "synapse": self.synapse.model_dump() if self.synapse is not None else None,
         }
 
 

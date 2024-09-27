@@ -3,7 +3,7 @@ import asyncio
 import time
 from prompting import settings
 
-settings.settings = settings.Settings(mode="validator")
+settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
 
 from loguru import logger
@@ -25,9 +25,7 @@ NEURON_SAMPLE_SIZE = 100
 
 
 class Validator(BaseValidatorNeuron):
-    """
-    Text prompt validator neuron.
-    """
+    """Text prompt validator neuron."""
 
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)
