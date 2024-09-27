@@ -1,16 +1,21 @@
+import asyncio
+import threading
+
+import numpy as np
+
 from pydantic import ConfigDict
 from loguru import logger
-import threading
+from dataclasses import dataclass
+
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.llms.model_manager import model_manager, model_scheduler
 from prompting.utils.logging import RewardLoggingEvent, log_event
+from prompting import mutable_globals
 from prompting.datasets.base import DatasetEntry
-from dataclasses import dataclass
 from prompting.base.loop_runner import AsyncLoopRunner
 import asyncio
-from prompting import mutable_globals
 
 
 @dataclass

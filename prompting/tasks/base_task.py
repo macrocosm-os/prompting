@@ -60,6 +60,8 @@ class BaseTextTask(BaseTask):
     query_system_prompt: ClassVar[str | None] = None
     reference_system_prompt: ClassVar[str | None] = None
     augmentation_system_prompt: ClassVar[str | None] = None
+    dataset_entry: DatasetEntry | None = None
+    task_id: str = str(uuid4())
 
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
 
