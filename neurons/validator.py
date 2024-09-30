@@ -20,6 +20,7 @@ from prompting.mutable_globals import scoring_queue
 from prompting import mutable_globals
 from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
+from prompting.weight_settings.weight_setter import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
 
@@ -74,9 +75,9 @@ class Validator(BaseValidatorNeuron):
                 task_id=task.task_id,
             )
 
-            for reward_events in mutable_globals.reward_events:
-                self.update_scores(reward_events)
-            mutable_globals.reward_events = []
+            # for reward_events in mutable_globals.reward_events:
+            # self.update_scores(reward_events)
+            # mutable_globals.reward_events = []
 
             # Log the step event.
             return ValidatorLoggingEvent(
@@ -191,6 +192,8 @@ async def main():
 
     # will start checking the availability of miners at regular intervals
     asyncio.create_task(availability_checking_loop.start())
+
+    asyncio.create_task(weight_setter.start())
 
     # start scoring tasks in separate loop
     asyncio.create_task(task_scorer.start())

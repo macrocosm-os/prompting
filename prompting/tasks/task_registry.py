@@ -23,11 +23,14 @@ from prompting.datasets.lmsys import LMSysDataset
 
 class TaskConfig(BaseModel):
     task: BaseTextTask.__class__
-    probability: float
+    probability: float  # TODO: Rename this as soon it will determine the share in reward rather than probability
     datasets: list[BaseDataset.__class__]
     reward_model: BaseRewardConfig.__class__
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def __hash__(self):
+        return hash(self.task)
 
 
 class TaskRegistry(BaseModel):
@@ -67,6 +70,15 @@ class TaskRegistry(BaseModel):
             reward_model=WebRetrievalRewardConfig,
         ),
     ]
+
+    @classmethod
+    def get_task_config(cls, task: BaseTextTask.__class__ | BaseTextTask) -> TaskConfig:
+        task = task.__class__ if isinstance(task, BaseTextTask) else task
+        try:
+            return [t for t in cls.task_configs if task is t.task][0]
+        except Exception:
+            logger.error("Tried accessing non-registered task")
+            return
 
     @classmethod
     def random(cls) -> TaskConfig:

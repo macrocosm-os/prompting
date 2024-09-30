@@ -70,9 +70,10 @@ def test_spec_version_with_different_versions(mock_version, version_str, expecte
     mock_version.return_value = version_str
     # Import and reload the module to apply the mock
     import prompting
+
     importlib.reload(prompting)
 
     assert prompting.__version__ == version_str, f"__version__ should be {version_str}."
-    assert prompting.__spec_version__ == expected_spec, (
-        f"__spec_version__ should be {expected_spec} for version {version_str}."
-    )
+    assert (
+        prompting.__spec_version__ == expected_spec
+    ), f"__spec_version__ should be {expected_spec} for version {version_str}."

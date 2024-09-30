@@ -11,6 +11,8 @@ from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from pydantic import ConfigDict
 
+RETRIES = 3
+
 
 class TaskLoop(AsyncLoopRunner):
     is_running: bool = False
@@ -29,8 +31,9 @@ class TaskLoop(AsyncLoopRunner):
 
         try:
             # Getting task & Dataset
-            while True:
+            for i in range(RETRIES):
                 try:
+                    logger.debug(f"Retry: {i}")
                     task = TaskRegistry.create_random_task_with_dataset()
                     break
                 except Exception as ex:
