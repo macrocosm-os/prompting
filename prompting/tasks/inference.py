@@ -11,7 +11,7 @@ from prompting.datasets.lmsys import ChatEntry
 
 class InferenceRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=1, reward_model=InferenceRewardModel()),
+        InferenceRewardModel(weight=1),
     ]
 
 

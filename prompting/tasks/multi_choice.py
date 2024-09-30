@@ -58,9 +58,7 @@ Create a multiple choice quiz based on the following context source from {source
 
 
 class MultiChoiceRewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=1.0, reward_model=MultiChoiceRewardModel()),
-    ]
+    reward_definitions: ClassVar[list[WeightedRewardModel]] = [MultiChoiceRewardModel(weight=1.0)]
 
 
 class MultiChoiceTask(BaseTextTask):

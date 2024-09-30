@@ -74,9 +74,9 @@ class Validator(BaseValidatorNeuron):
                 task_id=task.task_id,
             )
 
-            for uids, rewards in mutable_globals.rewards_and_uids:
-                self.update_scores(uids=uids, rewards=rewards)
-            mutable_globals.rewards_and_uids = []
+            for reward_events in mutable_globals.reward_events:
+                self.update_scores(reward_events)
+            mutable_globals.reward_events = []
 
             # Log the step event.
             return ValidatorLoggingEvent(

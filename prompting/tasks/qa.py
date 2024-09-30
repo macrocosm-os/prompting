@@ -61,12 +61,10 @@ Ensure your answer references relevant parts of the conversation history. Use th
 
 class QARewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
-        WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
+        RougeRewardModel(weight=0.5),
+        RelevanceRewardModel(weight=0.5),
     ]
-    penalty_definition: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel())
-    ]
+    penalty_definition: ClassVar[list[WeightedRewardModel]] = [RougeRewardModel(weight=0.5)]
 
 
 class QuestionAnsweringTask(BaseTextTask):
