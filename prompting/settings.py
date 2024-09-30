@@ -75,7 +75,7 @@ class Settings(BaseSettings):
     ORGANIC_WHITELIST_HOTKEY: Optional[str] = Field(
         "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3", env="ORGANIC_WHITELIST_HOTKEY"
     )
-    TEST_MINER_IDS: Optional[list[int]] = Field([], env="TEST_MINER_IDS")
+    TEST_MINER_IDS: list[int] = Field([], env="TEST_MINER_IDS")
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
     MAX_ALLOWED_VRAM_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
     LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
@@ -136,7 +136,7 @@ class Settings(BaseSettings):
         save_path = values.get("SAVE_PATH", "./storage")
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        if values["TEST_MINER_IDS"]:
+        if "TEST_MINER_IDS" in values and values["TEST_MINER_IDS"]:
             values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
         return values
 
