@@ -90,9 +90,9 @@ class MultiChoiceTask(BaseTextTask):
             int(cleaned_options[letter_to_index.get(self.reference)].split(". ")[1])
         except Exception as e:
             return query
-        new_idx = random.randint(0,3) 
+        new_idx = random.randint(0, 3) 
         answer = int(cleaned_options[letter_to_index.get(self.reference)].split(". ")[1])
-        step = random.randint(1,10)
+        step = random.randint(1, 10)
         new_options = [int(answer) + (i - new_idx) * step for i in range(4)]
         new_options = [opt for opt in new_options if opt != answer]
         letter_options = ["A. ", "B. ", "C. ", "D. "]
