@@ -1,83 +1,76 @@
 import re
 import time
 import json
-
+from loguru import logger
 import numpy as np
-
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
+from pydantic import model_validator, Field
 
 
 class MultiChoiceRewardModel(BaseRewardModel):
-    choices: tuple[str, str, str, str] = ("A", "B", "C", "D")
+    choices: tuple[str, ...] = Field(default=("A", "B", "C", "D"))
+    json_penalty: float = Field(default=0.9)
+    choice_map: dict[str, str] = Field(default={})
+
+    @model_validator(mode="after")
+    def init_choice_map(self):
+        self.choice_map = {choice.lower(): choice for choice in self.choices}
 
     @property
     def name(self) -> str:
         return "multiple_choice"
 
     @staticmethod
-    def safe_load_json(json_string):
-        """Load a JSON string safely."""
-        # Strip leading and trailing spaces from the entire string
-        cleaned_json_string = json_string.strip()
-
-        # Remove trailing commas from JSON objects and arrays
-        cleaned_json_string = re.sub(r",(\s*[}\]])", r"\1", cleaned_json_string)
-
-        # Remove newline characters inside key-value strings
+    def safe_load_json(json_string: str) -> dict[str, float]:
+        cleaned_json_string = re.sub(r",(\s*[}\]])", r"\1", json_string.strip())
         cleaned_json_string = re.sub(r'"\s*\n\s*"', r'""', cleaned_json_string)
-
         try:
-            # Attempt to load the cleaned string as JSON
-            return json.loads(cleaned_json_string)
+            return {k.upper(): v for k, v in json.loads(cleaned_json_string).items()}
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON data: {e}")
 
-    def process_predictions(self, predictions: str) -> str:
-        """Process the predictions from the miners and validate the data.."""
-
-        probs = predictions.values()
-        # Check that values are numeric
-        if not all(isinstance(value, (int, float)) for value in probs):
+    def process_predictions(self, predictions: dict[str, float]) -> dict[str, float]:
+        if not all(isinstance(value, (int, float)) for value in predictions.values()):
             raise ValueError("Values must be numeric")
 
-        # Extract predictions for allowed choices
-        valid_choices = {p: v for p, v in probs.items() if p.upper() in self.choices}
+        valid_choices = {
+            self.choice_map[k.lower()]: float(v) for k, v in predictions.items() if k.lower() in self.choice_map
+        }
 
-        # Check that values sum to 1
-        if not np.isclose(sum(valid_choices.values()), 1.0):
-            raise ValueError("Values must sum to 1")
+        total = sum(valid_choices.values())
+        if not np.isclose(total, 1.0):
+            valid_choices = {k: v / total for k, v in valid_choices.items()}
 
-        return valid_choices
+        return {choice: valid_choices.get(choice, 0.0) for choice in self.choices}
 
-    def _logit_reward(self, reference: str, completion: str) -> float:
-        """Compute difference scores given a completion and reference pair."""
+    def classical_reward(self, reference: str, completion: str) -> float:
+        matches = [word.upper() for word in re.findall(r"\w+", completion) if word.upper() in self.choices]
+        return float(matches[-1] == reference.upper()) if matches else 0.0
+
+    def logit_reward(self, reference: str, completion: str) -> float:
         try:
             loaded_json = self.safe_load_json(completion)
             valid_choices = self.process_predictions(loaded_json)
-            return valid_choices.get(reference.upper(), 0)
-
+            return valid_choices.get(reference.upper(), 0.0)
         except ValueError as e:
-            return 0
+            logger.error(f"Error in logit_reward: {e}")
+            return None
 
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
-        """Compute difference scores given a completion and reference pair."""
         rewards = []
         timings = []
-        completions: list[str] = response_event.completions
 
-        for completion in completions:
-            t0 = time.perf_counter()
-            # Convert completion to a dictionary and extract the logit probability for the reference cho
-            reward = self._logit_reward(reference, completion)
-            timings.append(time.perf_counter() - t0)
+        for completion in response_event.completions:
+            logger.debug(f"Completion: {completion}, reference: {reference}")
+            start_time = time.perf_counter()
+
+            reward = self.logit_reward(reference, completion)
+            if reward is None:
+                reward = self.classical_reward(reference, completion) * self.json_penalty
+
+            timings.append(time.perf_counter() - start_time)
             rewards.append(reward)
 
-        output = BatchRewardOutput(
-            rewards=np.asarray(rewards),
-            timings=np.asarray(timings),
-            # extra_info={
-            #     "type": self.name,
-            # },
-        )
-        return output
+        logger.debug(f"Rewards: {rewards}")
+        return BatchRewardOutput(rewards=np.asarray(rewards), timings=np.asarray(timings))
