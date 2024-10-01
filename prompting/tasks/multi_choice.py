@@ -101,9 +101,10 @@ class MultiChoiceTask(BaseTextTask):
         random.shuffle(new_options)
         new_options = [available_letters[i] + str(new_options[i]) for i in range(3)]
         new_options.append(self.reference + ". " + str(answer))
-        new_options = sorted(new_options, key=lambda x: x.split(". ")[0]).append("Answer:")
+        new_options = sorted(new_options, key=lambda x: x.split(". ")[0])
+        new_options.append("Answer:")
         options_string = "\n".join(new_options)
-        new_query = "?".join(query.split("?")[:2]) + "?" + options_string
+        new_query = "?".join(query.split("?")[:2]) + "?\n" + options_string
         return new_query
 
 
