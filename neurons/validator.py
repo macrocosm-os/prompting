@@ -51,9 +51,9 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        if len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
-            logger.debug("Scoring queue is full. Skipping task generation.")
-            return None
+        while len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
+            logger.debug("Scoring queue is full. Waiting 5 seconds...")
+            asyncio.sleep(5)
         try:
             # Getting task & Dataset
             with Timer() as timer:
