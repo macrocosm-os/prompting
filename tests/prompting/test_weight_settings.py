@@ -4,7 +4,7 @@ from prompting import settings
 
 settings.settings = settings.Settings(mode="mock")
 raw_rewards = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
-from prompting.weight_settings.weight_setter import apply_reward_func, WeightSetter
+from prompting.weight_setting.weight_setter import apply_reward_func, WeightSetter
 from unittest.mock import patch, MagicMock
 
 
@@ -37,11 +37,11 @@ def test_apply_reward_func():
 
 def test_run_step_with_reward_events():
     with (
-        patch("prompting.weight_settings.weight_setter.get_uids") as mock_get_uids,
-        patch("prompting.weight_settings.weight_setter.TaskRegistry") as MockTaskRegistry,
-        patch("prompting.weight_settings.weight_setter.mutable_globals") as mock_mutable_globals,
-        patch("prompting.weight_settings.weight_setter.set_weights") as mock_set_weights,
-        patch("prompting.weight_settings.weight_setter.logger") as mock_logger,
+        patch("prompting.weight_setting.weight_setter.get_uids") as mock_get_uids,
+        patch("prompting.weight_setting.weight_setter.TaskRegistry") as MockTaskRegistry,
+        patch("prompting.weight_setting.weight_setter.mutable_globals") as mock_mutable_globals,
+        patch("prompting.weight_setting.weight_setter.set_weights") as mock_set_weights,
+        patch("prompting.weight_setting.weight_setter.logger") as mock_logger,
     ):
 
         class TaskConfig:

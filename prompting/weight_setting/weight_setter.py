@@ -12,6 +12,8 @@ from prompting.base.loop_runner import AsyncLoopRunner
 from prompting import mutable_globals
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.task_registry import TaskRegistry, TaskConfig
+from prompting.tasks.inference import InferenceTask
+from prompting.llms.model_zoo import ModelZoo
 
 
 def apply_reward_func(raw_rewards, p=0.5):
@@ -127,24 +129,47 @@ class WeightSetter(AsyncLoopRunner):
         }
         logger.debug(f"Miner rewards before processing: {miner_rewards}")
 
+        inference_events: list[WeightedRewardEvent] = []
         for reward_events in mutable_globals.reward_events:
             for reward_event in reward_events:
+                if np.sum(reward_event.rewards) > 0:
+                    logger.debug("Identified positive reward event")
                 task_config = TaskRegistry.get_task_config(reward_event.task)
 
+                # inference task uses a different reward model
+                if task_config.task == InferenceTask:
+                    inference_events.append(reward_event)
+                    continue
+
                 # give each uid the reward they received
-                logger.debug(f"Processing reward event for task {reward_event.task}")
                 for uid, reward in zip(reward_event.uids, reward_event.rewards):
+                    if reward > 0:
+                        logger.debug(f"Adding reward {reward} to uid {uid} for task {task_config.task.__name__}")
                     miner_rewards[task_config][uid] += reward * reward_event.weight
         logger.debug(f"Miner rewards after processing: {miner_rewards}")
 
+        for inference_event in inference_events:
+            for uid, reward in zip(inference_event.uids, inference_event.rewards):
+                llm_model = inference_event.task.llm_model_id
+
+                model_specific_reward = ModelZoo.get_model_by_id(llm_model).reward if llm_model else 1
+                miner_rewards[TaskRegistry.get_task_config(InferenceTask)][uid] += reward * model_specific_reward
+
         for task_config, rewards in miner_rewards.items():
             r = np.array(list(rewards.values()))
+            logger.debug(f"Rewards for task {task_config.task.__name__}: {r}")
             u = np.array(list(rewards.keys()))
-            processed_rewards = apply_reward_func(raw_rewards=r, p=settings.REWARD_STEEPNESS) * task_config.probability
+            if task_config.task == InferenceTask:
+                processed_rewards = r / (np.sum(r) + 1e-10)
+            else:
+                processed_rewards = apply_reward_func(raw_rewards=r, p=settings.REWARD_STEEPNESS)
+            processed_rewards *= task_config.probability
             # update reward dict
             for uid, reward in zip(u, processed_rewards):
                 reward_dict[uid] += reward
         logger.debug(f"Final reward dict: {reward_dict}")
+
+        # set weights on chain
         set_weights(np.array(list(reward_dict.values())), step=self.step)
         return reward_dict
 

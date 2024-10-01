@@ -20,7 +20,7 @@ from prompting.mutable_globals import scoring_queue
 from prompting import mutable_globals
 from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
-from prompting.weight_settings.weight_setter import weight_setter
+from prompting.weight_setting.weight_setter import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
 
