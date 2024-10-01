@@ -83,11 +83,9 @@ class MultiChoiceTask(BaseTextTask):
         return self.query
     
     def post_process_qa(self, query: str) -> str:
-        options = query.split('?')[2].split('\n')
-        cleaned_options = [item.strip() for item in options if item.strip() and item.strip() != 'Answer:'] #Filter
-
-        letter_to_index = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
-        # If the reference cannot be cast as an int, return the original query
+        options = query.split("?")[2].split("\n")
+        cleaned_options = [item.strip() for item in options if item.strip() and item.strip() != "Answer:"] 
+        letter_to_index = {"A": 0, "B": 1, "C": 2, "D": 3}
         try:
             int(cleaned_options[letter_to_index.get(self.reference)].split(". ")[1])
         except Exception as e:
@@ -97,17 +95,15 @@ class MultiChoiceTask(BaseTextTask):
         step = random.randint(1,10)
         new_options = [int(answer) + (i - new_idx) * step for i in range(4)]
         new_options = [opt for opt in new_options if opt != answer]
-        # Now have to recombine reference and answer, then shuffle the rest of the letters with the new options
-        letter_options = ['A. ', 'B. ', 'C. ', 'D. ']
+        letter_options = ["A. ", "B. ", "C. ", "D. "]
         available_letters = [opt for opt in letter_options if f"{self.reference}. " not in opt]
-        # Shuffle the available letters and the new options
         random.shuffle(available_letters)
         random.shuffle(new_options)
         new_options = [available_letters[i] + str(new_options[i]) for i in range(3)]
-        new_options.append(self.reference + '. ' + str(answer))
-        new_options = sorted(new_options, key=lambda x: x.split('. ')[0]).append('Answer:')
+        new_options.append(self.reference + ". " + str(answer))
+        new_options = sorted(new_options, key=lambda x: x.split(". ")[0]).append("Answer:")
         options_string = "\n".join(new_options)
-        new_query = "?".join(query.split('?')[:2]) + "?" + options_string
+        new_query = "?".join(query.split("?")[:2]) + "?" + options_string
         return new_query
 
 
