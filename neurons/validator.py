@@ -52,8 +52,8 @@ class Validator(BaseValidatorNeuron):
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
         while len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
-            logger.debug("Scoring queue is full. Waiting 5 seconds...")
-            asyncio.sleep(5)
+            logger.debug("Scoring queue is full. Waiting 1 second...")
+            asyncio.sleep(1)
         try:
             # Getting task & Dataset
             with Timer() as timer:
