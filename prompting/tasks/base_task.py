@@ -29,6 +29,7 @@ def CHATTENSOR_SYSTEM_PROMPT():
 
 
 class BaseTask(BaseModel, ABC):
+    name: str | None = None
     query: Any = None
     reference: Any = None
     task_id: str = Field(default_factory=lambda: str(uuid4()), allow_mutation=False)
@@ -59,6 +60,8 @@ class BaseTextTask(BaseTask):
     query_system_prompt: ClassVar[str | None] = None
     reference_system_prompt: ClassVar[str | None] = None
     augmentation_system_prompt: ClassVar[str | None] = None
+    dataset_entry: DatasetEntry | None = None
+    task_id: str = str(uuid4())
 
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
 

@@ -61,20 +61,6 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
         allow_mutation=False,
     )
 
-    target_model: Optional[str] = pydantic.Field(
-        None,
-        title="Target Model",
-        description="The model the miner should use for generations. If none, the miner should respond with whatever he thinks is best.",
-        allow_mutation=False,
-    )
-
-    seed: Optional[int] = pydantic.Field(
-        None,
-        title="Seed",
-        description="The seed for that the miner must use for generations. This is only used in combination with the target_model.",
-        allow_mutation=False,
-    )
-
     roles: List[str] = pydantic.Field(
         ...,
         title="Roles",
@@ -102,7 +88,19 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
         description="Completion status of the current PromptingSynapse object. This attribute is mutable and can be updated.",
     )
 
-    # streaming_response: Awaitable | None = None
+    target_model: str | None = pydantic.Field(
+        None,
+        title="Target Model",
+        description="The model the miner should use for generations. If none, the miner should respond with whatever he thinks is best.",
+        allow_mutation=False,
+    )
+
+    seed: int | None = pydantic.Field(
+        None,
+        title="Seed",
+        description="The seed for that the miner must use for generations. This is only used in combination with the target_model.",
+        allow_mutation=False,
+    )
 
     async def process_streaming_response(self, response: StreamingResponse) -> AsyncIterator[str]:
         """

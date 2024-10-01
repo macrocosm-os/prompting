@@ -1,5 +1,5 @@
 from prompting import settings
-settings.settings = settings.Settings(mode="validator")
+settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
 
 import argparse

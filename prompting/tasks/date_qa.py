@@ -22,8 +22,8 @@ Context: {content}
 
 class DateQARewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=0.7, reward_model=DateRewardModel()),
-        WeightedRewardModel(weight=0.3, reward_model=RougeRewardModel()),
+        DateRewardModel(weight=0.7),
+        RougeRewardModel(weight=0.3),
     ]
 
 
@@ -36,13 +36,13 @@ class DateQuestionAnsweringTask(BaseTextTask):
     reference: str | None = None
 
     def make_query(self, dataset_entry: DateContext, **kwargs) -> str:
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(content=dataset_entry.content, topic=dataset_entry.topic)
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(content=dataset_entry.date, topic=dataset_entry.topic)
         self.query = self.generate_query(messages=[query_prompt])
         return self.query
 
     def make_reference(self, dataset_entry: DateContext) -> str:
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
-            date=dataset_entry.date, query=self.query, content=dataset_entry.content
+            date=dataset_entry.content, query=self.query, content=dataset_entry.subtopic
         )
         self.reference = self.generate_reference(messages=[reference_prompt])
         return self.reference

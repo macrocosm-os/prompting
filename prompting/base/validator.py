@@ -16,6 +16,7 @@ from prompting.base.neuron import BaseNeuron
 from prompting.settings import settings
 from prompting.utils.exceptions import MaxRetryError
 from prompting.utils.logging import init_wandb
+from prompting.rewards.reward import WeightedRewardEvent
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -291,28 +292,29 @@ class BaseValidatorNeuron(BaseNeuron):
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(settings.METAGRAPH.hotkeys)
 
-    def update_scores(self, rewards: np.ndarray, uids: list[int]):
+    def update_scores(self, reward_events: list[WeightedRewardEvent]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
+        for r_event in reward_events:
+            # Check if rewards contains NaN values.
+            rewards = r_event.rewards_normalized
+            if any(np.isnan(rewards).flatten()):
+                # if
+                logger.warning(f"NaN values detected in rewards: {rewards}")
+                # Replace any NaN values in rewards with 0.
+                rewards = np.nan_to_num(rewards)
 
-        # Check if rewards contains NaN values.
-        if any(np.isnan(rewards).flatten()):
-            # if
-            logger.warning(f"NaN values detected in rewards: {rewards}")
-            # Replace any NaN values in rewards with 0.
-            rewards = np.nan_to_num(rewards)
+            # Compute forward pass rewards, assumes uids are mutually exclusive.
+            # shape: [ metagraph.n ]
+            step_rewards = np.copy(self.scores)
+            step_rewards[np.array(r_event.uids).astype(int)] = rewards
+            logger.debug(f"Scattered rewards: {rewards}")
 
-        # Compute forward pass rewards, assumes uids are mutually exclusive.
-        # shape: [ metagraph.n ]
-        step_rewards = np.copy(self.scores)
-        step_rewards[np.array(uids).astype(int)] = rewards
-        logger.debug(f"Scattered rewards: {rewards}")
-
-        # Update scores with rewards produced by this step.
-        # shape: [ metagraph.n ]
-        alpha = settings.NEURON_MOVING_AVERAGE_ALPHA
-        self.scores = alpha * step_rewards + (1 - alpha) * self.scores
-        self.scores = np.clip(self.scores - settings.NEURON_DECAY_ALPHA, 0, 1)
-        logger.debug(f"Updated moving avg scores: {self.scores}")
+            # Update scores with rewards produced by this step.
+            # shape: [ metagraph.n ]
+            alpha = settings.NEURON_MOVING_AVERAGE_ALPHA
+            self.scores = alpha * step_rewards + (1 - alpha) * self.scores
+            self.scores = np.clip(self.scores - settings.NEURON_DECAY_ALPHA, 0, 1)
+            logger.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):
         """Saves the state of the validator to a file."""
