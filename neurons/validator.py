@@ -53,7 +53,7 @@ class Validator(BaseValidatorNeuron):
         """
         while len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Waiting 1 second...")
-            asyncio.sleep(1)
+            await asyncio.sleep(1)
         try:
             # Getting task & Dataset
             with Timer() as timer:
