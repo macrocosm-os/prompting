@@ -125,6 +125,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
 
 def reinit_wandb(self):
     """Reinitializes wandb, rolling over the run."""
+    global WANDB
     WANDB.finish()
     init_wandb(self, reinit=True)
 
