@@ -1,4 +1,5 @@
 import json
+import random
 from typing import ClassVar
 
 import numpy as np
@@ -24,7 +25,7 @@ Answer: C
 # Used to instruct the LLM to provide a query when given a context.
 QUERY_SYSTEM_PROMPT = """\
 You are a multiple choice quiz-generating expert.
-Based on the input context, you must generate the question, exactly 4 possible answers (A, B, C, D), and the correct answer letter.
+Based on the input context, you must generate the question, exactly 4 possible answers (A, B, C, D), and the correct answer letter. All 4 possible answers should be the same length and tone.
 
 [Example 1]
 {
@@ -78,7 +79,35 @@ class MultiChoiceTask(BaseTextTask):
         )
         query_with_choices = self.generate_query(messages=query_prompt)
         self.query, self.reference = self.extract_query_and_reference(query_with_choices)
+        self.query = self.post_process_qa(self.query)
         return self.query
+    
+    def post_process_qa(self, query: str) -> str:
+        options = query.split("?")[2].split("\n")
+        cleaned_options = [item.strip() for item in options if item.strip() and item.strip() != "Answer:"] 
+        letter_to_index = {"A": 0, "B": 1, "C": 2, "D": 3}
+        try:
+            int(cleaned_options[letter_to_index.get(self.reference)].split(". ")[1])
+        except Exception as e:
+            return query
+        new_idx = random.randint(0, 3) 
+        answer = int(cleaned_options[letter_to_index.get(self.reference)].split(". ")[1])
+        step = random.randint(1, 10)
+        new_options = [int(answer) + (i - new_idx) * step for i in range(4)]
+        new_options = [opt for opt in new_options if opt != answer]
+        letter_options = ["A. ", "B. ", "C. ", "D. "]
+        available_letters = [opt for opt in letter_options if f"{self.reference}. " not in opt]
+        random.shuffle(available_letters)
+        random.shuffle(new_options)
+        new_options = [available_letters[i] + str(new_options[i]) for i in range(3)]
+        new_options.append(self.reference + ". " + str(answer))
+        new_options = sorted(new_options, key=lambda x: x.split(". ")[0])
+        new_options.append("Answer:")
+        options_string = "\n".join(new_options)
+        new_query = "?".join(query.split("?")[:2]) + "?\n" + options_string
+        return new_query
+
+
 
     def make_reference(self, dataset_entry: Context) -> str:
         return self.reference
