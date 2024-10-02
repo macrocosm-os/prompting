@@ -15,6 +15,9 @@ from prompting.tasks.task_registry import TaskRegistry, TaskConfig
 from prompting.tasks.inference import InferenceTask
 from prompting.llms.model_zoo import ModelZoo
 
+PAST_WEIGHTS: list[np.ndarray] = []
+WEIGHTS_HISTORY_LENGTH = 24
+
 
 def apply_reward_func(raw_rewards, p=0.5):
     """Apply the reward function to the raw rewards. P adjusts the steepness of the function - p = 0.5 leaves
@@ -30,7 +33,7 @@ def apply_reward_func(raw_rewards, p=0.5):
     return all_rewards / (np.sum(all_rewards) + 1e-10)
 
 
-def set_weights(weights, step: int = 0):
+def set_weights(weights: np.ndarray, step: int = 0):
     """
     Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
     """
@@ -44,8 +47,12 @@ def set_weights(weights, step: int = 0):
     # Calculate the average reward for each uid across non-zero values.
     # Replace any NaN values with 0.
     raw_weights = weights / np.linalg.norm(weights, ord=1, axis=0, keepdims=True)
+    PAST_WEIGHTS.append(raw_weights)
+    if len(PAST_WEIGHTS) > WEIGHTS_HISTORY_LENGTH:
+        PAST_WEIGHTS.pop(0)
+    averaged_weights = np.average(np.array(PAST_WEIGHTS), axis=0)
 
-    logger.debug("raw_weights", raw_weights)
+    logger.debug("raw_weights", averaged_weights)
     logger.debug("raw_weight_uids", settings.METAGRAPH.uids)
     # Process the raw weights to final_weights via subtensor limitations.
     (
@@ -53,7 +60,7 @@ def set_weights(weights, step: int = 0):
         processed_weights,
     ) = bt.utils.weight_utils.process_weights_for_netuid(
         uids=settings.METAGRAPH.uids,
-        weights=raw_weights,
+        weights=averaged_weights,
         netuid=settings.NETUID,
         subtensor=settings.SUBTENSOR,
         metagraph=settings.METAGRAPH,
@@ -76,6 +83,7 @@ def set_weights(weights, step: int = 0):
                 "step": step,
                 "uids": uint_uids,
                 "weights": uint_weights,
+                "raw_weights": raw_weights.flatten(),
                 "block": ttl_get_block(),
             }
         )
