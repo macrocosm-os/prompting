@@ -86,8 +86,6 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
 
     if settings.MOCK:
         tags.append("Mock")
-    for task_config in TaskRegistry.task_configs:
-        tags.append(task_config.task.__name__)
     if settings.NEURON_DISABLE_SET_WEIGHTS:
         tags.append("disable_set_weights")
         tags += [
@@ -97,10 +95,15 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
 
     tags += custom_tags
 
+    task_list = []
+    for task_config in TaskRegistry.task_configs:
+        task_list.append(task_config.task.__name__)
+
     wandb_config = {
         "HOTKEY_SS58": settings.WALLET.hotkey.ss58_address,
         "NETUID": settings.NETUID,
-        "wandb_start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        "wandb_start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "TASKS": task_list,
     }
     wandb.login(anonymous="allow", key=settings.WANDB_API_KEY, verify=True)
     logger.info(f"Logging in to wandb on entity: {settings.WANDB_ENTITY} and project: {settings.WANDB_PROJECT_NAME}")
