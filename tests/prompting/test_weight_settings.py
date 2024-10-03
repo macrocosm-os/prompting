@@ -1,6 +1,7 @@
 # ruff: noqa: E402
 import numpy as np
 from prompting import settings
+import asyncio
 
 settings.settings = settings.Settings(mode="mock")
 raw_rewards = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
@@ -44,10 +45,14 @@ def test_run_step_with_reward_events():
         patch("prompting.weight_setting.weight_setter.logger") as mock_logger,
     ):
 
+        class MockTask:
+            pass
+
         class TaskConfig:
             def __init__(self, name, probability):
                 self.name = name
                 self.probability = probability
+                self.task = MockTask
 
         class WeightedRewardEvent:
             def __init__(self, task, uids, rewards, weight):
@@ -81,14 +86,14 @@ def test_run_step_with_reward_events():
         ]
 
         weight_setter = WeightSetter()
-        output = weight_setter.run_step()
+        output = asyncio.run(weight_setter.run_step())
 
         print(output)
         mock_set_weights.assert_called_once()
         call_args = mock_set_weights.call_args[0]
         assert len(call_args[0]) == len(mock_uids)
         assert np.all(call_args[0] >= 0)
-        assert np.isclose(np.sum(call_args[0]), 1.0, atol=1e-6)
+        assert np.isclose(np.sum(call_args[0]), 1 * mock_task_registry.task_configs[0].probability, atol=1e-6)
 
         # Check that the warning about empty reward events is not logged
         mock_logger.warning.assert_not_called()
