@@ -26,13 +26,9 @@ question can be answered through the internet search.
 )
 QUERY_PROMPT_TEMPLATE = "[Input Text]\n{context}"
 
-# REFERENCE_SYSTEM_PROMPT = textwrap.dedent("Your task is to answer the following question with the given context.\n")
-# REFERENCE_PROMPT_TEMPLATE = "[Question]\n{question}\n[Context]\n{context}"
-
 
 class WebRetrievalRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[BaseRewardModel]] = [
-        # WeightedRewardModel(weight=1.0, reward_model=RelevanceRewardModel()),
         WebRetrievalRewardModel(weight=1.0),
     ]
 
@@ -41,7 +37,6 @@ class WebRetrievalTask(BaseTextTask):
     name: ClassVar[str] = "web_retrieval"
     augmentation_system_prompt: ClassVar[str] = ""
     query_system_prompt: ClassVar[Optional[str]] = QUERY_SYSTEM_PROMPT
-    # reference_system_prompt: ClassVar[Optional[str]] = REFERENCE_SYSTEM_PROMPT
 
     def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.website_content)
@@ -54,13 +49,5 @@ class WebRetrievalTask(BaseTextTask):
         return self.query
 
     def make_reference(self, dataset_entry: DDGDatasetEntry) -> str:
-        # Approach #1: Q&A.
-        # reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.website_content)
-        # self.reference = self.generate_reference(reference_prompt)
-
-        # Approach #2: Reference content and response content similarity.
-        # self.reference = dataset_entry.website_content
-
-        # Approach #3: Search term and response content similarity.
         self.reference = dataset_entry.model_dump_json()
         return self.reference
