@@ -113,8 +113,8 @@ class BaseRewardConfig(ABC, BaseModel):
     and weight it with <1.
     """
 
-    reward_definitions: ClassVar[list[WeightedRewardModel]]
-    penalty_definitions: ClassVar[list[WeightedRewardModel]] = []
+    reward_definitions: ClassVar[list[BaseRewardModel]]
+    penalty_definitions: ClassVar[list[BaseRewardModel]] = []
 
     @classmethod
     def sum_rewards(cls, reward_events: list[WeightedRewardEvent]) -> np.ndarray:
@@ -136,8 +136,8 @@ class BaseRewardConfig(ABC, BaseModel):
         challenge: str | None = None,
         model_id: str | None = None,
         task: BaseTextTask | None = None,
-    ) -> tuple[list[WeightedRewardEvent]]:
-        reward_events = []
+    ) -> list[BaseRewardModel]:
+        reward_events: list[BaseRewardModel] = []
         for weighted_reward in cls.reward_definitions:
             reward_events.append(
                 weighted_reward.apply(

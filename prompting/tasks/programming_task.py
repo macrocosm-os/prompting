@@ -5,7 +5,7 @@ from prompting.datasets.huggingface_github import (
     OUTPUT_LINES,
 )
 from prompting.tasks.base_task import BaseTextTask
-from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.utils.cleaners import CleanerPipeline
@@ -15,7 +15,7 @@ from loguru import logger
 
 
 class ProgrammingRewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
+    reward_definitions: ClassVar[list[BaseRewardModel]] = [
         RougeRewardModel(weight=0.5),
         RelevanceRewardModel(weight=0.5),
     ]

@@ -12,7 +12,7 @@ from prompting.rewards.reward import BatchRewardOutput
 from prompting.base.dendrite import DendriteResponseEvent
 
 
-_SEARCH_TERM_THRESH = 0.1
+_SEARCH_TERM_THRESH = 0.3
 _VALID_URL_SCORE = 0.8
 
 
@@ -25,9 +25,12 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
 
     # TODO: Change base class reference type to Reference pydantic model, in order to store additional data.
     def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
-        """Gives an exact reward of 1 if the response matches the reference, 0 otherwise"""
+        """Score response website content and URL based on the similarity to the search term and reference content."""
         timer_start = time.perf_counter()
         completion: str = "\n".join(response_event.completions)
+
+        if not completion:
+            return BatchRewardOutput(rewards=np.asarray([0]), timings=np.asarray([time.perf_counter() - timer_start]))
 
         dataset_entry = DDGDatasetEntry.model_validate_json(reference)
         search_term = dataset_entry.search_term
@@ -36,15 +39,17 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         # URL and the content provided in the completion.
         response_url, response_content = self._parse_response(completion)
         # Content scraped from the URL provided in the completion.
-        response_url_scrape = self._extract_website_content(response_url)
+        response_url_scraped = self._extract_website_content(response_url)
 
         # Similarity between search term and miner's scraped content.
-        search_response_sim = self._cosine_similarity(content1=search_term, content2=response_content)
+        # search_response_sim = self._cosine_similarity(content1=search_term, content2=response_content)
+        # Similarity between reference conent and miner's scraped content.
+        search_response_sim = self._cosine_similarity(content1=reference_content, content2=response_content)
 
         # If the URL provided in the completion is valid.
         valid_url_score = 0
-        if response_url_scrape is not None:
-            valid_url_score = self._cosine_similarity(content1=response_content, content2=response_url_scrape)
+        if response_url_scraped is not None:
+            valid_url_score = self._cosine_similarity(content1=response_content, content2=response_url_scraped)
 
         # Similarity between search term and reference content.
         search_reference_sim = self._cosine_similarity(content1=search_term, content2=reference_content)

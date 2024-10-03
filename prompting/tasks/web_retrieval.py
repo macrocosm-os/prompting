@@ -2,7 +2,7 @@ import textwrap
 from typing import ClassVar, Optional
 
 from prompting.datasets.random_website import DDGDatasetEntry
-from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.web_retrieval import WebRetrievalRewardModel
 from prompting.tasks.base_task import BaseTextTask
 
@@ -19,8 +19,9 @@ URL: https://en.wikipedia.org/wiki/Austin,_Texas
 
 # Used to instruct the LLM to provide a query when given a context.
 QUERY_SYSTEM_PROMPT = textwrap.dedent(
-"""Ask a question about the following text by keeping the context of the topic.
-Make it such that the question can be answered by doing a thorough search on the internet.
+"""Ask a question about the following text in such a way that it's not obvious 
+that you're asking about text from this specific website, but keep the context to make sure that the 
+question can be answered through the internet search.
 """
 )
 QUERY_PROMPT_TEMPLATE = "[Input Text]\n{context}"
@@ -30,9 +31,9 @@ QUERY_PROMPT_TEMPLATE = "[Input Text]\n{context}"
 
 
 class WebRetrievalRewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
+    reward_definitions: ClassVar[list[BaseRewardModel]] = [
         # WeightedRewardModel(weight=1.0, reward_model=RelevanceRewardModel()),
-        WeightedRewardModel(weight=1.0, reward_model=WebRetrievalRewardModel()),
+        WebRetrievalRewardModel(weight=1.0),
     ]
 
 
