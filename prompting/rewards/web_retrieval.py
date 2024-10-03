@@ -1,16 +1,15 @@
 import re
 import time
+
 import numpy as np
-from loguru import logger
-
-from scipy import spatial
 import trafilatura
+from loguru import logger
+from scipy import spatial
 
+from prompting.base.dendrite import DendriteResponseEvent
 from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BatchRewardOutput
-from prompting.base.dendrite import DendriteResponseEvent
-
 
 _SEARCH_TERM_THRESH = 0.3
 _VALID_URL_SCORE = 0.8
