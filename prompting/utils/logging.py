@@ -123,11 +123,11 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
     logger.success(f"Started a new wandb run <blue> {WANDB.name} </blue>")
 
 
-def reinit_wandb(self):
+def reinit_wandb():
     """Reinitializes wandb, rolling over the run."""
     global WANDB
     WANDB.finish()
-    init_wandb(self, reinit=True)
+    init_wandb(reinit=True)
 
 
 class BaseEvent(BaseModel):
