@@ -19,7 +19,7 @@ PAST_WEIGHTS: list[np.ndarray] = []
 WEIGHTS_HISTORY_LENGTH = 24
 
 
-def apply_reward_func(raw_rewards, p=0.5):
+def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
     """Apply the reward function to the raw rewards. P adjusts the steepness of the function - p = 0.5 leaves
     the rewards unchanged, p < 0.5 makes the function more linear (at p=0 all miners with positives reward values get the same reward),
     p > 0.5 makes the function more exponential (winner takes all).

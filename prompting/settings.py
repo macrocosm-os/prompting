@@ -136,7 +136,7 @@ class Settings(BaseSettings):
         save_path = values.get("SAVE_PATH", "./storage")
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        if "TEST_MINER_IDS" in values and values["TEST_MINER_IDS"]:
+        if values.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
         return values
 
