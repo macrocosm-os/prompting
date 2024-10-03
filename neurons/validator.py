@@ -75,10 +75,6 @@ class Validator(BaseValidatorNeuron):
                 task_id=task.task_id,
             )
 
-            # for reward_events in mutable_globals.reward_events:
-            # self.update_scores(reward_events)
-            # mutable_globals.reward_events = []
-
             # Log the step event.
             return ValidatorLoggingEvent(
                 block=self.block,
