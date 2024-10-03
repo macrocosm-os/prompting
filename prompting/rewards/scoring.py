@@ -27,6 +27,7 @@ class ScoringConfig:
     step: int
     task_id: str
 
+
 class TaskScorer(AsyncLoopRunner):
     """The scoring manager maintains a queue of tasks & responses to score and then runs a scoring loop in a background thread.
     This scoring loop will score the responses once the LLM needed is loaded in the model_manager and log the rewards.
@@ -112,7 +113,9 @@ class TaskScorer(AsyncLoopRunner):
         )
         logger.info("Adding scores to rewards_and_uids")
 
+
 class WeightSetter(AsyncLoopRunner):
     pass
+
 
 task_scorer = TaskScorer()

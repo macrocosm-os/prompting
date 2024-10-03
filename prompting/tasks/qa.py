@@ -1,15 +1,11 @@
-from prompting.rewards.rouge import RougeRewardModel
-from prompting.rewards.relevance import RelevanceRewardModel
-from prompting.tasks.base_task import BaseTextTask
-from prompting.rewards.reward import BaseRewardModel
-
-# from prompting.rewards.reward import BaseRewardModel
-from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding, RemovePostQuestionText
-from prompting.utils.cleaners import CleanerPipeline
-from prompting.datasets.base import Context
-from prompting.rewards.reward import BaseRewardConfig
 from typing import ClassVar
 
+from prompting.datasets.base import Context
+from prompting.rewards.relevance import RelevanceRewardModel
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
+from prompting.rewards.rouge import RougeRewardModel
+from prompting.tasks.base_task import BaseTextTask
+from prompting.utils.cleaners import CleanerPipeline, PruneEnding, RemovePostQuestionText, RemoveQuotes, RemoveRoles
 
 # Used to instruct the LLM to provide a good query when given a context
 QUERY_SYSTEM_PROMPT = """\

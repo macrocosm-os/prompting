@@ -1,6 +1,6 @@
 import pydantic
 import bittensor as bt
-from typing import List, AsyncIterator, Optional
+from typing import List, AsyncIterator
 from starlette.responses import StreamingResponse
 
 # from prompting.tasks.date_qa import DateQuestionAnsweringTask
@@ -54,7 +54,7 @@ class StreamPromptingSynapse(bt.StreamingSynapse):
     subclasses to further customize behavior for specific prompting scenarios or requirements.
     """
 
-    task_name: Optional[str] = pydantic.Field(
+    task_name: str = pydantic.Field(
         ...,
         title="Task",
         description="The task for the current StreamPromptingSynapse object. This attribute is immutable.",
