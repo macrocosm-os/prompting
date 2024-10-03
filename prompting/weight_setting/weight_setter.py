@@ -25,12 +25,13 @@ def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
     p > 0.5 makes the function more exponential (winner takes all).
     """
     exponent = (p**6.64385619) * 100  # 6.64385619 = ln(100)/ln(2) -> this way if p=0.5, the exponent is exatly 1
+    raw_rewards = np.array(raw_rewards) / max(1, (np.sum(raw_rewards[raw_rewards > 0]) + 1e-10))
     positive_rewards = np.clip(raw_rewards, 1e-10, np.inf)
     normalised_rewards = positive_rewards / np.max(positive_rewards)
     post_func_rewards = normalised_rewards**exponent
-    all_rewards = post_func_rewards
-    all_rewards[raw_rewards <= 0] = 0
-    return all_rewards / (np.sum(all_rewards) + 1e-10)
+    all_rewards = post_func_rewards / (np.sum(post_func_rewards) + 1e-10)
+    all_rewards[raw_rewards <= 0] = raw_rewards[raw_rewards <= 0]
+    return all_rewards
 
 
 def set_weights(weights: np.ndarray, step: int = 0):
@@ -168,18 +169,23 @@ class WeightSetter(AsyncLoopRunner):
             logger.debug(f"Rewards for task {task_config.task.__name__}: {r}")
             u = np.array(list(rewards.keys()))
             if task_config.task == InferenceTask:
-                processed_rewards = r / (np.sum(r) + 1e-10)
+                processed_rewards = r / max(1, (np.sum(r[r > 0]) + 1e-10))
             else:
                 processed_rewards = apply_reward_func(raw_rewards=r, p=settings.REWARD_STEEPNESS)
             processed_rewards *= task_config.probability
             # update reward dict
             for uid, reward in zip(u, processed_rewards):
                 reward_dict[uid] += reward
-        logger.debug(f"Final reward dict: {reward_dict}")
+        logger.debug(f"Reward dict: {reward_dict}")
+        final_rewards = np.array(list(reward_dict.values())).astype(float)
+        final_rewards[final_rewards < 0] = 0
+        final_rewards /= np.sum(final_rewards) + 1e-10
+        logger.debug(f"Final reward dict: {final_rewards}")
 
         # set weights on chain
         set_weights(np.array(list(reward_dict.values())), step=self.step)
-        return reward_dict
+        mutable_globals.reward_events = []  # empty reward events queue
+        return final_rewards
 
 
 weight_setter = WeightSetter()
