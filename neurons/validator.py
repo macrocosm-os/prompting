@@ -108,7 +108,7 @@ class Validator(BaseValidatorNeuron):
             seed=task.seed,
             target_model=task.llm_model_id,
             roles=["user"],
-            messages=task.messages or [task.query],
+            messages=[task.query],
         )
         streams_responses = await settings.DENDRITE(
             axons=axons,
