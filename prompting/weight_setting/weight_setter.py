@@ -118,7 +118,7 @@ class WeightSetter(AsyncLoopRunner):
     """The weight setter looks at RewardEvents in the reward_events queue and sets the weights of the miners accordingly."""
 
     sync: bool = True
-    interval: int = 10
+    interval: int = 3600 / 3  # set rewards every 20 minutes
 
     async def run_step(self):
         if len(mutable_globals.reward_events) == 0:
