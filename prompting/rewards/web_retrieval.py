@@ -42,8 +42,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
 
         # Similarity between search term and miner's scraped content.
         search_response_sim = self._cosine_similarity(content1=search_term, content2=response_content)
-        # Similarity between reference conent and miner's scraped content.
-        # reference_response_sim = self._cosine_similarity(content1=reference_content, content2=response_content)
 
         # If the URL provided in the completion is valid.
         valid_url_score = 0
