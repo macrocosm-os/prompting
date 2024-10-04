@@ -26,6 +26,7 @@ class Settings(BaseModel):
     WANDB_API_KEY: Optional[str] = None
     WANDB_OFFLINE: bool = False
     WANDB_NOTES: str = ""
+    MAX_WANDB_DURATION: int = 24
     SAVE_PATH: str | None = None
 
     # NEURON
