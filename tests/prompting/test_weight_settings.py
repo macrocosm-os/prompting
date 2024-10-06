@@ -33,7 +33,7 @@ def test_apply_reward_func():
     # Test with negative values
     raw_rewards = np.array([-1.0, 0.0, 1.0, 2.0, 3.0])
     result = apply_reward_func(raw_rewards, p=0.5)
-    assert np.isclose(result[0], 0), "Negative reward should be 0"
+    assert result[0] < 0, "Negative reward should remain negative"
 
 
 def test_run_step_with_reward_events():
