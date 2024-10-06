@@ -5,7 +5,7 @@ import numpy as np
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 
-PENALTY_FACTOR = 3
+PENALTY_FACTOR = 0
 
 
 class PenaltyModel(BaseRewardModel):
