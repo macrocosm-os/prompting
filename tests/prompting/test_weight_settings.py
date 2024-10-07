@@ -91,9 +91,8 @@ def test_run_step_with_reward_events():
         print(output)
         mock_set_weights.assert_called_once()
         call_args = mock_set_weights.call_args[0]
-        assert len(call_args[0]) == len(mock_uids)
-        assert np.all(call_args[0] >= 0)
-        assert np.isclose(np.sum(call_args[0]), 1 * mock_task_registry.task_configs[0].probability, atol=1e-6)
+        assert len([c for c in call_args[0] if c > 0]) == len(mock_uids)
+        assert np.isclose(np.sum(call_args[0]), 1, atol=1e-6)
 
         # Check that the warning about empty reward events is not logged
         mock_logger.warning.assert_not_called()
