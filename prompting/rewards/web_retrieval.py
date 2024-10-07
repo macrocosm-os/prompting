@@ -1,4 +1,4 @@
-"""Expected miner's response is a JSON object with the following keys: response_url and response_content.
+"""Expected miner's response is a JSON object with the following keys: url, content, relevant.
 
 Example response:
 {
