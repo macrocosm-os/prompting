@@ -45,7 +45,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             return BatchRewardOutput(rewards=np.asarray([0]), timings=np.asarray([time.perf_counter() - timer_start]))
 
         # Content scraped from the URL provided in the completion.
-        response_url_scraped = self._extract_website_content(response_url)
         response_url_scraped = DDGDataset.extract_website_content(response_url)
         if not response_url_scraped or len(response_url_scraped) == 0:
             logger.debug(f"Failed to extract miner's content from website: {response_url}")
