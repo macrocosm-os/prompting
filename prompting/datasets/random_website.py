@@ -31,7 +31,8 @@ class DDGDataset(BaseDataset):
             logger.error(f"Failed to get search results from DuckDuckGo: {ex}")
         return None, None
 
-    def extract_website_content(self, url: str) -> Optional[str]:
+    @staticmethod
+    def extract_website_content(url: str) -> Optional[str]:
         try:
             website = trafilatura.fetch_url(url)
             extracted = trafilatura.extract(website)

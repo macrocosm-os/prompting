@@ -1,17 +1,25 @@
-import re
+"""Expected miner's response is a JSON object with the following keys: response_url and response_content.
+
+Example response:
+{
+    "url": "https://www.example.com",
+    "content": "This is the content of the website. This is the section we are interested in.",
+    "relevant": "This is the section we are interested in.",
+}
+"""
+import json
 import time
 
 import numpy as np
-import trafilatura
 from loguru import logger
 from scipy import spatial
 
 from prompting.base.dendrite import DendriteResponseEvent
-from prompting.datasets.random_website import DDGDatasetEntry
+from prompting.datasets.random_website import DDGDataset, DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BatchRewardOutput
 
-_SEARCH_TERM_THRESH = 0.3
+_SEARCH_TERM_THRESH = 0.4
 _VALID_URL_SCORE = 0.8
 
 
@@ -31,17 +39,29 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         if not completion:
             return BatchRewardOutput(rewards=np.asarray([0]), timings=np.asarray([time.perf_counter() - timer_start]))
 
+        # URL and the content provided in the completion.
+        response_url, response_content, response_relevant = self._parse_response(completion)
+        if response_url is None or response_content is None:
+            return BatchRewardOutput(rewards=np.asarray([0]), timings=np.asarray([time.perf_counter() - timer_start]))
+
+        # Content scraped from the URL provided in the completion.
+        response_url_scraped = self._extract_website_content(response_url)
+        response_url_scraped = DDGDataset.extract_website_content(response_url)
+        if not response_url_scraped or len(response_url_scraped) == 0:
+            logger.debug(f"Failed to extract miner's content from website: {response_url}")
+            return BatchRewardOutput(rewards=np.asarray([0]), timings=np.asarray([time.perf_counter() - timer_start]))
+
         dataset_entry = DDGDatasetEntry.model_validate_json(reference)
         search_term = dataset_entry.search_term
         reference_content = dataset_entry.website_content
 
-        # URL and the content provided in the completion.
-        response_url, response_content = self._parse_response(completion)
-        # Content scraped from the URL provided in the completion.
-        response_url_scraped = self._extract_website_content(response_url)
-
         # Similarity between search term and miner's scraped content.
         search_response_sim = self._cosine_similarity(content1=search_term, content2=response_content)
+
+        # Similarity between search term and relevant section of content.
+        search_relevant_sim = 0
+        if response_relevant is not None:
+            search_relevant_sim = self._cosine_similarity(content1=search_term, content2=response_relevant)
 
         # If the URL provided in the completion is valid.
         valid_url_score = 0
@@ -50,61 +70,37 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
 
         # Similarity between search term and reference content.
         search_reference_sim = self._cosine_similarity(content1=search_term, content2=reference_content)
-        response_reference_ratio = search_response_sim / search_reference_sim
-        score = (search_response_sim + valid_url_score) / 2
-        if abs(response_reference_ratio - 1) > _SEARCH_TERM_THRESH:
+        score = (search_response_sim + valid_url_score + search_relevant_sim) / 3
+        if abs(search_response_sim - search_reference_sim) > _SEARCH_TERM_THRESH:
             logger.info(
-                f"Reponse and reference scraped content relevance to the search term exceeds the threshold. "
+                f"Response and reference scraped content relevance to the search term exceeds the threshold. "
                 f"Similarity: response = {search_response_sim:.2f}; reference = {search_reference_sim:.2f}"
             )
             score = 0
         elif valid_url_score < _VALID_URL_SCORE:
+            # If provided URL does not contain content.
             logger.info(
                 f"Search term is not relevant to the scraped content, similarity {valid_url_score} < {_VALID_URL_SCORE}"
+            )
+            score = 0
+        elif response_relevant is not None and len(response_relevant) > len(response_content):
+            logger.info(
+                "Relevant section is longer than the whole website content "
+                f"{len(response_relevant)} > {len(response_content)}"
             )
             score = 0
 
         return BatchRewardOutput(rewards=np.asarray([score]), timings=np.asarray([time.perf_counter() - timer_start]))
 
     @staticmethod
-    def _extract_website_content(url) -> str:
-        website = trafilatura.fetch_url(url)
-        return trafilatura.extract(website)
-
-    @staticmethod
-    def _parse_response(completion: str) -> tuple[str, str]:
-        """Parse the completion text and extracts the URL and content.
-
-        Args:
-            completion: The text to parse.
-
-        Returns:
-            tuple: A tuple containing the URL (str or None) and the content (str).
-        """
-        url = None
-        lines = completion.strip().split("\n")
-
-        # First, try to find URL by parsing the last line that starts with "URL:".
-        if lines and lines[-1].startswith("URL:"):
-            url_line = lines.pop()
-            url = url_line[len("URL:"):].strip()
-        else:
-            # Search for any line that starts with "URL:".
-            url_found = False
-            for idx, line in enumerate(lines):
-                if line.startswith("URL:"):
-                    url = line[len("URL:"):].strip()
-                    # Remove the line containing the URL.
-                    lines.pop(idx)
-                    url_found = True
-                    break
-            # If still not found, search for any URL in the text.
-            if not url_found:
-                url_pattern = re.compile(r"https?://[^\s]+", re.IGNORECASE)
-                match = url_pattern.search(completion)
-                if match:
-                    url = match.group(0)
-
-        # Reconstruct the content without the URL line(s).
-        content = "\n".join(lines).strip()
-        return url, content
+    def _parse_response(completion: str) -> tuple[str | None, ...]:
+        try:
+            data = json.loads(completion)
+            response_url = data.get("url")
+            response_content = data.get("content")
+            response_relevant = data.get("relevant")
+        except json.JSONDecodeError:
+            response_url = None
+            response_content = None
+            response_relevant = None
+        return response_url, response_content, response_relevant

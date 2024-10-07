@@ -13,7 +13,6 @@ that you're asking about text from this specific website, but keep the context t
 question can be answered through the internet search.
 """
 )
-QUERY_PROMPT_TEMPLATE = "[Input Text]\n{context}"
 
 
 class WebRetrievalRewardConfig(BaseRewardConfig):
@@ -28,8 +27,7 @@ class WebRetrievalTask(BaseTextTask):
     query_system_prompt: ClassVar[Optional[str]] = QUERY_SYSTEM_PROMPT
 
     def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.website_content)
-        self.query = self.generate_query(messages=query_prompt)
+        self.query = self.generate_query(messages=dataset_entry.website_content)
         return self.query
 
     def make_reference(self, dataset_entry: DDGDatasetEntry) -> str:
