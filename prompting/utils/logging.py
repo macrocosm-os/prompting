@@ -120,6 +120,8 @@ def reinit_wandb(self):
 class BaseEvent(BaseModel):
     forward_time: float | None = None
 
+class WeightSetEvent(BaseEvent):
+    weight_set_event: list[float]
 
 class ErrorLoggingEvent(BaseEvent):
     error: str

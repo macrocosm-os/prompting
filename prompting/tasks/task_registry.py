@@ -6,28 +6,31 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict
 
 from prompting.datasets.base import BaseDataset
+from prompting.datasets.huggingface_github import HuggingFaceGithubDataset
+from prompting.datasets.lmsys import LMSysDataset
 from prompting.datasets.random_website import DDGDataset
+from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
-from prompting.tasks.web_retrieval import WebRetrievalRewardConfig, WebRetrievalTask
 from prompting.tasks.date_qa import DateQARewardConfig, DateQuestionAnsweringTask
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
 from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTask
 from prompting.tasks.programming_task import ProgrammingRewardConfig, ProgrammingTask
 from prompting.tasks.qa import QARewardConfig, QuestionAnsweringTask
 from prompting.tasks.summarization import SummarizationRewardConfig, SummarizationTask
-from prompting.datasets.wiki import WikiDataset, WikiDateDataset
-from prompting.datasets.huggingface_github import HuggingFaceGithubDataset
-from prompting.datasets.lmsys import LMSysDataset
+from prompting.tasks.web_retrieval import WebRetrievalRewardConfig, WebRetrievalTask
 
 
 class TaskConfig(BaseModel):
     task: BaseTextTask.__class__
-    probability: float
+    probability: float  # TODO: Rename this as soon it will determine the share in reward rather than probability
     datasets: list[BaseDataset.__class__]
     reward_model: BaseRewardConfig.__class__
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def __hash__(self):
+        return hash(self.task)
 
 
 class TaskRegistry(BaseModel):
@@ -44,6 +47,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=InferenceTask,
+            # probability=1,
             probability=0.2,
             datasets=[LMSysDataset],
             reward_model=InferenceRewardConfig,
@@ -67,6 +71,15 @@ class TaskRegistry(BaseModel):
             reward_model=WebRetrievalRewardConfig,
         ),
     ]
+
+    @classmethod
+    def get_task_config(cls, task: BaseTextTask.__class__ | BaseTextTask) -> TaskConfig:
+        task = task.__class__ if isinstance(task, BaseTextTask) else task
+        try:
+            return [t for t in cls.task_configs if task is t.task][0]
+        except Exception:
+            logger.error("Tried accessing non-registered task")
+            return
 
     @classmethod
     def random(cls) -> TaskConfig:

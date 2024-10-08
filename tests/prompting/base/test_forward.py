@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -19,7 +20,7 @@ from prompting.tasks.base_task import BaseTextTask
         ("response", "response"),
         (42, 42),
         ({"key": "value"}, {"key": "value"}),
-    ]
+    ],
 )
 async def test_execute_dendrite_call(return_value, expected_result):
     """Test the execute_dendrite_call function with different return values."""
@@ -34,7 +35,7 @@ async def test_execute_dendrite_call(return_value, expected_result):
     [
         (Exception("Test exception"), Exception, "Test exception"),
         (ValueError("Invalid value"), ValueError, "Invalid value"),
-    ]
+    ],
 )
 async def test_execute_dendrite_call_exception(side_effect, expected_exception_type, expected_message):
     """Test the execute_dendrite_call function when an exception occurs."""
@@ -59,7 +60,7 @@ async def test_execute_dendrite_call_exception(side_effect, expected_exception_t
                     roles=["assistant"],
                     messages=["Hello"],
                     completion="Completion",
-                    required_hash_fields=["hash"]
+                    required_hash_fields=["hash"],
                 ),
             ],
             None,
@@ -77,10 +78,13 @@ async def test_execute_dendrite_call_exception(side_effect, expected_exception_t
             ["chunk1"],
             None,
         ),
-    ]
+    ],
 )
-async def test_process_stream(uid, iterator_content, expected_exception, expected_accumulated_chunks, expected_completion):
+async def test_process_stream(
+    uid, iterator_content, expected_exception, expected_accumulated_chunks, expected_completion
+):
     """Test the process_stream function with various scenarios."""
+
     async def mock_async_iterator():
         for item in iterator_content:
             if isinstance(item, Exception):
@@ -120,7 +124,7 @@ async def test_process_stream(uid, iterator_content, expected_exception, expecte
                         roles=["assistant"],
                         messages=["Hello"],
                         completion="Completion 1",
-                        required_hash_fields=["hash"]
+                        required_hash_fields=["hash"],
                     ),
                 ],
                 2: [
@@ -131,7 +135,7 @@ async def test_process_stream(uid, iterator_content, expected_exception, expecte
                         roles=["assistant"],
                         messages=["Hi"],
                         completion="Completion 2",
-                        required_hash_fields=["hash"]
+                        required_hash_fields=["hash"],
                     ),
                 ],
             },
@@ -164,7 +168,7 @@ async def test_process_stream(uid, iterator_content, expected_exception, expecte
                         roles=["assistant"],
                         messages=["Hi"],
                         completion="Completion 2",
-                        required_hash_fields=["hash"]
+                        required_hash_fields=["hash"],
                     ),
                 ],
             },
@@ -183,10 +187,11 @@ async def test_process_stream(uid, iterator_content, expected_exception, expecte
                 },
             ],
         ),
-    ]
+    ],
 )
 async def test_handle_response(stream_results_dict, expected_results):
     """Test the handle_response function with various scenarios."""
+
     def make_mock_async_iterator(content):
         async def iterator():
             for item in content:
@@ -194,6 +199,7 @@ async def test_handle_response(stream_results_dict, expected_results):
                     raise item
                 else:
                     yield item
+
         return iterator()
 
     # Prepare the stream_results_dict with async iterators.
@@ -222,6 +228,7 @@ async def test_handle_response(stream_results_dict, expected_results):
 @pytest.mark.asyncio
 async def test_generate_reference():
     """Test the generate_reference function."""
+
     class MockTask(BaseTextTask):
         def generate_reference(self, pipeline):
             return "Reference text"
