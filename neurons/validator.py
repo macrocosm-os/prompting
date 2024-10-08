@@ -90,7 +90,7 @@ class Validator(BaseValidatorNeuron):
                 error=str(ex),
             )
 
-    async def collect_responses(self, task: BaseTextTask) -> DendriteResponseEvent:
+    async def collect_responses(self, task: BaseTextTask) -> DendriteResponseEvent | None:
         # Get the list of uids and their axons to query for this step.
         uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
         logger.debug(f"🔍 Querying uids: {uids}")

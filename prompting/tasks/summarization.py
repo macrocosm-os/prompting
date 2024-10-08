@@ -1,7 +1,7 @@
 from prompting.tasks.base_task import BaseTextTask
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
-from prompting.rewards.reward import WeightedRewardModel
+from prompting.rewards.reward import BaseRewardModel
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding
 from prompting.datasets.base import Context
@@ -33,11 +33,11 @@ def make_query_prompt(context: Context) -> str:
 
 
 class SummarizationRewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
+    reward_definitions: ClassVar[list[BaseRewardModel]] = [
         RougeRewardModel(weight=0.5),
         RelevanceRewardModel(weight=0.5),
     ]
-    penalty_definition: ClassVar[list[WeightedRewardModel]] = [RougeRewardModel(weight=0.5)]
+    penalty_definition: ClassVar[list[BaseRewardModel]] = [RougeRewardModel(weight=0.5)]
 
 
 class SummarizationTask(BaseTextTask):

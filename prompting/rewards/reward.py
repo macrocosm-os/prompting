@@ -113,8 +113,8 @@ class BaseRewardConfig(ABC, BaseModel):
     and weight it with <1.
     """
 
-    reward_definitions: ClassVar[list[WeightedRewardModel]]
-    penalty_definitions: ClassVar[list[WeightedRewardModel]] = []
+    reward_definitions: ClassVar[list[BaseRewardModel]]
+    penalty_definitions: ClassVar[list[BaseRewardModel]] = []
 
     @classmethod
     def sum_rewards(cls, reward_events: list[WeightedRewardEvent]) -> np.ndarray:

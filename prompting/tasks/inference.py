@@ -1,5 +1,5 @@
 from typing import ClassVar
-from prompting.rewards.reward import WeightedRewardModel, BaseRewardConfig
+from prompting.rewards.reward import BaseRewardModel, BaseRewardConfig
 from prompting.rewards.inference_reward_model import InferenceRewardModel
 from prompting.rewards.penalty import PenaltyModel
 
@@ -11,7 +11,7 @@ from prompting.datasets.lmsys import ChatEntry
 
 
 class InferenceRewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
+    reward_definitions: ClassVar[list[BaseRewardModel]] = [
         InferenceRewardModel(weight=0.5),
         PenaltyModel(weight=0.5),
     ]
