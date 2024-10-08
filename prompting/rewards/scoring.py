@@ -85,8 +85,7 @@ class TaskScorer(AsyncLoopRunner):
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
         logger.debug(
-            f"""{len(scoring_config.response.completions)} completions to score for task {scoring_config.task}
-            COMPLETIONS: {scoring_config.response.completions}"""
+            f"""{len(scoring_config.response.completions)} completions to score for task {scoring_config.task}"""
         )
         reward_events = reward_pipeline.apply(
             response_event=scoring_config.response,

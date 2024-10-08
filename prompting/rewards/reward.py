@@ -13,9 +13,9 @@ class WeightedRewardEvent(BaseModel):
     weight: float
     task: BaseTextTask
     reward_model_name: str
-    rewards: np.ndarray
-    rewards_normalized: np.ndarray
-    timings: np.ndarray
+    rewards: list[float]
+    rewards_normalized: list[float]
+    timings: list[float]
     reward_model_type: RewardTypeLiteral
     batch_time: float
     uids: list[float]
@@ -136,8 +136,8 @@ class BaseRewardConfig(ABC, BaseModel):
         challenge: str | None = None,
         model_id: str | None = None,
         task: BaseTextTask | None = None,
-    ) -> list[BaseRewardModel]:
-        reward_events: list[BaseRewardModel] = []
+    ) -> list[WeightedRewardEvent]:
+        reward_events = []
         for weighted_reward in cls.reward_definitions:
             reward_events.append(
                 weighted_reward.apply(

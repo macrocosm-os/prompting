@@ -20,6 +20,7 @@ from prompting.mutable_globals import scoring_queue
 from prompting import mutable_globals
 from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
+from prompting.weight_setting.weight_setter import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
 
@@ -48,12 +49,12 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        if len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
-            logger.debug("Scoring queue is full. Skipping task generation.")
-            return None
-        if len(mutable_globals.task_queue) == 0:
-            logger.warning("No tasks in queue, skipping sending...")
-            return
+        while len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
+            logger.debug("Scoring queue is full. Waiting 1 second...")
+            await asyncio.sleep(1)
+        while len(mutable_globals.task_queue) == 0:
+            logger.warning("No tasks in queue. Waiting 1 second...")
+            await asyncio.sleep(1)
         try:
             # get task from the task queue
             mutable_globals.task_queue: list[BaseTextTask]
@@ -73,10 +74,6 @@ class Validator(BaseValidatorNeuron):
                 step=self.step,
                 task_id=task.task_id,
             )
-
-            for reward_events in mutable_globals.reward_events:
-                self.update_scores(reward_events)
-            mutable_globals.reward_events = []
 
             # Log the step event.
             return ValidatorLoggingEvent(
@@ -191,6 +188,8 @@ async def main():
 
     # will start checking the availability of miners at regular intervals
     asyncio.create_task(availability_checking_loop.start())
+
+    asyncio.create_task(weight_setter.start())
 
     # start scoring tasks in separate loop
     asyncio.create_task(task_scorer.start())

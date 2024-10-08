@@ -33,7 +33,7 @@ class MultiChoiceRewardModel(BaseRewardModel):
 
             # Take the last match as the answer
             if matches:
-                reward = matches[-1] == reference
+                reward = int(matches[-1] == reference)
             else:
                 reward = 0
             timings.append(time.perf_counter() - t0)

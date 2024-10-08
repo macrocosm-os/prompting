@@ -1,3 +1,4 @@
+from loguru import logger
 from abc import ABC, abstractmethod
 from typing import Literal
 from pydantic import BaseModel
@@ -43,6 +44,9 @@ class Context(DatasetEntry):
     stats: dict | None = None  # retrieval stats such as fetch time, number of tries, etc.
 
 
+RETRIES = 3
+
+
 class BaseDataset(ABC, BaseModel):
     """Base class for datasets."""
 
@@ -60,7 +64,7 @@ class BaseDataset(ABC, BaseModel):
         context: DatasetEntry  # for some reason the ls doesn't understand it's of type Context without this
 
         with Timer() as timer:
-            while True:
+            for _ in range(RETRIES):
                 # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
                 if method == "random":
                     context = self.random(**kwargs)
@@ -71,6 +75,9 @@ class BaseDataset(ABC, BaseModel):
 
                 if context:
                     break
+            else:
+                logger.error(f"Failed to fetch context after {RETRIES} tries.")
+                return None
 
         context.source = self.__class__.__name__
         context.stats = {

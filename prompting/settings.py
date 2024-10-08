@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     NEURON_QUERY_UNIQUE_IPS: bool = Field(False, env="NEURON_QUERY_UNIQUE_IPS")
     NEURON_FORWARD_MAX_TIME: int = Field(240, env="NEURON_FORWARD_MAX_TIME")
     NEURON_MAX_TOKENS: int = Field(512, env="NEURON_MAX_TOKENS")
+    REWARD_STEEPNESS: float = Field(0.5, env="STEEPNESS")
 
     # Organic.
     ORGANIC_TIMEOUT: int = Field(30, env="ORGANIC_TIMEOUT")
@@ -74,7 +75,7 @@ class Settings(BaseSettings):
     ORGANIC_WHITELIST_HOTKEY: Optional[str] = Field(
         "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3", env="ORGANIC_WHITELIST_HOTKEY"
     )
-    TEST_MINER_IDS: Optional[list[int]] = Field(None, env="TEST_MINER_IDS")
+    TEST_MINER_IDS: list[int] = Field([], env="TEST_MINER_IDS")
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
     MAX_ALLOWED_VRAM_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
     LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
@@ -135,7 +136,7 @@ class Settings(BaseSettings):
         save_path = values.get("SAVE_PATH", "./storage")
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        if values["TEST_MINER_IDS"] is not None:
+        if values.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
         return values
 
