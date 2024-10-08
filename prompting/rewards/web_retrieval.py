@@ -37,7 +37,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         for completion in response_event.completions:
             timer_start = time.perf_counter()
 
-            # reward = 0
             if not completion:
                 timings.append(time.perf_counter() - timer_start)
                 rewards.append(0)
