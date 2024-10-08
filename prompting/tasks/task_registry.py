@@ -47,7 +47,6 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=InferenceTask,
-            # probability=1,
             probability=0.2,
             datasets=[LMSysDataset],
             reward_model=InferenceRewardConfig,
