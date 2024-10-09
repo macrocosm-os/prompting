@@ -2,6 +2,7 @@ from loguru import logger
 import bittensor as bt
 import numpy as np
 import os
+import asyncio
 import pandas as pd
 
 from prompting import __spec_version__
@@ -126,6 +127,7 @@ class WeightSetter(AsyncLoopRunner):
     # interval: int = 60
 
     async def run_step(self):
+        await asyncio.sleep(0.01)
         try:
             logger.info("Reward setting loop running")
             if len(mutable_globals.reward_events) == 0:
@@ -152,6 +154,7 @@ class WeightSetter(AsyncLoopRunner):
 
             inference_events: list[WeightedRewardEvent] = []
             for reward_events in mutable_globals.reward_events:
+                await asyncio.sleep(0.01)
                 for reward_event in reward_events:
                     if np.sum(reward_event.rewards) > 0:
                         logger.debug("Identified positive reward event")
@@ -197,6 +200,7 @@ class WeightSetter(AsyncLoopRunner):
         # set weights on chain
         set_weights(final_rewards, step=self.step)
         mutable_globals.reward_events = []  # empty reward events queue
+        await asyncio.sleep(0.01)
         return final_rewards
 
 
