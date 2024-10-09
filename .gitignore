@@ -11,6 +11,10 @@ prompting/storage/
 # C extensions
 *.so
 
+# local testing notebooks
+local/
+notebooks/
+
 # Distribution / packaging
 .Python
 build/

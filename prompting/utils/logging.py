@@ -3,7 +3,7 @@ import numpy as np
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Literal, Any, Optional
+from typing import Literal, Any
 
 import wandb
 from loguru import logger
@@ -120,6 +120,8 @@ def reinit_wandb(self):
 class BaseEvent(BaseModel):
     forward_time: float | None = None
 
+class WeightSetEvent(BaseEvent):
+    weight_set_event: list[float]
 
 class ErrorLoggingEvent(BaseEvent):
     error: str
@@ -150,32 +152,28 @@ class ValidatorLoggingEvent(BaseEvent):
             Completions: {sample_completions}
             Sample completion: {sample_completion}"""
 
+
 class RewardLoggingEvent(BaseEvent):
     block: int
     step: int
-    best: str | None
     response_event: DendriteResponseEvent
     reward_events: list[WeightedRewardEvent]
-    penalty_events: list[WeightedRewardEvent]
     task_id: str
     reference: str
     challenge: str
     task: str
-    rewards: list[float]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __str__(self):
-        rewards = [r.reward_event.rewards for r in self.reward_events]
+        rewards = [r.rewards for r in self.reward_events]
 
         return f"""RewardLoggingEvent:
-            Best: {self.best}
             Rewards:
                 Rewards: {rewards}
                 Min: {np.min(rewards) if len(rewards) > 0 else None}
                 Max: {np.max(rewards) if len(rewards) > 0 else None}
                 Average: {np.mean(rewards) if len(rewards) > 0 else None}
-            Penalty Events: {self.penalty_events}
             task_id: {self.task_id}
             task_name: {self.task}"""
 
@@ -211,24 +209,11 @@ def unpack_events(event: BaseEvent) -> dict[str, Any]:
     """reward_events and penalty_events are unpacked into a list of dictionaries."""
     event_dict = event.model_dump()
     for key in list(event_dict.keys()):
-        if key.endswith("_events"):
-            event_dict.update(extract_reward_event(event_dict.pop(key)))
         if key == "response_event":
             nested_dict = event_dict.pop(key)
             if isinstance(nested_dict, dict):
                 event_dict.update(nested_dict)
     return event_dict
-
-
-def extract_reward_event(reward_event: list[dict[str, Any]]) -> dict[str, Any]:
-    flattened_reward_dict = {}
-    for element in reward_event:
-        name = element["reward_event"].pop("reward_model_name")
-        element["reward_event"]["weight"] = element.pop("weight")
-        reward_event = element.pop("reward_event")
-        new_reward_event = {f"{name}_{key}": value for key, value in reward_event.items()}
-        flattened_reward_dict.update(new_reward_event)
-    return flattened_reward_dict
 
 
 def convert_arrays_to_lists(data: dict) -> dict:

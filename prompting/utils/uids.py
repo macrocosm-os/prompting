@@ -118,7 +118,7 @@ def get_uids(
     own_uid: int | None = None,
 ) -> np.ndarray:
     if settings.TEST and settings.TEST_MINER_IDS:
-        return random.sample(np.array(settings.TEST_MINER_IDS), min(len(settings.TEST_MINER_IDS, k or 10**6)))
+        return random.sample(list(np.array(settings.TEST_MINER_IDS)), min(len(settings.TEST_MINER_IDS), k or 10**6))
     if sampling_mode == "random":
         return get_random_uids(k=k, exclude=exclude or [])
     if sampling_mode == "top_incentive":

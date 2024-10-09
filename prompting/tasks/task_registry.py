@@ -22,12 +22,15 @@ from prompting.tasks.web_retrieval import WebRetrievalRewardConfig, WebRetrieval
 
 
 class TaskConfig(BaseModel):
-    task: BaseTextTask.__class__
+    task: type[BaseTextTask]
     probability: float
-    datasets: list[BaseDataset.__class__]
-    reward_model: BaseRewardConfig.__class__
+    datasets: list[type[BaseDataset]]
+    reward_model: type[BaseRewardConfig]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    def __hash__(self):
+        return hash(self.task)
 
 
 class TaskRegistry(BaseModel):
@@ -50,7 +53,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=MultiChoiceTask,
-            probability=0.2,
+            probability=0.22,
             datasets=[WikiDataset],
             reward_model=MultiChoiceRewardConfig,
         ),
@@ -62,11 +65,21 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=WebRetrievalTask,
-            probability=0.05,
+            # TODO: Increase probability after v2.9.0.
+            probability=0.03,
             datasets=[DDGDataset],
             reward_model=WebRetrievalRewardConfig,
         ),
     ]
+
+    @classmethod
+    def get_task_config(cls, task: BaseTextTask.__class__ | BaseTextTask) -> TaskConfig:
+        task = task.__class__ if isinstance(task, BaseTextTask) else task
+        try:
+            return [t for t in cls.task_configs if task is t.task][0]
+        except Exception:
+            logger.error("Tried accessing non-registered task")
+            return
 
     @classmethod
     def random(cls) -> TaskConfig:
@@ -75,7 +88,7 @@ class TaskRegistry(BaseModel):
         return selected_task
 
     @classmethod
-    def get_task_datasets(cls, task: BaseTextTask.__class__ | BaseTextTask) -> list[BaseDataset.__class__]:
+    def get_task_datasets(cls, task: type[BaseTextTask] | BaseTextTask) -> list[type[BaseDataset]]:
         task_class = task.__class__ if isinstance(task, BaseTextTask) else task
         try:
             return [t.datasets for t in cls.task_configs if task_class is t.task][0]
@@ -88,11 +101,11 @@ class TaskRegistry(BaseModel):
         return cls.random().task()
 
     @classmethod
-    def get_random_task_dataset(cls, task: BaseTextTask.__class__ | BaseTextTask) -> BaseDataset.__class__:
+    def get_random_task_dataset(cls, task: type[BaseTextTask] | BaseTextTask) -> type[BaseDataset]:
         return random.choice(cls.get_task_datasets(task))
 
     @classmethod
-    def get_task_reward(cls, task: BaseTextTask | BaseTextTask.__class__) -> BaseRewardConfig.__class__:
+    def get_task_reward(cls, task: BaseTextTask | type[BaseTextTask]) -> type[BaseRewardConfig]:
         task_class = task.__class__ if isinstance(task, BaseTextTask) else task
         try:
             return [t.reward_model for t in cls.task_configs if task_class is t.task][0]
@@ -101,12 +114,12 @@ class TaskRegistry(BaseModel):
             return []
 
     @classmethod
-    def create_random_task_with_dataset(cls) -> tuple[BaseTextTask, BaseDataset]:
+    def create_random_task_with_dataset(cls) -> BaseTextTask:
         task_config = cls.random()
         dataset = cls.get_random_task_dataset(task_config.task)
-        return task_config.task(), dataset()
+        return task_config.task(dataset_entry=dataset().next())
 
 
 assert (
     np.around(np.sum([conf.probability for conf in TaskRegistry.task_configs]), 5) == 1
-), f"Task probabilities must sum to 1 but sum to {np.sum([conf.probability for conf in TaskRegistry.task_configs]) }"
+), f"Task probabilities must sum to 1 but sum to {np.sum([conf.probability for conf in TaskRegistry.task_configs])}"

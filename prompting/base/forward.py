@@ -29,7 +29,6 @@ async def process_stream(uid: int, async_iterator: Awaitable) -> SynapseStreamRe
             if isinstance(chunk, str):
                 accumulated_chunks.append(chunk)
                 accumulated_chunks_timings.append(time.time() - start_time)
-                logger.debug(f"\nchunk for uid {uid}: {chunk}")
 
         # Assuming last chunk of async_iterator holds the last value yielded as a StreamingSynapse
         synapse = chunk
@@ -96,9 +95,9 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
         response for response in stream_results if response.exception is None and response.synapse.completion != ""
     ]
 
-    logger.debug(f"Total of non_empty responses: ({len(non_empty_responses)})\nRESPONSES: {non_empty_responses}")
+    logger.debug(f"Total of non_empty responses: ({len(non_empty_responses)})")
     logger.debug(f"Total of empty responses: ({len(empty_responses)})")
-    logger.debug(f"Total of failed responses: ({len(failed_responses)}):\n {failed_responses}")
+    logger.debug(f"Total of failed responses: ({len(failed_responses)})")
 
     for failed_response in failed_responses:
         formatted_exception = serialize_exception_to_string(failed_response.exception)

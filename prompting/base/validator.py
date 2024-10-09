@@ -1,9 +1,7 @@
-import os
 import asyncio
 import copy
 import sys
 import threading
-import pandas as pd
 from traceback import print_exception
 
 import bittensor as bt
@@ -11,11 +9,11 @@ import numpy as np
 import torch
 from loguru import logger
 
-from prompting import __spec_version__
 from prompting.base.neuron import BaseNeuron
 from prompting.settings import settings
 from prompting.utils.exceptions import MaxRetryError
 from prompting.utils.logging import init_wandb
+from prompting.rewards.reward import WeightedRewardEvent
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -182,82 +180,6 @@ class BaseValidatorNeuron(BaseNeuron):
             self.is_running = False
             logger.debug("Stopped")
 
-    def set_weights(self):
-        """
-        Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
-        """
-
-        # Check if self.scores contains any NaN values and log a warning if it does.
-        if any(np.isnan(self.scores).flatten()):
-            logger.warning(
-                "Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions."
-            )
-
-        # Calculate the average reward for each uid across non-zero values.
-        # Replace any NaN values with 0.
-        raw_weights = self.scores / np.linalg.norm(self.scores, ord=1, axis=0, keepdims=True)
-
-        logger.debug("raw_weights", raw_weights)
-        logger.debug("raw_weight_uids", settings.METAGRAPH.uids)
-        # Process the raw weights to final_weights via subtensor limitations.
-        (
-            processed_weight_uids,
-            processed_weights,
-        ) = bt.utils.weight_utils.process_weights_for_netuid(
-            uids=settings.METAGRAPH.uids,
-            weights=raw_weights,
-            netuid=settings.NETUID,
-            subtensor=settings.SUBTENSOR,
-            metagraph=settings.METAGRAPH,
-        )
-        logger.debug("processed_weights", processed_weights)
-        logger.debug("processed_weight_uids", processed_weight_uids)
-
-        # Convert to uint16 weights and uids.
-        (
-            uint_uids,
-            uint_weights,
-        ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
-            uids=processed_weight_uids, weights=processed_weights
-        )
-        logger.debug("uint_weights", uint_weights)
-        logger.debug("uint_uids", uint_uids)
-
-        # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
-        if settings.LOG_WEIGHTS:
-            weights_df = pd.DataFrame(
-                {
-                    "step": self.step,
-                    "uids": uint_uids,
-                    "weights": uint_weights,
-                    "block": self.block,
-                }
-            )
-            step_filename = "weights.csv"
-            file_exists = os.path.isfile(step_filename)
-            # Append to the file if it exists, otherwise write a new file.
-            weights_df.to_csv(step_filename, mode="a", index=False, header=not file_exists)
-
-        if settings.NEURON_DISABLE_SET_WEIGHTS:
-            logger.debug(f"Set weights disabled: {settings.NEURON_DISABLE_SET_WEIGHTS}")
-            return
-
-        # Set the weights on chain via our subtensor connection.
-        result = settings.SUBTENSOR.set_weights(
-            wallet=settings.WALLET,
-            netuid=settings.NETUID,
-            uids=uint_uids,
-            weights=uint_weights,
-            wait_for_finalization=False,
-            wait_for_inclusion=False,
-            version_key=__spec_version__,
-        )
-
-        if result is True:
-            logger.info("set_weights on chain successfully!")
-        else:
-            logger.error("set_weights failed")
-
     def resync_metagraph(self):
         """Resyncs the metagraph and updates the hotkeys and moving averages based on the new metagraph."""
         logger.info("resync_metagraph()")
@@ -291,28 +213,29 @@ class BaseValidatorNeuron(BaseNeuron):
         # Update the hotkeys.
         self.hotkeys = copy.deepcopy(settings.METAGRAPH.hotkeys)
 
-    def update_scores(self, rewards: np.ndarray, uids: list[int]):
+    def update_scores(self, reward_events: list[WeightedRewardEvent]):
         """Performs exponential moving average on the scores based on the rewards received from the miners."""
+        for r_event in reward_events:
+            # Check if rewards contains NaN values.
+            rewards = r_event.rewards_normalized
+            if any(np.isnan(rewards).flatten()):
+                # if
+                logger.warning(f"NaN values detected in rewards: {rewards}")
+                # Replace any NaN values in rewards with 0.
+                rewards = np.nan_to_num(rewards)
 
-        # Check if rewards contains NaN values.
-        if any(np.isnan(rewards).flatten()):
-            # if
-            logger.warning(f"NaN values detected in rewards: {rewards}")
-            # Replace any NaN values in rewards with 0.
-            rewards = np.nan_to_num(rewards)
+            # Compute forward pass rewards, assumes uids are mutually exclusive.
+            # shape: [ metagraph.n ]
+            step_rewards = np.copy(self.scores)
+            step_rewards[np.array(r_event.uids).astype(int)] = rewards
+            logger.debug(f"Scattered rewards: {rewards}")
 
-        # Compute forward pass rewards, assumes uids are mutually exclusive.
-        # shape: [ metagraph.n ]
-        step_rewards = np.copy(self.scores)
-        step_rewards[np.array(uids).astype(int)] = rewards
-        logger.debug(f"Scattered rewards: {rewards}")
-
-        # Update scores with rewards produced by this step.
-        # shape: [ metagraph.n ]
-        alpha = settings.NEURON_MOVING_AVERAGE_ALPHA
-        self.scores = alpha * step_rewards + (1 - alpha) * self.scores
-        self.scores = np.clip(self.scores - settings.NEURON_DECAY_ALPHA, 0, 1)
-        logger.debug(f"Updated moving avg scores: {self.scores}")
+            # Update scores with rewards produced by this step.
+            # shape: [ metagraph.n ]
+            alpha = settings.NEURON_MOVING_AVERAGE_ALPHA
+            self.scores = alpha * step_rewards + (1 - alpha) * self.scores
+            self.scores = np.clip(self.scores - settings.NEURON_DECAY_ALPHA, 0, 1)
+            logger.debug(f"Updated moving avg scores: {self.scores}")
 
     def save_state(self):
         """Saves the state of the validator to a file."""
