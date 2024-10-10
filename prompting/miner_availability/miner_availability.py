@@ -8,6 +8,7 @@ from prompting.settings import settings
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_uids
 import random
+import asyncio
 import numpy as np
 
 task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
@@ -94,6 +95,8 @@ class CheckMinerAvailability(AsyncLoopRunner):
 
         if self.current_index >= len(self.uids):
             self.current_index = 0
+
+        await asyncio.sleep(0.01)
 
 
 miner_availabilities = MinerAvailabilities()
