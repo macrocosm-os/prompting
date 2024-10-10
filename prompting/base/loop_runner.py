@@ -74,7 +74,7 @@ class AsyncLoopRunner(BaseModel, ABC):
 
     async def run_loop(self):
         """Run the loop periodically, optionally synchronizing across all instances."""
-        logger.debug(f"Starting loop{self.__class__.__name__}; running: {self.running}")
+        logger.debug(f"Starting loop {self.__class__.__name__}; running: {self.running}")
 
         last_run_time = await self.get_time()
         logger.debug(f"Got time of last run: {last_run_time}")
