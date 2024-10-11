@@ -126,7 +126,7 @@ numpy = "1.26.4"
 bittensor = { git = "https://github.com/opentensor/bittensor.git", branch = "release/7.1.2" }
 pydantic = "^2.8.2"
 rouge = "^1.0.1"
-torch = "2.3.1"
+torch = "2.2.2"
 wandb = "^0.17.4"
 starlette = "^0.37.2"
 openai = "^1.35.13"
@@ -136,7 +136,7 @@ deprecated = "^1.2.14"
 pandas = "2.2.1"
 datasets = "2.14.6"
 langchain = "0.2.3"
-argostranslate = "^1.9.6"
+# argostranslate = "^1.9.6"
 langchain-core = "0.2.19"
 python-dotenv = "^1.0.1"
 pre-commit = "^3.7.1"
@@ -144,13 +144,13 @@ ruff = "^0.5.2"
 flake8 = "^7.1.0"
 black = "23.7.0"
 pytest = "^8.3.1"
-angle-emb = "0.4.3"
+# angle-emb = "0.4.3"
 
 # optional dependencies for some services to run
 vllm = { version = "0.5.3.post1", optional = true }
 
 organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main", optional = true}
-autoawq = "0.2"
+# autoawq = "0.2"
 loguru = "^0.7.2"
 duckduckgo-search = "^6.2.12"
 trafilatura = "^1.12.1"
