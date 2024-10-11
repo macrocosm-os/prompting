@@ -70,11 +70,11 @@ class MultiChoiceTask(BaseTextTask):
     # Specific pattern (semi-flexible) which detects multiple choices.
     choices_pattern: ClassVar[str] = r"\n\s*(\*?\s*\W?[A-D]\W?)\s*(.*)"
 
-    def make_query(self, dataset_entry: Context) -> tuple[str, str]:
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(
+    def make_query(self, dataset_entry: Context, system_prompt: str, user_prompt_template: str) -> tuple[str, str]:
+        query_prompt = user_prompt_template.format(
             source=dataset_entry.source, title=dataset_entry.title, context=dataset_entry.content
         )
-        query_with_choices = self.generate_query(messages=query_prompt)
+        query_with_choices = self.generate_query(messages=query_prompt, system_prompt=system_prompt)
         self.query, self.reference = self.extract_query_and_reference(query_with_choices)
         return self.query
 

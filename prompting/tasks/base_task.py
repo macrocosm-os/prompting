@@ -96,11 +96,12 @@ class BaseTextTask(BaseTask):
     def generate_query(
         self,
         messages: str,
+        system_prompt: str = "",
     ) -> str:
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
         self.query = vLLM_LLM(
-            llm=model_manager.get_model(self.llm_model), system_prompt=self.query_system_prompt or ""
+            llm=model_manager.get_model(self.llm_model), system_prompt=system_prompt
         ).query(message=messages)
         if self.query is None:
             raise Exception("Query generation failed")
