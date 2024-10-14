@@ -13,7 +13,8 @@ from prompting.llms.model_zoo import ModelConfig
 from prompting.llms.model_manager import model_manager
 import random
 from prompting.settings import settings
-from prompting.llms.apis.gpt_wrapper import openai_client, LLMMessage, LLMMessages
+from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
+from prompting.llms.apis.llm_wrapper import LLMWrapper
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -93,8 +94,7 @@ class BaseTextTask(BaseTask):
         llm_messages = [LLMMessage(role="system", content=self.query_system_prompt)] if self.query_system_prompt else []
         llm_messages += [LLMMessage(role="user", content=message) for message in messages]
 
-        response, _ = openai_client.chat_complete(messages=LLMMessages(*llm_messages))
-        self.query = response.choices[0].message.content
+        self.query = LLMWrapper.chat_complete(messages=LLMMessages(*llm_messages))
 
         if self.query is None:
             raise Exception("Query generation failed")
@@ -107,10 +107,12 @@ class BaseTextTask(BaseTask):
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
         if not self.augmentation_system_prompt:
             return query
-        challenge = vLLM_LLM(
-            llm=model_manager.get_model(self.llm_model),
-            max_new_tokens=settings.NEURON_MAX_TOKENS,
-            system_prompt=self.augmentation_system_prompt,
-        ).query(message=query)
+        challenge = LLMWrapper.chat_complete(
+            messages=LLMMessages(
+                LLMMessage(role="system", content=self.augmentation_system_prompt),
+                LLMMessage(role="user", content=query),
+            ),
+            max_tokens=settings.NEURON_MAX_TOKENS,
+        )
         self.query = challenge
         return challenge

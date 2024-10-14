@@ -4,36 +4,7 @@ from prompting.settings import settings
 from loguru import logger
 from openai.types.chat import ChatCompletion
 from pydantic import BaseModel
-import tiktoken
 from prompting.llms.apis.llm_messages import LLMMessage, LLMMessages
-
-
-def get_text_tokens(text: str, model_name: str = "gpt-3.5-turbo"):
-    encoder = tiktoken.encoding_for_model(model_name=model_name)
-    return len(encoder.encode(text))
-
-
-def calculate_image_tokens(width: int, height: int, low_res: bool = False) -> int:
-    TOKENS_PER_TILE = 85
-
-    if low_res:
-        return TOKENS_PER_TILE
-
-    if max(width, height) > 2048:
-        width, height = (
-            width / max(width, height) * 2048,
-            height / max(width, height) * 2048,
-        )
-
-    if min(width, height) > 768:
-        width = int((768 / min(width, height)) * width)
-        height = int((768 / min(width, height)) * height)
-
-    tiles_width = (width + 511) // 512
-    tiles_height = (height + 511) // 512
-    total_tokens = TOKENS_PER_TILE + 170 * (tiles_width * tiles_height)
-
-    return total_tokens
 
 
 class GPT(BaseModel):

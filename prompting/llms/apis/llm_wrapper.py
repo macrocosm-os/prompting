@@ -4,9 +4,8 @@ from prompting.llms.apis.llm_messages import LLMMessages
 from loguru import logger
 
 
-class LLM_WRAPPER:
+class LLMWrapper:
     def chat_complete(
-        self,
         messages: LLMMessages,
         model="chat-llama-3-1-70b",
         temperature=0.5,
