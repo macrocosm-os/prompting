@@ -74,7 +74,7 @@ class MultiChoiceTask(BaseTextTask):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(
             source=dataset_entry.source, title=dataset_entry.title, context=dataset_entry.content
         )
-        query_with_choices = self.generate_query(messages=query_prompt)
+        query_with_choices = self.generate_query(messages=[query_prompt])
         self.query, self.reference = self.extract_query_and_reference(query_with_choices)
         return self.query
 

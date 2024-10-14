@@ -82,6 +82,37 @@ class Settings(BaseSettings):
     NEURON_MODEL_ID_VALIDATOR: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
+    OPENAI_API_KEY: str = Field(None, env="OPENAI_API_KEY")
+    SN19_API_KEY: str = Field(None, env="SN19_API_KEY")
+    SN19_API_URL: str = Field(None, env="SN19_API_URL")
+    GPT_MODEL_CONFIG: dict[str, dict[str, Any]] = {
+        "gpt-3.5-turbo": {
+            "context_window": 16_385,
+            "max_tokens": 4096,
+            "vision": False,
+            "score": 100,
+            "upgrade": "gpt-4-turbo",
+            "input_token_cost": 0.0005,
+            "output_token_cost": 0.0015,
+        },
+        "gpt-4-turbo": {
+            "context_window": 128_000,
+            "max_tokens": 4096,
+            "vision": True,
+            "score": 200,
+            "upgrade": "gpt-4o",
+            "input_token_cost": 0.01,
+            "output_token_cost": 0.03,
+        },
+        "gpt-4o": {
+            "context_window": 128_000,
+            "max_tokens": 4096,
+            "vision": True,
+            "score": 300,
+            "input_token_cost": 0.005,
+            "output_token_cost": 0.015,
+        },
+    }
 
     model_config = {"frozen": True, "arbitrary_types_allowed": False}
 

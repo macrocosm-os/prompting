@@ -155,6 +155,7 @@ loguru = "^0.7.2"
 duckduckgo-search = "^6.2.12"
 trafilatura = "^1.12.1"
 pydantic-settings = "^2.5.2"
+tiktoken = "^0.8.0"
 
 [tool.poetry.extras]
 validator = ["vllm", "organic-scoring"]
