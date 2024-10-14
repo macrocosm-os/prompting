@@ -42,24 +42,13 @@ class LMSysDataset(BaseDataset):
             raise self.exception
         # Randomly select a sample from the dataset.
         sample_idx = random.randint(0, len(self.dataset) - 1)
-        conversation = self.dataset[sample_idx]["conversation"]
-        roles = [entry["role"] for entry in conversation]
-        messages = [entry["content"] for entry in conversation]
-
-        # Randomly truncate the conversation.
-        truncate_idx = random.randint(1, len(roles))
-        roles = roles[:truncate_idx]
-        messages = messages[:truncate_idx]
-
-        # Ensure the conversation doesn't end with the assistant.
-        if roles[-1] == "assistant":
-            roles = roles[:-1]
-            messages = messages[:-1]
+        message = self.dataset[sample_idx]["text"]
+        role = ["user"]
 
         # Augment the messages by modifying words and introducing errors.
-        messages = [self._augment_message(role, message) for role, message in zip(roles, messages)]
+        messages = [self._augment_message(role, message)]
 
-        return ChatEntry(roles=roles, messages=messages, organic=False, source=self._url)
+        return ChatEntry(roles=role, messages=messages, organic=False, source=self._url)
 
     def _augment_message(self, role: str, message: str) -> str:
         if role == "assistant":
