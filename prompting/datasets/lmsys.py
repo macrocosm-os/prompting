@@ -12,8 +12,8 @@ nltk.download("wordnet")
 
 
 class LMSysDataset(BaseDataset):
-    _url: ClassVar[str] = "lmsys/lmsys-chat-1m"
-    name: ClassVar[str] = "lmsys"
+    _url: ClassVar[str] = "arrmlet/x_dataset_218"
+    name: ClassVar[str] = "x_dataset_218"
     _chance_word_synonym: ClassVar[float] = 0.10
     _chance_char_typo: ClassVar[float] = 0.02
     exception: Exception | None = None
