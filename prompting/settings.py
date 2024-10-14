@@ -83,8 +83,8 @@ class Settings(BaseSettings):
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
     OPENAI_API_KEY: str = Field(None, env="OPENAI_API_KEY")
-    SN19_API_KEY: str = Field(None, env="SN19_API_KEY")
-    SN19_API_URL: str = Field(None, env="SN19_API_URL")
+    SN19_API_KEY: str | None = Field(None, env="SN19_API_KEY")
+    SN19_API_URL: str | None = Field(None, env="SN19_API_URL")
     GPT_MODEL_CONFIG: dict[str, dict[str, Any]] = {
         "gpt-3.5-turbo": {
             "context_window": 16_385,
@@ -169,6 +169,14 @@ class Settings(BaseSettings):
             os.makedirs(save_path)
         if values.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
+        if values.get("SN19_API_KEY") is None or values.get("SN19_API_URL") is None:
+            logger.warning(
+                "It is strongly recommended to provide an SN19 API KEY + URL to avoid incurring OpenAI API costs."
+            )
+        if values.get("OPENAI_API_KEY") is None:
+            raise Exception(
+                "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
+            )
         return values
 
     @cached_property
