@@ -61,11 +61,11 @@ def export_logs(logs: list[Log]):
 def should_reinit_wandb():
     """Checks if 24 hours have passed since the last wandb initialization."""
     # Get the start time from the wandb config
-    wandb_start_time = wandb.run.config.get('wandb_start_time', None)
+    wandb_start_time = wandb.run.config.get("wandb_start_time", None)
 
     if wandb_start_time:
         # Convert the stored time (string) back to a datetime object
-        wandb_start_time = datetime.strptime(wandb_start_time, '%Y-%m-%d %H:%M:%S')
+        wandb_start_time = datetime.strptime(wandb_start_time, "%Y-%m-%d %H:%M:%S")
         current_time = datetime.now()
         elapsed_time = current_time - wandb_start_time
         # Check if more than 24 hours have passed
