@@ -11,7 +11,7 @@ from typing import ClassVar
 nltk.download("wordnet")
 
 
-class LMSysDataset(BaseDataset):
+class SN13Dataset(BaseDataset):
     _url: ClassVar[str] = "arrmlet/x_dataset_218"
     name: ClassVar[str] = "x_dataset_218"
     _chance_word_synonym: ClassVar[float] = 0.10
@@ -23,7 +23,7 @@ class LMSysDataset(BaseDataset):
         arbitrary_types_allowed = True
 
     @model_validator(mode="after")
-    def load_dataset(self) -> "LMSysDataset":
+    def load_dataset(self) -> "SN13Dataset":
         self.dataset = datasets.load_dataset(self._url)["train"]
         self
 
