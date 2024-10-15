@@ -24,7 +24,7 @@ class BaseNeuron(ABC):
 
     @property
     def block(self):
-        self._block = ttl_get_block(self)
+        self._block = ttl_get_block()
         self.latest_block = self._block or -1
         return self._block
 
@@ -62,9 +62,9 @@ class BaseNeuron(ABC):
         if self.should_sync_metagraph():
             self.resync_metagraph()
 
-        if self.should_set_weights():
-            logger.debug("Setting weights...")
-            self.set_weights()
+        # if self.should_set_weights():
+        #     logger.debug("Setting weights...")
+        #     self.set_weights()
 
         # Always save state.
         self.save_state()

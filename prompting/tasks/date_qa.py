@@ -5,7 +5,7 @@ from prompting.rewards.date import DateRewardModel
 from prompting.tasks.base_task import BaseTextTask
 from prompting.utils.cleaners import RemoveTags, FirstQuestion, CleanerPipeline
 from prompting.datasets.wiki import DateContext
-from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 
 QUERY_SYSTEM_PROMPT = """You are a question creation expert. When asked to create a question, you use the context to make a specific question that would have the answer <date>. Your question should contain the topic."""
 QUERY_PROMPT_TEMPLATE = """\
@@ -21,9 +21,9 @@ Context: {content}
 
 
 class DateQARewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=0.7, reward_model=DateRewardModel()),
-        WeightedRewardModel(weight=0.3, reward_model=RougeRewardModel()),
+    reward_definitions: ClassVar[list[BaseRewardModel]] = [
+        DateRewardModel(weight=0.7),
+        RougeRewardModel(weight=0.3),
     ]
 
 

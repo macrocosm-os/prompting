@@ -1,82 +1,65 @@
-# from prompting.base.loop_runner import AsyncLoopRunner
-# from loguru import logger
-# from prompting.tasks.task_registry import TaskRegistry
-# from prompting.utils.timer import Timer
-# from prompting.utils.uids import get_random_uids
-# from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
-# from prompting.settings import settings
-# from prompting.rewards.scoring import scoring_manager
-# from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
+from prompting.base.loop_runner import AsyncLoopRunner
+import threading
+import asyncio
+from prompting.mutable_globals import (
+    task_queue,
+    scoring_queue,
+)
+from prompting.settings import settings
+from loguru import logger
+from prompting.tasks.task_registry import TaskRegistry
+from prompting.miner_availability.miner_availability import miner_availabilities
+from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
+from pydantic import ConfigDict
 
-# NEURON_SAMPLE_SIZE = 100
+RETRIES = 3
 
 
-# class TaskCreation(AsyncLoopRunner):
-#     interval: int = 0
+class TaskLoop(AsyncLoopRunner):
+    is_running: bool = False
+    thread: threading.Thread = None
+    interval: int = 10
 
-#     async def run_step(self):
-#         while True:
-#             try:
-#                 task, dataset = TaskRegistry.create_random_task_with_dataset()
-#                 break
-#             except Exception as ex:
-#                 logger.exception(ex)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-#         try:
-#             logger.debug("Task chosen:", task.__class__.__name__)
-#             if not (dataset_entry := dataset.random()):
-#                 logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
-#                 return None
+    async def run_step(self) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
+        if len(task_queue) > settings.TASK_QUEUE_LENGTH_THRESHOLD:
+            logger.debug("Task queue is full. Skipping task generation.")
+            return None
+        if len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
+            logger.debug("Scoring queue is full. Skipping task generation.")
+            return None
 
-#             # Generate the query for the task
-#             if not task.query:
-#                 query = task.make_query(dataset_entry=dataset_entry)
-#             """query = Task.generate_query(self.llm_pipeline, dataset_entry)"""
+        try:
+            # Getting task & Dataset
+            for i in range(RETRIES):
+                try:
+                    logger.debug(f"Retry: {i}")
+                    task = TaskRegistry.create_random_task_with_dataset()
+                    break
+                except Exception as ex:
+                    logger.exception(ex)
+                await asyncio.sleep(0.01)
 
-#             # Record event start time.
-#             with Timer() as timer:
+            if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
+                logger.debug(
+                    f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."
+                )
+                return None
 
-#                 # Get the list of uids to query for this step.
-#                 uids = get_random_uids(k=NEURON_SAMPLE_SIZE)
+            if not (dataset_entry := task.dataset_entry):
+                logger.warning(f"Dataset for task {task.__class__.__name__} returned None. Skipping step.")
+                return None
 
-#                 axons = [settings.METAGRAPH.axons[uid] for uid in uids]
+            # Generate the query and reference for the task
+            if not task.query:
+                logger.debug(f"Generating query for task: {task.__class__.__name__}.")
+                task.make_query(dataset_entry=dataset_entry)
+            task_queue.append(task)
+        except Exception as ex:
+            logger.exception(ex)
+            return None
+        await asyncio.sleep(0.01)
 
-#                 # Directly call dendrite and process responses in parallel
-#                 streams_responses = await settings.DENDRITE(
-#                     axons=axons,
-#                     synapse=StreamPromptingSynapse(task=task.__class__.__name__, roles=["user"], messages=[query]),
-#                     timeout=settings.NEURON_TIMEOUT,
-#                     deserialize=False,
-#                     streaming=True,
-#                 )
 
-#                 # Prepare the task for handling stream responses
-#                 stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
-
-#                 log_stream_results(stream_results)
-
-#                 # Encapsulate the responses in a response event (dataclass)
-#                 response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=timeout)
-
-#                 logger.info(f"Created DendriteResponseEvent:\n {response_event}")
-
-#                 # Reward the responses and get the reward result (dataclass)
-#                 # This contains a list of RewardEvents but can be exported as a dict (column-wise) for logging etc
-#                 """reward_queue.append(Task, response_event)"""
-
-#                 # scoring_manager will score the responses as and when the correct model is loaded
-#                 scoring_manager.add_to_queue(task=task, response=response_event, dataset_entry=dataset_entry)
-
-#             # Log the step event.
-#             return ValidatorLoggingEvent(
-#                 block=self.block,
-#                 step=self.step,
-#                 step_time=timer.elapsed_time,
-#                 response_event=response_event,
-#                 task_id=task.task_id,
-#             )
-#         except Exception as ex:
-#             logger.exception(ex)
-#             return ErrorLoggingEvent(
-#                 error=str(ex),
-#             )
+task_loop = TaskLoop()
