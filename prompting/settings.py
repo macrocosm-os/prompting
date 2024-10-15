@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     WANDB_API_KEY: Optional[str] = Field(None, env="WANDB_API_KEY")
     WANDB_OFFLINE: bool = Field(False, env="WANDB_OFFLINE")
     WANDB_NOTES: str = Field("", env="WANDB_NOTES")
+    MAX_WANDB_DURATION: int = 24
 
     # Neuron.
     NEURON_EPOCH_LENGTH: int = Field(100, env="NEURON_EPOCH_LENGTH")
