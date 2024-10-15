@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 from prompting.datasets.base import BaseDataset
 from prompting.datasets.huggingface_github import HuggingFaceGithubDataset
-from prompting.datasets.lmsys import LMSysDataset
+from prompting.datasets.sn13 import SN13Dataset
 from prompting.datasets.random_website import DDGDataset
 from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.rewards.reward import BaseRewardConfig
@@ -48,7 +48,7 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=InferenceTask,
             probability=0.2,
-            datasets=[LMSysDataset],
+            datasets=[SN13Dataset],
             reward_model=InferenceRewardConfig,
         ),
         TaskConfig(
