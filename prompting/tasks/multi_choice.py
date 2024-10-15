@@ -6,7 +6,7 @@ import numpy as np
 
 from prompting.datasets.base import Context
 from prompting.rewards.multi_choice import MultiChoiceRewardModel
-from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.tasks.base_task import BaseTextTask
 from prompting.utils.exceptions import TaskCreationError
 
@@ -59,8 +59,8 @@ Create a multiple choice quiz based on the following context source from {source
 
 
 class MultiChoiceRewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=1.0, reward_model=MultiChoiceRewardModel()),
+    reward_definitions: ClassVar[list[BaseRewardModel]] = [
+        MultiChoiceRewardModel(weight=1.0),
     ]
 
 
@@ -106,8 +106,6 @@ class MultiChoiceTask(BaseTextTask):
         options_string = "\n".join(new_options)
         new_query = "?".join(query.split("?")[:2]) + "?\n" + options_string
         return new_query
-
-
 
     def make_reference(self, dataset_entry: Context) -> str:
         return self.reference

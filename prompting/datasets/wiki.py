@@ -283,7 +283,7 @@ class WikiDateDataset(BaseDataset):
         return None
 
     def _random_date(self) -> DateContext:
-        for _ in range(self.max_tries):
+        for i in range(self.max_tries):
             try:
                 context = CACHED_ARTICLES.get(block=False)
                 if not context:
@@ -298,7 +298,7 @@ class WikiDateDataset(BaseDataset):
                     return date_context
 
             except Empty:
-                logger.debug("Cache is empty. Skipping date until cache is filled.")
+                logger.debug(f"Retry {i} Cache is empty. Skipping date until cache is filled.")
                 return None
 
             except Exception as e:

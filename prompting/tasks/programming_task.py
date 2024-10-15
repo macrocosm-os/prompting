@@ -5,7 +5,7 @@ from prompting.datasets.huggingface_github import (
     OUTPUT_LINES,
 )
 from prompting.tasks.base_task import BaseTextTask
-from prompting.rewards.reward import BaseRewardConfig, WeightedRewardModel
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.utils.cleaners import CleanerPipeline
@@ -15,9 +15,9 @@ from loguru import logger
 
 
 class ProgrammingRewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[WeightedRewardModel]] = [
-        WeightedRewardModel(weight=0.5, reward_model=RougeRewardModel()),
-        WeightedRewardModel(weight=0.5, reward_model=RelevanceRewardModel()),
+    reward_definitions: ClassVar[list[BaseRewardModel]] = [
+        RougeRewardModel(weight=0.5),
+        RelevanceRewardModel(weight=0.5),
     ]
 
 
@@ -46,9 +46,7 @@ class ProgrammingTask(BaseTextTask):
         modified_code = model_manager.generate(
             [CODE_MODIFICATION_PROMPT.format(file_content=dataset_entry.file_content)],
         )[0]
-        logger.debug(f"Input code: {dataset_entry.file_content}\n Modified code: {modified_code}")
         if len(modified_code.split("\n")) < MIN_INPUT_LINES + OUTPUT_LINES:
-            logger.error(f"Modified code is too short, Code: {modified_code}")
             return
         line_cutoff = max(MIN_INPUT_LINES, len(modified_code.split("\n")) - OUTPUT_LINES)
         self.query = "\n".join(modified_code.split("\n")[:line_cutoff])

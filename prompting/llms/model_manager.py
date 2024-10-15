@@ -2,6 +2,7 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict
 import torch
 import vllm
+import asyncio
 from prompting.llms.utils import GPUInfo
 from vllm.distributed.parallel_state import destroy_model_parallel
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
@@ -182,7 +183,8 @@ class AsyncModelScheduler(AsyncLoopRunner):
         logger.debug(f"Active models: {model_manager.active_models.keys()}")
         # Load the selected model
         model_manager.load_model(selected_model)
+        await asyncio.sleep(0.01)
 
 
 model_manager = ModelManager()
-model_scheduler = AsyncModelScheduler(llm_model_manager=model_manager)
+model_scheduler = AsyncModelScheduler(llm_model_manager=model_manager, sync=True)

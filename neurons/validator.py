@@ -3,14 +3,14 @@ import asyncio
 import time
 from prompting import settings
 
-settings.settings = settings.Settings(mode="validator")
+settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
 
 from loguru import logger
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.base.forward import log_stream_results, handle_response
 from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
-from prompting.tasks.task_registry import TaskRegistry
+from prompting.tasks.task_creation import task_loop
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from prompting.rewards.scoring import task_scorer
 from prompting.miner_availability.miner_availability import availability_checking_loop, miner_availabilities
@@ -20,15 +20,13 @@ from prompting.mutable_globals import scoring_queue
 from prompting import mutable_globals
 from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
+from prompting.weight_setting.weight_setter import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
-SCORING_QUEUE_LENGTH_THRESHOLD = 10
 
 
 class Validator(BaseValidatorNeuron):
-    """
-    Text prompt validator neuron.
-    """
+    """Text prompt validator neuron."""
 
     def __init__(self, config=None):
         super(Validator, self).__init__(config=config)
@@ -51,51 +49,31 @@ class Validator(BaseValidatorNeuron):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        while len(scoring_queue) > SCORING_QUEUE_LENGTH_THRESHOLD:
+        while len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Waiting 1 second...")
             await asyncio.sleep(1)
+        while len(mutable_globals.task_queue) == 0:
+            logger.warning("No tasks in queue. Waiting 1 second...")
+            await asyncio.sleep(1)
         try:
-            # Getting task & Dataset
+            # get task from the task queue
+            mutable_globals.task_queue: list[BaseTextTask]
+            task = mutable_globals.task_queue.pop(0)
+
+            # send the task to the miners and collect the responses
             with Timer() as timer:
-                while True:
-                    try:
-                        task, dataset = TaskRegistry.create_random_task_with_dataset()
-                        break
-                    except Exception as ex:
-                        logger.exception(ex)
+                response_event = await self.collect_responses(task=task)
+            logger.debug(f"Collected responses in {timer.elapsed_time:.2f} seconds")
 
-                if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
-                    logger.debug(
-                        f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."
-                    )
-                    return None
-
-                if not (dataset_entry := dataset.random()):
-                    logger.warning(f"Dataset {dataset.__class__.__name__} returned None. Skipping step.")
-                    return None
-
-                # Generate the query and reference for the task
-                if not task.query:
-                    logger.debug(f"Generating query for task: {task.__class__.__name__}.")
-                    task.make_query(dataset_entry=dataset_entry)
-
-                with Timer() as timer:
-                    response_event = await self.collect_responses(task=task)
-                logger.debug(f"Collected responses in {timer.elapsed_time:.2f} seconds")
-
-                # scoring_manager will score the responses as and when the correct model is loaded
-                task_scorer.add_to_queue(
-                    task=task,
-                    response=response_event,
-                    dataset_entry=dataset_entry,
-                    block=self.block,
-                    step=self.step,
-                    task_id=task.task_id,
-                )
-
-                for uids, rewards in mutable_globals.rewards_and_uids:
-                    self.update_scores(uids=uids, rewards=rewards)
-                mutable_globals.rewards_and_uids = []
+            # scoring_manager will score the responses as and when the correct model is loaded
+            task_scorer.add_to_queue(
+                task=task,
+                response=response_event,
+                dataset_entry=task.dataset_entry,
+                block=self.block,
+                step=self.step,
+                task_id=task.task_id,
+            )
 
             # Log the step event.
             return ValidatorLoggingEvent(
@@ -112,7 +90,7 @@ class Validator(BaseValidatorNeuron):
                 error=str(ex),
             )
 
-    async def collect_responses(self, task: BaseTextTask) -> DendriteResponseEvent:
+    async def collect_responses(self, task: BaseTextTask) -> DendriteResponseEvent | None:
         # Get the list of uids and their axons to query for this step.
         uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
         logger.debug(f"🔍 Querying uids: {uids}")
@@ -202,10 +180,16 @@ class Validator(BaseValidatorNeuron):
 
 
 async def main():
+    # start rotating LLM models
     asyncio.create_task(model_scheduler.start())
+
+    # start creating tasks
+    asyncio.create_task(task_loop.start())
 
     # will start checking the availability of miners at regular intervals
     asyncio.create_task(availability_checking_loop.start())
+
+    asyncio.create_task(weight_setter.start())
 
     # start scoring tasks in separate loop
     asyncio.create_task(task_scorer.start())

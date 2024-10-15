@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prompting"
-version = "2.8.4"
+version = "2.9.2"
 description = "Subnetwork 1 runs on Bittensor and is maintained by Macrocosmos. It's an effort to create decentralised AI"
 authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz"]
 readme = "README.md"
@@ -154,6 +154,7 @@ autoawq = "0.2"
 loguru = "^0.7.2"
 duckduckgo-search = "^6.2.12"
 trafilatura = "^1.12.1"
+pydantic-settings = "^2.5.2"
 
 [tool.poetry.extras]
 validator = ["vllm", "organic-scoring"]
