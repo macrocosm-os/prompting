@@ -17,7 +17,8 @@ class GPT(BaseModel):
     def __init__(self, api_key: str = settings.OPENAI_API_KEY):
         super().__init__()
         self.client = openai.Client(api_key=api_key)
-        self.async_client = openai.AsyncClient(api_key=api_key)
+        if api_key:
+            self.async_client = openai.AsyncClient(api_key=api_key)
 
     def test(self):
         try:
