@@ -23,20 +23,22 @@ Answer: C
 """
 
 # Used to instruct the LLM to provide a query when given a context.
-QUERY_SYSTEM_PROMPT = """\
-You are a multiple choice quiz-generating expert.
-Based on the input context, you must generate the question, exactly 4 possible answers (A, B, C, D), and the correct answer letter. All 4 possible answers should be the same length and tone.
-
+QUERY_SYSTEM_PROMPT = """Given the following input context, create a multiple-choice question based on the information provided. The question must have one correct answer and three incorrect answers.
+Ensure the following:
+1. The correct answer is derived from the input context.
+2. All answer choices should have roughly the same character length. No answer should significantly stand out as longer or shorter.
+3. The correct answer should not consistently be the longest option; it should only be the longest about 25% of the time.
+4. Randomize answer length distribution across multiple samples.
+5. The output format must match the example's output format.
 [Example 1]
 {
-    "question": "What is the capital of Texas?",
-    "A": "Paris",
-    "B": "London",
-    "C": "Austin",
-    "D": "Houston",
-    "answer": "C"
+    "question": "Which of the following is not an element of the redistribution-with-growth policy approach?",
+    "A": "minimum wage legislation",
+    "B": "land reform",
+    "C": "progressive taxation",
+    "D": "increased access to education",
+    "answer": "A"
 }
-
 [Example 2]
 {
     "question": "Which of the following best describes the primary driving force behind protein folding?",
@@ -46,7 +48,24 @@ Based on the input context, you must generate the question, exactly 4 possible a
     "D": "Ionic interactions between charged side chains",
     "answer": "B"
 }
-"""
+[Example 3]
+{
+    "question": "What is the capital of Texas?",
+    "A": "Paris",
+    "B": "London",
+    "C": "Austin",
+    "D": "Houston",
+    "answer": "C"
+}
+[Example 4]
+{
+    "question": "What interior discipline must be adopted to achieve spiritual liberation within Sikhism?",
+    "A": "Remembering the Divine Name",
+    "B": "Meditating on the sacred hymns",
+    "C": "Remembering that death is inevitable",
+    "D": "Meditating on the goodness of the created world",
+    "answer": "A"
+}"""
 
 # Used to obtain the query (which is a question about the context).
 # TODO: modulate difficulty "ask an {expert} question".
