@@ -7,7 +7,7 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.llms.model_zoo import ModelConfig
 import random
 from prompting.llms.model_manager import model_manager
-from prompting.datasets.lmsys import ChatEntry
+from prompting.datasets.sn13 import ChatEntry
 
 
 class InferenceRewardConfig(BaseRewardConfig):

@@ -98,7 +98,7 @@ class vLLMPipeline(BasePipeline):
         sampling_params = SamplingParams(temperature=temperature, top_p=top_p, max_tokens=max_tokens)
 
         output = self.llm.generate(composed_prompt, sampling_params, use_tqdm=True)
-        response = output[0].outputs[0].text
+        response = output[0].outputs[0].text.strip()
         return response
 
 
@@ -191,6 +191,6 @@ class vLLM_LLM(BaseLLM):
         composed_prompt = self._make_prompt(messages)
         response: RequestOutput = self.llm.generate(composed_prompt, SamplingParams(**self.model_kwargs))[0]
 
-        logger.info(f"{self.__class__.__name__} generated the following output:\n{response.outputs[0].text}")
+        logger.info(f"{self.__class__.__name__} generated the following output:\n{response.outputs[0].text.strip()}")
 
-        return response.outputs[0].text
+        return response.outputs[0].text.strip()
