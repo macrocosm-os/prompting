@@ -55,7 +55,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=MultiChoiceTask,
-            probability=0.22,
+            probability=0.32,
             datasets=[WikiDataset],
             reward_model=MultiChoiceRewardConfig,
         ),
@@ -68,7 +68,7 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=WebRetrievalTask,
             # TODO: Increase probability after v2.9.0.
-            probability=0.13,
+            probability=0.03,
             datasets=[DDGDataset],
             reward_model=WebRetrievalRewardConfig,
         ),
