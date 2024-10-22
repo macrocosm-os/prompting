@@ -7786,10 +7786,7 @@ cffi = {version = ">=1.11", markers = "platform_python_implementation == \"PyPy\
 [package.extras]
 cffi = ["cffi (>=1.11)"]
 
-[extras]
-validator = ["organic-scoring", "vllm"]
-
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10 <3.11"
-content-hash = "25b7b395921eed02b028791426db06f0c37c029869321928d071cee6ad84138e"
+content-hash = "382b806e01d96dfebdd137bbe8d82cd490c576c5f169c1c2fb193eb958bf190d"
