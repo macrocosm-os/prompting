@@ -155,9 +155,6 @@ pydantic-settings = "^2.5.2"
 tiktoken = "^0.8.0"
 huggingface-hub = "^0.25.2"
 
-[tool.poetry.extras]
-validator = ["vllm", "organic-scoring"]
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
