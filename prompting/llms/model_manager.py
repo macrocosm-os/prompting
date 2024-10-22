@@ -146,7 +146,7 @@ class ModelManager(BaseModel):
 
         model: vllm.LLM = self.get_model(model)
         responses = model.generate(prompts=prompts, sampling_params=sampling_params)
-        return [r.outputs[0].text for r in responses]
+        return [r.outputs[0].text.strip() for r in responses]
 
     def chat_generate(
         self,
