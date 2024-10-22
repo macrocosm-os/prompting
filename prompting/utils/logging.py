@@ -3,7 +3,7 @@ import numpy as np
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Literal, Any, Optional
+from typing import Literal, Any
 
 import wandb
 from loguru import logger
@@ -69,7 +69,7 @@ def should_reinit_wandb():
         current_time = datetime.now()
         elapsed_time = current_time - wandb_start_time
         # Check if more than 24 hours have passed
-        if elapsed_time > timedelta(hours = settings.MAX_WANDB_DURATION):
+        if elapsed_time > timedelta(hours=settings.MAX_WANDB_DURATION):
             return True
     return False
 
@@ -102,7 +102,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
     wandb_config = {
         "HOTKEY_SS58": settings.WALLET.hotkey.ss58_address,
         "NETUID": settings.NETUID,
-        "wandb_start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "wandb_start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "TASKS": task_list,
     }
     wandb.login(anonymous="allow", key=settings.WANDB_API_KEY, verify=True)
@@ -133,8 +133,10 @@ def reinit_wandb():
 class BaseEvent(BaseModel):
     forward_time: float | None = None
 
+
 class WeightSetEvent(BaseEvent):
     weight_set_event: list[float]
+
 
 class ErrorLoggingEvent(BaseEvent):
     error: str

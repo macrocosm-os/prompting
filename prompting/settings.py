@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     NEURON_QUERY_UNIQUE_IPS: bool = Field(False, env="NEURON_QUERY_UNIQUE_IPS")
     NEURON_FORWARD_MAX_TIME: int = Field(240, env="NEURON_FORWARD_MAX_TIME")
     NEURON_MAX_TOKENS: int = Field(512, env="NEURON_MAX_TOKENS")
-    REWARD_STEEPNESS: float = Field(0.55, env="STEEPNESS")
+    REWARD_STEEPNESS: float = Field(0.6, env="STEEPNESS")
 
     # Organic.
     ORGANIC_TIMEOUT: int = Field(30, env="ORGANIC_TIMEOUT")
@@ -83,7 +83,37 @@ class Settings(BaseSettings):
     NEURON_MODEL_ID_VALIDATOR: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
-
+    OPENAI_API_KEY: str | None = Field(None, env="OPENAI_API_KEY")
+    SN19_API_KEY: str | None = Field(None, env="SN19_API_KEY")
+    SN19_API_URL: str | None = Field(None, env="SN19_API_URL")
+    GPT_MODEL_CONFIG: dict[str, dict[str, Any]] = {
+        "gpt-3.5-turbo": {
+            "context_window": 16_385,
+            "max_tokens": 4096,
+            "vision": False,
+            "score": 100,
+            "upgrade": "gpt-4-turbo",
+            "input_token_cost": 0.0005,
+            "output_token_cost": 0.0015,
+        },
+        "gpt-4-turbo": {
+            "context_window": 128_000,
+            "max_tokens": 4096,
+            "vision": True,
+            "score": 200,
+            "upgrade": "gpt-4o",
+            "input_token_cost": 0.01,
+            "output_token_cost": 0.03,
+        },
+        "gpt-4o": {
+            "context_window": 128_000,
+            "max_tokens": 4096,
+            "vision": True,
+            "score": 300,
+            "input_token_cost": 0.005,
+            "output_token_cost": 0.015,
+        },
+    }
     model_config = {"frozen": True, "arbitrary_types_allowed": False}
 
     # Class variables for singleton.
@@ -139,6 +169,14 @@ class Settings(BaseSettings):
             os.makedirs(save_path)
         if values.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
+        if values.get("SN19_API_KEY") is None or values.get("SN19_API_URL") is None:
+            logger.warning(
+                "It is strongly recommended to provide an SN19 API KEY + URL to avoid incurring OpenAI API costs."
+            )
+        if not mode == "mock" and values.get("OPENAI_API_KEY") is None:
+            raise Exception(
+                "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
+            )
         return values
 
     @cached_property
