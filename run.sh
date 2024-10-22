@@ -18,9 +18,6 @@ then
     exit 1
 fi
 
-# Install poetry extras for the validator
-poetry install --extras "validator"
-
 # Uninstall uvloop
 poetry run pip uninstall -y uvloop
 

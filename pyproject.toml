@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prompting"
-version = "2.9.0"
+version = "2.11.0"
 description = "Subnetwork 1 runs on Bittensor and is maintained by Macrocosmos. It's an effort to create decentralised AI"
 authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz"]
 readme = "README.md"
@@ -123,7 +123,7 @@ tqdm = "^4.66.4"
 requests = "^2.32.3"
 numpy = "1.26.4"
 # bittensor = "^7.3.0"
-bittensor = { git = "https://github.com/opentensor/bittensor.git", branch = "release/7.1.2" }
+bittensor = "7.1.2"
 pydantic = "^2.8.2"
 rouge = "^1.0.1"
 torch = "2.3.1"
@@ -145,17 +145,15 @@ flake8 = "^7.1.0"
 black = "23.7.0"
 pytest = "^8.3.1"
 angle-emb = "0.4.3"
-
-# optional dependencies for some services to run
-vllm = { version = "0.5.3.post1", optional = true }
-
-organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main", optional = true}
+vllm = "0.5.3.post1"
+organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main"}
 autoawq = "0.2"
 loguru = "^0.7.2"
 duckduckgo-search = "^6.2.12"
 trafilatura = "^1.12.1"
 pydantic-settings = "^2.5.2"
 tiktoken = "^0.8.0"
+huggingface-hub = "^0.25.2"
 
 [tool.poetry.extras]
 validator = ["vllm", "organic-scoring"]

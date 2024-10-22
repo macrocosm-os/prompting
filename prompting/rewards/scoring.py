@@ -1,7 +1,6 @@
 import asyncio
 import threading
 
-import numpy as np
 
 from pydantic import ConfigDict
 from loguru import logger
@@ -15,7 +14,6 @@ from prompting.utils.logging import RewardLoggingEvent, log_event
 from prompting import mutable_globals
 from prompting.datasets.base import DatasetEntry
 from prompting.base.loop_runner import AsyncLoopRunner
-import asyncio
 
 
 @dataclass
@@ -61,6 +59,7 @@ class TaskScorer(AsyncLoopRunner):
         )
 
     async def run_step(self) -> RewardLoggingEvent:
+        await asyncio.sleep(0.01)
         # Only score responses for which the model is loaded
         scorable = [
             scoring_config
@@ -69,6 +68,7 @@ class TaskScorer(AsyncLoopRunner):
             or (scoring_config.task.llm_model is None)
         ]
         if len(scorable) == 0:
+            await asyncio.sleep(0.01)
             logger.debug("Nothing to score. Skipping scoring step.")
             # Run a model_scheduler step to load a new model as there are no more tasks to be scored
             await model_scheduler.run_step()
@@ -111,6 +111,7 @@ class TaskScorer(AsyncLoopRunner):
             )
         )
         logger.info("Adding scores to rewards_and_uids")
+        await asyncio.sleep(0.01)
 
 
 class WeightSetter(AsyncLoopRunner):

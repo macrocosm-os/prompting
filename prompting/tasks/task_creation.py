@@ -1,5 +1,6 @@
 from prompting.base.loop_runner import AsyncLoopRunner
 import threading
+import asyncio
 from prompting.mutable_globals import (
     task_queue,
     scoring_queue,
@@ -38,6 +39,7 @@ class TaskLoop(AsyncLoopRunner):
                     break
                 except Exception as ex:
                     logger.exception(ex)
+                await asyncio.sleep(0.01)
 
             if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
                 logger.debug(
@@ -57,6 +59,7 @@ class TaskLoop(AsyncLoopRunner):
         except Exception as ex:
             logger.exception(ex)
             return None
+        await asyncio.sleep(0.01)
 
 
 task_loop = TaskLoop()

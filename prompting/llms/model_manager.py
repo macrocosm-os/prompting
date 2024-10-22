@@ -2,6 +2,7 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict
 import torch
 import vllm
+import asyncio
 from prompting.llms.utils import GPUInfo
 from vllm.distributed.parallel_state import destroy_model_parallel
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
@@ -145,7 +146,7 @@ class ModelManager(BaseModel):
 
         model: vllm.LLM = self.get_model(model)
         responses = model.generate(prompts=prompts, sampling_params=sampling_params)
-        return [r.outputs[0].text for r in responses]
+        return [r.outputs[0].text.strip() for r in responses]
 
     def chat_generate(
         self,
@@ -182,6 +183,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
         logger.debug(f"Active models: {model_manager.active_models.keys()}")
         # Load the selected model
         model_manager.load_model(selected_model)
+        await asyncio.sleep(0.01)
 
 
 model_manager = ModelManager()

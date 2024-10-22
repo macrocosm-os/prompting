@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     WANDB_API_KEY: Optional[str] = Field(None, env="WANDB_API_KEY")
     WANDB_OFFLINE: bool = Field(False, env="WANDB_OFFLINE")
     WANDB_NOTES: str = Field("", env="WANDB_NOTES")
+    MAX_WANDB_DURATION: int = 24
 
     # Neuron.
     NEURON_EPOCH_LENGTH: int = Field(100, env="NEURON_EPOCH_LENGTH")
@@ -47,7 +48,7 @@ class Settings(BaseSettings):
     NEURON_QUERY_UNIQUE_IPS: bool = Field(False, env="NEURON_QUERY_UNIQUE_IPS")
     NEURON_FORWARD_MAX_TIME: int = Field(240, env="NEURON_FORWARD_MAX_TIME")
     NEURON_MAX_TOKENS: int = Field(512, env="NEURON_MAX_TOKENS")
-    REWARD_STEEPNESS: float = Field(0.5, env="STEEPNESS")
+    REWARD_STEEPNESS: float = Field(0.6, env="STEEPNESS")
 
     # Organic.
     ORGANIC_TIMEOUT: int = Field(30, env="ORGANIC_TIMEOUT")
@@ -113,7 +114,6 @@ class Settings(BaseSettings):
             "output_token_cost": 0.015,
         },
     }
-
     model_config = {"frozen": True, "arbitrary_types_allowed": False}
 
     # Class variables for singleton.
