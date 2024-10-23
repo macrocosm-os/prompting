@@ -13,6 +13,8 @@ from prompting.llms.model_zoo import ModelConfig
 from prompting.llms.model_manager import model_manager
 import random
 from prompting.settings import settings
+from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
+from prompting.llms.apis.llm_wrapper import LLMWrapper
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -44,11 +46,6 @@ class BaseTask(BaseModel, ABC):
     def make_reference(self, **kwargs):
         raise NotImplementedError("Method make_reference must be implemented")
 
-    def generate_query_reference(self, dataset_entry: DatasetEntry) -> str:
-        self.make_query(dataset_entry=dataset_entry)
-        self.make_reference(dataset_entry=dataset_entry)
-        return self.query, self.reference
-
 
 class BaseTextTask(BaseTask):
     query: str | None = None
@@ -78,11 +75,6 @@ class BaseTextTask(BaseTask):
     def make_reference(self, dataset_entry: DatasetEntry) -> str:
         return self.reference
 
-    def generate_query_reference(self, dataset_entry: DatasetEntry) -> str:
-        self.make_query(dataset_entry=dataset_entry)
-        self.make_reference(dataset_entry=dataset_entry)
-        return self.query, self.reference
-
     def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
@@ -95,13 +87,15 @@ class BaseTextTask(BaseTask):
 
     def generate_query(
         self,
-        messages: str,
+        messages: list[str],
     ) -> str:
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
-        self.query = vLLM_LLM(
-            llm=model_manager.get_model(self.llm_model), system_prompt=self.query_system_prompt or ""
-        ).query(message=messages)
+        llm_messages = [LLMMessage(role="system", content=self.query_system_prompt)] if self.query_system_prompt else []
+        llm_messages += [LLMMessage(role="user", content=message) for message in messages]
+
+        self.query = LLMWrapper.chat_complete(messages=LLMMessages(*llm_messages))
+
         if self.query is None:
             raise Exception("Query generation failed")
         return self.augment_query(self.query)
@@ -113,10 +107,12 @@ class BaseTextTask(BaseTask):
         """Creates the opening question of the conversation which is based on the task query but dressed in the persona of the user."""
         if not self.augmentation_system_prompt:
             return query
-        challenge = vLLM_LLM(
-            llm=model_manager.get_model(self.llm_model),
-            max_new_tokens=settings.NEURON_MAX_TOKENS,
-            system_prompt=self.augmentation_system_prompt,
-        ).query(message=query)
+        challenge = LLMWrapper.chat_complete(
+            messages=LLMMessages(
+                LLMMessage(role="system", content=self.augmentation_system_prompt),
+                LLMMessage(role="user", content=query),
+            ),
+            max_tokens=settings.NEURON_MAX_TOKENS,
+        )
         self.query = challenge
         return challenge

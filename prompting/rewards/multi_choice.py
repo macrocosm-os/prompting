@@ -1,11 +1,13 @@
+import json
 import re
 import time
-import json
-from loguru import logger
+
 import numpy as np
+from loguru import logger
+from pydantic import Field, model_validator
+
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
-from pydantic import model_validator, Field
 
 
 class MultiChoiceRewardModel(BaseRewardModel):
@@ -44,7 +46,7 @@ class MultiChoiceRewardModel(BaseRewardModel):
 
         return {choice: valid_choices.get(choice, 0.0) for choice in self.choices}
 
-    def classical_reward(self, reference: str, completion: str) -> float:
+    def letter_reward(self, reference: str, completion: str) -> float:
         matches = [word.upper() for word in re.findall(r"\w+", completion) if word.upper() in self.choices]
         return float(matches[-1] == reference.upper()) if matches else 0.0
 
@@ -67,7 +69,7 @@ class MultiChoiceRewardModel(BaseRewardModel):
 
             reward = self.logit_reward(reference, completion)
             if reward is None:
-                reward = self.classical_reward(reference, completion) * self.json_penalty
+                reward = self.letter_reward(reference, completion) * self.json_penalty
 
             timings.append(time.perf_counter() - start_time)
             rewards.append(reward)

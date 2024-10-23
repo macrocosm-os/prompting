@@ -9,9 +9,9 @@ from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.utils.cleaners import CleanerPipeline
-from prompting.llms.model_manager import model_manager
 import textwrap
-from loguru import logger
+from prompting.llms.apis.llm_messages import LLMMessage, LLMMessages
+from prompting.llms.apis.llm_wrapper import LLMWrapper
 
 
 class ProgrammingRewardConfig(BaseRewardConfig):
@@ -43,9 +43,15 @@ class ProgrammingTask(BaseTextTask):
     reference: str | None = None
 
     def make_query(self, dataset_entry: HuggingFaceGithubDatasetEntry):
-        modified_code = model_manager.generate(
-            [CODE_MODIFICATION_PROMPT.format(file_content=dataset_entry.file_content)],
-        )[0]
+        modified_code = LLMWrapper.chat_complete(
+            messages=LLMMessages(
+                [
+                    LLMMessage(
+                        role="user", content=CODE_MODIFICATION_PROMPT.format(file_content=dataset_entry.file_content)
+                    )
+                ]
+            )
+        )
         if len(modified_code.split("\n")) < MIN_INPUT_LINES + OUTPUT_LINES:
             return
         line_cutoff = max(MIN_INPUT_LINES, len(modified_code.split("\n")) - OUTPUT_LINES)

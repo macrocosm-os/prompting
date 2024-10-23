@@ -1,7 +1,7 @@
 # ruff: noqa: E402
 from prompting import settings
 
-settings.settings = settings.Settings(mode="miner")
+settings.settings = settings.Settings(mode="mock")
 from prompting.rewards.multi_choice import MultiChoiceRewardModel
 from dataclasses import dataclass
 import pytest

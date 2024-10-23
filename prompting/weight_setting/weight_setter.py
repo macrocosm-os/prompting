@@ -7,7 +7,6 @@ import pandas as pd
 
 from prompting import __spec_version__
 from prompting.settings import settings
-from prompting.utils.uids import get_uids
 from prompting.utils.misc import ttl_get_block
 from prompting.base.loop_runner import AsyncLoopRunner
 from prompting import mutable_globals
@@ -71,7 +70,9 @@ def set_weights(weights: np.ndarray, step: int = 0):
         (
             uint_uids,
             uint_weights,
-        ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(uids=processed_weight_uids, weights=processed_weights)
+        ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
+            uids=processed_weight_uids, weights=processed_weights
+        )
         logger.debug("uint_weights", uint_weights)
         logger.debug("uint_uids", uint_uids)
     except Exception as ex:
@@ -80,7 +81,9 @@ def set_weights(weights: np.ndarray, step: int = 0):
     # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
     if settings.LOG_WEIGHTS:
         try:
-            logger.debug(f"Lengths... UIDS: {len(uint_uids)}, WEIGHTS: {len(processed_weights.flatten())}, RAW_WEIGHTS: {len(weights.flatten())}, UINT_WEIGHTS: {len(uint_weights)}")
+            logger.debug(
+                f"Lengths... UIDS: {len(uint_uids)}, WEIGHTS: {len(processed_weights.flatten())}, RAW_WEIGHTS: {len(weights.flatten())}, UINT_WEIGHTS: {len(uint_weights)}"
+            )
             weights_df = pd.DataFrame(
                 {
                     "step": step,
@@ -123,7 +126,7 @@ class WeightSetter(AsyncLoopRunner):
     """The weight setter looks at RewardEvents in the reward_events queue and sets the weights of the miners accordingly."""
 
     sync: bool = True
-    interval: int = 60*22  # set rewards every 20 minutes
+    interval: int = 60 * 22  # set rewards every 20 minutes
     # interval: int = 60
 
     async def run_step(self):
@@ -167,8 +170,12 @@ class WeightSetter(AsyncLoopRunner):
 
                     # give each uid the reward they received
                     for uid, reward in zip(reward_event.uids, reward_event.rewards):
-                        miner_rewards[task_config][uid]["reward"] += reward * reward_event.weight # TODO: Double check I actually average at the end
-                        miner_rewards[task_config][uid]["count"] += 1 * reward_event.weight # TODO: Double check I actually average at the end
+                        miner_rewards[task_config][uid]["reward"] += (
+                            reward * reward_event.weight
+                        )  # TODO: Double check I actually average at the end
+                        miner_rewards[task_config][uid]["count"] += (
+                            1 * reward_event.weight
+                        )  # TODO: Double check I actually average at the end
 
             logger.debug(f"Miner rewards after processing: {miner_rewards}")
 
@@ -177,10 +184,12 @@ class WeightSetter(AsyncLoopRunner):
                     llm_model = inference_event.task.llm_model_id
 
                     model_specific_reward = ModelZoo.get_model_by_id(llm_model).reward if llm_model else 1
-                    miner_rewards[TaskRegistry.get_task_config(InferenceTask)][uid]["reward"] += reward * model_specific_reward # for inference 2x responses should mean 2x the reward
+                    miner_rewards[TaskRegistry.get_task_config(InferenceTask)][uid]["reward"] += (
+                        reward * model_specific_reward
+                    )  # for inference 2x responses should mean 2x the reward
 
             for task_config, rewards in miner_rewards.items():
-                r = np.array([x["reward"]/max(1, x["count"]) for x in list(rewards.values())])
+                r = np.array([x["reward"] / max(1, x["count"]) for x in list(rewards.values())])
                 logger.debug(f"Rewards for task {task_config.task.__name__}: {r}")
                 u = np.array(list(rewards.keys()))
                 if task_config.task == InferenceTask:

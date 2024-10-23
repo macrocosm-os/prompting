@@ -96,20 +96,20 @@ class MultiChoiceTask(BaseTextTask):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(
             source=dataset_entry.source, title=dataset_entry.title, context=dataset_entry.content
         )
-        query_with_choices = self.generate_query(messages=query_prompt)
+        query_with_choices = self.generate_query(messages=[query_prompt])
         self.query, self.reference = self.extract_query_and_reference(query_with_choices)
         self.query = self.post_process_qa(self.query)
         return self.query
-    
+
     def post_process_qa(self, query: str) -> str:
         options = query.split("?")[2].split("\n")
-        cleaned_options = [item.strip() for item in options if item.strip() and item.strip() != "Answer:"] 
+        cleaned_options = [item.strip() for item in options if item.strip() and item.strip() != "Answer:"]
         letter_to_index = {"A": 0, "B": 1, "C": 2, "D": 3}
         try:
             int(cleaned_options[letter_to_index.get(self.reference)].split(". ")[1])
-        except Exception as e:
+        except Exception:
             return query
-        new_idx = random.randint(0, 3) 
+        new_idx = random.randint(0, 3)
         answer = int(cleaned_options[letter_to_index.get(self.reference)].split(". ")[1])
         step = random.randint(1, 10)
         new_options = [int(answer) + (i - new_idx) * step for i in range(4)]

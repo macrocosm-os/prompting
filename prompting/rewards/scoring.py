@@ -1,7 +1,6 @@
 import asyncio
 import threading
 
-import numpy as np
 
 from pydantic import ConfigDict
 from loguru import logger
@@ -15,7 +14,6 @@ from prompting.utils.logging import RewardLoggingEvent, log_event
 from prompting import mutable_globals
 from prompting.datasets.base import DatasetEntry
 from prompting.base.loop_runner import AsyncLoopRunner
-import asyncio
 
 
 @dataclass
