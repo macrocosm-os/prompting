@@ -30,13 +30,13 @@ class LLMWrapper:
 
             except Exception as ex:
                 logger.exception(ex)
-                logger.warning("Failed to use SN19 API falling back to GPT-3.5")
+                logger.warning("Failed to use SN19 API, falling back to GPT-3.5")
             else:
                 if response is not None:
                     logger.debug(f"Generated {len(response)} characters using {model}")
                     return response
                 logger.warning(
-                    "Failed to use SN19 API (check the SN19_API_KEY and/or SN19_API_URL not set), "
+                    "Failed to use SN19 API (check the SN19_API_KEY and/or SN19_API_URL), "
                     "falling back to GPT-3.5"
                 )
 
