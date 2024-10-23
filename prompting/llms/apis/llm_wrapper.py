@@ -15,7 +15,7 @@ class LLMWrapper:
         stream=False,
         logprobs=True,
     ) -> str:
-        response = None
+        response: str | None = None
         if "gpt" not in model.lower() and settings.SN19_API_KEY and settings.SN19_API_URL:
             try:
                 response = chat_complete(
