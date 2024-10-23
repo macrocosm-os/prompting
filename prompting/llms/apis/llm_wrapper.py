@@ -14,27 +14,33 @@ class LLMWrapper:
         top_p=1,
         stream=False,
         logprobs=True,
-    ):
-        if "gpt" not in model.lower():
-            if settings.SN19_API_KEY and settings.SN19_API_URL:
-                try:
-                    response = chat_complete(
-                        messages=messages,
-                        model=model,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                        top_p=top_p,
-                        stream=stream,
-                        logprobs=logprobs,
-                    )
+    ) -> str:
+        response: str | None = None
+        if "gpt" not in model.lower() and settings.SN19_API_KEY and settings.SN19_API_URL:
+            try:
+                response = chat_complete(
+                    messages=messages,
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    top_p=top_p,
+                    stream=stream,
+                    logprobs=logprobs,
+                )
 
+            except Exception as ex:
+                logger.exception(ex)
+                logger.warning("Failed to use SN19 API, falling back to GPT-3.5")
+            else:
+                if response is not None:
                     logger.debug(f"Generated {len(response)} characters using {model}")
                     return response
-                except Exception as ex:
-                    logger.exception(ex)
-            else:
-                logger.warning("SN19_API_KEY and/or SN19_API_URL not set, falling back to GPT-3.5")
-            model = "gpt-3.5-turbo"
+                logger.warning(
+                    "Failed to use SN19 API (check the SN19_API_KEY and/or SN19_API_URL), "
+                    "falling back to GPT-3.5"
+                )
+
+        model = "gpt-3.5-turbo"
         response, _ = openai_client.chat_complete(
             messages=messages,
             model=model,
