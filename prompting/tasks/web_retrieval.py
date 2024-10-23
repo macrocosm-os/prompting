@@ -9,20 +9,11 @@ from prompting.tasks.base_task import BaseTextTask
 
 # Used to instruct the LLM to provide a query when given a context.
 QUERY_SYSTEM_PROMPT = textwrap.dedent(
-    """You are a tool used to train users research skills.
-You will ask questions about websites in such a way
-that users are able to retrieve the content. Your tone should be causal,
-in the same way that a human would be asking.
+"""Ask a question about the following text in such a way that it's not obvious 
+that you're asking about text from this specific website, but keep the context to make sure that the 
+question can be answered through the internet search.
 """
 )
-
-MESSAGE_TEMPLATE = """Ask a question about the following text in such a way that it's not obvious
-that you're asking about text from this specific website, but keep the context to make sure that the
-question can be answered through an internet search.
-
-WEBSITE CONTENT:
-
-{website_content}"""
 
 
 class WebRetrievalRewardConfig(BaseRewardConfig):
@@ -37,9 +28,7 @@ class WebRetrievalTask(BaseTextTask):
     query_system_prompt: ClassVar[Optional[str]] = QUERY_SYSTEM_PROMPT
 
     def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
-        self.query = self.generate_query(
-            messages=[MESSAGE_TEMPLATE.format(website_content=dataset_entry.website_content)]
-        )
+        self.query = self.generate_query(messages=dataset_entry.website_content)
         return self.query
 
     def make_reference(self, dataset_entry: DDGDatasetEntry) -> str:
