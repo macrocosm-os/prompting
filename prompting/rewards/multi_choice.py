@@ -59,7 +59,7 @@ class MultiChoiceRewardModel(BaseRewardModel):
             logger.error(f"Error in logit_reward: {e}")
             return None
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         rewards = []
         timings = []
 

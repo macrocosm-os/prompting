@@ -61,7 +61,7 @@ class BaseRewardModel(ABC, BaseModel):
     weight: float = 1.0
 
     @abstractmethod
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         raise NotImplementedError("You must implement the reward method")
 
     def apply(

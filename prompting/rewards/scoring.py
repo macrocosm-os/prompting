@@ -59,7 +59,7 @@ class TaskScorer(AsyncLoopRunner):
         )
 
     async def run_step(self) -> RewardLoggingEvent:
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.1)
         # Only score responses for which the model is loaded
         scorable = [
             scoring_config
@@ -68,11 +68,9 @@ class TaskScorer(AsyncLoopRunner):
             or (scoring_config.task.llm_model is None)
         ]
         if len(scorable) == 0:
-            await asyncio.sleep(0.01)
             logger.debug("Nothing to score. Skipping scoring step.")
             # Run a model_scheduler step to load a new model as there are no more tasks to be scored
             await model_scheduler.run_step()
-            await asyncio.sleep(5)
             return
         mutable_globals.scoring_queue.remove(scorable[0])
         scoring_config: ScoringConfig = scorable.pop(0)
@@ -95,6 +93,9 @@ class TaskScorer(AsyncLoopRunner):
             task=scoring_config.task,
         )
         mutable_globals.reward_events.append(reward_events)
+        logger.debug(
+            f"REFERENCE: {scoring_config.task.reference}\n\n||||RESPONSES: {scoring_config.response.completions}"
+        )
         logger.debug(
             f"SCORING: Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with reward"
         )

@@ -83,6 +83,11 @@ class CheckMinerAvailability(AsyncLoopRunner):
             deserialize=False,
             streaming=False,
         )
+        logger.debug(f"Availability responses: {responses}")
+        for response, uid in zip(responses, uids_to_query):
+            if response.is_failure:
+                logger.warning(f"Miner {uid} failed to respond. Response is timeout: {response.timeout}")
+                continue
 
         for response, uid in zip(responses, uids_to_query):
             miner_availabilities.miners[uid] = MinerAvailability(

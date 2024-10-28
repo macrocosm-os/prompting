@@ -68,10 +68,10 @@ class VLLMMiner(BaseStreamMinerNeuron):
                 )
 
                 # logger.debug(f"PROMPT: {prompts}\n\nRESPONSES: {responses}\n\nSAMPLING PARAMS: {sampling_params}")
-                stream_response = self.llm.generate(prompts=[synapse.messages[-1]], sampling_params=sampling_params)
+                stream_response = [self.llm.generate(prompts=[synapse.messages[-1]], sampling_params=sampling_params)]
 
                 for chunk in stream_response:
-                    chunk_content = chunk.outputs[0].text
+                    chunk_content = chunk
 
                     if not chunk_content:
                         logger.info("vLLM returned chunk content with None")
