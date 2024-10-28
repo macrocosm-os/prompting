@@ -16,6 +16,7 @@ from starlette.types import Send
 from prompting.utils.logging import ErrorLoggingEvent, log_event
 from prompting.base.protocol import AvailabilitySynapse
 from prompting.llms.utils import GPUInfo
+from prompting.llms.vllm_llm import ReproducibleVLLM
 
 NEURON_MAX_TOKENS: int = 256
 NEURON_TEMPERATURE: float = 0.7
@@ -39,7 +40,7 @@ class VLLMMiner(BaseStreamMinerNeuron):
     def init_vllm(self) -> "VLLMMiner":
         GPUInfo.log_gpu_info()
         logger.debug("Loading vLLM model...")
-        self.llm = LLM(model=settings.MINER_LLM_MODEL, gpu_memory_utilization=0.3)
+        self.llm = ReproducibleVLLM(model=settings.MINER_LLM_MODEL, gpu_memory_utilization=0.3)
         logger.debug("vLLM model loaded.")
         GPUInfo.log_gpu_info()
         return self
@@ -66,7 +67,8 @@ class VLLMMiner(BaseStreamMinerNeuron):
                     seed=synapse.seed,
                 )
 
-                stream_response = self.llm.generate(prompts=[synapse.messages[0]], sampling_params=sampling_params)
+                # logger.debug(f"PROMPT: {prompts}\n\nRESPONSES: {responses}\n\nSAMPLING PARAMS: {sampling_params}")
+                stream_response = self.llm.generate(prompts=[synapse.messages[-1]], sampling_params=sampling_params)
 
                 for chunk in stream_response:
                     chunk_content = chunk.outputs[0].text

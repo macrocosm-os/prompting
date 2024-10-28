@@ -41,6 +41,7 @@ class TaskLoop(AsyncLoopRunner):
                     logger.exception(ex)
                 await asyncio.sleep(0.01)
 
+            asyncio.sleep(0.1)
             if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
                 logger.debug(
                     f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."

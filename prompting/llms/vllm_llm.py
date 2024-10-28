@@ -7,6 +7,10 @@ from vllm import LLM, RequestOutput
 from transformers import PreTrainedTokenizerFast
 from pydantic import model_validator, ConfigDict
 from loguru import logger
+from vllm import SamplingParams
+import random
+import numpy as np
+import torch
 
 try:
     from vllm import SamplingParams
@@ -194,3 +198,68 @@ class vLLM_LLM(BaseLLM):
         logger.info(f"{self.__class__.__name__} generated the following output:\n{response.outputs[0].text.strip()}")
 
         return response.outputs[0].text.strip()
+
+
+def set_random_seeds(seed=42):
+    """
+    Set random seeds for reproducibility across all relevant libraries
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+class ReproducibleVLLM:
+    def __init__(self, model="meta-llama/Llama-2-7b-hf", tensor_parallel_size=1, seed=42, *args, **kwargs):
+        """
+        Initialize vLLM with reproducible settings
+
+        Args:
+            model_name (str): HuggingFace model identifier
+            tensor_parallel_size (int): Number of GPUs to use
+            seed (int): Random seed for reproducibility
+        """
+        set_random_seeds(seed)
+
+        self.llm = LLM(
+            model=model, tensor_parallel_size=tensor_parallel_size, trust_remote_code=True, seed=seed, *args, **kwargs
+        )
+
+        # Default sampling parameters for reproducibility
+        self.sampling_params = SamplingParams(
+            temperature=0.7, top_p=0.95, top_k=50, max_tokens=400, presence_penalty=0, frequency_penalty=0, seed=seed
+        )
+
+    def generate(self, prompts, sampling_params=None, seed=None):
+        """
+        Generate text with reproducible output
+
+        Args:
+            prompts: Single string or list of prompts
+            sampling_params: Optional custom SamplingParams
+            seed: Optional seed override for this specific generation
+
+        Returns:
+            list: Generated outputs
+        """
+        if isinstance(prompts, str):
+            prompts = [prompts]
+
+        # Use custom params if provided, else use default
+        params = sampling_params if sampling_params else self.sampling_params
+
+        # Override seed if provided
+        if seed is not None:
+            params = SamplingParams(**params.dict(), seed=seed)
+
+        # Generate
+        outputs = self.llm.generate(prompts, params)
+
+        # Extract generated text
+        results = []
+        for output in outputs:
+            results.append(output.outputs[0].text.strip())
+
+        return results if len(results) > 1 else results[0]

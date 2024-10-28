@@ -55,7 +55,7 @@ class MinerAvailabilities(BaseModel):
 
 
 class CheckMinerAvailability(AsyncLoopRunner):
-    interval: int = 30 # Miners will be queried approximately once every hour
+    interval: int = 10  # Miners will be queried approximately once every hour
     uids: np.ndarray = settings.TEST_MINER_IDS or get_uids(sampling_mode="all")
     current_index: int = 0
     uids_per_step: int = 10
@@ -96,7 +96,7 @@ class CheckMinerAvailability(AsyncLoopRunner):
         if self.current_index >= len(self.uids):
             self.current_index = 0
 
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.1)
 
 
 miner_availabilities = MinerAvailabilities()

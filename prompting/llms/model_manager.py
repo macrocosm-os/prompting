@@ -1,3 +1,4 @@
+import gc
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
 import torch
@@ -10,6 +11,7 @@ from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.mutable_globals import scoring_queue
 from prompting.settings import settings
 from vllm.sampling_params import SamplingParams
+from prompting.llms.vllm_llm import ReproducibleVLLM
 
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work
@@ -65,10 +67,13 @@ class ModelManager(BaseModel):
                 f"Loading model... {model_config.llm_model_id} with GPU Utilization: {model_config.min_ram / GPUInfo.free_memory}"
             )
             GPUInfo.log_gpu_info()
-            model = vllm.LLM(
-                model_config.llm_model_id,
-                max_model_len=8_000,
-                gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
+            # model = vllm.LLM(
+            #     model_config.llm_model_id,
+            #     max_model_len=8_000,
+            #     gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
+            # )
+            model = ReproducibleVLLM(
+                model=model_config.llm_model_id, gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory
             )
             self.active_models[model_config] = model
             self.used_ram += model_config.min_ram
@@ -82,11 +87,10 @@ class ModelManager(BaseModel):
         if model_config not in self.active_models:
             logger.warning("Couldn't find model to unload.")
             return
-        import gc
 
         destroy_model_parallel()
         try:
-            del self.active_models[model_config].llm_engine.model_executor.driver_worker
+            del self.active_models[model_config].llm.llm_engine.model_executor.driver_worker
             del self.active_models[model_config]
         except Exception as ex:
             logger.error(f"Failed to unload model {model_config.llm_model_id}. Error: {str(ex)}")
@@ -144,8 +148,9 @@ class ModelManager(BaseModel):
         if not model:
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
-        model: vllm.LLM = self.get_model(model)
+        model: ReproducibleVLLM = self.get_model(model)
         responses = model.generate(prompts=prompts, sampling_params=sampling_params)
+        logger.debug(f"PROMPT: {prompts}\n\nRESPONSES: {responses}\n\nSAMPLING PARAMS: {sampling_params}")
         return [r.outputs[0].text.strip() for r in responses]
 
     def chat_generate(

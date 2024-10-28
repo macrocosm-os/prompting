@@ -19,7 +19,7 @@ class ModelZoo:
     # Currently, we are only using one single model - the one the validator is running
     models_configs: ClassVar[list[ModelConfig]] = [
         ModelConfig(
-            llm_model_id=settings.NEURON_MODEL_ID_VALIDATOR,
+            llm_model_id=settings.LLM_MODEL,
             reward=1,
             min_ram=settings.MAX_ALLOWED_VRAM_GB,
         )
