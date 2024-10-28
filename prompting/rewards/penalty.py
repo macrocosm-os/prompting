@@ -13,7 +13,7 @@ class PenaltyModel(BaseRewardModel):
     def name(self) -> str:
         return "penalty"
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
         rewards = []
         timings = []

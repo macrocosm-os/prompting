@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from prompting.base.dendrite import DendriteResponseEvent
 from pydantic import BaseModel, ConfigDict
 from prompting.tasks.base_task import BaseTextTask
+from loguru import logger
 
 RewardTypeLiteral = Literal["reward", "penalty"]
 
@@ -61,7 +62,7 @@ class BaseRewardModel(ABC, BaseModel):
     weight: float = 1.0
 
     @abstractmethod
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent, model_id: str = None) -> BatchRewardOutput:
         raise NotImplementedError("You must implement the reward method")
 
     def apply(
@@ -75,7 +76,7 @@ class BaseRewardModel(ABC, BaseModel):
     ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
-        batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event)
+        batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event, model_id=task.llm_model_id)
         batch_rewards_time = time.time() - t0
 
         return WeightedRewardEvent(
@@ -149,6 +150,7 @@ class BaseRewardConfig(ABC, BaseModel):
                     task=task,
                 ),
             )
+        logger.debug(reward_events)
 
         if cls.penalty_definitions and not challenge:
             raise Exception("You must be providing the challenge to apply penalties")

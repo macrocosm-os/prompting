@@ -22,7 +22,7 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
 from prompting.weight_setting.weight_setter import weight_setter
 
-NEURON_SAMPLE_SIZE = 100
+NEURON_SAMPLE_SIZE = 80
 
 
 class Validator(BaseValidatorNeuron):
@@ -63,7 +63,9 @@ class Validator(BaseValidatorNeuron):
             # send the task to the miners and collect the responses
             with Timer() as timer:
                 response_event = await self.collect_responses(task=task)
-            logger.debug(f"Collected responses in {timer.elapsed_time:.2f} seconds")
+            if response_event is None:
+                return
+            logger.debug(f"Collected responses in {timer.elapsed_time:.2f} seconds; response event: {response_event}")
 
             # scoring_manager will score the responses as and when the correct model is loaded
             task_scorer.add_to_queue(
@@ -95,7 +97,9 @@ class Validator(BaseValidatorNeuron):
         uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
         logger.debug(f"🔍 Querying uids: {uids}")
         if len(uids) == 0:
-            logger.debug("No available miners. Skipping step.")
+            logger.warning(
+                "No available miners. This should have been caught earlier - something unexpected went wrong."
+            )
             return
         axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
@@ -193,6 +197,7 @@ async def main():
 
     # start scoring tasks in separate loop
     asyncio.create_task(task_scorer.start())
+    logger.info(f"Running LLM: {settings.LLM_MODEL}")
     # TODO: Think about whether we want to store the task queue locally in case of a crash
     # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
     # TODO: Make weight setting happen as specific intervals as we load/unload models

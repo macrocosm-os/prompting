@@ -2,6 +2,7 @@ from loguru import logger
 from pydantic import BaseModel, ConfigDict
 import torch
 import vllm
+from transformers import pipeline, AutoTokenizer, Pipeline
 import asyncio
 from prompting.llms.utils import GPUInfo
 from vllm.distributed.parallel_state import destroy_model_parallel
@@ -10,11 +11,29 @@ from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.mutable_globals import scoring_queue
 from prompting.settings import settings
 from vllm.sampling_params import SamplingParams
+import random
+import numpy as np
+import os
+import transformers
 
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work
 # through the tasks based on the currently loaded model.
 open_tasks = []
+
+
+def set_seed(seed):
+    """Set all seeds for reproducibility"""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    transformers.set_seed(seed)
 
 
 class ModelManager(BaseModel):
@@ -65,16 +84,12 @@ class ModelManager(BaseModel):
                 f"Loading model... {model_config.llm_model_id} with GPU Utilization: {model_config.min_ram / GPUInfo.free_memory}"
             )
             GPUInfo.log_gpu_info()
-            model = vllm.LLM(
-                model_config.llm_model_id,
-                max_model_len=8_000,
-                gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
-            )
-            self.active_models[model_config] = model
+            pipe = pipeline("text-generation", model=settings.MINER_LLM_MODEL, max_length=1_000, device="cuda")
+            self.active_models[model_config] = pipe
             self.used_ram += model_config.min_ram
             logger.info(f"Model {model_config.llm_model_id} loaded. Current used RAM: {self.used_ram} GB")
+            return pipe
 
-            return model
         except Exception as e:
             logger.exception(f"Failed to load model {model_config.llm_model_id}. Error: {str(e)}")
 
@@ -94,13 +109,13 @@ class ModelManager(BaseModel):
         self.used_ram -= model_config.min_ram
         torch.cuda.empty_cache()
 
-    def get_or_load_model(self, llm_model_id: str) -> vllm.LLM:
+    def get_or_load_model(self, llm_model_id: str) -> Pipeline:
         model_config = ModelZoo.get_model_by_id(llm_model_id)
         if model_config not in self.active_models:
             self.load_model(model_config)
         return self.active_models[model_config]
 
-    def get_model(self, llm_model: ModelConfig | str) -> vllm.LLM:
+    def get_model(self, llm_model: ModelConfig | str) -> Pipeline:
         if not llm_model:
             llm_model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
         if isinstance(llm_model, str):
@@ -111,31 +126,10 @@ class ModelManager(BaseModel):
         else:
             return self.load_model(llm_model, force=True)
 
-    def _make_prompt(self, messages: list[dict[str, str]]) -> str:
-        role_template = {
-            "system": "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n{{{{ {} }}}}<|eot_id|>",
-            "user": "<|start_header_id|>user<|end_header_id|>\n{{{{ {} }}}}<|eot_id|>",
-            "assistant": "<|start_header_id|>assistant<|end_header_id|>\n{{{{ {} }}}}<|eot_id|>",
-            "end": "<|start_header_id|>assistant<|end_header_id|>",
-        }
-
-        composed_prompt: list[str] = []
-
-        for message in messages:
-            role = message["role"]
-            if role not in role_template:
-                continue
-            content = message["content"]
-            composed_prompt.append(role_template[role].format(content))
-
-        # Adds final tag indicating the assistant's turn
-        composed_prompt.append(role_template["end"])
-        return "".join(composed_prompt)
-
     # TODO: Merge generate and chat_generate into a single method
     def generate(
         self,
-        prompts: list[str],
+        prompt: str,
         model: ModelConfig | str | None = None,
         sampling_params: SamplingParams | None = SamplingParams(max_tokens=settings.NEURON_MAX_TOKENS),
     ) -> list[str]:
@@ -144,9 +138,13 @@ class ModelManager(BaseModel):
         if not model:
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
-        model: vllm.LLM = self.get_model(model)
-        responses = model.generate(prompts=prompts, sampling_params=sampling_params)
-        return [r.outputs[0].text.strip() for r in responses]
+        model: Pipeline = self.get_model(model)
+        # TODO: Load tokenizer only once
+        set_seed(sampling_params.seed)
+        responses = model(prompt)[0]["generated_text"]
+        # response_results = [r.outputs[0].text.strip() for r in responses]
+        logger.debug(f"PROMPT: \n\n{prompt}\n\nSAMPLING PARAMS: {sampling_params}\n\nOUTPUT:\n\n{responses}")
+        return responses
 
     def chat_generate(
         self,
@@ -156,9 +154,10 @@ class ModelManager(BaseModel):
         sampling_params: SamplingParams | None = None,
     ) -> str:
         dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
-        composed_prompt = self._make_prompt(dict_messages)
+        tokenizer = AutoTokenizer.from_pretrained(settings.MINER_LLM_MODEL)
+        composed_prompt = tokenizer.apply_chat_template(dict_messages, tokenize=False)
         logger.debug(f"Generating Chat with prompt: {composed_prompt}")
-        return self.generate([composed_prompt], model=model, sampling_params=sampling_params)
+        return self.generate(composed_prompt, model=model, sampling_params=sampling_params)
 
 
 class AsyncModelScheduler(AsyncLoopRunner):

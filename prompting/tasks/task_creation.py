@@ -23,6 +23,8 @@ class TaskLoop(AsyncLoopRunner):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def run_step(self) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
+        await asyncio.sleep(0.01)
+
         if len(task_queue) > settings.TASK_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Task queue is full. Skipping task generation.")
             return None
@@ -40,12 +42,14 @@ class TaskLoop(AsyncLoopRunner):
                 except Exception as ex:
                     logger.exception(ex)
                 await asyncio.sleep(0.01)
-
-            if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
+            # return None
+            await asyncio.sleep(0.1)
+            if not miner_availabilities.get_available_miners(task=task, model=task.llm_model_id):
                 logger.debug(
                     f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."
                 )
                 return None
+            await asyncio.sleep(0.1)
 
             if not (dataset_entry := task.dataset_entry):
                 logger.warning(f"Dataset for task {task.__class__.__name__} returned None. Skipping step.")
@@ -59,7 +63,6 @@ class TaskLoop(AsyncLoopRunner):
         except Exception as ex:
             logger.exception(ex)
             return None
-        await asyncio.sleep(0.01)
 
 
 task_loop = TaskLoop()

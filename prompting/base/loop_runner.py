@@ -30,11 +30,11 @@ class AsyncLoopRunner(BaseModel, ABC):
         """Get the current time from the time server with a timeout."""
         if not self.sync:
             time = datetime.datetime.now(datetime.timezone.utc)
-            logger.debug(f"Time: {time}")
+            logger.debug(f"{self.name}: Time: {time}")
             return time
         try:
             async with aiohttp.ClientSession() as session:
-                logger.info("Waiting for response time")
+                logger.info(f"{self.name}: Waiting for response time")
                 async with session.get(self.time_server_url, timeout=5) as response:
                     if response.status == 200:
                         data = await response.json()
@@ -43,7 +43,7 @@ class AsyncLoopRunner(BaseModel, ABC):
                     else:
                         raise Exception(f"Failed to get server time. Status: {response.status}")
         except Exception as ex:
-            logger.warning(f"Could not get time from server: {ex}. Falling back to local time.")
+            logger.warning(f"{self.name}: Could not get time from server: {ex}. Falling back to local time.")
             return datetime.datetime.now(datetime.timezone.utc)
 
     def next_sync_point(self, current_time):
@@ -62,7 +62,7 @@ class AsyncLoopRunner(BaseModel, ABC):
             next_run = self.next_sync_point(current_time)
         else:
             next_run = last_run_time + timedelta(seconds=self.interval)
-        logger.debug(f"Next run: {next_run}")
+        logger.debug(f"{self.name}: Next run: {next_run}")
 
         wait_time = (next_run - current_time).total_seconds()
         if wait_time > 0:
@@ -70,6 +70,7 @@ class AsyncLoopRunner(BaseModel, ABC):
                 f"{self.name}: Waiting for {wait_time:.2f} seconds until next {'sync point' if self.sync else 'execution'}"
             )
             await asyncio.sleep(wait_time)
+            logger.debug(f"{self.name}: Finished waiting")
         return next_run
 
     async def run_loop(self):
@@ -80,11 +81,12 @@ class AsyncLoopRunner(BaseModel, ABC):
         logger.debug(f"Got time of last run: {last_run_time}")
         try:
             while self.running:
-                logger.debug("Waiting...")
+                logger.debug(f"{self.__class__.__name__}: Waiting...")
                 next_run = await self.wait_for_next_execution(last_run_time)
-                logger.debug("Wait ended")
+                logger.debug(f"{self.__class__.__name__}: Wait ended")
                 try:
                     await self.run_step()
+                    await asyncio.sleep(0.01)
                     self.step += 1
                     logger.debug(f"{self.name}: Step {self.step} completed at {next_run}")
                     last_run_time = next_run

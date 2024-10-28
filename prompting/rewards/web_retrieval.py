@@ -7,6 +7,7 @@ Example response:
     "relevant": "This is the section we are interested in.",
 }
 """
+
 import json
 import time
 
@@ -30,7 +31,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         return 1.0 - float(spatial.distance.cosine(reference_emb_flatten, response_emb_flatten))
 
     # TODO: Change base class reference type to Reference pydantic model, in order to store additional data.
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         """Score response website content and URL based on the similarity to the search term and reference content."""
         rewards: list[float] = []
         timings: list[float] = []

@@ -45,6 +45,7 @@ class MinerAvailabilities(BaseModel):
         self, task: BaseTask | None = None, model: str | None = None, k: int | None = None
     ) -> list[int]:
         available = list(self.miners.keys())
+        logger.debug(f"AVAILABLE: {available}")
         if task:
             available = [uid for uid in available if self.miners[uid].is_task_available(task)]
         if model:
@@ -55,7 +56,7 @@ class MinerAvailabilities(BaseModel):
 
 
 class CheckMinerAvailability(AsyncLoopRunner):
-    interval: int = 30 # Miners will be queried approximately once every hour
+    interval: int = 20  # Miners will be queried approximately once every hour
     uids: np.ndarray = settings.TEST_MINER_IDS or get_uids(sampling_mode="all")
     current_index: int = 0
     uids_per_step: int = 10
@@ -64,6 +65,7 @@ class CheckMinerAvailability(AsyncLoopRunner):
         arbitrary_types_allowed = True
 
     async def run_step(self):
+        logger.info("Getting miner availabilities...")
         start_index = self.current_index
         end_index = min(start_index + self.uids_per_step, len(self.uids))
         uids_to_query = self.uids[start_index:end_index]
@@ -83,12 +85,19 @@ class CheckMinerAvailability(AsyncLoopRunner):
             deserialize=False,
             streaming=False,
         )
+        logger.info(f"Availability responses: {responses}")
+        for response, uid in zip(responses, uids_to_query):
+            if response.is_failure:
+                logger.warning(f"Miner {uid} failed to respond. Response is timeout: {response.timeout}")
+                continue
 
         for response, uid in zip(responses, uids_to_query):
             miner_availabilities.miners[uid] = MinerAvailability(
                 task_availabilities=response.task_availabilities,
                 llm_model_availabilities=response.llm_model_availabilities,
             )
+        if settings.TEST_MINER_IDS:
+            logger.info(f"Miner availabilities: {miner_availabilities.miners}")
 
         logger.debug("Miner availabilities updated.")
         self.current_index = end_index
