@@ -97,7 +97,7 @@ class TaskScorer(AsyncLoopRunner):
             f"REFERENCE: {scoring_config.task.reference}\n\n||||RESPONSES: {scoring_config.response.completions}"
         )
         logger.debug(
-            f"SCORING: Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with reward"
+            f"SCORING: Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with model {scoring_config.task.llm_model_id} with reward"
         )
         log_event(
             RewardLoggingEvent(

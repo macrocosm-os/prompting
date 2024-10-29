@@ -150,7 +150,6 @@ class ModelManager(BaseModel):
 
         model: ReproducibleVLLM = self.get_model(model)
         responses = model.generate(prompts=prompts, sampling_params=sampling_params)
-        logger.debug(f"PROMPT: {prompts}\n\nRESPONSES: {responses}\n\nSAMPLING PARAMS: {sampling_params}")
         return [responses]
 
     def chat_generate(

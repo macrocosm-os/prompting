@@ -5,7 +5,7 @@ import numpy as np
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 
-PENALTY_FACTOR = 0
+NON_RESPONSE_PENALTY = 3
 
 
 class PenaltyModel(BaseRewardModel):
@@ -21,7 +21,7 @@ class PenaltyModel(BaseRewardModel):
         t0 = time.perf_counter()
 
         for completion in completions:
-            reward = -PENALTY_FACTOR if completion == "" else 0
+            reward = -NON_RESPONSE_PENALTY if completion == "" else 0
             timings.append(time.perf_counter() - t0)
             rewards.append(reward)
 

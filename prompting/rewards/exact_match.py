@@ -6,7 +6,7 @@ from prompting.rewards.reward import (
 from prompting.base.dendrite import DendriteResponseEvent
 
 
-PENALTY_FACTOR = 3
+PENALTY_FACTOR = 0
 
 
 class ExactMatchRewardModel(BaseRewardModel):

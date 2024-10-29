@@ -11,12 +11,13 @@ from loguru import logger
 from pydantic import model_validator
 from prompting.base.miner import BaseStreamMinerNeuron
 from prompting.base.protocol import StreamPromptingSynapse
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from starlette.types import Send
 from prompting.utils.logging import ErrorLoggingEvent, log_event
 from prompting.base.protocol import AvailabilitySynapse
 from prompting.llms.utils import GPUInfo
 from prompting.llms.vllm_llm import ReproducibleVLLM
+from prompting.utils.timer import Timer
 
 NEURON_MAX_TOKENS: int = 256
 NEURON_TEMPERATURE: float = 0.7
@@ -29,7 +30,7 @@ SYSTEM_PROMPT = """You are a helpful agent that does its best to answer all ques
 
 
 class VLLMMiner(BaseStreamMinerNeuron):
-    llm: LLM | None = None
+    llm: ReproducibleVLLM | None = None
     accumulated_total_tokens: int = 0
     accumulated_prompt_tokens: int = 0
     accumulated_completion_tokens: int = 0
@@ -134,13 +135,15 @@ class VLLMMiner(BaseStreamMinerNeuron):
         init_time = time.time()
         timeout_threshold = synapse.timeout
 
-        token_streamer = partial(
-            _forward,
-            self,
-            synapse,
-            init_time,
-            timeout_threshold,
-        )
+        with Timer() as timer:
+            token_streamer = partial(
+                _forward,
+                self,
+                synapse,
+                init_time,
+                timeout_threshold,
+            )
+        logger.info(f"Time for complete response: {timer.elapsed_time}")
         return synapse.create_streaming_response(token_streamer)
 
     def check_availability(self, synapse: AvailabilitySynapse) -> AvailabilitySynapse:

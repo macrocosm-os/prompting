@@ -75,7 +75,7 @@ class BaseRewardModel(ABC, BaseModel):
     ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
-        batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event)
+        batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event, **kwargs)
         batch_rewards_time = time.time() - t0
 
         return WeightedRewardEvent(
@@ -124,9 +124,8 @@ class BaseRewardConfig(ABC, BaseModel):
 
     @classmethod
     def final_rewards(cls, reward_events: list[WeightedRewardEvent]) -> list[float]:
-        penalty_events = [r for r in reward_events if r.reward_type == "penalty"]
         reward_events = [r for r in reward_events if r.reward_type == "reward"]
-        return cls.sum_rewards(reward_events) - cls.sum_rewards(penalty_events)
+        return cls.sum_rewards(reward_events)
 
     @classmethod
     def apply(
@@ -146,19 +145,6 @@ class BaseRewardConfig(ABC, BaseModel):
                     challenge=challenge,
                     reward_type="reward",
                     model_id=model_id,
-                    task=task,
-                ),
-            )
-
-        if cls.penalty_definitions and not challenge:
-            raise Exception("You must be providing the challenge to apply penalties")
-
-        for weighted_reward in cls.penalty_definitions:
-            reward_events.append(
-                weighted_reward.apply(
-                    reference=challenge,
-                    response_event=response_event,
-                    reward_type="penalty",
                     task=task,
                 ),
             )

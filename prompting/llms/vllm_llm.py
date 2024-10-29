@@ -11,6 +11,7 @@ from vllm import SamplingParams
 import random
 import numpy as np
 import torch
+from prompting.utils.timer import Timer
 
 try:
     from vllm import SamplingParams
@@ -207,8 +208,10 @@ def set_random_seeds(seed=42):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 class ReproducibleVLLM:
@@ -232,7 +235,7 @@ class ReproducibleVLLM:
             temperature=0.7, top_p=0.95, top_k=50, max_tokens=400, presence_penalty=0, frequency_penalty=0, seed=seed
         )
 
-    def generate(self, prompts, sampling_params=None, seed=None):
+    def generate(self, prompts, sampling_params=None):
         """
         Generate text with reproducible output
 
@@ -244,22 +247,23 @@ class ReproducibleVLLM:
         Returns:
             list: Generated outputs
         """
-        if isinstance(prompts, str):
-            prompts = [prompts]
+        with Timer() as timer:
+            set_random_seeds(sampling_params.seed)
+            if isinstance(prompts, str):
+                prompts = [prompts]
 
-        # Use custom params if provided, else use default
-        params = sampling_params if sampling_params else self.sampling_params
+            # Use custom params if provided, else use default
+            params = sampling_params if sampling_params else self.sampling_params
 
-        # Override seed if provided
-        if seed is not None:
-            params = SamplingParams(**params.dict(), seed=seed)
+            # Generate
+            outputs = self.llm.generate(prompts, params)
 
-        # Generate
-        outputs = self.llm.generate(prompts, params)
-
-        # Extract generated text
-        results = []
-        for output in outputs:
-            results.append(output.outputs[0].text.strip())
+            # Extract generated text
+            results = []
+            for output in outputs:
+                results.append(output.outputs[0].text.strip())
+        logger.debug(
+            f"PROMPT: {prompts}\n\nRESPONSES: {results}\n\nSAMPLING PARAMS: {sampling_params}\n\nTIME FOR RESPONSE: {timer.elapsed_time}"
+        )
 
         return results if len(results) > 1 else results[0]
