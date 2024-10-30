@@ -29,11 +29,11 @@ huggingface-cli login
 Before running a validator, you will need to create a .env.validator environment file. It is necessary for you to provide the following 
 
 ```text
-NETUID = #[1, 61, 102]
+NETUID = # [1, 61, 102]
 SUBTENSOR_NETWORK = # The network name [test, main, local]
-SUBTENSOR_CHAIN_ENDPOINT = #T he chain endpoint [test if running on test, main if running on main, custom endpoint if running on local] 
-WALLET_NAME = # Name of your wallet(coldkey) 
-HOTKEY = #Name of your hotkey associated with above wallet
+SUBTENSOR_CHAIN_ENDPOINT = #The chain endpoint [test if running on test, main if running on main, custom endpoint if running on local] 
+WALLET_NAME = # Name of your wallet (coldkey) 
+HOTKEY = # Name of your hotkey associated with above wallet
 AXON_PORT = # Number of the open tcp port
 SN19_API_KEY = # Your Subnet 19 API key
 SN19_API_URL = # Your Subnet 19 API URL
