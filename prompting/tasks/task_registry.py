@@ -55,7 +55,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=MultiChoiceTask,
-            probability=0.32,
+            probability=0.31,
             datasets=[WikiDataset],
             reward_model=MultiChoiceRewardConfig,
         ),
