@@ -63,6 +63,9 @@ class Validator(BaseValidatorNeuron):
             # send the task to the miners and collect the responses
             with Timer() as timer:
                 response_event = await self.collect_responses(task=task)
+            if response_event is None:
+                logger.warning("No response event collected. This should not be happening.")
+                return
             logger.debug(f"Collected responses in {timer.elapsed_time:.2f} seconds")
 
             # scoring_manager will score the responses as and when the correct model is loaded
@@ -95,7 +98,7 @@ class Validator(BaseValidatorNeuron):
         uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
         logger.debug(f"🔍 Querying uids: {uids}")
         if len(uids) == 0:
-            logger.debug("No available miners. Skipping step.")
+            logger.warning("No available miners. This should already have been caught earlier.")
             return
         axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
@@ -189,6 +192,7 @@ async def main():
     # will start checking the availability of miners at regular intervals
     asyncio.create_task(availability_checking_loop.start())
 
+    # sets weights at regular intervals (synchronised between all validators)
     asyncio.create_task(weight_setter.start())
 
     # start scoring tasks in separate loop

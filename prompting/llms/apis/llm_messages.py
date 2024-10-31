@@ -83,8 +83,6 @@ class LLMMessages(BaseModel):
         self.messages = list(args)
         assert len(self.messages) > 0, "At least one message is required when initializing GPTMessages"
 
-    # TODO: Add some utility for token tracking etc.
-
     def to_dict(self) -> list[dict]:
         return [message.to_dict() for message in self.messages]
 

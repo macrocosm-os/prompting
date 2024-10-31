@@ -29,7 +29,7 @@ class TaskLoop(AsyncLoopRunner):
         if len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Skipping task generation.")
             return None
-
+        await asyncio.sleep(0.1)
         try:
             # Getting task & Dataset
             for i in range(RETRIES):
@@ -39,8 +39,9 @@ class TaskLoop(AsyncLoopRunner):
                     break
                 except Exception as ex:
                     logger.exception(ex)
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.1)
 
+            await asyncio.sleep(0.1)
             if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
                 logger.debug(
                     f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."

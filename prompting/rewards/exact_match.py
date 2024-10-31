@@ -6,11 +6,11 @@ from prompting.rewards.reward import (
 from prompting.base.dendrite import DendriteResponseEvent
 
 
-PENALTY_FACTOR = 3
+PENALTY_FACTOR = 0
 
 
 class ExactMatchRewardModel(BaseRewardModel):
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         """Gives an exact reward of 1 if the response matches the reference, 0 otherwise"""
         rewards = []
         completions: list[str] = response_event.completions

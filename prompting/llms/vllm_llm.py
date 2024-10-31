@@ -7,6 +7,11 @@ from vllm import LLM, RequestOutput
 from transformers import PreTrainedTokenizerFast
 from pydantic import model_validator, ConfigDict
 from loguru import logger
+from vllm import SamplingParams
+import random
+import numpy as np
+import torch
+from prompting.utils.timer import Timer
 
 try:
     from vllm import SamplingParams
@@ -191,6 +196,81 @@ class vLLM_LLM(BaseLLM):
         composed_prompt = self._make_prompt(messages)
         response: RequestOutput = self.llm.generate(composed_prompt, SamplingParams(**self.model_kwargs))[0]
 
-        logger.info(f"{self.__class__.__name__} generated the following output:\n{response.outputs[0].text.strip()}")
+        try:
+            logger.info(
+                f"{self.__class__.__name__} generated the following output:\n{response.outputs[0].text.strip()}"
+            )
+        except Exception as e:
+            logger.info(f"Response: {response}")
+            logger.error(f"Error logging the response: {e}")
 
         return response.outputs[0].text.strip()
+
+
+def set_random_seeds(seed: int | None = 42):
+    """
+    Set random seeds for reproducibility across all relevant libraries
+    """
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
+class ReproducibleVLLM:
+    def __init__(self, model="meta-llama/Llama-2-7b-hf", tensor_parallel_size=1, seed=42, *args, **kwargs):
+        """
+        Initialize vLLM with reproducible settings
+
+        Args:
+            model_name (str): HuggingFace model identifier
+            tensor_parallel_size (int): Number of GPUs to use
+            seed (int): Random seed for reproducibility
+        """
+        set_random_seeds(seed)
+
+        self.llm = LLM(
+            model=model, tensor_parallel_size=tensor_parallel_size, trust_remote_code=True, seed=seed, *args, **kwargs
+        )
+
+        # Default sampling parameters for reproducibility
+        self.sampling_params = SamplingParams(
+            temperature=0.7, top_p=0.95, top_k=50, max_tokens=400, presence_penalty=0, frequency_penalty=0, seed=seed
+        )
+
+    def generate(self, prompts, sampling_params=None):
+        """
+        Generate text with reproducible output
+
+        Args:
+            prompts: Single string or list of prompts
+            sampling_params: Optional custom SamplingParams
+            seed: Optional seed override for this specific generation
+
+        Returns:
+            list: Generated outputs
+        """
+        with Timer() as timer:
+            set_random_seeds(sampling_params.seed)
+            if isinstance(prompts, str):
+                prompts = [prompts]
+
+            # Use custom params if provided, else use default
+            params = sampling_params if sampling_params else self.sampling_params
+
+            # Generate
+            outputs = self.llm.generate(prompts, params)
+
+            # Extract generated text
+            results = []
+            for output in outputs:
+                results.append(output.outputs[0].text.strip())
+        logger.debug(
+            f"PROMPT: {prompts}\n\nRESPONSES: {results}\n\nSAMPLING PARAMS: {sampling_params}\n\nTIME FOR RESPONSE: {timer.elapsed_time}"
+        )
+
+        return results if len(results) > 1 else results[0]

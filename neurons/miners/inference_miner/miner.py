@@ -11,11 +11,13 @@ from loguru import logger
 from pydantic import model_validator
 from prompting.base.miner import BaseStreamMinerNeuron
 from prompting.base.protocol import StreamPromptingSynapse
-from vllm import LLM, SamplingParams
+from vllm import SamplingParams
 from starlette.types import Send
 from prompting.utils.logging import ErrorLoggingEvent, log_event
 from prompting.base.protocol import AvailabilitySynapse
 from prompting.llms.utils import GPUInfo
+from prompting.llms.vllm_llm import ReproducibleVLLM
+from prompting.utils.timer import Timer
 
 NEURON_MAX_TOKENS: int = 256
 NEURON_TEMPERATURE: float = 0.7
@@ -28,7 +30,7 @@ SYSTEM_PROMPT = """You are a helpful agent that does its best to answer all ques
 
 
 class VLLMMiner(BaseStreamMinerNeuron):
-    llm: LLM | None = None
+    llm: ReproducibleVLLM | None = None
     accumulated_total_tokens: int = 0
     accumulated_prompt_tokens: int = 0
     accumulated_completion_tokens: int = 0
@@ -39,7 +41,7 @@ class VLLMMiner(BaseStreamMinerNeuron):
     def init_vllm(self) -> "VLLMMiner":
         GPUInfo.log_gpu_info()
         logger.debug("Loading vLLM model...")
-        self.llm = LLM(model=settings.MINER_LLM_MODEL, gpu_memory_utilization=0.3)
+        self.llm = ReproducibleVLLM(model=settings.MINER_LLM_MODEL, gpu_memory_utilization=0.3)
         logger.debug("vLLM model loaded.")
         GPUInfo.log_gpu_info()
         return self
@@ -66,10 +68,11 @@ class VLLMMiner(BaseStreamMinerNeuron):
                     seed=synapse.seed,
                 )
 
-                stream_response = self.llm.generate(prompts=[synapse.messages[0]], sampling_params=sampling_params)
+                # logger.debug(f"PROMPT: {prompts}\n\nRESPONSES: {responses}\n\nSAMPLING PARAMS: {sampling_params}")
+                stream_response = [self.llm.generate(prompts=[synapse.messages[-1]], sampling_params=sampling_params)]
 
                 for chunk in stream_response:
-                    chunk_content = chunk.outputs[0].text
+                    chunk_content = chunk
 
                     if not chunk_content:
                         logger.info("vLLM returned chunk content with None")
@@ -132,14 +135,17 @@ class VLLMMiner(BaseStreamMinerNeuron):
         init_time = time.time()
         timeout_threshold = synapse.timeout
 
-        token_streamer = partial(
-            _forward,
-            self,
-            synapse,
-            init_time,
-            timeout_threshold,
-        )
-        return synapse.create_streaming_response(token_streamer)
+        with Timer() as timer:
+            token_streamer = partial(
+                _forward,
+                self,
+                synapse,
+                init_time,
+                timeout_threshold,
+            )
+            response = synapse.create_streaming_response(token_streamer)
+        logger.info(f"Time for complete response: {timer.elapsed_time:.4f}")
+        return response
 
     def check_availability(self, synapse: AvailabilitySynapse) -> AvailabilitySynapse:
         """The check_availability function returns an AvailabilitySynapse which indicates
