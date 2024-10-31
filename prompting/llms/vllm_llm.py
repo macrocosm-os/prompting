@@ -207,7 +207,7 @@ class vLLM_LLM(BaseLLM):
         return response.outputs[0].text.strip()
 
 
-def set_random_seeds(seed=42):
+def set_random_seeds(seed: int | None = 42):
     """
     Set random seeds for reproducibility across all relevant libraries
     """
