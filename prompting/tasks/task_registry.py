@@ -51,13 +51,13 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=InferenceTask,
-            probability=0.2,
+            probability=0.22,
             datasets=[SN13Dataset],
             reward_model=InferenceRewardConfig,
         ),
         TaskConfig(
             task=MultiChoiceTask,
-            probability=0.3,
+            probability=0.35,
             datasets=[WikiDataset],
             reward_model=MultiChoiceRewardConfig,
         ),
@@ -69,7 +69,7 @@ class TaskRegistry(BaseModel):
         # ),
         TaskConfig(
             task=WebRetrievalTask,
-            probability=0.1,
+            probability=0.03,
             datasets=[DDGDataset],
             reward_model=WebRetrievalRewardConfig,
         ),
