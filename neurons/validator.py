@@ -192,6 +192,7 @@ async def main():
     # will start checking the availability of miners at regular intervals
     asyncio.create_task(availability_checking_loop.start())
 
+    # sets weights at regular intervals (synchronised between all validators)
     asyncio.create_task(weight_setter.start())
 
     # start scoring tasks in separate loop

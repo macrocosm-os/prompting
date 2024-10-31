@@ -42,7 +42,7 @@ class InferenceTask(BaseTextTask):
 
     @model_validator(mode="after")
     def random_llm_model_id(self):
-        if np.random.rand() < 0:
+        if np.random.rand() < 0.2:
             self.llm_model_id = None
         else:
             self.llm_model = ModelZoo.get_model_by_id(self.llm_model_id)

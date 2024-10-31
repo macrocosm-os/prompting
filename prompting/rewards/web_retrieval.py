@@ -17,6 +17,7 @@ from scipy import spatial
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.datasets.random_website import DDGDataset, DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
+import numpy as np
 from prompting.rewards.reward import BatchRewardOutput
 
 _SEARCH_TERM_THRESH = 0.2
@@ -99,7 +100,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             timings.append(time.perf_counter() - timer_start)
             rewards.append(score)
 
-        return BatchRewardOutput(rewards=rewards, timings=timings)
+        return BatchRewardOutput(rewards=np.array(rewards), timings=np.array(timings))
 
     @staticmethod
     def _parse_response(completion: str) -> tuple[str | None, ...]:

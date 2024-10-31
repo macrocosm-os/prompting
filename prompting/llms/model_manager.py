@@ -2,7 +2,6 @@ import gc
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
 import torch
-import vllm
 import asyncio
 from prompting.llms.utils import GPUInfo
 from vllm.distributed.parallel_state import destroy_model_parallel
@@ -22,7 +21,7 @@ open_tasks = []
 class ModelManager(BaseModel):
     always_active_models: list[ModelConfig] = []
     total_ram: float = settings.LLM_MODEL_RAM
-    active_models: dict[ModelConfig, vllm.LLM] = {}
+    active_models: dict[ModelConfig, ReproducibleVLLM] = {}
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -98,13 +97,13 @@ class ModelManager(BaseModel):
         self.used_ram -= model_config.min_ram
         torch.cuda.empty_cache()
 
-    def get_or_load_model(self, llm_model_id: str) -> vllm.LLM:
+    def get_or_load_model(self, llm_model_id: str) -> ReproducibleVLLM:
         model_config = ModelZoo.get_model_by_id(llm_model_id)
         if model_config not in self.active_models:
             self.load_model(model_config)
         return self.active_models[model_config]
 
-    def get_model(self, llm_model: ModelConfig | str) -> vllm.LLM:
+    def get_model(self, llm_model: ModelConfig | str) -> ReproducibleVLLM:
         if not llm_model:
             llm_model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
         if isinstance(llm_model, str):

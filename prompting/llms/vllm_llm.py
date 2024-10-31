@@ -196,7 +196,13 @@ class vLLM_LLM(BaseLLM):
         composed_prompt = self._make_prompt(messages)
         response: RequestOutput = self.llm.generate(composed_prompt, SamplingParams(**self.model_kwargs))[0]
 
-        logger.info(f"{self.__class__.__name__} generated the following output:\n{response.outputs[0].text.strip()}")
+        try:
+            logger.info(
+                f"{self.__class__.__name__} generated the following output:\n{response.outputs[0].text.strip()}"
+            )
+        except Exception as e:
+            logger.info(f"Response: {response}")
+            logger.error(f"Error logging the response: {e}")
 
         return response.outputs[0].text.strip()
 
@@ -205,13 +211,14 @@ def set_random_seeds(seed=42):
     """
     Set random seeds for reproducibility across all relevant libraries
     """
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
 
 class ReproducibleVLLM:
