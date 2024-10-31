@@ -12,6 +12,7 @@ import time
 
 from loguru import logger
 from scipy import spatial
+import numpy as np
 
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.datasets.random_website import DDGDataset, DDGDatasetEntry
@@ -98,7 +99,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             timings.append(time.perf_counter() - timer_start)
             rewards.append(score)
 
-        return BatchRewardOutput(rewards=rewards, timings=timings)
+        return BatchRewardOutput(rewards=np.array(rewards), timings=np.array(timings))
 
     @staticmethod
     def _parse_response(completion: str) -> tuple[str | None, ...]:
