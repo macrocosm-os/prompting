@@ -22,13 +22,13 @@ class ModelZoo:
             llm_model_id=settings.LLM_MODEL,
             reward=1,
             min_ram=settings.MAX_ALLOWED_VRAM_GB,
-        )
+        ),
+        ModelConfig(model_id="casperhansen/llama-3-8b-instruct-awq", reward=0.2, min_ram=24),
     ]
 
     # Code below can be uncommended for testing purposes and demonstrates how we rotate multiple LLMs in the future
     # models_configs: ClassVar[list[ModelConfig]] = [
     # ModelConfig(model_id="casperhansen/mistral-nemo-instruct-2407-awq", reward=0.1, min_ram=24),
-    (ModelConfig(model_id="casperhansen/llama-3-8b-instruct-awq", reward=0.2, min_ram=24),)
     # ModelConfig(model_id="casperhansen/qwen2-0.5b-instruct-awq", reward=0.1, min_ram=10),
     # ]
 
