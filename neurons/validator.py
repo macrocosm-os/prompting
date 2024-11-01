@@ -2,6 +2,7 @@
 import asyncio
 import time
 from prompting import settings
+from prompting.utils.profiling import profiler
 
 settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
@@ -23,6 +24,33 @@ from prompting.organic.organic_loop import start_organic
 from prompting.weight_setting.weight_setter import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
+import threading
+
+
+def run_dendrite_and_handle_response_sync(uids, *args, **kwargs):
+    result_container = []
+
+    def thread_target():
+        # Create a new event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        async def coro():
+            # Run DENDRITE and handle_response sequentially
+            streams_responses = await settings.DENDRITE(*args, **kwargs)
+            # Prepare the task for handling stream responses
+            stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
+            result_container.append(stream_results)
+
+        loop.run_until_complete(coro())
+        loop.close()
+
+    # Start the thread and wait for it to finish
+    thread = threading.Thread(target=thread_target)
+    thread.start()
+    thread.join()
+
+    return result_container[0]
 
 
 class Validator(BaseValidatorNeuron):
@@ -62,7 +90,7 @@ class Validator(BaseValidatorNeuron):
 
             # send the task to the miners and collect the responses
             with Timer() as timer:
-                response_event = await self.collect_responses(task=task)
+                response_event = self.collect_responses(task=task)
             if response_event is None:
                 logger.warning("No response event collected. This should not be happening.")
                 return
@@ -93,7 +121,7 @@ class Validator(BaseValidatorNeuron):
                 error=str(ex),
             )
 
-    async def collect_responses(self, task: BaseTextTask) -> DendriteResponseEvent | None:
+    def collect_responses(self, task: BaseTextTask) -> DendriteResponseEvent | None:
         # Get the list of uids and their axons to query for this step.
         uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
         logger.debug(f"🔍 Querying uids: {uids}")
@@ -102,7 +130,7 @@ class Validator(BaseValidatorNeuron):
             return
         axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
-        # Directly call dendrite and process responses in parallel
+        # Create the synapse
         synapse = StreamPromptingSynapse(
             task_name=task.__class__.__name__,
             seed=task.seed,
@@ -110,7 +138,10 @@ class Validator(BaseValidatorNeuron):
             roles=["user"],
             messages=[task.query],
         )
-        streams_responses = await settings.DENDRITE(
+
+        # Call the synchronous wrapper that includes both DENDRITE and handle_response
+        stream_results = run_dendrite_and_handle_response_sync(
+            uids=uids,
             axons=axons,
             synapse=synapse,
             timeout=settings.NEURON_TIMEOUT,
@@ -118,8 +149,6 @@ class Validator(BaseValidatorNeuron):
             streaming=True,
         )
 
-        # Prepare the task for handling stream responses
-        stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
         logger.debug(
             f"Non-empty responses: {len([r.completion for r in stream_results if len(r.completion) > 0])}\n"
             f"Empty responses: {len([r.completion for r in stream_results if len(r.completion) == 0])}"
@@ -183,6 +212,8 @@ class Validator(BaseValidatorNeuron):
 
 
 async def main():
+    # start profiling
+    asyncio.create_task(profiler.print_stats())
     # start rotating LLM models
     asyncio.create_task(model_scheduler.start())
 

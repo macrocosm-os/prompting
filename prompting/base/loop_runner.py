@@ -5,6 +5,7 @@ from pydantic import BaseModel, model_validator
 from datetime import timedelta
 import datetime
 import aiohttp
+from prompting.utils.profiling import profiler
 
 
 class AsyncLoopRunner(BaseModel, ABC):
@@ -80,16 +81,17 @@ class AsyncLoopRunner(BaseModel, ABC):
         logger.debug(f"Got time of last run: {last_run_time}")
         try:
             while self.running:
-                logger.debug("Waiting...")
-                next_run = await self.wait_for_next_execution(last_run_time)
-                logger.debug("Wait ended")
-                try:
-                    await self.run_step()
-                    self.step += 1
-                    logger.debug(f"{self.name}: Step {self.step} completed at {next_run}")
-                    last_run_time = next_run
-                except Exception as ex:
-                    logger.exception(f"Error in loop iteration: {ex}")
+                with profiler.measure(self.name):
+                    logger.debug("Waiting...")
+                    next_run = await self.wait_for_next_execution(last_run_time)
+                    logger.debug("Wait ended")
+                    try:
+                        await self.run_step()
+                        self.step += 1
+                        logger.debug(f"{self.name}: Step {self.step} completed at {next_run}")
+                        last_run_time = next_run
+                    except Exception as ex:
+                        logger.exception(f"Error in loop iteration: {ex}")
         except asyncio.CancelledError:
             logger.info("Loop was stopped.")
         except Exception as e:
