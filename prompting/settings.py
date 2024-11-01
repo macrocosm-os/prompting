@@ -188,19 +188,19 @@ class Settings(BaseSettings):
 
     @cached_property
     def SUBTENSOR(self) -> bt.subtensor:
-        subtensor_network = self.SUBTENSOR_NETWORK or os.environ.get("SUBTENSOR_NETWORK", "local")
-        bt_config = config()
+        subtensor_network = self.SUBTENSOR_NETWORK
         if subtensor_network.lower() == "local":
-            subtensor_network = bt_config.subtensor.chain_endpoint or os.environ.get("SUBTENSOR_CHAIN_ENDPOINT")
+            # If the network is local, we will use the local subtensor chain endpoint.
+            subtensor_network = os.environ.get("SUBTENSOR_CHAIN_ENDPOINT")
         else:
-            subtensor_network = bt_config.subtensor.network or subtensor_network.lower()
+            subtensor_network = subtensor_network.lower()
         logger.info(f"Instantiating subtensor with network: {subtensor_network}")
         return bt.subtensor(network=subtensor_network)
 
     @cached_property
     def METAGRAPH(self) -> bt.metagraph:
         logger.info(f"Instantiating metagraph with NETUID: {self.NETUID}")
-        return bt.metagraph(netuid=self.NETUID, network=self.SUBTENSOR_NETWORK, sync=True, lite=True)
+        return self.SUBTENSOR.metagraph(netuid=self.NETUID)
 
     @cached_property
     def DENDRITE(self) -> bt.dendrite:
