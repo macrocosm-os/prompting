@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     NEURON_QUERY_UNIQUE_IPS: bool = Field(False, env="NEURON_QUERY_UNIQUE_IPS")
     NEURON_FORWARD_MAX_TIME: int = Field(240, env="NEURON_FORWARD_MAX_TIME")
     NEURON_MAX_TOKENS: int = Field(512, env="NEURON_MAX_TOKENS")
-    REWARD_STEEPNESS: float = Field(0.6, env="STEEPNESS")
+    REWARD_STEEPNESS: float = Field(0.7, env="STEEPNESS")
 
     # Organic.
     ORGANIC_TIMEOUT: int = Field(30, env="ORGANIC_TIMEOUT")
