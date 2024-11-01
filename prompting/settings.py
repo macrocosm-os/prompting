@@ -188,12 +188,12 @@ class Settings(BaseSettings):
 
     @cached_property
     def SUBTENSOR(self) -> bt.subtensor:
-        subtensor_network = self.SUBTENSOR_NETWORK
+        subtensor_network = self.SUBTENSOR_NETWORK or os.environ.get("SUBTENSOR_NETWORK", "local")
+        bt_config = config()
         if subtensor_network.lower() == "local":
-            # If the network is local, we will use the local subtensor chain endpoint.
-            subtensor_network = os.environ.get("SUBTENSOR_CHAIN_ENDPOINT")
+            subtensor_network = bt_config.subtensor.chain_endpoint or os.environ.get("SUBTENSOR_CHAIN_ENDPOINT")
         else:
-            subtensor_network = subtensor_network.lower()
+            subtensor_network = bt_config.subtensor.network or subtensor_network.lower()
         logger.info(f"Instantiating subtensor with network: {subtensor_network}")
         return bt.subtensor(network=subtensor_network)
 
