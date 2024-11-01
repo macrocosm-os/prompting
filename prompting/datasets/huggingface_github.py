@@ -30,7 +30,7 @@ class HuggingFaceGithubDataset(BaseDataset):
 
     @model_validator(mode="after")
     def load_dataset(self) -> "HuggingFaceGithubDataset":
-        self.dataset = load_dataset("codeparrot/github-code", streaming=True, split="train")
+        self.dataset = load_dataset("macrocosm-os/code-parrot-github-code", streaming=True, split="train", trust_remote_code=True)
         self.iterator = iter(self.dataset.filter(self._filter_function))
         return self
 
