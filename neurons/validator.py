@@ -33,7 +33,36 @@ class Validator(BaseValidatorNeuron):
         self.load_state()
         self._lock = asyncio.Lock()
         start_organic(self.axon)
+        self.time_of_block_sync = None
+    
+    @property
+    def estimate_block(self):
+        """
+        Estimate the current block number based on the time since the last block sync.
 
+        Returns:
+            Optional[int]: The estimated block number or None if an error occurs.
+        """
+        try:
+            current_time = time.time()
+            
+            if self.time_of_block_sync is None:
+                block = self.block()
+                return block
+            
+            # Calculate the block based on the time since the last block
+            time_since_last_block = current_time - self.time_of_block_sync
+            # A block happens every 12 seconds
+            blocks_since_last_block = time_since_last_block // 12
+            estimated_block = self._block + blocks_since_last_block
+            
+            return estimated_block
+        
+        except Exception as e:
+            print(f"Error estimating block: {e}")
+            return None
+    
+        
     async def run_step(self, k: int, timeout: float) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
         """Executes a single step of the agent, which consists of:
         - Getting a list of uids to query
@@ -70,14 +99,14 @@ class Validator(BaseValidatorNeuron):
                 task=task,
                 response=response_event,
                 dataset_entry=task.dataset_entry,
-                block=self.block,
+                block=self.estimate_block,
                 step=self.step,
                 task_id=task.task_id,
             )
 
             # Log the step event.
             return ValidatorLoggingEvent(
-                block=self.block,
+                block=self.estimate_block,
                 step=self.step,
                 step_time=timer.elapsed_time,
                 response_event=response_event,
@@ -200,10 +229,10 @@ async def main():
         while True:
             logger.info(
                 f"Validator running:: network: {settings.SUBTENSOR.network} "
-                f"| block: {v.block} "
+                f"| block: {v.estimate_block} "
                 f"| step: {v.step} "
                 f"| uid: {v.uid} "
-                f"| last updated: {v.block - settings.METAGRAPH.last_update[v.uid]} "
+                f"| last updated: {v.estimate_block - settings.METAGRAPH.last_update[v.uid]} "
                 f"| vtrust: {settings.METAGRAPH.validator_trust[v.uid]:.3f} "
                 f"| emission {settings.METAGRAPH.emission[v.uid]:.3f}"
             )
