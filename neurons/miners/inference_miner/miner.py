@@ -143,8 +143,8 @@ class VLLMMiner(BaseStreamMinerNeuron):
                 init_time,
                 timeout_threshold,
             )
-        logger.info(f"Time for complete response: {timer.elapsed_time}")
-        return synapse.create_streaming_response(token_streamer)
+            logger.info(f"Time for complete response: {timer.elapsed_time}")
+            return synapse.create_streaming_response(token_streamer)
 
     def check_availability(self, synapse: AvailabilitySynapse) -> AvailabilitySynapse:
         """The check_availability function returns an AvailabilitySynapse which indicates
