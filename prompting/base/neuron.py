@@ -2,6 +2,7 @@ import sys
 import bittensor as bt
 from loguru import logger
 from abc import ABC, abstractmethod
+import time
 
 # Sync calls set weights and also resyncs the metagraph.π
 from prompting.utils.misc import ttl_get_block
@@ -25,7 +26,7 @@ class BaseNeuron(ABC):
     @property
     def block(self):
         self._block = ttl_get_block()
-        self.latest_block = self._block or -1
+        self.time_of_block_sync = time.time()
         return self._block
 
     def __init__(self, config=None):

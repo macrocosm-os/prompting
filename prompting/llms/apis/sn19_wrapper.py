@@ -5,7 +5,7 @@ import requests
 import json
 from prompting.llms.apis.llm_messages import LLMMessages
 
-
+# TODO: key error in response.json() when response is 500
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def chat_complete(
     messages: LLMMessages,

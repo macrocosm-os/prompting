@@ -200,7 +200,7 @@ class Settings(BaseSettings):
     @cached_property
     def METAGRAPH(self) -> bt.metagraph:
         logger.info(f"Instantiating metagraph with NETUID: {self.NETUID}")
-        return bt.metagraph(netuid=self.NETUID, network=self.SUBTENSOR_NETWORK, sync=True, lite=True)
+        return self.SUBTENSOR.metagraph(netuid=self.NETUID)
 
     @cached_property
     def DENDRITE(self) -> bt.dendrite:

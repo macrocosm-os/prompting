@@ -134,36 +134,29 @@ class ModelManager(BaseModel):
         # Adds final tag indicating the assistant's turn
         composed_prompt.append(role_template["end"])
         return "".join(composed_prompt)
-
-    # TODO: Merge generate and chat_generate into a single method
+    
     def generate(
         self,
-        prompts: list[str],
+        messages: list[str],
+        roles: list[str],
         model: ModelConfig | str | None = None,
         sampling_params: SamplingParams | None = SamplingParams(max_tokens=settings.NEURON_MAX_TOKENS),
-    ) -> list[str]:
+        ) -> str:
+        
+        dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
+        composed_prompt = self._make_prompt(dict_messages)
+        logger.debug(f"Generating Chat with prompt: {composed_prompt}")
+
         if isinstance(model, str):
             model = ModelZoo.get_model_by_id(model)
         if not model:
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
-        model: ReproducibleVLLM = self.get_model(model)
-        responses = model.generate(prompts=prompts, sampling_params=sampling_params)
-        return [responses]
-
-    def chat_generate(
-        self,
-        messages: list[str],
-        roles: list[str],
-        model: ModelConfig | str | None = None,
-        sampling_params: SamplingParams | None = None,
-    ) -> str:
-        dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
-        composed_prompt = self._make_prompt(dict_messages)
-        logger.debug(f"Generating Chat with prompt: {composed_prompt}")
-        return self.generate([composed_prompt], model=model, sampling_params=sampling_params)
-
-
+        model_instance: vllm.LLM = self.get_model(model)
+        responses = model_instance.generate(prompts=[composed_prompt], sampling_params=sampling_params)
+        result = responses[0].outputs[0].text.strip()
+        return result
+            
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
     interval: int = 14400

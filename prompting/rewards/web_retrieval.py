@@ -13,6 +13,7 @@ import time
 
 from loguru import logger
 from scipy import spatial
+import numpy as np
 
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.datasets.random_website import DDGDataset, DDGDatasetEntry
