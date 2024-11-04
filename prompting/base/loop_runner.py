@@ -89,9 +89,9 @@ class AsyncLoopRunner(BaseModel, ABC):
                         await self.run_step()
                         self.step += 1
                         logger.debug(f"{self.name}: Step {self.step} completed at {next_run}")
-                        last_run_time = next_run
                     except Exception as ex:
                         logger.exception(f"Error in loop iteration: {ex}")
+                    last_run_time = next_run
         except asyncio.CancelledError:
             logger.info("Loop was stopped.")
         except Exception as e:

@@ -214,6 +214,7 @@ class Validator(BaseValidatorNeuron):
 async def main():
     # start profiling
     asyncio.create_task(profiler.print_stats())
+
     # start rotating LLM models
     asyncio.create_task(model_scheduler.start())
 
