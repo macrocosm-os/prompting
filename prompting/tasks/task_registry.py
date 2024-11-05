@@ -51,7 +51,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=InferenceTask,
-            probability=0.17,
+            probability=0.16,
             datasets=[SN13Dataset],
             reward_model=InferenceRewardConfig,
         ),
