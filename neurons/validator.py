@@ -22,6 +22,7 @@ from prompting import mutable_globals
 from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
 from prompting.weight_setting.weight_setter import weight_setter
+from prompting.llms.utils import GPUInfo
 
 NEURON_SAMPLE_SIZE = 100
 
@@ -170,7 +171,7 @@ class Validator(BaseValidatorNeuron):
 
         log_stream_results(stream_results)
 
-        # Encapsulate the responses in a response event (dataclass)
+        # Encapsulate the responses in a response event (dataclass
         response_event = DendriteResponseEvent(
             stream_results=stream_results, uids=uids, timeout=settings.NEURON_TIMEOUT
         )
@@ -226,6 +227,7 @@ class Validator(BaseValidatorNeuron):
 
 
 async def main():
+    GPUInfo.log_gpu_info()
     # start profiling
     asyncio.create_task(profiler.print_stats())
 
@@ -261,6 +263,8 @@ async def main():
 
             if v.should_exit:
                 logger.warning("Ending validator...")
+                
+                
 
 
 # The main function parses the configuration and runs the validator.

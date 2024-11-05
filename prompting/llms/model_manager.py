@@ -30,6 +30,7 @@ class ModelManager(BaseModel):
             self.load_model(model_config)
 
     def load_model(self, model_config: ModelConfig, force: bool = True):
+        torch.cuda.empty_cache()
         if model_config in self.active_models.keys():
             print(f"Model {model_config.llm_model_id} is already loaded.")
             return
@@ -72,8 +73,9 @@ class ModelManager(BaseModel):
             #     gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
             # )
             model = ReproducibleVLLM(
-                model=model_config.llm_model_id, gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory
+                model=model_config.llm_model_id, gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory, max_model_len = settings.LLM_MAX_MODEL_LEN
             )
+            
             self.active_models[model_config] = model
             self.used_ram += model_config.min_ram
             logger.info(f"Model {model_config.llm_model_id} loaded. Current used RAM: {self.used_ram} GB")
@@ -159,7 +161,8 @@ class ModelManager(BaseModel):
             
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    interval: int = 14400
+    interval: int = 60
+    # 14400 seconds
 
     async def initialise_loop(self):
         model_manager.load_always_active_models()
