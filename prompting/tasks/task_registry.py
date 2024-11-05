@@ -68,7 +68,7 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=WebRetrievalTask,
             # TODO: Increase probability after v2.9.0.
-            probability=0.02,
+            probability=0.01,
             datasets=[DDGDataset],
             reward_model=WebRetrievalRewardConfig,
         ),
