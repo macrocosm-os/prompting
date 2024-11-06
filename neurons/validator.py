@@ -43,24 +43,19 @@ class Validator(BaseValidatorNeuron):
         Returns:
             Optional[int]: The estimated block number or None if an error occurs.
         """
-        try:
-            current_time = time.time()
-            
-            if self.time_of_block_sync is None:
-                block = self.block()
-                return block
-            
-            # Calculate the block based on the time since the last block
-            time_since_last_block = current_time - self.time_of_block_sync
-            # A block happens every 12 seconds
-            blocks_since_last_block = time_since_last_block // 12
-            estimated_block = self._block + blocks_since_last_block
-            
-            return estimated_block
+
+        if self.time_of_block_sync is None:
+            block = self.block()
+            return block
         
-        except Exception as e:
-            print(f"Error estimating block: {e}")
-            return None
+        # Calculate the block based on the time since the last block
+        time_since_last_block = time.time() - self.time_of_block_sync
+        # A block happens every 12 seconds
+        blocks_since_last_block = time_since_last_block // 12
+        estimated_block = int(self._block + blocks_since_last_block)
+        
+        return estimated_block
+        
     
         
     async def run_step(self, k: int, timeout: float) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
