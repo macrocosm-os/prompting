@@ -14,6 +14,12 @@ OUTPUT_LINES = 10
 MAX_LINES = 500
 RETRIES = 50  # Increased retry limit
 
+"""
+11|s1_validator_main_process  | 2024-11-07 09:53:14.414 | ERROR    | prompting.datasets.huggingface_github:next:63 - Error processing entry: 'language'
+11|s1_validator_main_process  | 2024-11-07 09:53:14.426 | WARNING  | prompting.datasets.huggingface_github:next:60 - Reached end of dataset. Resetting iterator.
+"""
+
+
 
 class HuggingFaceGithubDatasetEntry(DatasetEntry):
     github_url: str
@@ -36,14 +42,13 @@ class HuggingFaceGithubDataset(BaseDataset):
 
     def _filter_function(self, example):
         return (
-            example["language"].lower() == self.language.lower()
-            and any(example["path"].endswith(ending) for ending in ALLOWED_FILE_ENDINGS[self.language])
-            and MIN_FILE_SIZE <= example["size"] <= MAX_FILE_SIZE
-            and len(example["code"].split("\n")) >= (MIN_INPUT_LINES + OUTPUT_LINES)
+            any(example["path"].endswith(ending) for ending in ALLOWED_FILE_ENDINGS[self.language])
+            and MIN_FILE_SIZE <= int(example["size"]) <= MAX_FILE_SIZE
+            and len(example["content"].split("\n")) >= (MIN_INPUT_LINES + OUTPUT_LINES)
         )
 
     def _process_entry(self, entry: dict) -> HuggingFaceGithubDatasetEntry:
-        file_content = "\n".join(entry["code"].split("\n")[:MAX_LINES])
+        file_content = "\n".join(entry["content"].split("\n")[:MAX_LINES])
         return HuggingFaceGithubDatasetEntry(
             github_url=f"https://github.com/{entry['repo_name']}", file_path=entry["path"], file_content=file_content
         )
@@ -55,12 +60,10 @@ class HuggingFaceGithubDataset(BaseDataset):
         for _ in range(RETRIES):
             try:
                 entry = next(self.iterator)
-                return self._process_entry(entry)
+                return self._process_entry(entry) # Throws failed to get a valid file after multiple attempts
             except StopIteration:
                 logger.warning("Reached end of dataset. Resetting iterator.")
                 self.reset()
-            except Exception as ex:
-                logger.error(f"Error processing entry: {ex}")
         raise Exception("Failed to get a valid file after multiple attempts")
 
     def random(self) -> HuggingFaceGithubDatasetEntry:
@@ -70,3 +73,8 @@ class HuggingFaceGithubDataset(BaseDataset):
 
     def reset(self):
         self.iterator = iter(self.dataset.filter(self._filter_function))
+
+
+if __name__ == "__main__":
+    dataset = HuggingFaceGithubDataset().load_dataset()
+    entry = dataset.next()
