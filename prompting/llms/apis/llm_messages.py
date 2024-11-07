@@ -86,7 +86,7 @@ class LLMMessages(BaseModel):
     # TODO: Add some utility for token tracking etc.
 
     def to_dict(self) -> list[dict]:
-        return [message.to_dict() for message in self.messages]
+        return [message.to_dict() for message in self.messages[0]]
 
     def get_tokens(self, model: str) -> list[str]:
         total_tokens = 3  # (For some reason the first message has 3 additional tokens)
