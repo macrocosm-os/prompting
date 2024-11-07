@@ -45,7 +45,7 @@ class Validator(BaseValidatorNeuron):
         """
 
         if self.time_of_block_sync is None:
-            block = self.block()
+            block = self.block
             return block
         
         # Calculate the block based on the time since the last block
