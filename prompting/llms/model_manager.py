@@ -73,9 +73,11 @@ class ModelManager(BaseModel):
             #     gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
             # )
             model = ReproducibleVLLM(
-                model=model_config.llm_model_id, gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory, max_model_len = settings.LLM_MAX_MODEL_LEN
+                model=model_config.llm_model_id,
+                gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
+                max_model_len=settings.LLM_MAX_MODEL_LEN,
             )
-            
+
             self.active_models[model_config] = model
             self.used_ram += model_config.min_ram
             logger.info(f"Model {model_config.llm_model_id} loaded. Current used RAM: {self.used_ram} GB")
@@ -136,15 +138,14 @@ class ModelManager(BaseModel):
         # Adds final tag indicating the assistant's turn
         composed_prompt.append(role_template["end"])
         return "".join(composed_prompt)
-    
+
     def generate(
         self,
         messages: list[str],
         roles: list[str],
         model: ModelConfig | str | None = None,
         sampling_params: SamplingParams | None = SamplingParams(max_tokens=settings.NEURON_MAX_TOKENS),
-        ) -> str:
-        
+    ) -> str:
         dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
         composed_prompt = self._make_prompt(dict_messages)
         logger.debug(f"Generating Chat with prompt: {composed_prompt}")
@@ -154,11 +155,12 @@ class ModelManager(BaseModel):
         if not model:
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
-        model_instance: vllm.LLM = self.get_model(model)
+        model_instance: ReproducibleVLLM = self.get_model(model)
         responses = model_instance.generate(prompts=[composed_prompt], sampling_params=sampling_params)
-        result = responses[0].outputs[0].text.strip()
-        return result
-            
+
+        return responses
+
+
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
     interval: int = 14400
