@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     NEURON_QUERY_UNIQUE_IPS: bool = Field(False, env="NEURON_QUERY_UNIQUE_IPS")
     NEURON_FORWARD_MAX_TIME: int = Field(240, env="NEURON_FORWARD_MAX_TIME")
     NEURON_MAX_TOKENS: int = Field(512, env="NEURON_MAX_TOKENS")
-    REWARD_STEEPNESS: float = Field(0.6, env="STEEPNESS")
+    REWARD_STEEPNESS: float = Field(0.7, env="STEEPNESS")
 
     # Organic.
     ORGANIC_TIMEOUT: int = Field(30, env="ORGANIC_TIMEOUT")
@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
     MAX_ALLOWED_VRAM_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
     LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
-    NEURON_MODEL_ID_VALIDATOR: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")
+    LLM_MODEL: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
     OPENAI_API_KEY: str | None = Field(None, env="OPENAI_API_KEY")
@@ -173,7 +173,7 @@ class Settings(BaseSettings):
             logger.warning(
                 "It is strongly recommended to provide an SN19 API KEY + URL to avoid incurring OpenAI API costs."
             )
-        if not mode == "mock" and values.get("OPENAI_API_KEY") is None:
+        if mode == "validator" and values.get("OPENAI_API_KEY") is None:
             raise Exception(
                 "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
             )

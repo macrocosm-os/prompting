@@ -2,6 +2,7 @@
 import asyncio
 import time
 from prompting import settings
+from prompting.utils.profiling import profiler
 
 settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
@@ -21,8 +22,21 @@ from prompting import mutable_globals
 from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
 from prompting.weight_setting.weight_setter import weight_setter
+from prompting.llms.utils import GPUInfo
 
 NEURON_SAMPLE_SIZE = 100
+
+
+def run_dendrite_and_handle_response_sync(uids, *args, **kwargs):
+    async def run_dendrite_and_handle_response(uids, *args, **kwargs):
+        # Run DENDRITE and handle_response sequentially within the main event loop
+        streams_responses = await settings.DENDRITE(*args, **kwargs)
+        # Handle the responses synchronously
+        stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
+        return stream_results
+
+    # Synchronously run the async function
+    return asyncio.run(run_dendrite_and_handle_response(uids, *args, **kwargs))
 
 
 class Validator(BaseValidatorNeuron):
@@ -34,7 +48,7 @@ class Validator(BaseValidatorNeuron):
         self._lock = asyncio.Lock()
         start_organic(self.axon)
         self.time_of_block_sync = None
-    
+
     @property
     def estimate_block(self):
         """
@@ -43,26 +57,19 @@ class Validator(BaseValidatorNeuron):
         Returns:
             Optional[int]: The estimated block number or None if an error occurs.
         """
-        try:
-            current_time = time.time()
-            
-            if self.time_of_block_sync is None:
-                block = self.block()
-                return block
-            
-            # Calculate the block based on the time since the last block
-            time_since_last_block = current_time - self.time_of_block_sync
-            # A block happens every 12 seconds
-            blocks_since_last_block = time_since_last_block // 12
-            estimated_block = self._block + blocks_since_last_block
-            
-            return estimated_block
-        
-        except Exception as e:
-            print(f"Error estimating block: {e}")
-            return None
-    
-        
+
+        if self.time_of_block_sync is None:
+            block = self.block
+            return block
+
+        # Calculate the block based on the time since the last block
+        time_since_last_block = time.time() - self.time_of_block_sync
+        # A block happens every 12 seconds
+        blocks_since_last_block = time_since_last_block // 12
+        estimated_block = int(self._block + blocks_since_last_block)
+
+        return estimated_block
+
     async def run_step(self, k: int, timeout: float) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
         """Executes a single step of the agent, which consists of:
         - Getting a list of uids to query
@@ -92,6 +99,9 @@ class Validator(BaseValidatorNeuron):
             # send the task to the miners and collect the responses
             with Timer() as timer:
                 response_event = await self.collect_responses(task=task)
+            if response_event is None:
+                logger.warning("No response event collected. This should not be happening.")
+                return
             logger.debug(f"Collected responses in {timer.elapsed_time:.2f} seconds")
 
             # scoring_manager will score the responses as and when the correct model is loaded
@@ -124,11 +134,11 @@ class Validator(BaseValidatorNeuron):
         uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
         logger.debug(f"🔍 Querying uids: {uids}")
         if len(uids) == 0:
-            logger.debug("No available miners. Skipping step.")
+            logger.warning("No available miners. This should already have been caught earlier.")
             return
         axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
-        # Directly call dendrite and process responses in parallel
+        # Create the synapse
         synapse = StreamPromptingSynapse(
             task_name=task.__class__.__name__,
             seed=task.seed,
@@ -136,7 +146,10 @@ class Validator(BaseValidatorNeuron):
             roles=["user"],
             messages=[task.query],
         )
-        streams_responses = await settings.DENDRITE(
+
+        # Call the synchronous wrapper that includes both DENDRITE and handle_response
+        stream_results = run_dendrite_and_handle_response_sync(
+            uids=uids,
             axons=axons,
             synapse=synapse,
             timeout=settings.NEURON_TIMEOUT,
@@ -144,8 +157,6 @@ class Validator(BaseValidatorNeuron):
             streaming=True,
         )
 
-        # Prepare the task for handling stream responses
-        stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
         logger.debug(
             f"Non-empty responses: {len([r.completion for r in stream_results if len(r.completion) > 0])}\n"
             f"Empty responses: {len([r.completion for r in stream_results if len(r.completion) == 0])}"
@@ -153,7 +164,7 @@ class Validator(BaseValidatorNeuron):
 
         log_stream_results(stream_results)
 
-        # Encapsulate the responses in a response event (dataclass)
+        # Encapsulate the responses in a response event (dataclass
         response_event = DendriteResponseEvent(
             stream_results=stream_results, uids=uids, timeout=settings.NEURON_TIMEOUT
         )
@@ -209,6 +220,10 @@ class Validator(BaseValidatorNeuron):
 
 
 async def main():
+    GPUInfo.log_gpu_info()
+    # start profiling
+    asyncio.create_task(profiler.print_stats())
+
     # start rotating LLM models
     asyncio.create_task(model_scheduler.start())
 
@@ -218,6 +233,7 @@ async def main():
     # will start checking the availability of miners at regular intervals
     asyncio.create_task(availability_checking_loop.start())
 
+    # sets weights at regular intervals (synchronised between all validators)
     asyncio.create_task(weight_setter.start())
 
     # start scoring tasks in separate loop

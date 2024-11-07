@@ -169,7 +169,7 @@ class ValidatorLoggingEvent(BaseEvent):
 
 
 class RewardLoggingEvent(BaseEvent):
-    block: int
+    block : int | None
     step: int
     response_event: DendriteResponseEvent
     reward_events: list[WeightedRewardEvent]

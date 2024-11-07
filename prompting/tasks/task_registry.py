@@ -9,16 +9,18 @@ from prompting.datasets.base import BaseDataset
 
 from prompting.datasets.huggingface_github import HuggingFaceGithubDataset
 from prompting.datasets.sn13 import SN13Dataset
-from prompting.datasets.random_website import DDGDataset
-from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
-from prompting.tasks.date_qa import DateQARewardConfig, DateQuestionAnsweringTask
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
 from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTask
+from prompting.datasets.random_website import DDGDataset
+from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 
+# from prompting.tasks.
+
+from prompting.tasks.qa import QuestionAnsweringTask, QARewardConfig
+from prompting.tasks.date_qa import DateQARewardConfig, DateQuestionAnsweringTask
 from prompting.tasks.programming_task import ProgrammingRewardConfig, ProgrammingTask
-from prompting.tasks.qa import QARewardConfig, QuestionAnsweringTask
 from prompting.tasks.summarization import SummarizationRewardConfig, SummarizationTask
 from prompting.tasks.web_retrieval import WebRetrievalRewardConfig, WebRetrievalTask
 
@@ -49,7 +51,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=InferenceTask,
-            probability=0.17,
+            probability=0.16,
             datasets=[SN13Dataset],
             reward_model=InferenceRewardConfig,
         ),
@@ -67,8 +69,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=WebRetrievalTask,
-            # TODO: Increase probability after v2.9.0.
-            probability=0.02,
+            probability=0.03,
             datasets=[DDGDataset],
             reward_model=WebRetrievalRewardConfig,
         ),

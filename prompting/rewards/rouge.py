@@ -23,7 +23,7 @@ class RougeRewardModel(BaseRewardModel):
             return 0.0
         return self.rouge.get_scores(reference, completion, avg=self.avg)[0][self.ngram][self.metric]
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         """Compute ROUGE scores given a completion and reference pair."""
         rewards = []
         timings = []

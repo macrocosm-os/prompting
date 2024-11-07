@@ -26,7 +26,7 @@ class RelevanceRewardModel(BaseRewardModel):
         self.embedding_model = MODEL
         return self
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         """Calculate the cosine similarity between sentence embeddings of the reference and completions.
 
         We subtract a baseline score which is what an empty string would get (a failed completion).
@@ -40,9 +40,7 @@ class RelevanceRewardModel(BaseRewardModel):
         completions: list[str] = response_event.completions
         # baseline is the cosine similarity between the reference and an empty string
         baseline = 1 - float(
-            spatial.distance.cosine(
-                reference_emb_flatten, self.embedding_model.encode("", to_numpy=True).flatten()
-            )
+            spatial.distance.cosine(reference_emb_flatten, self.embedding_model.encode("", to_numpy=True).flatten())
         )
 
         for comp in completions:

@@ -79,8 +79,9 @@ class BaseTextTask(BaseTask):
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
         self.reference = vLLM_LLM(
-            llm=model_manager.get_model(self.llm_model), system_prompt=self.reference_system_prompt or ""
+            llm=model_manager.get_model(self.llm_model).llm, system_prompt=self.reference_system_prompt or ""
         ).query(cleaner=self.cleaner, message=messages)
+        # self.reference = model_manager.get_model(self.llm_model).generate(prompts=messages)
         if self.reference is None:
             raise Exception("Reference generation failed")
         return self.reference
