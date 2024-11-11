@@ -50,14 +50,12 @@ class MultiChoiceRewardModel(BaseRewardModel):
         matches = [word.upper() for word in re.findall(r"\w+", completion) if word.upper() in self.choices]
         return float(matches[-1] == reference.upper()) if matches else 0.0
 
-    # TODO: Ensure error is logged and handled properly
     def logit_reward(self, reference: str, completion: str) -> float:
         try:
             loaded_json = self.safe_load_json(completion)
             valid_choices = self.process_predictions(loaded_json)
             return valid_choices.get(reference.upper(), 0.0)
-        except ValueError as e:
-            logger.error(f"Error in logit_reward: {e}")
+        except ValueError:
             return None
 
     def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
