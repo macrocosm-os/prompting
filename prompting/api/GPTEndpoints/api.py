@@ -4,7 +4,7 @@ from prompting.api.GPTEndpoints.serializers import ChatCompletionRequest, ChatCo
 router = APIRouter()
 
 
-@router.post("/")
+@router.post("/chat_completion")
 async def chat_completion(request: ChatCompletionRequest):
     return ChatCompletionResponse(
         messages=request.messages,
