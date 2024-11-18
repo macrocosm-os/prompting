@@ -49,14 +49,13 @@ async def on_organic_entry(synapse: StreamPromptingSynapse) -> StreamPromptingSy
         logger.info(f"[Organic] Received inference task from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}")
         return await on_organic_entry_inference(synapse)
     elif synapse.task_name == MixtureOfMinersTask.__name__:
-        return await on_organic_entry_mixture(synapse)
+        raise NotImplementedError
     else:
         logger.error(f"[Organic] Received unknown task: {synapse.task_name}")
         return
 
 
 async def on_organic_entry_mixture(synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
-    # await on_organic_entry_inference(synapse)
     return
 
 
