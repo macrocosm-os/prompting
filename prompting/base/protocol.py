@@ -3,12 +3,6 @@ import bittensor as bt
 from typing import List, AsyncIterator
 from starlette.responses import StreamingResponse
 
-# from prompting.tasks.date_qa import DateQuestionAnsweringTask
-# from prompting.tasks.qa import QuestionAnsweringTask
-# from prompting.tasks.summarization import SummarizationTask
-# from prompting.llms.model_zoo import ModelZoo
-# from prompting.tasks.inference import InferenceTask
-
 
 class AvailabilitySynapse(bt.Synapse):
     """AvailabilitySynapse is a specialized implementation of the `Synapse` class used to allow miners to let validators know

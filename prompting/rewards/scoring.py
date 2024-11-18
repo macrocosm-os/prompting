@@ -93,6 +93,7 @@ class TaskScorer(AsyncLoopRunner):
             model_id=scoring_config.task.llm_model,
             task=scoring_config.task,
         )
+        mutable_globals.task_responses.append(scoring_config)
         mutable_globals.reward_events.append(reward_events)
         logger.debug(
             f"REFERENCE: {scoring_config.task.reference}\n\n||||RESPONSES: {scoring_config.response.completions}"

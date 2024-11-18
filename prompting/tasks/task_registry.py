@@ -8,10 +8,12 @@ from pydantic import BaseModel, ConfigDict
 from prompting.datasets.base import BaseDataset
 
 from prompting.datasets.huggingface_github import HuggingFaceGithubDataset
+from prompting.datasets.mixture_of_miners import MixtureOfMinersDataset
 from prompting.datasets.sn13 import SN13Dataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
+from prompting.tasks.mixture_of_miners import MixtureOfMinersRewardConfig, MixtureOfMinersTask
 from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTask
 from prompting.datasets.random_website import DDGDataset
 from prompting.datasets.wiki import WikiDataset, WikiDateDataset
@@ -51,13 +53,13 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=InferenceTask,
-            probability=0.16,
+            probability=0.15,
             datasets=[SN13Dataset],
             reward_model=InferenceRewardConfig,
         ),
         TaskConfig(
             task=MultiChoiceTask,
-            probability=0.31,
+            probability=0.30,
             datasets=[WikiDataset],
             reward_model=MultiChoiceRewardConfig,
         ),
@@ -68,8 +70,14 @@ class TaskRegistry(BaseModel):
             reward_model=ProgrammingRewardConfig,
         ),
         TaskConfig(
-            task=WebRetrievalTask,
+            task=MixtureOfMinersTask,
             probability=0.03,
+            datasets=[MixtureOfMinersDataset],
+            reward_model=MixtureOfMinersRewardConfig,
+        ),
+        TaskConfig(
+            task=WebRetrievalTask,
+            probability=0.02,
             datasets=[DDGDataset],
             reward_model=WebRetrievalRewardConfig,
         ),
@@ -86,7 +94,7 @@ class TaskRegistry(BaseModel):
 
     @classmethod
     def random(cls) -> TaskConfig:
-        probabilities = [task.probability for task in cls.task_configs]
+        probabilities = [task.probability for task in cls.task_configs if task.is_available()]
         selected_task = random.choices(cls.task_configs, probabilities)[0]
         return selected_task
 

@@ -11,6 +11,7 @@ import bittensor as bt
 from bittensor.dendrite import dendrite
 from prompting.rewards.scoring import task_scorer
 from prompting.datasets.base import ChatEntry
+from prompting.tasks.mixture_of_miners import MixtureOfMinersTask
 from prompting.utils.uids import get_random_uids
 from prompting.base.forward import SynapseStreamResult
 from prompting.base.dendrite import DendriteResponseEvent
@@ -40,6 +41,26 @@ async def blacklist_fn(synapse: StreamPromptingSynapse) -> Tuple[bool, str]:
 
 
 async def on_organic_entry(synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+    if not isinstance(synapse, StreamPromptingSynapse):
+        logger.error(f"[Organic] Received unknown synapse task: {synapse.__class__.__name__}")
+        return
+
+    if synapse.task_name == InferenceTask.__name__:
+        logger.info(f"[Organic] Received inference task from {synapse.dendrite.hotkey}, IP: {synapse.dendrite.ip}")
+        return await on_organic_entry_inference(synapse)
+    elif synapse.task_name == MixtureOfMinersTask.__name__:
+        return await on_organic_entry_mixture(synapse)
+    else:
+        logger.error(f"[Organic] Received unknown task: {synapse.task_name}")
+        return
+
+
+async def on_organic_entry_mixture(synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
+    # await on_organic_entry_inference(synapse)
+    return
+
+
+async def on_organic_entry_inference(synapse: StreamPromptingSynapse) -> StreamPromptingSynapse:
     """Organic query handle."""
     if not isinstance(synapse, StreamPromptingSynapse) or synapse.task_name != InferenceTask.__name__:
         logger.error(f"[Organic] Received non-inference task: {synapse.task_name}")

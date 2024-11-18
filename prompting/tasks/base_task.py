@@ -38,6 +38,10 @@ class BaseTask(BaseModel, ABC):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    @classmethod
+    def is_available(cls) -> bool:
+        True
+
     @abstractmethod
     def make_query(self, **kwargs):
         raise NotImplementedError("Method make_query must be implemented")
@@ -49,6 +53,7 @@ class BaseTask(BaseModel, ABC):
 
 class BaseTextTask(BaseTask):
     query: str | None = None
+    synapse_system_prompt: str | None = None
     messages: list[str] | None = None
     reference: str | None = None
     llm_model: ModelConfig = None
@@ -93,7 +98,7 @@ class BaseTextTask(BaseTask):
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
         llm_messages = [LLMMessage(role="system", content=self.query_system_prompt)] if self.query_system_prompt else []
-        llm_messages += [LLMMessage(role="user", content=message) for message in messages]
+        llm_messages.extend([LLMMessage(role="user", content=message) for message in messages])
 
         self.query = LLMWrapper.chat_complete(messages=LLMMessages(*llm_messages))
 

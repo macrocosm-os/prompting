@@ -139,12 +139,20 @@ class Validator(BaseValidatorNeuron):
         axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
         # Create the synapse
+        roles = []
+        messages = []
+        if task.synapse_system_prompt:
+            roles.append("system")
+            messages.append(task.synapse_system_prompt)
+        roles.append("user")
+        messages.append(task.query)
+
         synapse = StreamPromptingSynapse(
             task_name=task.__class__.__name__,
             seed=task.seed,
             target_model=task.llm_model_id,
-            roles=["user"],
-            messages=[task.query],
+            roles=roles,
+            messages=messages,
         )
 
         # Call the synchronous wrapper that includes both DENDRITE and handle_response

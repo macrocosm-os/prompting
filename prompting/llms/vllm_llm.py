@@ -270,7 +270,8 @@ class ReproducibleVLLM:
             for output in outputs:
                 results.append(output.outputs[0].text.strip())
         logger.debug(
-            f"PROMPT: {prompts}\n\nRESPONSES: {results}\n\nSAMPLING PARAMS: {sampling_params}\n\nTIME FOR RESPONSE: {timer.elapsed_time}"
+            f"PROMPT: {prompts}\n\nRESPONSES: {results}\n\nSAMPLING PARAMS: {sampling_params}\n\n"
+            f"TIME FOR RESPONSE: {timer.elapsed_time}"
         )
 
         return results if len(results) > 1 else results[0]
