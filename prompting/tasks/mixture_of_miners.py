@@ -63,8 +63,8 @@ class MixtureOfMinersTask(InferenceTask):
     # llm_model_id: ModelConfig | None = random.choice(ModelZoo.models_configs).llm_model_id
     # seed: int = Field(default_factory=lambda: random.randint(0, 1_000_000))
 
-    use_cached_tasks: ClassVar[bool] = False
-    primary_task: BaseTextTask = False
+    use_cached_tasks: ClassVar[bool] = True
+    primary_task: BaseTextTask | None = None
     system_aggregator: ClassVar[SystemPromptAggregator] = SystemPromptAggregator()
 
     @classmethod

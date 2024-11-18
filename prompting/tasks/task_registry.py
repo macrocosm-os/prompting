@@ -94,8 +94,16 @@ class TaskRegistry(BaseModel):
 
     @classmethod
     def random(cls) -> TaskConfig:
-        probabilities = [task.probability for task in cls.task_configs if task.is_available()]
-        selected_task = random.choices(cls.task_configs, probabilities)[0]
+        task_configs: list[TaskConfig] = []
+        probabilities: list[float] = []
+        for cfg in cls.task_configs:
+            if not cfg.task.is_available():
+                continue
+            task_configs.append(cfg)
+            probabilities.append(cfg.probability)
+        # Scale probabilities to sum to 1.
+        probabilities = list(np.array(probabilities) / np.sum(probabilities))
+        selected_task = random.choices(task_configs, probabilities)[0]
         return selected_task
 
     @classmethod

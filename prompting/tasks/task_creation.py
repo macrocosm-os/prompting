@@ -31,6 +31,7 @@ class TaskLoop(AsyncLoopRunner):
             return None
         await asyncio.sleep(0.1)
         try:
+            task = None
             # Getting task & Dataset
             for i in range(RETRIES):
                 try:
@@ -42,6 +43,10 @@ class TaskLoop(AsyncLoopRunner):
                 await asyncio.sleep(0.1)
 
             await asyncio.sleep(0.1)
+            if task is None:
+                logger.debug("Not able to create a Task. Skipping step.")
+                return None
+
             if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
                 logger.debug(
                     f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."

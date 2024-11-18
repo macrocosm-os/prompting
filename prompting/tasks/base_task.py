@@ -40,7 +40,7 @@ class BaseTask(BaseModel, ABC):
 
     @classmethod
     def is_available(cls) -> bool:
-        True
+        return True
 
     @abstractmethod
     def make_query(self, **kwargs):
