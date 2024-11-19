@@ -50,6 +50,8 @@ class BatchRewardOutput(BaseModel):
 
     @property
     def rewards_normalized(self) -> np.ndarray:
+        if self.rewards.size == 0:
+            return np.array([])
         if self.rewards.shape != self.timings.shape:
             raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
         if self.rewards.min() == self.rewards.max():

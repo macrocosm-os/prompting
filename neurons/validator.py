@@ -1,6 +1,7 @@
 # ruff: noqa: E402
 import asyncio
 import time
+import json
 from prompting import settings
 from prompting.utils.profiling import profiler
 
@@ -10,7 +11,7 @@ settings = settings.settings
 from loguru import logger
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.base.forward import log_stream_results, handle_response
-from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
+from prompting.base.dendrite import DendriteResponseEvent
 from prompting.tasks.task_creation import task_loop
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from prompting.rewards.scoring import task_scorer
@@ -139,9 +140,9 @@ class Validator(BaseValidatorNeuron):
             return
 
 
-        body = {"seed": task.seed, "model": task.llm_model_id, "roles": ["user"], "messages": [task.query]}
+        body = {"seed": task.seed, "model": task.llm_model_id, "messages": [{'role': 'user', 'content': task.query},]}
         body_bytes = json.dumps(body).encode("utf-8")
-        stream_results = query_miners(task.__class__.__name__, uids, body)
+        stream_results = await query_miners(task.__class__.__name__, uids, body_bytes)
 
         log_stream_results(stream_results)
 

@@ -5,13 +5,15 @@ settings.settings = settings.Settings.load(mode="miner")
 settings = settings.settings
 
 import time
+import asyncio
+import json
 import httpx
 import netaddr
 import uvicorn
 import requests
 import traceback
 import bittensor as bt
-
+from starlette.responses import JSONResponse
 from loguru import logger
 from fastapi import APIRouter, Depends, FastAPI, Request, HTTPException
 from starlette.background import BackgroundTask
@@ -43,27 +45,99 @@ class OpenAIMiner():
             "Content-Type": "application/json",
         },
     )
+        print("OpenAI Key: ", settings.OPENAI_API_KEY)
 
-    def format_headers(self, request: Request):
-        # Iterate through the headers and only keep the ones that will be used for the openai request
-
-        return request
-
+    async def format_openai_query(self, request: Request):
+        # Read the JSON data once
+        data = await request.json()
+        
+        # Extract the required fields
+        openai_request = {}
+        for key in ["messages", "model", "stream"]:
+            if key in data:
+                openai_request[key] = data[key]
+        openai_request["model"] = MODEL_ID
+        
+        return openai_request
+    
     async def create_chat_completion(self, request: Request):
-        request["model"] = MODEL_ID
         bt.logging.info(
             "\u2713",
             f"Getting Chat Completion request from {request.headers.get('Epistula-Signed-By', '')[:8]}!",
         )
         req = self.client.build_request(
-            "POST", "/chat/completions", content=await request.body()
+            "POST", "chat/completions", json = await self.format_openai_query(request)
         )
         r = await self.client.send(req, stream=True)
         return StreamingResponse(
             r.aiter_raw(), background=BackgroundTask(r.aclose), headers=r.headers
         )
 
+    # async def create_chat_completion(self, request: Request):
+    #     bt.logging.info(
+    #         "\u2713",
+    #         f"Getting Chat Completion request from {request.headers.get('Epistula-Signed-By', '')[:8]}!",
+    #     )
+    #     openai_request_body = await self.format_openai_query(request)
+    #     try:
+    #         req = self.client.build_request(
+    #             "POST", "chat/completions", json=openai_request_body
+    #         )
+    #         r = await self.client.send(req, stream=True)
+    #         # Check for non-200 status code
+    #         if r.status_code != 200:
+    #             error_content = await r.aread()
+    #             bt.logging.error(f"OpenAI API Error {r.status_code}: {error_content}")
+    #             return JSONResponse(
+    #                 content=json.loads(error_content),
+    #                 status_code=r.status_code
+    #             )
+    #     except Exception as e:
+    #         bt.logging.error(f"Exception during OpenAI API call: {str(e)}")
+    #         return JSONResponse(
+    #             content={"error": str(e)},
+    #             status_code=500
+    #         )
+
+    # async def create_chat_completion(self, request: Request):
+    #     bt.logging.info(
+    #         "\u2713",
+    #         f"Getting Chat Completion request from {request.headers.get('Epistula-Signed-By', '')[:8]}!",
+    #     )
+        
+    #     async def word_stream():
+    #         words = "This is a test stream".split()
+    #         for word in words:
+    #             # Simulate the OpenAI streaming response format
+    #             data = {
+    #                 "choices": [
+    #                     {
+    #                         "delta": {"content": word + ' '},
+    #                         "index": 0,
+    #                         "finish_reason": None
+    #                     }
+    #                 ]
+    #             }
+    #             # Yield the data in SSE (Server-Sent Events) format
+    #             yield f"data: {json.dumps(data)}\n\n"
+    #             await asyncio.sleep(0.1)  # Simulate a delay between words
+    #         # Indicate the end of the stream
+    #         data = {
+    #             "choices": [
+    #                 {
+    #                     "delta": {},
+    #                     "index": 0,
+    #                     "finish_reason": "stop"
+    #                 }
+    #             ]
+    #         }
+    #         yield f"data: {json.dumps(data)}\n\n"
+    #         yield "data: [DONE]\n\n"
+        
+    #     return StreamingResponse(word_stream(), media_type='text/event-stream')
+
     async def check_availability(self, request: Request):
+        print("Checking availability")
         # Parse the incoming JSON request
         data = await request.json()
         task_availabilities = data.get('task_availabilities', {})
@@ -156,9 +230,9 @@ class OpenAIMiner():
         app = FastAPI()
         router = APIRouter()
         router.add_api_route(
-            "/chat/completions",
+            "/v1/chat/completions",
             self.create_chat_completion,
-            dependencies=[Depends(self.verify_request)],
+            #dependencies=[Depends(self.verify_request)],
             methods=["POST"],
         )
         router.add_api_route(

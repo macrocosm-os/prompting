@@ -74,13 +74,14 @@ def generate_header(
         headers["Epistula-Secret-Signature-2"] = (
             "0x" + hotkey.sign(str(timestampInterval + 1) + "." + signed_for).hex()
         )
-    return headers
+    return {**headers, **json.loads(body_bytes)}
 
-def create_header_hook(hotkey, axon_hotkey, task):
+def create_header_hook(hotkey, axon_hotkey):
     async def add_headers(request: httpx.Request):
         for key, header in generate_header(hotkey, request.read(), axon_hotkey).items():
-            request.headers[key] = header
-        request.headers["Task"] = task
+            if key not in ['messages', 'model', 'stream']:
+                request.headers[key] = header
+        return request
 
     return add_headers
 
@@ -142,8 +143,6 @@ async def handle_availability(
         return response.json()
 
     except Exception as e:
-        # If the miner is not available, we will return a failure response
-        bt.logging.error(f"Miner {uid} failed request: {e}")
         return {}
 
 
@@ -154,54 +153,63 @@ async def handle_inference(
     body: Dict[str, Any],
     uid: int,
 ) -> SynapseStreamResult:
-    
+    exception = None
+    chunks = []
+    chunk_timings = []
     try:
-        with Timer() as timer:
-            axon_info = metagraph.axons[uid]
-            miner = openai.AsyncOpenAI(
-                base_url=f"http://{axon_info.ip}:{axon_info.port}/v1", #Maybe need to change this? 
-                api_key="Apex",
-                max_retries=0,
-                timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=5),
-                http_client=openai.DefaultAsyncHttpxClient(event_hooks={
-                    "request": [
-                        create_header_hook(
-                            wallet.hotkey, axon_info.hotkey, task
-                        )
-                    ]
-                }),
-            )
-            try:
-                chunk_timings = []
-                chunks = []
-                chat = await miner.chat.completions.create(**generate_header(wallet.hotkey, body, signed_for=axon_info.hotkey))
-                async for chunk in chat:
-                    if chunk.choices[0].delta is None:
-                        continue
-                    if (
-                        chunk.choices[0].delta.content == ""
-                        or chunk.choices[0].delta.content is None
-                    ) and len(chunks) == 0:
-                        continue
-                    
+        start_time = time.time()
+        axon_info = metagraph.axons[uid]
+        miner = openai.AsyncOpenAI(
+            base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
+            api_key="Apex",
+            max_retries=0,
+            timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=5),
+            http_client=openai.DefaultAsyncHttpxClient(event_hooks={
+                "request": [
+                    create_header_hook(
+                        wallet.hotkey, axon_info.hotkey
+                    )
+                ]
+            }),
+        )
+        try:
+            payload = json.loads(body)
+            chat = await miner.chat.completions.create(messages=payload["messages"], model=payload["model"], stream=True)
+            async for chunk in chat:
+                if chunk.choices[0].delta and chunk.choices[0].delta.content:
                     chunks.append(chunk.choices[0].delta.content)
-                    chunk_timings.append(timer.elapsed_time())
+                    chunk_timings.append(time.time() - start_time)
 
-            except openai.APIConnectionError as e:
-                bt.logging.trace(f"Miner {uid} failed request: {e}")
+        except openai.APIConnectionError as e:
+            bt.logging.trace(f"Miner {uid} failed request: {e}")
+            exception = e
 
-            except Exception as e:
-                bt.logging.trace(f"Unknown Error when sending to miner {uid}: {e}")
+        except Exception as e:
+            bt.logging.trace(f"Unknown Error when sending to miner {uid}: {e}")
+            exception = e
 
     except Exception as e:
         exception = e
         bt.logging.error(f"{uid}: Error in forward for: {e}")
         bt.logging.error(traceback.format_exc())
     finally:
+        if exception:
+            exception = str(exception)
+        if exception is None:
+            status_code = 200
+            status_message = "Success"
+        elif isinstance(exception, openai.APIConnectionError):
+            status_code = 502
+            status_message = str(exception)
+        else:
+            status_code = 500
+            status_message = str(exception)
+
         return SynapseStreamResult(
             accumulated_chunks=chunks,
             accumulated_chunks_timings=chunk_timings,
-            synapse=None,
             uid=uid,
             exception=exception,
+            status_code=status_code,
+            status_message=status_message,
         )
