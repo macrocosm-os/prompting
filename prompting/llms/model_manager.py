@@ -11,6 +11,7 @@ from prompting.mutable_globals import scoring_queue
 from prompting.settings import settings
 from vllm.sampling_params import SamplingParams
 from prompting.llms.vllm_llm import ReproducibleVLLM
+from prompting.llms.hf_llm import ReproducibleHF
 
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work
@@ -67,16 +68,21 @@ class ModelManager(BaseModel):
                 f"Loading model... {model_config.llm_model_id} with GPU Utilization: {model_config.min_ram / GPUInfo.free_memory}"
             )
             GPUInfo.log_gpu_info()
-            # model = vllm.LLM(
-            #     model_config.llm_model_id,
-            #     max_model_len=8_000,
-            #     gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
-            # )
-            model = ReproducibleVLLM(
-                model=model_config.llm_model_id,
-                gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
-                max_model_len=settings.LLM_MAX_MODEL_LEN,
-            )
+
+            if settings.LLM_TYPE == "hf":
+                model = ReproducibleHF(
+                    model=model_config.llm_model_id,
+                    gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
+                    max_model_len=settings.LLM_MAX_MODEL_LEN,
+                )
+            elif settings.LLM_TYPE == "vllm":
+                model = ReproducibleVLLM(
+                    model=model_config.llm_model_id,
+                    gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
+                    max_model_len=settings.LLM_MAX_MODEL_LEN,
+                )
+            else:
+                raise ValueError(f"Unknown LLM_TYPE: {settings.LLM_TYPE}")
 
             self.active_models[model_config] = model
             self.used_ram += model_config.min_ram
@@ -101,13 +107,13 @@ class ModelManager(BaseModel):
         self.used_ram -= model_config.min_ram
         torch.cuda.empty_cache()
 
-    def get_or_load_model(self, llm_model_id: str) -> ReproducibleVLLM:
+    def get_or_load_model(self, llm_model_id: str) -> ReproducibleVLLM | ReproducibleHF:
         model_config = ModelZoo.get_model_by_id(llm_model_id)
         if model_config not in self.active_models:
             self.load_model(model_config)
         return self.active_models[model_config]
 
-    def get_model(self, llm_model: ModelConfig | str) -> ReproducibleVLLM:
+    def get_model(self, llm_model: ModelConfig | str) -> ReproducibleVLLM | ReproducibleHF:
         if not llm_model:
             llm_model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
         if isinstance(llm_model, str):
@@ -144,7 +150,7 @@ class ModelManager(BaseModel):
         messages: list[str],
         roles: list[str],
         model: ModelConfig | str | None = None,
-        sampling_params: SamplingParams | None = SamplingParams(max_tokens=settings.NEURON_MAX_TOKENS),
+        sampling_params: SamplingParams | None = None,
     ) -> str:
         dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
         composed_prompt = self._make_prompt(dict_messages)
@@ -155,7 +161,16 @@ class ModelManager(BaseModel):
         if not model:
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
-        model_instance: ReproducibleVLLM = self.get_model(model)
+        model_instance: ReproducibleVLLM | ReproducibleHF = self.get_model(model)
+
+        # Adjust sampling_params based on LLM_TYPE
+        if settings.LLM_TYPE == "hf":
+            valid_args = {"max_length", "temperature", "top_p", "min_length", "do_sample", "num_return_sequences"}
+            if sampling_params:
+                sampling_params = {k: v for k, v in sampling_params.items() if k in valid_args}
+            else:
+                sampling_params = {"max_length": settings.NEURON_MAX_TOKENS}
+
         responses = model_instance.generate(prompts=[composed_prompt], sampling_params=sampling_params)
 
         return responses

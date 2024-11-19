@@ -1,11 +1,8 @@
 import time
 from typing import Optional, Any
 from prompting.utils.cleaners import CleanerPipeline
-from prompting.llms.base_llm import BasePipeline, BaseLLM
-from prompting.llms.utils import calculate_gpu_requirements
+from prompting.llms.base_llm import BaseLLM
 from vllm import LLM, RequestOutput
-from transformers import PreTrainedTokenizerFast
-from pydantic import model_validator, ConfigDict
 from loguru import logger
 from vllm import SamplingParams
 import random
@@ -19,7 +16,7 @@ except ImportError:
     raise ImportError(
         "Could not import vllm library.  Please install via poetry: " 'poetry install --extras "validator" '
     )
-    
+
 
 class vLLM_LLM(BaseLLM):
     def __init__(
@@ -70,6 +67,7 @@ class vLLM_LLM(BaseLLM):
         response = self.forward(messages=inputs)
         response = self.clean_response(cleaner, response)
         self.times.extend((0, time.perf_counter() - t0))
+
         return response
 
     def query(
@@ -103,6 +101,7 @@ class vLLM_LLM(BaseLLM):
 
         # Adds final tag indicating the assistant's turn
         composed_prompt.append(self._role_template["end"])
+
         return "".join(composed_prompt)
 
     def _forward(self, messages: list[dict[str, str]]):
@@ -145,10 +144,15 @@ class ReproducibleVLLM:
             tensor_parallel_size (int): Number of GPUs to use
             seed (int): Random seed for reproducibility
         """
-        set_random_seeds(seed)
 
         self.llm = LLM(
-            model=model, tensor_parallel_size=tensor_parallel_size, trust_remote_code=True, seed=seed, *args, **kwargs
+            model=model,
+            tensor_parallel_size=tensor_parallel_size,
+            trust_remote_code=True,
+            seed=seed,
+            max_model_len=4000,
+            *args,
+            **kwargs,
         )
 
         # Default sampling parameters for reproducibility
@@ -173,16 +177,13 @@ class ReproducibleVLLM:
             if isinstance(prompts, str):
                 prompts = [prompts]
 
-            # Use custom params if provided, else use default
             params = sampling_params if sampling_params else self.sampling_params
-
-            # Generate
             outputs = self.llm.generate(prompts, params)
-
-            # Extract generated text
             results = []
+
             for output in outputs:
                 results.append(output.outputs[0].text.strip())
+
         logger.debug(
             f"PROMPT: {prompts}\n\nRESPONSES: {results}\n\nSAMPLING PARAMS: {sampling_params}\n\nTIME FOR RESPONSE: {timer.elapsed_time}"
         )

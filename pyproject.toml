@@ -116,7 +116,7 @@ docstring-code-line-length = "dynamic"
 
 [tool.poetry.dependencies]
 python = ">=3.10 <3.11"
-transformers = "4.43.3"
+transformers = "^4.46.3"
 mathgenerator = {git = "https://github.com/synapse-alpha/mathgenerator.git", rev = "main"}
 sympy = "^1.13.0"
 tqdm = "^4.66.4"
@@ -147,13 +147,14 @@ pytest = "^8.3.1"
 angle-emb = "0.4.3"
 vllm = "0.5.3.post1"
 organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main"}
-autoawq = "0.2"
+autoawq = "0.2.5"
 loguru = "^0.7.2"
 duckduckgo-search = "^6.2.12"
 trafilatura = "^1.12.1"
 pydantic-settings = "^2.5.2"
 tiktoken = "^0.8.0"
 huggingface-hub = "^0.25.2"
+accelerate = "^1.1.1"
 
 [build-system]
 requires = ["poetry-core"]
