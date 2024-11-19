@@ -7,7 +7,7 @@ settings.settings = settings.Settings.load(mode="miner")
 from prompting.base.epistula import (  # noqa: E402
     EpistulaRequest,
     verify_and_process_request,
-)  # noqa: E402
+)
 from prompting.base.protocol import StreamPromptingSynapse  # noqa: E402
 from prompting.miner_availability.miner_availability import AvailabilitySynapse  # noqa: E402
 
