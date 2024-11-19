@@ -10,6 +10,8 @@ from prompting.utils.uids import get_uids
 import random
 import asyncio
 import numpy as np
+from prompting.base.epistula import query_availabilities
+from typing import Dict
 
 task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
 # task_config: dict[str, bool] = {
@@ -74,22 +76,13 @@ class CheckMinerAvailability(AsyncLoopRunner):
 
         if any(uid >= len(settings.METAGRAPH.axons) for uid in uids_to_query):
             raise ValueError("Some UIDs are out of bounds. Make sure all the TEST_MINER_IDS are valid.")
+        responses: list[Dict[str, bool]] = await query_availabilities(uids_to_query, task_config, model_config)
 
-        axons = [settings.METAGRAPH.axons[uid] for uid in uids_to_query]
-        responses: list[AvailabilitySynapse] = await settings.DENDRITE(
-            axons=axons,
-            synapse=AvailabilitySynapse(task_availabilities=task_config, llm_model_availabilities=model_config),
-            timeout=settings.NEURON_TIMEOUT,
-            deserialize=False,
-            streaming=False,
-        )
         logger.debug(f"Availability responses: {responses}")
-        for response, uid in zip(responses, uids_to_query):
-            if response.is_failure:
-                logger.warning(f"Miner {uid} failed to respond. Response is timeout: {response.timeout}")
-                continue
 
         for response, uid in zip(responses, uids_to_query):
+            if not response:
+                continue
             miner_availabilities.miners[uid] = MinerAvailability(
                 task_availabilities=response.task_availabilities,
                 llm_model_availabilities=response.llm_model_availabilities,

@@ -23,6 +23,7 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
 from prompting.weight_setting.weight_setter import weight_setter
 from prompting.llms.utils import GPUInfo
+from prompting.base.epistula import query_miners
 
 NEURON_SAMPLE_SIZE = 100
 
@@ -136,35 +137,15 @@ class Validator(BaseValidatorNeuron):
         if len(uids) == 0:
             logger.warning("No available miners. This should already have been caught earlier.")
             return
-        axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
-        # Create the synapse
-        synapse = StreamPromptingSynapse(
-            task_name=task.__class__.__name__,
-            seed=task.seed,
-            target_model=task.llm_model_id,
-            roles=["user"],
-            messages=[task.query],
-        )
 
-        # Call the synchronous wrapper that includes both DENDRITE and handle_response
-        stream_results = run_dendrite_and_handle_response_sync(
-            uids=uids,
-            axons=axons,
-            synapse=synapse,
-            timeout=settings.NEURON_TIMEOUT,
-            deserialize=False,
-            streaming=True,
-        )
-
-        logger.debug(
-            f"Non-empty responses: {len([r.completion for r in stream_results if len(r.completion) > 0])}\n"
-            f"Empty responses: {len([r.completion for r in stream_results if len(r.completion) == 0])}"
-        )
+        body = {"seed": task.seed, "model": task.llm_model_id, "roles": ["user"], "messages": [task.query]}
+        body_bytes = json.dumps(body).encode("utf-8")
+        stream_results = query_miners(task.__class__.__name__, uids, body)
 
         log_stream_results(stream_results)
 
-        # Encapsulate the responses in a response event (dataclass
+
         response_event = DendriteResponseEvent(
             stream_results=stream_results, uids=uids, timeout=settings.NEURON_TIMEOUT
         )
