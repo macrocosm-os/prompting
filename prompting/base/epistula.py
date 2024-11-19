@@ -13,6 +13,7 @@ import requests
 from aiohttp.client import ClientTimeout
 from pydantic import model_validator
 from fastapi import HTTPException
+from typing import Literal
 
 
 class Synapse(BaseModel):
@@ -133,6 +134,7 @@ class MetagraphEpistulaClient(EpistulaClient):
 
     timeout: int = 15
     metagraph: bt.metagraph
+    mode: Literal["validator", "mock"] = "validator"
 
     @model_validator(mode="after")
     def refresh_metagraph(self):
@@ -187,19 +189,21 @@ class MetagraphEpistulaClient(EpistulaClient):
         Returns:
             Response from the miner's API
         """
-        # Prepare the request
-        headers, raw_body = self.prepare_request(synapse)
+        if self.mode == "mock":
+            logger.warning("Running in mock mode. Sending to local endpoint.")
+            urls = [f"http://localhost:8000/{synapse.__class__.__name__}"] * len(miner_uids)  # Default for testing
 
         # Get the endpoint URL
-        if miner_uids:
+        elif miner_uids:
             urls = [url + f"/{synapse.__class__.__name__}" for url in await self.get_miner_urls(miner_uids)]
         else:
-            urls = ["http://localhost:8000/streaming_synapse"]  # Default for testing
-
-        logger.debug(f"Sending request to: {urls}")
+            raise ValueError("No miner UIDs provided")
 
         # Set timeout
         timeout = ClientTimeout(total=self.timeout)
+
+        # Prepare the request
+        headers, raw_body = self.prepare_request(synapse)
 
         # Create session and send requests concurrently
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -210,5 +214,12 @@ class MetagraphEpistulaClient(EpistulaClient):
 
             # Gather all responses
             responses = await asyncio.gather(*tasks)
-
-        return responses
+        logger.debug(f"Queried: {urls}, {miner_uids}\nResponses: {responses}")
+        all_synapses = []
+        for response in responses:
+            try:
+                all_synapses.append(synapse.__class__(**response.data))
+            except Exception as e:
+                logger.error(f"Couldn't parse response back into synapse: {e}")
+                all_synapses.append(synapse)
+        return all_synapses

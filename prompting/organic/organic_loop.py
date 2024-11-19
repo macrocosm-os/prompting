@@ -179,9 +179,11 @@ async def stream_miner_response(
     )
 
 
+# TODO: Implement organic loop with epistula
 def start_organic(axon: bt.axon):
-    axon.attach(
-        forward_fn=on_organic_entry,
-        blacklist_fn=blacklist_fn,
-        priority_fn=priority_fn,
-    )
+    pass
+    # axon.attach(
+    #     forward_fn=on_organic_entry,
+    #     blacklist_fn=blacklist_fn,
+    #     priority_fn=priority_fn,
+    # )

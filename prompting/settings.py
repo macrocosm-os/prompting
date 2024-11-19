@@ -170,14 +170,16 @@ class Settings(BaseSettings):
 
         if values.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
-        if mode == "validator" and (values.get("SN19_API_KEY") is None) or (values.get("SN19_API_URL") is None):
-            logger.warning(
-                "It is strongly recommended to provide an SN19 API KEY + URL to avoid incurring OpenAI API costs."
-            )
-        if mode == "validator" and values.get("OPENAI_API_KEY") is None:
-            raise Exception(
-                "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
-            )
+        if mode == "validator":
+            # TODO: IMPORTANT: Remove mock mode
+            if (values.get("SN19_API_KEY") is None) or (values.get("SN19_API_URL") is None):
+                logger.warning(
+                    "It is strongly recommended to provide an SN19 API KEY + URL to avoid incurring OpenAI API costs."
+                )
+            if values.get("OPENAI_API_KEY") is None:
+                raise Exception(
+                    "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
+                )
         return values
 
     @cached_property

@@ -23,8 +23,11 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
 from prompting.weight_setting.weight_setter import weight_setter
 from prompting.llms.utils import GPUInfo
+from prompting.base.forward import SynapseStreamResult
+from prompting.base.epistula import MetagraphEpistulaClient
 
 NEURON_SAMPLE_SIZE = 100
+EPISTULA_CLIENT = MetagraphEpistulaClient(wallet=settings.WALLET, metagraph=settings.METAGRAPH, mode="mock")
 
 
 def run_dendrite_and_handle_response_sync(uids, *args, **kwargs):
@@ -136,7 +139,6 @@ class Validator(BaseValidatorNeuron):
         if len(uids) == 0:
             logger.warning("No available miners. This should already have been caught earlier.")
             return
-        axons = [settings.METAGRAPH.axons[uid] for uid in uids]
 
         # Create the synapse
         synapse = StreamPromptingSynapse(
@@ -146,22 +148,28 @@ class Validator(BaseValidatorNeuron):
             roles=["user"],
             messages=[task.query],
         )
-
-        # Call the synchronous wrapper that includes both DENDRITE and handle_response
-        stream_results = run_dendrite_and_handle_response_sync(
-            uids=uids,
-            axons=axons,
+        responses = await EPISTULA_CLIENT.send_request(
             synapse=synapse,
-            timeout=settings.NEURON_TIMEOUT,
-            deserialize=False,
-            streaming=True,
+            miner_uids=uids,
         )
+
+        stream_results = [
+            SynapseStreamResult(
+                uid=uid,
+                synapse=r,
+                accumulated_chunks=[r.completion],
+                accumulated_chunks_timings=[0],
+                tokens_per_chunk=[0],
+            )
+            for uid, r in zip(uids, responses)
+        ]
 
         logger.debug(
             f"Non-empty responses: {len([r.completion for r in stream_results if len(r.completion) > 0])}\n"
             f"Empty responses: {len([r.completion for r in stream_results if len(r.completion) == 0])}"
         )
 
+        # TODO: Make epistula client work for streaming and return actual stream results
         log_stream_results(stream_results)
 
         # Encapsulate the responses in a response event (dataclass

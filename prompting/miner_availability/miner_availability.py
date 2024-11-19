@@ -10,7 +10,9 @@ from prompting.utils.uids import get_uids
 import random
 import asyncio
 import numpy as np
+from prompting.base.epistula import MetagraphEpistulaClient
 
+EPISTULA_CLIENT = MetagraphEpistulaClient(wallet=settings.WALLET, metagraph=settings.METAGRAPH, mode="mock")
 task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
 # task_config: dict[str, bool] = {
 #     DateQuestionAnsweringTask.__name__: True,
@@ -75,19 +77,24 @@ class CheckMinerAvailability(AsyncLoopRunner):
         if any(uid >= len(settings.METAGRAPH.axons) for uid in uids_to_query):
             raise ValueError("Some UIDs are out of bounds. Make sure all the TEST_MINER_IDS are valid.")
 
-        axons = [settings.METAGRAPH.axons[uid] for uid in uids_to_query]
-        responses: list[AvailabilitySynapse] = await settings.DENDRITE(
-            axons=axons,
+        # axons = [settings.METAGRAPH.axons[uid] for uid in uids_to_query]
+        responses: list[AvailabilitySynapse] = await EPISTULA_CLIENT.send_request(
             synapse=AvailabilitySynapse(task_availabilities=task_config, llm_model_availabilities=model_config),
-            timeout=settings.NEURON_TIMEOUT,
-            deserialize=False,
-            streaming=False,
+            miner_uids=uids_to_query,
         )
+        # # responses: list[AvailabilitySynapse] = await settings.DENDRITE(
+        # #     axons=axons,
+        #     synapse=AvailabilitySynapse(task_availabilities=task_config, llm_model_availabilities=model_config),
+        #     timeout=settings.NEURON_TIMEOUT,
+        #     deserialize=False,
+        #     streaming=False,
+        # )
         logger.debug(f"Availability responses: {responses}")
-        for response, uid in zip(responses, uids_to_query):
-            if response.is_failure:
-                logger.warning(f"Miner {uid} failed to respond. Response is timeout: {response.timeout}")
-                continue
+        # TODO: Reinstate this - currently we just return the synapse without any status
+        # for response, uid in zip(responses, uids_to_query):
+        #     if response.is_failure:
+        #         logger.warning(f"Miner {uid} failed to respond. Response is timeout: {response.timeout}")
+        #         continue
 
         for response, uid in zip(responses, uids_to_query):
             miner_availabilities.miners[uid] = MinerAvailability(

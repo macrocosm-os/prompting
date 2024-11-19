@@ -64,20 +64,20 @@ class DendriteResponseEvent(BaseModel):
             synapse = stream_result.synapse
 
             self.completions.append(synapse.completion)
-            self.status_messages.append(synapse.dendrite.status_message)
-            status_code = synapse.dendrite.status_code
+            # self.status_messages.append(synapse.dendrite.status_message)
+            # status_code = synapse.dendrite.status_code
 
-            if len(synapse.completion) == 0 and status_code == 200:
-                status_code = 204
+            # if len(synapse.completion) == 0 and status_code == 200:
+            #     status_code = 204
 
-            self.status_codes.append(status_code)
-            process_time = synapse.dendrite.process_time or 0
-            if status_code == 200 or status_code == 204:
-                self.timings.append(process_time)
-            elif status_code == 408:
-                self.timings.append(self.timeout)
-            else:
-                self.timings.append(0)
+            # self.status_codes.append(status_code)
+            # process_time = synapse.dendrite.process_time or 0
+            # if status_code == 200 or status_code == 204:
+            # self.timings.append(process_time)
+            # elif status_code == 408:
+            #     self.timings.append(self.timeout)
+            # else:
+            self.timings.append(0)
 
             self.stream_results_uids.append(stream_result.uid)
             self.stream_results_exceptions.append(serialize_exception_to_string(stream_result.exception))
