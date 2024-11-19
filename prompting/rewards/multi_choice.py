@@ -55,11 +55,10 @@ class MultiChoiceRewardModel(BaseRewardModel):
             loaded_json = self.safe_load_json(completion)
             valid_choices = self.process_predictions(loaded_json)
             return valid_choices.get(reference.upper(), 0.0)
-        except ValueError as e:
-            logger.error(f"Error in logit_reward: {e}")
+        except ValueError:
             return None
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         rewards = []
         timings = []
 

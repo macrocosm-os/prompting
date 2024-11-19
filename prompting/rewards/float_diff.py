@@ -53,7 +53,7 @@ class FloatDiffModel(BaseRewardModel):
         except Exception:
             return 0.0
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
+    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
         rewards = []
         timings = []

@@ -80,10 +80,10 @@ class LLMMessages(BaseModel):
 
     def __init__(self, *args, **kwargs):
         super().__init__()
+        for arg in args:
+            assert isinstance(arg, LLMMessage), "All arguments must be of type LLMMessage"
         self.messages = list(args)
         assert len(self.messages) > 0, "At least one message is required when initializing GPTMessages"
-
-    # TODO: Add some utility for token tracking etc.
 
     def to_dict(self) -> list[dict]:
         return [message.to_dict() for message in self.messages]

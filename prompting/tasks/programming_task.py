@@ -45,11 +45,9 @@ class ProgrammingTask(BaseTextTask):
     def make_query(self, dataset_entry: HuggingFaceGithubDatasetEntry):
         modified_code = LLMWrapper.chat_complete(
             messages=LLMMessages(
-                [
-                    LLMMessage(
-                        role="user", content=CODE_MODIFICATION_PROMPT.format(file_content=dataset_entry.file_content)
-                    )
-                ]
+                LLMMessage(
+                    role="user", content=CODE_MODIFICATION_PROMPT.format(file_content=dataset_entry.file_content)
+                )
             )
         )
         if len(modified_code.split("\n")) < MIN_INPUT_LINES + OUTPUT_LINES:

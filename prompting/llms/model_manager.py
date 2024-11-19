@@ -1,7 +1,7 @@
+import gc
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
 import torch
-import vllm
 import asyncio
 from prompting.llms.utils import GPUInfo
 from vllm.distributed.parallel_state import destroy_model_parallel
@@ -10,6 +10,7 @@ from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.mutable_globals import scoring_queue
 from prompting.settings import settings
 from vllm.sampling_params import SamplingParams
+from prompting.llms.vllm_llm import ReproducibleVLLM
 
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work
@@ -20,7 +21,7 @@ open_tasks = []
 class ModelManager(BaseModel):
     always_active_models: list[ModelConfig] = []
     total_ram: float = settings.LLM_MODEL_RAM
-    active_models: dict[ModelConfig, vllm.LLM] = {}
+    active_models: dict[ModelConfig, ReproducibleVLLM] = {}
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -29,6 +30,7 @@ class ModelManager(BaseModel):
             self.load_model(model_config)
 
     def load_model(self, model_config: ModelConfig, force: bool = True):
+        torch.cuda.empty_cache()
         if model_config in self.active_models.keys():
             print(f"Model {model_config.llm_model_id} is already loaded.")
             return
@@ -65,11 +67,17 @@ class ModelManager(BaseModel):
                 f"Loading model... {model_config.llm_model_id} with GPU Utilization: {model_config.min_ram / GPUInfo.free_memory}"
             )
             GPUInfo.log_gpu_info()
-            model = vllm.LLM(
-                model_config.llm_model_id,
-                max_model_len=8_000,
+            # model = vllm.LLM(
+            #     model_config.llm_model_id,
+            #     max_model_len=8_000,
+            #     gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
+            # )
+            model = ReproducibleVLLM(
+                model=model_config.llm_model_id,
                 gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
+                max_model_len=settings.LLM_MAX_MODEL_LEN,
             )
+
             self.active_models[model_config] = model
             self.used_ram += model_config.min_ram
             logger.info(f"Model {model_config.llm_model_id} loaded. Current used RAM: {self.used_ram} GB")
@@ -82,11 +90,10 @@ class ModelManager(BaseModel):
         if model_config not in self.active_models:
             logger.warning("Couldn't find model to unload.")
             return
-        import gc
 
         destroy_model_parallel()
         try:
-            del self.active_models[model_config].llm_engine.model_executor.driver_worker
+            del self.active_models[model_config].llm.llm_engine.model_executor.driver_worker
             del self.active_models[model_config]
         except Exception as ex:
             logger.error(f"Failed to unload model {model_config.llm_model_id}. Error: {str(ex)}")
@@ -94,13 +101,13 @@ class ModelManager(BaseModel):
         self.used_ram -= model_config.min_ram
         torch.cuda.empty_cache()
 
-    def get_or_load_model(self, llm_model_id: str) -> vllm.LLM:
+    def get_or_load_model(self, llm_model_id: str) -> ReproducibleVLLM:
         model_config = ModelZoo.get_model_by_id(llm_model_id)
         if model_config not in self.active_models:
             self.load_model(model_config)
         return self.active_models[model_config]
 
-    def get_model(self, llm_model: ModelConfig | str) -> vllm.LLM:
+    def get_model(self, llm_model: ModelConfig | str) -> ReproducibleVLLM:
         if not llm_model:
             llm_model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
         if isinstance(llm_model, str):
@@ -132,33 +139,26 @@ class ModelManager(BaseModel):
         composed_prompt.append(role_template["end"])
         return "".join(composed_prompt)
 
-    # TODO: Merge generate and chat_generate into a single method
     def generate(
         self,
-        prompts: list[str],
+        messages: list[str],
+        roles: list[str],
         model: ModelConfig | str | None = None,
         sampling_params: SamplingParams | None = SamplingParams(max_tokens=settings.NEURON_MAX_TOKENS),
-    ) -> list[str]:
+    ) -> str:
+        dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
+        composed_prompt = self._make_prompt(dict_messages)
+        logger.debug(f"Generating Chat with prompt: {composed_prompt}")
+
         if isinstance(model, str):
             model = ModelZoo.get_model_by_id(model)
         if not model:
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
-        model: vllm.LLM = self.get_model(model)
-        responses = model.generate(prompts=prompts, sampling_params=sampling_params)
-        return [r.outputs[0].text.strip() for r in responses]
+        model_instance: ReproducibleVLLM = self.get_model(model)
+        responses = model_instance.generate(prompts=[composed_prompt], sampling_params=sampling_params)
 
-    def chat_generate(
-        self,
-        messages: list[str],
-        roles: list[str],
-        model: ModelConfig | str | None = None,
-        sampling_params: SamplingParams | None = None,
-    ) -> str:
-        dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
-        composed_prompt = self._make_prompt(dict_messages)
-        logger.debug(f"Generating Chat with prompt: {composed_prompt}")
-        return self.generate([composed_prompt], model=model, sampling_params=sampling_params)
+        return responses
 
 
 class AsyncModelScheduler(AsyncLoopRunner):
