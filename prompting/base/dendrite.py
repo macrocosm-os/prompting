@@ -1,8 +1,11 @@
 import numpy as np
+import time
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.utils.misc import serialize_exception_to_string
-from pydantic import BaseModel, model_validator, ConfigDict
+from pydantic import BaseModel, model_validator
 from loguru import logger
+from typing import AsyncGenerator
+from pydantic import ConfigDict
 
 
 class SynapseStreamResult(BaseModel):
@@ -33,6 +36,85 @@ class SynapseStreamResult(BaseModel):
             "tokens_per_chunk": self.tokens_per_chunk,
             "synapse": self.synapse.model_dump() if self.synapse is not None else None,
         }
+
+
+class StreamResultsParser:
+    """Parser for streaming results that accumulates chunks into SynapseStreamResult objects"""
+
+    def __init__(self):
+        self.results_by_uid: dict[int, SynapseStreamResult] = {}
+
+    def _ensure_result_exists(self, uid: int) -> None:
+        """Ensure a result object exists for the given UID"""
+        if uid not in self.results_by_uid:
+            self.results_by_uid[uid] = SynapseStreamResult(
+                uid=uid,
+                accumulated_chunks=[],
+                accumulated_chunks_timings=[],
+                tokens_per_chunk=[],
+            )
+
+    async def parse_streaming_response(
+        self, stream: AsyncGenerator[dict, None], synapse: StreamPromptingSynapse
+    ) -> list[SynapseStreamResult]:
+        """
+        Parse a streaming response into a list of SynapseStreamResult objects
+
+        Args:
+            stream: The streaming response from send_streaming_request
+            synapse_type: The type of synapse being used
+
+        Returns:
+            list of SynapseStreamResult objects, one per miner
+        """
+        try:
+            async for chunk in stream:
+                uid = chunk.get("uid")
+                if uid is None:
+                    logger.error(f"Received chunk without UID: {chunk}")
+                    continue
+
+                self._ensure_result_exists(uid)
+                result = self.results_by_uid[uid]
+
+                if "error" in chunk:
+                    # Handle error case
+                    result.exception = Exception(chunk["error"])
+                    continue
+
+                # Process successful chunk
+                try:
+                    chunk_data = chunk["data"]
+                    result.accumulated_chunks.append(chunk_data)
+                    result.accumulated_chunks_timings.append(time.time())
+
+                    # You might want to implement token counting based on your tokenizer
+                    # This is a placeholder that counts characters
+                    result.tokens_per_chunk.append(len(chunk_data))
+
+                except Exception as e:
+                    result.exception = e
+                    logger.error(f"Error processing chunk for UID {uid}: {e}")
+
+            # After all chunks are processed, create final synapses
+            for result in self.results_by_uid.values():
+                if not result.exception:
+                    try:
+                        # Combine all chunks into final completion
+                        combined_text = "".join(result.accumulated_chunks)
+                        synapse.completion = combined_text
+                        result.synapse = synapse
+                    except Exception as e:
+                        result.exception = e
+                        logger.error(f"Error creating final synapse for UID {result.uid}: {e}")
+
+        except Exception as e:
+            logger.error(f"Error in stream parsing: {e}")
+            # Create error result for all miners if we can't process the stream
+            for uid in self.results_by_uid:
+                self.results_by_uid[uid].exception = e
+
+        return list(self.results_by_uid.values())
 
 
 class DendriteResponseEvent(BaseModel):

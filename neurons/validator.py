@@ -10,7 +10,8 @@ settings = settings.settings
 from loguru import logger
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.base.forward import log_stream_results, handle_response
-from prompting.base.dendrite import DendriteResponseEvent, StreamPromptingSynapse
+from prompting.base.dendrite import DendriteResponseEvent
+from prompting.base.protocol import StreamPromptingSynapse
 from prompting.tasks.task_creation import task_loop
 from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from prompting.rewards.scoring import task_scorer
@@ -23,11 +24,11 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.organic.organic_loop import start_organic
 from prompting.weight_setting.weight_setter import weight_setter
 from prompting.llms.utils import GPUInfo
-from prompting.base.forward import SynapseStreamResult
-from prompting.base.epistula import MetagraphEpistulaClient
+from prompting.base.epistula import StreamingEpistulaClient
+from prompting.base.dendrite import StreamResultsParser
 
 NEURON_SAMPLE_SIZE = 100
-EPISTULA_CLIENT = MetagraphEpistulaClient(wallet=settings.WALLET, metagraph=settings.METAGRAPH, mode="mock")
+EPISTULA_CLIENT = StreamingEpistulaClient(wallet=settings.WALLET, metagraph=settings.METAGRAPH, mode="mock")
 
 
 def run_dendrite_and_handle_response_sync(uids, *args, **kwargs):
@@ -148,21 +149,11 @@ class Validator(BaseValidatorNeuron):
             roles=["user"],
             messages=[task.query],
         )
-        responses = await EPISTULA_CLIENT.send_request(
-            synapse=synapse,
-            miner_uids=uids,
-        )
 
-        stream_results = [
-            SynapseStreamResult(
-                uid=uid,
-                synapse=r,
-                accumulated_chunks=[r.completion],
-                accumulated_chunks_timings=[0],
-                tokens_per_chunk=[0],
-            )
-            for uid, r in zip(uids, responses)
-        ]
+        logger.debug(f"Sending streaming request to {len(uids)} miners")
+        stream_results = await StreamResultsParser().parse_streaming_response(
+            EPISTULA_CLIENT.send_streaming_request(synapse=synapse, miner_uids=uids), synapse=synapse
+        )
 
         logger.debug(
             f"Non-empty responses: {len([r.completion for r in stream_results if len(r.completion) > 0])}\n"

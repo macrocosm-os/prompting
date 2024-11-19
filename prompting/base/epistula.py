@@ -14,10 +14,17 @@ from aiohttp.client import ClientTimeout
 from pydantic import model_validator
 from fastapi import HTTPException
 from typing import Literal
+from typing import AsyncGenerator
 
 
 class Synapse(BaseModel):
     """Base class for all synapses"""
+
+
+class StreamingSynapse(Synapse):
+    """Base class for streaming synapses"""
+
+    is_streaming: bool = True
 
 
 class EpistulaRequest(BaseModel):
@@ -34,6 +41,12 @@ class EpistulaResponse(BaseModel):
     """Response format"""
 
     data: Synapse
+
+
+class StreamingEpistulaResponse(EpistulaResponse):
+    """Streaming response format that yields chunks of data"""
+
+    data: StreamingSynapse
 
 
 def ordered_json(obj: Union[Dict, List, str, int, float, bool, None]) -> str:
@@ -110,6 +123,7 @@ class EpistulaClient(BaseModel):
     """Client for making Epistula protocol requests"""
 
     wallet: bt.wallet
+    timeout: int = 15
 
     class Config:
         arbitrary_types_allowed = True
@@ -132,7 +146,6 @@ class EpistulaClient(BaseModel):
 class MetagraphEpistulaClient(EpistulaClient):
     """Epistula client that can query miners using the metagraph"""
 
-    timeout: int = 15
     metagraph: bt.metagraph
     mode: Literal["validator", "mock"] = "validator"
 
@@ -217,9 +230,147 @@ class MetagraphEpistulaClient(EpistulaClient):
         logger.debug(f"Queried: {urls}, {miner_uids}\nResponses: {responses}")
         all_synapses = []
         for response in responses:
-            try:
-                all_synapses.append(synapse.__class__(**response.data))
-            except Exception as e:
-                logger.error(f"Couldn't parse response back into synapse: {e}")
-                all_synapses.append(synapse)
+            if response["status"] == 200:
+                try:
+                    all_synapses.append(synapse.__class__(**response["data"]))
+                except Exception as e:
+                    logger.exception(f"Couldn't parse response back into synapse: {e}")
+            else:
+                logger.error(f"Request failed for UID {response['uid']}: {response['error']}")
+            all_synapses.append(synapse)
         return all_synapses
+
+
+async def stream_verify_and_process_request(
+    request: Request, epistula_request: EpistulaRequest, SynapseType: Type[StreamingSynapse]
+) -> AsyncGenerator[str, None]:
+    """Verify and process a streaming request"""
+    headers = dict(request.headers)
+    raw_body = await request.body()
+    raw_body_str = raw_body.decode()
+
+    # Verify using raw request first
+    if not verify_raw_request(headers, raw_body_str, epistula_request.signed_by):
+        logger.error(f"Invalid signature: {epistula_request}")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    try:
+        synapse = SynapseType(**epistula_request.data)
+    except Exception as e:
+        logger.error(f"Error parsing synapse: {e}")
+        raise HTTPException(status_code=400, detail="Error parsing synapse")
+
+    return synapse
+
+
+class StreamingEpistulaClient(MetagraphEpistulaClient):
+    """Client for making streaming Epistula protocol requests"""
+
+    async def stream_response(self, response: aiohttp.ClientResponse, uid: int) -> AsyncGenerator[dict, None]:
+        """Stream the response data with source UID"""
+        async for chunk in response.content.iter_chunks():
+            if chunk:
+                yield {"uid": uid, "data": chunk[0].decode()}
+
+    async def handle_miner_stream(
+        self, session: aiohttp.ClientSession, url: str, headers: dict, raw_body: str, uid: int
+    ) -> AsyncGenerator[dict, None]:
+        """Handle streaming from a single miner"""
+        try:
+            async with session.post(url, headers=headers, data=raw_body) as response:
+                if response.status == 200:
+                    async for chunk in self.stream_response(response, uid):
+                        yield chunk
+                else:
+                    logger.error(f"Request failed for UID {uid} on endpoint {url}: {response.status}")
+                    yield {"uid": uid, "error": f"Request failed with status {response.status}"}
+        except Exception as e:
+            logger.error(f"Streaming request failed for UID {uid} on endpoint {url}: {e}")
+            yield {"uid": uid, "error": str(e)}
+
+    async def send_streaming_request(
+        self,
+        synapse: StreamingSynapse,
+        miner_uids: Optional[list[Union[int, str]]] = None,
+    ) -> AsyncGenerator[dict, None]:
+        """
+        Send concurrent streaming requests to multiple miners' API endpoints
+
+        Args:
+            synapse: The streaming synapse object to send
+            miner_uids: UIDs of the miners to query
+
+        Yields:
+            Dictionaries containing:
+                - uid: The miner's UID
+                - data: The chunk of streaming data
+                OR
+                - error: Error message if the stream failed
+        """
+        if not miner_uids:
+            raise ValueError("No miner UIDs provided")
+
+        # Prepare the request
+        headers, raw_body = self.prepare_request(synapse)
+        timeout = ClientTimeout(total=self.timeout)
+
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            # Get all miner URLs
+            if self.mode == "mock":
+                logger.warning("Running in mock mode. Sending to local endpoint.")
+                urls = ["http://localhost:8000"] * len(miner_uids)
+            else:
+                urls = await self.get_miner_urls(miner_uids)
+
+            # Create queues for each miner's stream
+            queues = {uid: asyncio.Queue() for uid in miner_uids}
+
+            async def stream_to_queue(uid: int, url: str):
+                """Stream from a miner to its queue"""
+                try:
+                    async for chunk in self.handle_miner_stream(
+                        session=session,
+                        url=f"{url}/{synapse.__class__.__name__}",
+                        headers=headers,
+                        raw_body=raw_body,
+                        uid=uid,
+                    ):
+                        await queues[uid].put(chunk)
+                except Exception as e:
+                    logger.error(f"Error in stream_to_queue for UID {uid}: {e}")
+                finally:
+                    # Signal this stream is done
+                    await queues[uid].put(None)
+
+            # Start all streams
+            tasks = [asyncio.create_task(stream_to_queue(uid, url)) for uid, url in zip(miner_uids, urls)]
+
+            # Track active queues
+            active_queues = set(queues.keys())
+
+            # Yield chunks as they arrive
+            while active_queues:
+                # Wait for data from any queue
+                done, pending = await asyncio.wait(
+                    [asyncio.create_task(queues[uid].get()) for uid in active_queues],
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+
+                for task in done:
+                    try:
+                        chunk = task.result()
+                        if chunk is None:
+                            # This stream is done
+                            finished_uid = next(uid for uid in active_queues if queues[uid].empty())
+                            active_queues.remove(finished_uid)
+                        else:
+                            yield chunk
+                    except Exception as e:
+                        logger.error(f"Error processing chunk: {e}")
+
+            # Clean up
+            for task in tasks:
+                if not task.done():
+                    task.cancel()
+
+            await asyncio.gather(*tasks, return_exceptions=True)

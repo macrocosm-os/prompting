@@ -57,7 +57,7 @@ class MinerAvailabilities(BaseModel):
 
 
 class CheckMinerAvailability(AsyncLoopRunner):
-    interval: int = 10  # Miners will be queried approximately once every hour
+    interval: int = 30  # Miners will be queried approximately once every hour
     uids: np.ndarray = settings.TEST_MINER_IDS or get_uids(sampling_mode="all")
     current_index: int = 0
     uids_per_step: int = 10
@@ -89,7 +89,7 @@ class CheckMinerAvailability(AsyncLoopRunner):
         #     deserialize=False,
         #     streaming=False,
         # )
-        logger.debug(f"Availability responses: {responses}")
+        # logger.debug(f"Availability responses: {responses}")
         # TODO: Reinstate this - currently we just return the synapse without any status
         # for response, uid in zip(responses, uids_to_query):
         #     if response.is_failure:

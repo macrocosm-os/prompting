@@ -1,7 +1,7 @@
 import pydantic
 from typing import List, AsyncIterator
 from starlette.responses import StreamingResponse
-from prompting.base.epistula import Synapse
+from prompting.base.epistula import Synapse, StreamingSynapse
 
 # from prompting.tasks.date_qa import DateQuestionAnsweringTask
 # from prompting.tasks.qa import QuestionAnsweringTask
@@ -18,7 +18,7 @@ class AvailabilitySynapse(Synapse):
     llm_model_availabilities: dict[str, bool]
 
 
-class StreamPromptingSynapse(Synapse):
+class StreamPromptingSynapse(StreamingSynapse):
     # class StreamPromptingSynapse(bt.StreamingSynapse):
     """
     StreamPromptingSynapse is a specialized implementation of the `StreamingSynapse` tailored for prompting functionalities within
