@@ -167,9 +167,10 @@ class Settings(BaseSettings):
         save_path = values.get("SAVE_PATH", "./storage")
         if not os.path.exists(save_path):
             os.makedirs(save_path)
+
         if values.get("TEST_MINER_IDS"):
             values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
-        if values.get("SN19_API_KEY") is None or values.get("SN19_API_URL") is None:
+        if mode == "validator" and (values.get("SN19_API_KEY") is None) or (values.get("SN19_API_URL") is None):
             logger.warning(
                 "It is strongly recommended to provide an SN19 API KEY + URL to avoid incurring OpenAI API costs."
             )

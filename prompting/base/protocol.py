@@ -1,7 +1,7 @@
 import pydantic
-import bittensor as bt
 from typing import List, AsyncIterator
 from starlette.responses import StreamingResponse
+from prompting.base.epistula import Synapse
 
 # from prompting.tasks.date_qa import DateQuestionAnsweringTask
 # from prompting.tasks.qa import QuestionAnsweringTask
@@ -10,7 +10,7 @@ from starlette.responses import StreamingResponse
 # from prompting.tasks.inference import InferenceTask
 
 
-class AvailabilitySynapse(bt.Synapse):
+class AvailabilitySynapse(Synapse):
     """AvailabilitySynapse is a specialized implementation of the `Synapse` class used to allow miners to let validators know
     about their status/availability to server certain tasks"""
 
@@ -18,7 +18,8 @@ class AvailabilitySynapse(bt.Synapse):
     llm_model_availabilities: dict[str, bool]
 
 
-class StreamPromptingSynapse(bt.StreamingSynapse):
+class StreamPromptingSynapse(Synapse):
+    # class StreamPromptingSynapse(bt.StreamingSynapse):
     """
     StreamPromptingSynapse is a specialized implementation of the `StreamingSynapse` tailored for prompting functionalities within
     the Bittensor network. This class is intended to interact with a streaming response that contains a sequence of tokens,
