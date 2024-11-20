@@ -15,7 +15,6 @@ from prompting.llms.hf_llm import ReproducibleHF
 # through the tasks based on the currently loaded model.
 open_tasks = []
 
-
 class ModelManager(BaseModel):
     always_active_models: list[ModelConfig] = []
     total_ram: float = settings.LLM_MODEL_RAM
@@ -75,7 +74,6 @@ class ModelManager(BaseModel):
             self.active_models[model_config] = model
             self.used_ram += model_config.min_ram
             logger.info(f"Model {model_config.llm_model_id} loaded. Current used RAM: {self.used_ram} GB")
-
             return model
         except Exception as e:
             logger.exception(f"Failed to load model {model_config.llm_model_id}. Error: {str(e)}")
@@ -148,14 +146,7 @@ class ModelManager(BaseModel):
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
         model_instance: ReproducibleHF = self.get_model(model)
-
-        valid_args = {"max_length", "temperature", "top_p", "min_length", "do_sample", "num_return_sequences"}
-        if sampling_params:
-            sampling_params = {k: v for k, v in sampling_params.items() if k in valid_args}
-        else:
-            sampling_params = {"max_length": settings.NEURON_MAX_TOKENS}
-
-        responses = model_instance.generate(prompts=[composed_prompt], sampling_params=sampling_params)
+        responses = model_instance.generate(prompts=[composed_prompt])
 
         return responses
 

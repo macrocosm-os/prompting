@@ -11,7 +11,6 @@ import random
 from prompting.llms.model_manager import model_manager
 from prompting.datasets.sn13 import ChatEntry
 from prompting.llms.model_zoo import ModelZoo
-from vllm import SamplingParams
 
 
 class InferenceRewardConfig(BaseRewardConfig):
@@ -60,6 +59,5 @@ class InferenceTask(BaseTextTask):
             messages=[self.messages[-1]],
             roles=["user"],
             model=self.llm_model,
-            sampling_params=SamplingParams(seed=self.seed),
         )[0]
         return self.reference
