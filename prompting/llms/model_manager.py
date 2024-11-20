@@ -18,7 +18,7 @@ open_tasks = []
 class ModelManager(BaseModel):
     always_active_models: list[ModelConfig] = []
     total_ram: float = settings.LLM_MODEL_RAM
-    active_models: dict[ModelConfig] = {}
+    active_models: dict[ModelConfig, ReproducibleHF] = {}
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

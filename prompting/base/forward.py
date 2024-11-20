@@ -6,7 +6,6 @@ from prompting.base.dendrite import SynapseStreamResult
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.utils.misc import async_log, serialize_exception_to_string
 from prompting.tasks.base_task import BaseTextTask
-from prompting.llms.base_llm import BasePipeline
 from loguru import logger
 
 
@@ -77,11 +76,11 @@ async def handle_response(stream_results_dict: Dict[int, Awaitable]) -> List[Syn
     return processed_stream_results
 
 
-@async_log
-async def generate_reference(task: BaseTextTask, pipeline: BasePipeline) -> str:
-    loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, task.generate_reference, pipeline)
-    return result
+# @async_log
+# async def generate_reference(task: BaseTextTask, pipeline: BasePipeline) -> str:
+#     loop = asyncio.get_running_loop()
+#     result = await loop.run_in_executor(None, task.generate_reference, pipeline)
+#     return result
 
 
 def log_stream_results(stream_results: List[SynapseStreamResult]):
