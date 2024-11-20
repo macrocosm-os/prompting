@@ -18,8 +18,8 @@ from loguru import logger
 from fastapi import APIRouter, Depends, FastAPI, Request, HTTPException
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
-from bittensor.subtensor import serve_extrinsic
-from bittensor.axon import FastAPIThreadedServer
+from bittensor.core.extrinsics.serving import serve_extrinsic
+from bittensor.core.axon import FastAPIThreadedServer
 from prompting.base.epistula import verify_signature
 
 

@@ -10,7 +10,7 @@ from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 from transformers import AwqConfig
 
-from prompting.utils.config import config
+#from prompting.utils.config import config
 
 
 class Settings(BaseSettings):
@@ -187,20 +187,20 @@ class Settings(BaseSettings):
         return configs
 
     @cached_property
-    def WALLET(self) -> bt.wallet:
-        wallet_name = self.WALLET_NAME or config().wallet.name
-        hotkey = self.HOTKEY or config().wallet.hotkey
+    def WALLET(self):
+        wallet_name = self.WALLET_NAME# or config().wallet.name
+        hotkey = self.HOTKEY# or config().wallet.hotkey
         logger.info(f"Instantiating wallet with name: {wallet_name}, hotkey: {hotkey}")
         return bt.wallet(name=wallet_name, hotkey=hotkey)
 
     @cached_property
     def SUBTENSOR(self) -> bt.subtensor:
         subtensor_network = self.SUBTENSOR_NETWORK or os.environ.get("SUBTENSOR_NETWORK", "local")
-        bt_config = config()
+        #bt_config = config()
         if subtensor_network.lower() == "local":
-            subtensor_network = bt_config.subtensor.chain_endpoint or os.environ.get("SUBTENSOR_CHAIN_ENDPOINT")
+            subtensor_network = os.environ.get("SUBTENSOR_CHAIN_ENDPOINT") #bt_config.subtensor.chain_endpoint or 
         else:
-            subtensor_network = bt_config.subtensor.network or subtensor_network.lower()
+            subtensor_network = subtensor_network.lower()#bt_config.subtensor.network or 
         logger.info(f"Instantiating subtensor with network: {subtensor_network}")
         return bt.subtensor(network=subtensor_network)
 
