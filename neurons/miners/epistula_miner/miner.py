@@ -78,35 +78,9 @@ class OpenAIMiner():
     #         "\u2713",
     #         f"Getting Chat Completion request from {request.headers.get('Epistula-Signed-By', '')[:8]}!",
     #     )
-    #     openai_request_body = await self.format_openai_query(request)
-    #     try:
-    #         req = self.client.build_request(
-    #             "POST", "chat/completions", json=openai_request_body
-    #         )
-    #         r = await self.client.send(req, stream=True)
-    #         # Check for non-200 status code
-    #         if r.status_code != 200:
-    #             error_content = await r.aread()
-    #             bt.logging.error(f"OpenAI API Error {r.status_code}: {error_content}")
-    #             return JSONResponse(
-    #                 content=json.loads(error_content),
-    #                 status_code=r.status_code
-    #             )
-    #     except Exception as e:
-    #         bt.logging.error(f"Exception during OpenAI API call: {str(e)}")
-    #         return JSONResponse(
-    #             content={"error": str(e)},
-    #             status_code=500
-    #         )
-
-    # async def create_chat_completion(self, request: Request):
-    #     bt.logging.info(
-    #         "\u2713",
-    #         f"Getting Chat Completion request from {request.headers.get('Epistula-Signed-By', '')[:8]}!",
-    #     )
         
     #     async def word_stream():
-    #         words = "This is a test stream".split()
+    #         words = "YOUR RESPONSE WOULD GO HERE".split()
     #         for word in words:
     #             # Simulate the OpenAI streaming response format
     #             data = {
@@ -118,7 +92,6 @@ class OpenAIMiner():
     #                     }
     #                 ]
     #             }
-    #             # Yield the data in SSE (Server-Sent Events) format
     #             yield f"data: {json.dumps(data)}\n\n"
     #             await asyncio.sleep(0.1)  # Simulate a delay between words
     #         # Indicate the end of the stream
