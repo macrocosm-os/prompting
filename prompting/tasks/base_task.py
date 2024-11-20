@@ -3,7 +3,6 @@ from typing import Any
 from loguru import logger
 from abc import ABC
 from pydantic import BaseModel, Field, ConfigDict, model_validator
-from prompting.llms.vllm_llm import vLLM_LLM
 from prompting.utils.cleaners import CleanerPipeline
 from typing import ClassVar
 from prompting.datasets.base import DatasetEntry
@@ -78,12 +77,10 @@ class BaseTextTask(BaseTask):
     def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
-        self.reference = vLLM_LLM(
-            llm=model_manager.get_model(self.llm_model).llm, system_prompt=self.reference_system_prompt or ""
-        ).query(cleaner=self.cleaner, message=messages)
-        # self.reference = model_manager.get_model(self.llm_model).generate(prompts=messages)
+        self.reference = model_manager.get_model(settings.LLM_MODEL).generate(prompts=messages)
         if self.reference is None:
             raise Exception("Reference generation failed")
+                
         return self.reference
 
     def generate_query(
