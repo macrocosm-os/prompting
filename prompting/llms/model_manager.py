@@ -4,13 +4,10 @@ from pydantic import BaseModel, ConfigDict
 import torch
 import asyncio
 from prompting.llms.utils import GPUInfo
-from vllm.distributed.parallel_state import destroy_model_parallel
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.mutable_globals import scoring_queue
 from prompting.settings import settings
-from vllm.sampling_params import SamplingParams
-from prompting.llms.vllm_llm import ReproducibleVLLM
 from prompting.llms.hf_llm import ReproducibleHF
 
 # This maintains a list of tasks for which we need to generate references. Since
@@ -22,7 +19,7 @@ open_tasks = []
 class ModelManager(BaseModel):
     always_active_models: list[ModelConfig] = []
     total_ram: float = settings.LLM_MODEL_RAM
-    active_models: dict[ModelConfig, ReproducibleVLLM] = {}
+    active_models: dict[ModelConfig] = {}
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -69,20 +66,11 @@ class ModelManager(BaseModel):
             )
             GPUInfo.log_gpu_info()
 
-            if settings.LLM_TYPE == "hf":
-                model = ReproducibleHF(
-                    model=model_config.llm_model_id,
-                    gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
-                    max_model_len=settings.LLM_MAX_MODEL_LEN,
-                )
-            elif settings.LLM_TYPE == "vllm":
-                model = ReproducibleVLLM(
-                    model=model_config.llm_model_id,
-                    gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
-                    max_model_len=settings.LLM_MAX_MODEL_LEN,
-                )
-            else:
-                raise ValueError(f"Unknown LLM_TYPE: {settings.LLM_TYPE}")
+            model = ReproducibleHF(
+                model=model_config.llm_model_id,
+                gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
+                max_model_len=settings.LLM_MAX_MODEL_LEN,
+            )
 
             self.active_models[model_config] = model
             self.used_ram += model_config.min_ram
@@ -97,7 +85,6 @@ class ModelManager(BaseModel):
             logger.warning("Couldn't find model to unload.")
             return
 
-        destroy_model_parallel()
         try:
             del self.active_models[model_config].llm.llm_engine.model_executor.driver_worker
             del self.active_models[model_config]
@@ -107,13 +94,13 @@ class ModelManager(BaseModel):
         self.used_ram -= model_config.min_ram
         torch.cuda.empty_cache()
 
-    def get_or_load_model(self, llm_model_id: str) -> ReproducibleVLLM | ReproducibleHF:
+    def get_or_load_model(self, llm_model_id: str) -> ReproducibleHF:
         model_config = ModelZoo.get_model_by_id(llm_model_id)
         if model_config not in self.active_models:
             self.load_model(model_config)
         return self.active_models[model_config]
 
-    def get_model(self, llm_model: ModelConfig | str) -> ReproducibleVLLM | ReproducibleHF:
+    def get_model(self, llm_model: ModelConfig | str) -> ReproducibleHF:
         if not llm_model:
             llm_model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
         if isinstance(llm_model, str):
@@ -149,8 +136,7 @@ class ModelManager(BaseModel):
         self,
         messages: list[str],
         roles: list[str],
-        model: ModelConfig | str | None = None,
-        sampling_params: SamplingParams | None = None,
+        model: ModelConfig | str | None = None
     ) -> str:
         dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
         composed_prompt = self._make_prompt(dict_messages)
@@ -161,15 +147,13 @@ class ModelManager(BaseModel):
         if not model:
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
-        model_instance: ReproducibleVLLM | ReproducibleHF = self.get_model(model)
+        model_instance: ReproducibleHF = self.get_model(model)
 
-        # Adjust sampling_params based on LLM_TYPE
-        if settings.LLM_TYPE == "hf":
-            valid_args = {"max_length", "temperature", "top_p", "min_length", "do_sample", "num_return_sequences"}
-            if sampling_params:
-                sampling_params = {k: v for k, v in sampling_params.items() if k in valid_args}
-            else:
-                sampling_params = {"max_length": settings.NEURON_MAX_TOKENS}
+        valid_args = {"max_length", "temperature", "top_p", "min_length", "do_sample", "num_return_sequences"}
+        if sampling_params:
+            sampling_params = {k: v for k, v in sampling_params.items() if k in valid_args}
+        else:
+            sampling_params = {"max_length": settings.NEURON_MAX_TOKENS}
 
         responses = model_instance.generate(prompts=[composed_prompt], sampling_params=sampling_params)
 
