@@ -3,21 +3,17 @@ from hashlib import sha256
 from uuid import uuid4
 from math import ceil
 import time
-from prompting.utils.timer import Timer
 from substrateinterface import Keypair
 import asyncio
 import bittensor as bt
-import math
-from os import urandom
-import time
 import traceback
-from typing import Dict, List, Optional, Tuple, Any, Annotated
+from typing import Dict, List, Optional, Any, Annotated
 from prompting.base.dendrite import SynapseStreamResult
 from httpx import Timeout
 import httpx
 import openai
-import requests
 from prompting.settings import settings
+
 
 def verify_signature(
     signature, body: bytes, timestamp, uuid, signed_for, signed_by, now
@@ -45,6 +41,7 @@ def verify_signature(
         return "Signature Mismatch"
     return None
 
+
 def generate_header(
     hotkey: Keypair,
     body_bytes: Dict[str, Any],
@@ -59,31 +56,25 @@ def generate_header(
         "Epistula-Uuid": uuid,
         "Epistula-Signed-By": hotkey.ss58_address,
         "Epistula-Request-Signature": "0x"
-        + hotkey.sign(
-            f"{sha256(body_bytes).hexdigest()}.{uuid}.{timestamp}.{signed_for or ''}"
-        ).hex(),
+        + hotkey.sign(f"{sha256(body_bytes).hexdigest()}.{uuid}.{timestamp}.{signed_for or ''}").hex(),
     }
     if signed_for:
         headers["Epistula-Signed-For"] = signed_for
-        headers["Epistula-Secret-Signature-0"] = (
-            "0x" + hotkey.sign(str(timestampInterval - 1) + "." + signed_for).hex()
-        )
-        headers["Epistula-Secret-Signature-1"] = (
-            "0x" + hotkey.sign(str(timestampInterval) + "." + signed_for).hex()
-        )
-        headers["Epistula-Secret-Signature-2"] = (
-            "0x" + hotkey.sign(str(timestampInterval + 1) + "." + signed_for).hex()
-        )
+        headers["Epistula-Secret-Signature-0"] = "0x" + hotkey.sign(str(timestampInterval - 1) + "." + signed_for).hex()
+        headers["Epistula-Secret-Signature-1"] = "0x" + hotkey.sign(str(timestampInterval) + "." + signed_for).hex()
+        headers["Epistula-Secret-Signature-2"] = "0x" + hotkey.sign(str(timestampInterval + 1) + "." + signed_for).hex()
     return {**headers, **json.loads(body_bytes)}
 
-def create_header_hook(hotkey, axon_hotkey):
+
+def create_header_hook(hotkey, axon_hotkey=None):
     async def add_headers(request: httpx.Request):
         for key, header in generate_header(hotkey, request.read(), axon_hotkey).items():
-            if key not in ['messages', 'model', 'stream']:
+            if key not in ["messages", "model", "stream"]:
                 request.headers[key] = header
         return request
 
     return add_headers
+
 
 async def query_miners(task, uids, body):
     try:
@@ -92,7 +83,11 @@ async def query_miners(task, uids, body):
             tasks.append(
                 asyncio.create_task(
                     handle_inference(
-                        settings.METAGRAPH, settings.WALLET, task, body, uid,
+                        settings.METAGRAPH,
+                        settings.WALLET,
+                        task,
+                        body,
+                        uid,
                     )
                 )
             )
@@ -102,10 +97,11 @@ async def query_miners(task, uids, body):
         bt.logging.error(f"Error in forward for: {e}")
         bt.logging.error(traceback.format_exc())
         return []
-    
+
+
 async def query_availabilities(uids, task_config, model_config):
-    """ Query the availability of the miners """
-    availability_dict = {'task_availabilities': task_config, 'llm_model_availabilities': model_config}
+    """Query the availability of the miners"""
+    availability_dict = {"task_availabilities": task_config, "llm_model_availabilities": model_config}
     # Query the availability of the miners
     try:
         tasks = []
@@ -113,18 +109,21 @@ async def query_availabilities(uids, task_config, model_config):
             tasks.append(
                 asyncio.create_task(
                     handle_availability(
-                        settings.METAGRAPH, availability_dict, uid,
+                        settings.METAGRAPH,
+                        availability_dict,
+                        uid,
                     )
                 )
             )
         responses: List[SynapseStreamResult] = await asyncio.gather(*tasks)
         return responses
-    
+
     except Exception as e:
         bt.logging.error(f"Error in availability call: {e}")
         bt.logging.error(traceback.format_exc())
         return []
-    
+
+
 async def handle_availability(
     metagraph: "bt.NonTorchMetagraph",
     request: Dict[str, Any],
@@ -142,7 +141,7 @@ async def handle_availability(
         response.raise_for_status()
         return response.json()
 
-    except Exception as e:
+    except Exception:
         return {}
 
 
@@ -164,17 +163,15 @@ async def handle_inference(
             api_key="Apex",
             max_retries=0,
             timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=5),
-            http_client=openai.DefaultAsyncHttpxClient(event_hooks={
-                "request": [
-                    create_header_hook(
-                        wallet.hotkey, axon_info.hotkey
-                    )
-                ]
-            }),
+            http_client=openai.DefaultAsyncHttpxClient(
+                event_hooks={"request": [create_header_hook(wallet.hotkey, axon_info.hotkey)]}
+            ),
         )
         try:
             payload = json.loads(body)
-            chat = await miner.chat.completions.create(messages=payload["messages"], model=payload["model"], stream=True)
+            chat = await miner.chat.completions.create(
+                messages=payload["messages"], model=payload["model"], stream=True
+            )
             async for chunk in chat:
                 if chunk.choices[0].delta and chunk.choices[0].delta.content:
                     chunks.append(chunk.choices[0].delta.content)

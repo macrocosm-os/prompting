@@ -3,7 +3,6 @@ from loguru import logger
 from prompting.tasks.base_task import BaseTask
 from prompting.llms.model_zoo import ModelZoo
 from prompting.base.loop_runner import AsyncLoopRunner
-from prompting.base.protocol import AvailabilitySynapse
 from prompting.settings import settings
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_uids
@@ -53,7 +52,7 @@ class MinerAvailabilities(BaseModel):
             available = [uid for uid in available if self.miners[uid].is_model_available(model)]
         if k:
             available = random.sample(available, min(len(available), k))
-        return available
+        return list(map(int, available))
 
 
 class CheckMinerAvailability(AsyncLoopRunner):
@@ -84,8 +83,8 @@ class CheckMinerAvailability(AsyncLoopRunner):
             if not response:
                 continue
             miner_availabilities.miners[uid] = MinerAvailability(
-                task_availabilities=response['task_availabilities'],
-                llm_model_availabilities=response['llm_model_availabilities'],
+                task_availabilities=response["task_availabilities"],
+                llm_model_availabilities=response["llm_model_availabilities"],
             )
 
         logger.debug("Miner availabilities updated.")

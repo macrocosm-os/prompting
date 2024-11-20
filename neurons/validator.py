@@ -25,6 +25,7 @@ from prompting.organic.organic_loop import start_organic
 from prompting.weight_setting.weight_setter import weight_setter
 from prompting.llms.utils import GPUInfo
 from prompting.base.epistula import query_miners
+from prompting.api.api import start_api
 
 NEURON_SAMPLE_SIZE = 100
 
@@ -139,13 +140,17 @@ class Validator(BaseValidatorNeuron):
             logger.warning("No available miners. This should already have been caught earlier.")
             return
 
-
-        body = {"seed": task.seed, "model": task.llm_model_id, "messages": [{'role': 'user', 'content': task.query},]}
+        body = {
+            "seed": task.seed,
+            "model": task.llm_model_id,
+            "messages": [
+                {"role": "user", "content": task.query},
+            ],
+        }
         body_bytes = json.dumps(body).encode("utf-8")
         stream_results = await query_miners(task.__class__.__name__, uids, body_bytes)
 
         log_stream_results(stream_results)
-
 
         response_event = DendriteResponseEvent(
             stream_results=stream_results, uids=uids, timeout=settings.NEURON_TIMEOUT
@@ -202,6 +207,9 @@ class Validator(BaseValidatorNeuron):
 
 
 async def main():
+    # start api
+    asyncio.create_task(start_api())
+
     GPUInfo.log_gpu_info()
     # start profiling
     asyncio.create_task(profiler.print_stats())
