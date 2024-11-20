@@ -61,5 +61,5 @@ class InferenceTask(BaseTextTask):
             roles=["user"],
             model=self.llm_model,
             sampling_params=SamplingParams(seed=self.seed),
-        )[0]
+        )
         return self.reference
