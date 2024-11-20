@@ -139,13 +139,11 @@ class Validator(BaseValidatorNeuron):
             logger.warning("No available miners. This should already have been caught earlier.")
             return
 
-
         body = {"seed": task.seed, "task": task.__class__.__name__, "model": task.llm_model_id, "messages": [{'role': 'user', 'content': task.query},]}
         body_bytes = json.dumps(body).encode("utf-8")
         stream_results = await query_miners(uids, body_bytes)
 
         log_stream_results(stream_results)
-
 
         response_event = DendriteResponseEvent(
             stream_results=stream_results, uids=uids, timeout=settings.NEURON_TIMEOUT
