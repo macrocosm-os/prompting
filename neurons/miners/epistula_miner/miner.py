@@ -48,7 +48,6 @@ class OpenAIMiner():
         print("OpenAI Key: ", settings.OPENAI_API_KEY)
 
     async def format_openai_query(self, request: Request):
-        # Read the JSON data once
         data = await request.json()
         
         # Extract the required fields
@@ -111,7 +110,6 @@ class OpenAIMiner():
 
     async def check_availability(self, request: Request):
         print("Checking availability")
-        # Parse the incoming JSON request
         data = await request.json()
         task_availabilities = data.get('task_availabilities', {})
         llm_model_availabilities = data.get('llm_model_availabilities', {})
@@ -119,10 +117,9 @@ class OpenAIMiner():
         # Set all task availabilities to True
         task_response = {key: True for key in task_availabilities}
         
-        # Set all model availabilities to False
+        # Set all model availabilities to False (openai will not be able to handle seeded inference)
         model_response = {key: False for key in llm_model_availabilities}
         
-        # Construct the response dictionary
         response = {
             'task_availabilities': task_response,
             'llm_model_availabilities': model_response
@@ -142,35 +139,35 @@ class OpenAIMiner():
         # But use some specific fields from the body
         signed_by = request.headers.get("Epistula-Signed-By")
         signed_for = request.headers.get("Epistula-Signed-For")
-        if signed_for != self.wallet.hotkey.ss58_address:
+        if signed_for != settings.WALLET.hotkey.ss58_address:
             raise HTTPException(
                 status_code=400, detail="Bad Request, message is not intended for self"
             )
-        if signed_by not in self.metagraph.hotkeys:
+        if signed_by not in settings.METAGRAPH.hotkeys:
             raise HTTPException(status_code=401, detail="Signer not in metagraph")
 
-        uid = self.metagraph.hotkeys.index(signed_by)
-        stake = self.metagraph.S[uid].item()
-        if not self.config.no_force_validator_permit and stake < 10000:
+        uid = settings.METAGRAPH.hotkeys.index(signed_by)
+        stake = settings.METAGRAPH.S[uid].item()
+        if not settings.NETUID == 61 and stake < 10000:
             bt.logging.warning(
                 f"Blacklisting request from {signed_by} [uid={uid}], not enough stake -- {stake}"
             )
             raise HTTPException(status_code=401, detail="Stake below minimum: {stake}")
-
-        # If anything is returned here, we can throw
-        body = await request.body()
-        err = verify_signature(
-            request.headers.get("Epistula-Request-Signature"),
-            body,
-            request.headers.get("Epistula-Timestamp"),
-            request.headers.get("Epistula-Uuid"),
-            signed_for,
-            signed_by,
-            now,
-        )
-        if err:
-            bt.logging.error(err)
-            raise HTTPException(status_code=400, detail=err)
+        # TODO: Implement the optional epistula signature verification
+        # # If anything is returned here, we can throw
+        # body = await request.body()
+        # err = verify_signature(
+        #     request.headers.get("Epistula-Request-Signature"),
+        #     body,
+        #     request.headers.get("Epistula-Timestamp"),
+        #     request.headers.get("Epistula-Uuid"),
+        #     signed_for,
+        #     signed_by,
+        #     now,
+        # )
+        # if err:
+        #     bt.logging.error(err)
+        #     raise HTTPException(status_code=400, detail=err)
 
     def run(self):
 
@@ -205,7 +202,7 @@ class OpenAIMiner():
         router.add_api_route(
             "/v1/chat/completions",
             self.create_chat_completion,
-            #dependencies=[Depends(self.verify_request)],
+            dependencies=[Depends(self.verify_request)],
             methods=["POST"],
         )
         router.add_api_route(
