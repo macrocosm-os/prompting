@@ -85,14 +85,14 @@ def create_header_hook(hotkey, axon_hotkey):
 
     return add_headers
 
-async def query_miners(task, uids, body):
+async def query_miners(uids, body):
     try:
         tasks = []
         for uid in uids:
             tasks.append(
                 asyncio.create_task(
                     handle_inference(
-                        settings.METAGRAPH, settings.WALLET, task, body, uid,
+                        settings.METAGRAPH, settings.WALLET, body, uid,
                     )
                 )
             )
@@ -149,7 +149,6 @@ async def handle_availability(
 async def handle_inference(
     metagraph: "bt.NonTorchMetagraph",
     wallet: "bt.wallet",
-    task: str,
     body: Dict[str, Any],
     uid: int,
 ) -> SynapseStreamResult:

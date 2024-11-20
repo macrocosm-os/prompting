@@ -140,9 +140,9 @@ class Validator(BaseValidatorNeuron):
             return
 
 
-        body = {"seed": task.seed, "model": task.llm_model_id, "messages": [{'role': 'user', 'content': task.query},]}
+        body = {"seed": task.seed, "task": task.__class__.__name__, "model": task.llm_model_id, "messages": [{'role': 'user', 'content': task.query},]}
         body_bytes = json.dumps(body).encode("utf-8")
-        stream_results = await query_miners(task.__class__.__name__, uids, body_bytes)
+        stream_results = await query_miners(uids, body_bytes)
 
         log_stream_results(stream_results)
 
