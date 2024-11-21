@@ -150,6 +150,7 @@ pydantic-settings = "^2.5.2"
 huggingface-hub = "^0.25.2"
 accelerate = "^1.1.1"
 pillow = "^11.0.0"
+torchvision = "^0.20.1"
 
 [build-system]
 requires = ["poetry-core"]

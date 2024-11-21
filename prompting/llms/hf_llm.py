@@ -1,8 +1,8 @@
+import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 from loguru import logger
 import random
 import numpy as np
-import torch
 from prompting.utils.timer import Timer
 from prompting.settings import settings
 
