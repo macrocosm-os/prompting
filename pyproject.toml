@@ -152,6 +152,7 @@ accelerate = "^1.1.1"
 pillow = "^11.0.0"
 torchvision = "^0.20.1"
 tiktoken = "^0.8.0"
+tenacity = "^9.0.0"
 
 [build-system]
 requires = ["poetry-core"]
