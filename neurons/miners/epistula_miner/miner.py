@@ -4,9 +4,11 @@ from prompting import settings
 settings.settings = settings.Settings.load(mode="miner")
 settings = settings.settings
 
+from typing import Dict, Any
+import hashlib
+import json
 import time
 import asyncio
-import json
 import httpx
 import netaddr
 import uvicorn
@@ -58,6 +60,20 @@ class OpenAIMiner():
         openai_request["model"] = MODEL_ID
         
         return openai_request
+    
+    def generate_reproducible_string(self, messages: Dict[str, Any], sampling_params: Dict[str, Any], input_string: str) -> str:
+        if not isinstance(messages, dict) or not isinstance(sampling_params, dict):
+            raise TypeError("messages and sampling_params must be dictionaries")
+        if not isinstance(input_string, str):
+            raise TypeError("input_string must be a string")
+        
+        try:
+            combined_input = json.dumps(messages, sort_keys=True) + json.dumps(sampling_params, sort_keys=True) + input_string
+            reproducible_string = hashlib.sha256(combined_input.encode()).hexdigest()
+            return reproducible_string
+        
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"Error generating reproducible string: {e}")
     
     async def create_chat_completion(self, request: Request):
         bt.logging.info(
