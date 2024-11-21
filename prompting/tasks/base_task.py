@@ -58,6 +58,7 @@ class BaseTextTask(BaseTask):
     augmentation_system_prompt: ClassVar[str | None] = None
     dataset_entry: DatasetEntry | None = None
     task_id: str = str(uuid4())
+    sampling_params: dict[str, float] = settings.SAMPLING_PARAMS
 
     cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
 
@@ -77,7 +78,7 @@ class BaseTextTask(BaseTask):
     def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
-        self.reference = model_manager.get_model(settings.LLM_MODEL).generate(prompts=messages)
+        self.reference = model_manager.get_model(settings.LLM_MODEL).generate(prompts=messages) #This should be a list of dict
         if self.reference is None:
             raise Exception("Reference generation failed")
                 

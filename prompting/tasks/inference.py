@@ -11,6 +11,7 @@ import random
 from prompting.llms.model_manager import model_manager
 from prompting.datasets.sn13 import ChatEntry
 from prompting.llms.model_zoo import ModelZoo
+from prompting.settings import settings
 
 
 class InferenceRewardConfig(BaseRewardConfig):
@@ -38,6 +39,7 @@ class InferenceTask(BaseTextTask):
     llm_model: ModelConfig | None = None
     llm_model_id: ModelConfig | None = random.choice(ModelZoo.models_configs).llm_model_id
     seed: int = Field(default_factory=lambda: random.randint(0, 1_000_000))
+    sampling_params: dict[str, float] = settings.SAMPLING_PARAMS
 
     @model_validator(mode="after")
     def random_llm_model_id(self):
@@ -59,5 +61,7 @@ class InferenceTask(BaseTextTask):
             messages=[self.messages[-1]],
             roles=["user"],
             model=self.llm_model,
-        )[0]
+            seed=self.seed,
+            sampling_params=self.sampling_params,
+        )
         return self.reference

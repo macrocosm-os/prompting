@@ -44,5 +44,5 @@ class DateQuestionAnsweringTask(BaseTextTask):
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
             date=dataset_entry.content, query=self.query, content=dataset_entry.subtopic
         )
-        self.reference = self.generate_reference(messages=[reference_prompt])
+        self.reference = self.generate_reference(messages=[{"role": "user", "content": reference_prompt}])
         return self.reference
