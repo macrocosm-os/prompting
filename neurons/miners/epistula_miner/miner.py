@@ -45,7 +45,6 @@ class OpenAIMiner():
             "Content-Type": "application/json",
         },
     )
-        print("OpenAI Key: ", settings.OPENAI_API_KEY)
 
     async def format_openai_query(self, request: Request):
         data = await request.json()
