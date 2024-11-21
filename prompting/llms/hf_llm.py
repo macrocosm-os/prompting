@@ -7,7 +7,7 @@ from prompting.utils.timer import Timer
 from prompting.settings import settings
 
 class ReproducibleHF():
-    def __init__(self, model_id="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", settings=None, **kwargs):
+    def __init__(self, model_id="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", **kwargs):
         """
         Initialize Hugging Face model with reproducible settings and optimizations
         """
