@@ -11,7 +11,9 @@ class ReproducibleHF():
         """
         Initialize Hugging Face model with reproducible settings and optimizations
         """
-        self.seed = self.set_random_seeds(42)
+        # Create a random seed for reproducibility
+        self.seed = random.randint(0, 1_000_000)
+        self.set_random_seeds(self.seed)
         quantization_config = settings.QUANTIZATION_CONFIG.get(model_id, None)
         
         self.model = AutoModelForCausalLM.from_pretrained(
@@ -33,10 +35,11 @@ class ReproducibleHF():
         self.sampling_params = settings.SAMPLING_PARAMS
 
     @torch.inference_mode()
-    def generate(self, prompts, sampling_params=None):
+    def generate(self, prompts, sampling_params=None, seed=None):
         """
         Generate text with optimized performance
         """
+        self.set_random_seeds(seed)
         
         inputs = self.tokenizer.apply_chat_template(
                 prompts,
@@ -84,4 +87,4 @@ class ReproducibleHF():
 
 if __name__ == "__main__":
     llm = ReproducibleHF(model="Qwen/Qwen2-0.5B", tensor_parallel_size=1, seed=42)
-    llm.generate("Hello, world!")
+    llm.generate({'role': 'user', 'content': "Hello, world!"})

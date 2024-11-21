@@ -9,6 +9,7 @@ from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.mutable_globals import scoring_queue
 from prompting.settings import settings
 from prompting.llms.hf_llm import ReproducibleHF
+from typing import Dict
 
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work
@@ -134,11 +135,11 @@ class ModelManager(BaseModel):
         self,
         messages: list[str],
         roles: list[str],
-        model: ModelConfig | str | None = None
+        model: ModelConfig | str | None = None,
+        seed: int = None,
+        sampling_params: Dict[str, float] = None,
     ) -> str:
         dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
-        composed_prompt = self._make_prompt(dict_messages)
-        logger.debug(f"Generating Chat with prompt: {composed_prompt}")
 
         if isinstance(model, str):
             model = ModelZoo.get_model_by_id(model)
@@ -146,7 +147,7 @@ class ModelManager(BaseModel):
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
         model_instance: ReproducibleHF = self.get_model(model)
-        responses = model_instance.generate(prompts=[composed_prompt])
+        responses = model_instance.generate(prompts=[dict_messages], sampling_params=sampling_params, seed=seed)
 
         return responses
 
