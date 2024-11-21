@@ -18,6 +18,7 @@ class MultiChoiceRewardModel(BaseRewardModel):
     @model_validator(mode="after")
     def init_choice_map(self):
         self.choice_map = {choice.lower(): choice for choice in self.choices}
+        return self
 
     @property
     def name(self) -> str:
