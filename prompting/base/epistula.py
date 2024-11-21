@@ -80,7 +80,7 @@ def create_header_hook(hotkey, axon_hotkey):
     async def add_headers(request: httpx.Request):
         for key, header in generate_header(hotkey, request.read(), axon_hotkey).items():
             if key not in ['messages', 'model', 'stream']:
-                request.headers[key] = header
+                request.headers[key] = str(header)
         return request
 
     return add_headers
@@ -173,7 +173,7 @@ async def handle_inference(
         )
         try:
             payload = json.loads(body)
-            chat = await miner.chat.completions.create(messages=payload["messages"], model=payload["model"], stream=True)
+            chat = await miner.chat.completions.create(messages=payload["messages"], model=payload["model"], stream=True, extra_body= payload['sampling_parameters'])
             async for chunk in chat:
                 if chunk.choices[0].delta and chunk.choices[0].delta.content:
                     chunks.append(chunk.choices[0].delta.content)
