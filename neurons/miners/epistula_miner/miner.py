@@ -153,21 +153,20 @@ class OpenAIMiner():
                 f"Blacklisting request from {signed_by} [uid={uid}], not enough stake -- {stake}"
             )
             raise HTTPException(status_code=401, detail="Stake below minimum: {stake}")
-        # TODO: Implement the optional epistula signature verification
-        # # If anything is returned here, we can throw
-        # body = await request.body()
-        # err = verify_signature(
-        #     request.headers.get("Epistula-Request-Signature"),
-        #     body,
-        #     request.headers.get("Epistula-Timestamp"),
-        #     request.headers.get("Epistula-Uuid"),
-        #     signed_for,
-        #     signed_by,
-        #     now,
-        # )
-        # if err:
-        #     bt.logging.error(err)
-        #     raise HTTPException(status_code=400, detail=err)
+        # If anything is returned here, we can throw
+        body = await request.body()
+        err = verify_signature(
+            request.headers.get("Epistula-Request-Signature"),
+            body,
+            request.headers.get("Epistula-Timestamp"),
+            request.headers.get("Epistula-Uuid"),
+            signed_for,
+            signed_by,
+            now,
+        )
+        if err:
+            bt.logging.error(err)
+            raise HTTPException(status_code=400, detail=err)
 
     def run(self):
 
