@@ -21,7 +21,7 @@ from prompting.utils.timer import Timer
 from prompting.mutable_globals import scoring_queue
 from prompting import mutable_globals
 from prompting.tasks.base_task import BaseTextTask
-from prompting.organic.organic_loop import start_organic
+#from prompting.organic.organic_loop import start_organic
 from prompting.weight_setting.weight_setter import weight_setter
 from prompting.llms.utils import GPUInfo
 from prompting.base.epistula import query_miners
@@ -48,7 +48,7 @@ class Validator(BaseValidatorNeuron):
         super(Validator, self).__init__(config=config)
         self.load_state()
         self._lock = asyncio.Lock()
-        start_organic(self.axon)
+        #start_organic(self.axon)
         self.time_of_block_sync = None
 
     @property
@@ -88,10 +88,10 @@ class Validator(BaseValidatorNeuron):
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
         while len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
-            logger.debug("Scoring queue is full. Waiting 1 second...")
+            #logger.debug("Scoring queue is full. Waiting 1 second...")
             await asyncio.sleep(1)
         while len(mutable_globals.task_queue) == 0:
-            logger.warning("No tasks in queue. Waiting 1 second...")
+            #logger.warning("No tasks in queue. Waiting 1 second...")
             await asyncio.sleep(1)
         try:
             # get task from the task queue
@@ -139,7 +139,7 @@ class Validator(BaseValidatorNeuron):
             logger.warning("No available miners. This should already have been caught earlier.")
             return
 
-        body = {"seed": task.seed, "task": task.__class__.__name__, "model": task.llm_model_id, "messages": [{'role': 'user', 'content': task.query},]}
+        body = {"seed": task.seed, "sampling_parameters": task.sampling_params, "task": task.__class__.__name__, "model": task.llm_model_id, "messages": [{'role': 'user', 'content': task.query},]}
         body_bytes = json.dumps(body).encode("utf-8")
         stream_results = await query_miners(uids, body_bytes)
 
@@ -232,6 +232,7 @@ async def main():
                 f"| vtrust: {settings.METAGRAPH.validator_trust[v.uid]:.3f} "
                 f"| emission {settings.METAGRAPH.emission[v.uid]:.3f}"
             )
+            print(v.block)
             time.sleep(5)
 
             if v.should_exit:
