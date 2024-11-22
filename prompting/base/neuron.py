@@ -13,7 +13,6 @@ from prompting.utils.misc import ttl_get_block
 # from prompting import __spec_version__ as spec_version
 
 
-
 class BaseNeuron(ABC):
     """
     Base class for Bittensor miners. This class is abstract and should be inherited by a subclass. It contains the core logic for all neurons; validators and miners.
