@@ -1,16 +1,15 @@
 import sys
-import time
-from abc import ABC, abstractmethod
-
 import bittensor as bt
 from loguru import logger
-
-from prompting.settings import settings
+from abc import ABC, abstractmethod
+import time
 
 # Sync calls set weights and also resyncs the metagraph.π
 from prompting.utils.misc import ttl_get_block
 
 # from prompting import __spec_version__ as spec_version
+
+from prompting.settings import settings
 
 
 class BaseNeuron(ABC):
@@ -26,13 +25,7 @@ class BaseNeuron(ABC):
 
     @property
     def block(self):
-        try:
-            self._block = ttl_get_block()
-        except Exception as e:
-            logger.error(f"Failed to get block: {e}")
-            self._block = None
-            #Raise a fatal error if the block is not available.
-            raise e
+        self._block = ttl_get_block()
         self.time_of_block_sync = time.time()
         return self._block
 
@@ -51,12 +44,10 @@ class BaseNeuron(ABC):
         self.step = 0
 
     @abstractmethod
-    def forward(self, synapse: bt.Synapse) -> bt.Synapse:
-        ...
+    def forward(self, synapse: bt.Synapse) -> bt.Synapse: ...
 
     @abstractmethod
-    def run(self):
-        ...
+    def run(self): ...
 
     def set_weights():
         raise NotImplementedError("set_weights() not implemented for this neuron.")
@@ -67,24 +58,17 @@ class BaseNeuron(ABC):
         """
         # Ensure miner or validator hotkey is still registered on the network.
         logger.info("Syncing neuron...")
-        #self.check_registered()
+        
+        self.check_registered()
 
         if self.should_sync_metagraph():
             self.resync_metagraph()
-
-        # if self.should_set_weights():
-        #     logger.debug("Setting weights...")
-        #     self.set_weights()
 
         # Always save state.
         self.save_state()
 
     def check_registered(self):
-        # --- Check for registration.
-        if not settings.SUBTENSOR.is_hotkey_registered(
-            netuid=settings.NETUID,
-            hotkey_ss58=settings.WALLET.hotkey.ss58_address,
-        ):
+        if not settings.WALLET.hotkey.ss58_address in settings.METAGRAPH.hotkeys:
             logger.error(
                 f"Wallet: {settings.WALLET} is not registered on netuid {settings.NETUID}."
                 f" Please register the hotkey using `btcli subnets register` before trying again"

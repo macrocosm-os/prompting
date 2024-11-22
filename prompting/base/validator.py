@@ -25,7 +25,6 @@ class BaseValidatorNeuron(BaseNeuron):
         super().__init__(config=config)
         if settings.WANDB_ON:
             init_wandb(neuron="validator")
-        self.axon: bt.axon | None = None
         self.latest_block = -1
 
         # Save a copy of the hotkeys to local memory.
@@ -37,13 +36,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Init sync with the network. Updates the metagraph.
         self.sync()
-
-        # Serve axon to enable external connections.
-        self.axon = bt.axon(wallet=settings.WALLET, port=settings.AXON_PORT)
-        if self.axon is not None:
-            self._serve_axon()
-        else:
-            logger.warning("axon off, not serving ip to chain.")
 
         # Create asyncio event loop to manage async tasks.
         self.loop = asyncio.get_event_loop()
