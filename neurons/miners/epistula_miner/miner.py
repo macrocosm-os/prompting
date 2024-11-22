@@ -5,9 +5,7 @@ settings.settings = settings.Settings.load(mode="miner")
 settings = settings.settings
 
 import time
-import traceback
 
-import bittensor as bt
 import httpx
 import netaddr
 import requests
@@ -123,7 +121,7 @@ class OpenAIMiner:
         uid = settings.METAGRAPH.hotkeys.index(signed_by)
         stake = settings.METAGRAPH.S[uid].item()
         if not settings.NETUID == 61 and stake < 10000:
-            bt.logging.warning(f"Blacklisting request from {signed_by} [uid={uid}], not enough stake -- {stake}")
+            logger.warning(f"Blacklisting request from {signed_by} [uid={uid}], not enough stake -- {stake}")
             raise HTTPException(status_code=401, detail="Stake below minimum: {stake}")
 
         body = await request.body()
@@ -137,7 +135,7 @@ class OpenAIMiner:
             now,
         )
         if err:
-            bt.logging.error(err)
+            logger.error(err)
             raise HTTPException(status_code=400, detail=err)
 
     def run(self):
@@ -147,9 +145,9 @@ class OpenAIMiner:
                 external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
                 netaddr.IPAddress(external_ip)
             except Exception:
-                bt.logging.error("Failed to get external IP")
+                logger.error("Failed to get external IP")
 
-        bt.logging.info(
+        logger.info(
             f"Serving miner endpoint {external_ip}:{settings.AXON_PORT} on network: {settings.SUBTENSOR_NETWORK} with netuid: {settings.NETUID}"
         )
 
@@ -162,7 +160,7 @@ class OpenAIMiner:
             netuid=settings.NETUID,
         )
         if not serve_success:
-            bt.logging.error("Failed to serve endpoint")
+            logger.error("Failed to serve endpoint")
             return
 
         app = FastAPI()
@@ -189,15 +187,14 @@ class OpenAIMiner:
         self.fast_api = FastAPIThreadedServer(config=fast_config)
         self.fast_api.start()
 
-        bt.logging.info(f"Miner starting at block: {settings.SUBTENSOR.block}")
+        logger.info(f"Miner starting at block: {settings.SUBTENSOR.block}")
 
         # Main execution loop.
         try:
             while not self.should_exit:
                 time.sleep(1)
         except Exception as e:
-            bt.logging.error(str(e))
-            bt.logging.error(traceback.format_exc())
+            logger.error(str(e))
         self.shutdown()
 
 

@@ -1,7 +1,6 @@
 import asyncio
 import json
 import time
-import traceback
 from hashlib import sha256
 from math import ceil
 from typing import Annotated, Any, Dict, List, Optional
@@ -11,6 +10,7 @@ import bittensor as bt
 import httpx
 import openai
 from httpx import Timeout
+from loguru import logger
 from substrateinterface import Keypair
 
 from prompting.base.dendrite import SynapseStreamResult
@@ -95,8 +95,7 @@ async def query_miners(uids, body):
         responses: List[SynapseStreamResult] = await asyncio.gather(*tasks)
         return responses
     except Exception as e:
-        bt.logging.error(f"Error in forward for: {e}")
-        bt.logging.error(traceback.format_exc())
+        logger.error(f"Error in forward for: {e}")
         return []
 
 
@@ -120,8 +119,7 @@ async def query_availabilities(uids, task_config, model_config):
         return responses
 
     except Exception as e:
-        bt.logging.error(f"Error in availability call: {e}")
-        bt.logging.error(traceback.format_exc())
+        logger.error(f"Error in availability call: {e}")
         return []
 
 
@@ -181,17 +179,16 @@ async def handle_inference(
                     chunk_timings.append(time.time() - start_time)
 
         except openai.APIConnectionError as e:
-            bt.logging.trace(f"Miner {uid} failed request: {e}")
+            logger.trace(f"Miner {uid} failed request: {e}")
             exception = e
 
         except Exception as e:
-            bt.logging.trace(f"Unknown Error when sending to miner {uid}: {e}")
+            logger.trace(f"Unknown Error when sending to miner {uid}: {e}")
             exception = e
 
     except Exception as e:
         exception = e
-        bt.logging.error(f"{uid}: Error in forward for: {e}")
-        bt.logging.error(traceback.format_exc())
+        logger.error(f"{uid}: Error in forward for: {e}")
     finally:
         if exception:
             exception = str(exception)
