@@ -14,6 +14,7 @@ from neurons.miners.openai.utils import OpenAIUtils
 from starlette.types import Send
 from prompting.utils.logging import ErrorLoggingEvent, log_event
 from prompting.base.protocol import AvailabilitySynapse
+from prompting.llms.hf_llm import ReproducibleHF
 
 MODEL_ID: str = "gpt-3.5-turbo"
 NEURON_MAX_TOKENS: int = 256
@@ -32,6 +33,7 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
     """
 
     model: OpenAI | None = None
+    llm: ReproducibleHF | None = None
     accumulated_total_tokens: int = 0
     accumulated_prompt_tokens: int = 0
     accumulated_completion_tokens: int = 0
@@ -151,6 +153,15 @@ class OpenAIMiner(BaseStreamMinerNeuron, OpenAIUtils):
         # allow all tasks to be sent through
         synapse.task_availabilities = {task: True for task, _ in synapse.task_availabilities.items()}
         return synapse
+    
+    def reproducible_miner(model_id: str, prompts: str, sampling_params: dict = None, seed: int = 42) -> str:
+        try:
+            llm = ReproducibleHF(model_id=model_id, settings=settings)
+            response = llm.generate(prompts, sampling_params=sampling_params)
+            return response
+        except Exception as e:
+            logger.error(f"An error occurred during text generation: {e}")
+            return str(e)
 
 
 if __name__ == "__main__":
