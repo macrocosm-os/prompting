@@ -28,7 +28,9 @@ async def proxy_chat_completions(request: Request):
 
     # Ensure streaming is enabled
     body["stream"] = True
-    if not settings.mode == "mock" and not (
+    if settings.TEST_MINER_IDS:
+        available_miners = settings.TEST_MINER_IDS
+    elif not settings.mode == "mock" and not (
         available_miners := miner_availabilities.get_available_miners(task="Inference", model=None)
     ):
         return "No miners available"
