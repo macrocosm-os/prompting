@@ -6,7 +6,6 @@ from typing import Awaitable, Dict, List
 from loguru import logger
 
 from prompting.base.dendrite import SynapseStreamResult
-from prompting.base.protocol import StreamPromptingSynapse
 from prompting.utils.misc import async_log, serialize_exception_to_string
 
 
