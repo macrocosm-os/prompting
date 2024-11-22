@@ -65,7 +65,7 @@ def generate_header(
         headers["Epistula-Secret-Signature-0"] = "0x" + hotkey.sign(str(timestampInterval - 1) + "." + signed_for).hex()
         headers["Epistula-Secret-Signature-1"] = "0x" + hotkey.sign(str(timestampInterval) + "." + signed_for).hex()
         headers["Epistula-Secret-Signature-2"] = "0x" + hotkey.sign(str(timestampInterval + 1) + "." + signed_for).hex()
-    return {**headers, **json.loads(body_bytes)}
+    return headers.update(json.loads(body_bytes))
 
 
 def create_header_hook(hotkey, axon_hotkey):
