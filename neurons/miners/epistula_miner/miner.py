@@ -56,20 +56,11 @@ class OpenAIMiner:
         return openai_request
 
     async def create_chat_completion(self, request: Request):
-        bt.logging.info(
-            "\u2713",
-            f"Getting Chat Completion request from {request.headers.get('Epistula-Signed-By', '')[:8]}!",
-        )
         req = self.client.build_request("POST", "chat/completions", json=await self.format_openai_query(request))
         r = await self.client.send(req, stream=True)
         return StreamingResponse(r.aiter_raw(), background=BackgroundTask(r.aclose), headers=r.headers)
 
     # async def create_chat_completion(self, request: Request):
-    #     bt.logging.info(
-    #         "\u2713",
-    #         f"Getting Chat Completion request from {request.headers.get('Epistula-Signed-By', '')[:8]}!",
-    #     )
-
     #     async def word_stream():
     #         words = "YOUR RESPONSE WOULD GO HERE".split()
     #         for word in words:
@@ -120,12 +111,8 @@ class OpenAIMiner:
         self,
         request: Request,
     ):
-        # We do this as early as possible so that now has a lesser chance
-        # of causing a stale request
         now = round(time.time() * 1000)
 
-        # We need to check the signature of the body as bytes
-        # But use some specific fields from the body
         signed_by = request.headers.get("Epistula-Signed-By")
         signed_for = request.headers.get("Epistula-Signed-For")
         if signed_for != settings.WALLET.hotkey.ss58_address:
@@ -138,7 +125,7 @@ class OpenAIMiner:
         if not settings.NETUID == 61 and stake < 10000:
             bt.logging.warning(f"Blacklisting request from {signed_by} [uid={uid}], not enough stake -- {stake}")
             raise HTTPException(status_code=401, detail="Stake below minimum: {stake}")
-        # If anything is returned here, we can throw
+
         body = await request.body()
         err = verify_signature(
             request.headers.get("Epistula-Request-Signature"),
@@ -178,8 +165,6 @@ class OpenAIMiner:
             bt.logging.error("Failed to serve endpoint")
             return
 
-        # Start  starts the miner's endpoint, making it active on the network.
-        # change the config in the axon
         app = FastAPI()
         router = APIRouter()
         router.add_api_route(
@@ -206,7 +191,7 @@ class OpenAIMiner:
 
         bt.logging.info(f"Miner starting at block: {settings.SUBTENSOR.block}")
 
-        # This loop maintains the miner's operations until intentionally stopped.
+        # Main execution loop.
         try:
             while not self.should_exit:
                 time.sleep(1)
