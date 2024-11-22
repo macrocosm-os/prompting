@@ -5,6 +5,8 @@ settings.settings = settings.Settings.load(mode="miner")
 settings = settings.settings
 
 import time
+import json
+import asyncio
 
 import httpx
 import netaddr
@@ -18,6 +20,7 @@ from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
 
 from prompting.base.epistula import verify_signature
+from prompting.llms.hf_llm import ReproducibleHF
 
 MODEL_ID: str = "gpt-3.5-turbo"
 NEURON_MAX_TOKENS: int = 256
@@ -26,8 +29,8 @@ NEURON_TOP_K: int = 50
 NEURON_TOP_P: float = 0.95
 NEURON_STREAMING_BATCH_SIZE: int = 12
 NEURON_STOP_ON_FORWARD_EXCEPTION: bool = False
-
-SYSTEM_PROMPT = """You are a helpful agent that does it's best to answer all questions!"""
+SHOULD_SERVE_LLM: bool = False
+LOCAL_MODEL_ID = "casperhansen/llama-3-8b-instruct-awq"
 
 
 class OpenAIMiner:
@@ -40,6 +43,10 @@ class OpenAIMiner:
                 "Content-Type": "application/json",
             },
         )
+        if SHOULD_SERVE_LLM:
+            self.llm = ReproducibleHF(model_id= LOCAL_MODEL_ID, settings=settings)
+        else:
+            self.llm = None
 
     async def format_openai_query(self, request: Request):
         data = await request.json()
@@ -54,40 +61,42 @@ class OpenAIMiner:
         return openai_request
 
     async def create_chat_completion(self, request: Request):
+        if self.llm and request.headers.get("task", None) == 'inference':
+            return self.create_inference_completion(request)
         req = self.client.build_request("POST", "chat/completions", json=await self.format_openai_query(request))
         r = await self.client.send(req, stream=True)
         return StreamingResponse(r.aiter_raw(), background=BackgroundTask(r.aclose), headers=r.headers)
 
-    # async def create_chat_completion(self, request: Request):
-    #     async def word_stream():
-    #         words = "YOUR RESPONSE WOULD GO HERE".split()
-    #         for word in words:
-    #             # Simulate the OpenAI streaming response format
-    #             data = {
-    #                 "choices": [
-    #                     {
-    #                         "delta": {"content": word + ' '},
-    #                         "index": 0,
-    #                         "finish_reason": None
-    #                     }
-    #                 ]
-    #             }
-    #             yield f"data: {json.dumps(data)}\n\n"
-    #             await asyncio.sleep(0.1)  # Simulate a delay between words
-    #         # Indicate the end of the stream
-    #         data = {
-    #             "choices": [
-    #                 {
-    #                     "delta": {},
-    #                     "index": 0,
-    #                     "finish_reason": "stop"
-    #                 }
-    #             ]
-    #         }
-    #         yield f"data: {json.dumps(data)}\n\n"
-    #         yield "data: [DONE]\n\n"
+    async def create_inference_completion(self, request: Request):
+        async def word_stream():
+            words = self.run_inference(request).split()
+            for word in words:
+                # Simulate the OpenAI streaming response format
+                data = {
+                    "choices": [
+                        {
+                            "delta": {"content": word + ' '},
+                            "index": 0,
+                            "finish_reason": None
+                        }
+                    ]
+                }
+                yield f"data: {json.dumps(data)}\n\n"
+                await asyncio.sleep(0.1)  # Simulate a delay between words
+            # Indicate the end of the stream
+            data = {
+                "choices": [
+                    {
+                        "delta": {},
+                        "index": 0,
+                        "finish_reason": "stop"
+                    }
+                ]
+            }
+            yield f"data: {json.dumps(data)}\n\n"
+            yield "data: [DONE]\n\n"
 
-    #     return StreamingResponse(word_stream(), media_type='text/event-stream')
+        return StreamingResponse(word_stream(), media_type='text/event-stream')
 
     async def check_availability(self, request: Request):
         print("Checking availability")
@@ -99,7 +108,7 @@ class OpenAIMiner:
         task_response = {key: True for key in task_availabilities}
 
         # Set all model availabilities to False (openai will not be able to handle seeded inference)
-        model_response = {key: False for key in llm_model_availabilities}
+        model_response = {key: key == LOCAL_MODEL_ID for key in llm_model_availabilities}
 
         response = {"task_availabilities": task_response, "llm_model_availabilities": model_response}
 
@@ -197,6 +206,15 @@ class OpenAIMiner:
         except Exception as e:
             logger.error(str(e))
         self.shutdown()
+
+    async def run_inference(self,request: Request) -> str:
+        data = await request.json()
+        try:
+            response = self.llm.generate(data.get("messages"), sampling_params=data.get("sampling_parameters"), seed = data.get("seed"))
+            return response
+        except Exception as e:
+            logger.error(f"An error occurred during text generation: {e}")
+            return str(e)
 
 
 if __name__ == "__main__":
