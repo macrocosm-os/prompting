@@ -26,7 +26,13 @@ class BaseNeuron(ABC):
 
     @property
     def block(self):
-        self._block = ttl_get_block()
+        try:
+            self._block = ttl_get_block()
+        except Exception as e:
+            logger.error(f"Failed to get block: {e}")
+            self._block = None
+            #Raise a fatal error if the block is not available.
+            raise e
         self.time_of_block_sync = time.time()
         return self._block
 
@@ -61,7 +67,7 @@ class BaseNeuron(ABC):
         """
         # Ensure miner or validator hotkey is still registered on the network.
         logger.info("Syncing neuron...")
-        self.check_registered()
+        #self.check_registered()
 
         if self.should_sync_metagraph():
             self.resync_metagraph()
