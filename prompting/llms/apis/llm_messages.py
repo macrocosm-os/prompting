@@ -1,7 +1,9 @@
 from typing import Literal
+
+import tiktoken
 from PIL import Image
 from pydantic import BaseModel
-import tiktoken
+
 from prompting.llms.apis.image_parsing import encode_image_from_memory
 
 

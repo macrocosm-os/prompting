@@ -1,15 +1,16 @@
-import time
 import threading
-import bittensor as bt
-from prompting.base.protocol import StreamPromptingSynapse
-from prompting.base.neuron import BaseNeuron
+import time
 from traceback import print_exception
-from prompting.settings import settings
-from loguru import logger
-from pydantic import BaseModel, model_validator, ConfigDict
 from typing import Tuple
-from prompting.utils.logging import init_wandb, MinerLoggingEvent, log_event
-from prompting.base.protocol import AvailabilitySynapse
+
+import bittensor as bt
+from loguru import logger
+from pydantic import BaseModel, ConfigDict, model_validator
+
+from prompting.base.neuron import BaseNeuron
+from prompting.base.protocol import AvailabilitySynapse, StreamPromptingSynapse
+from prompting.settings import settings
+from prompting.utils.logging import MinerLoggingEvent, init_wandb, log_event
 
 
 class BaseStreamMinerNeuron(BaseModel, BaseNeuron):

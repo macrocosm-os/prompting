@@ -10,7 +10,7 @@ from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 from transformers import AwqConfig
 
-#from prompting.utils.config import config
+# from prompting.utils.config import config
 
 
 class Settings(BaseSettings):
@@ -82,7 +82,14 @@ class Settings(BaseSettings):
     MAX_ALLOWED_VRAM_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
     LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
     LLM_MODEL: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")
-    SAMPLING_PARAMS: dict[str, Any] = {"temperature": 0.7, "top_p": 0.95, "top_k": 50, "max_new_tokens": 256, "do_sample" : True, "seed": None}
+    SAMPLING_PARAMS: dict[str, Any] = {
+        "temperature": 0.7,
+        "top_p": 0.95,
+        "top_k": 50,
+        "max_new_tokens": 256,
+        "do_sample": True,
+        "seed": None,
+    }
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
     OPENAI_API_KEY: str | None = Field(None, env="OPENAI_API_KEY")
@@ -180,27 +187,29 @@ class Settings(BaseSettings):
                 "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
             )
         return values
-    
+
     @cached_property
     def QUANTIZATION_CONFIG(self) -> AwqConfig:
-        configs = {"hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4" : AwqConfig(bits=4, fuse_max_seq_len=512, do_fuse=True)}
+        configs = {
+            "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4": AwqConfig(bits=4, fuse_max_seq_len=512, do_fuse=True)
+        }
         return configs
 
     @cached_property
     def WALLET(self):
-        wallet_name = self.WALLET_NAME# or config().wallet.name
-        hotkey = self.HOTKEY# or config().wallet.hotkey
+        wallet_name = self.WALLET_NAME  # or config().wallet.name
+        hotkey = self.HOTKEY  # or config().wallet.hotkey
         logger.info(f"Instantiating wallet with name: {wallet_name}, hotkey: {hotkey}")
         return bt.wallet(name=wallet_name, hotkey=hotkey)
 
     @cached_property
     def SUBTENSOR(self) -> bt.subtensor:
         subtensor_network = self.SUBTENSOR_NETWORK or os.environ.get("SUBTENSOR_NETWORK", "local")
-        #bt_config = config()
+        # bt_config = config()
         if subtensor_network.lower() == "local":
-            subtensor_network = os.environ.get("SUBTENSOR_CHAIN_ENDPOINT") #bt_config.subtensor.chain_endpoint or 
+            subtensor_network = os.environ.get("SUBTENSOR_CHAIN_ENDPOINT")  # bt_config.subtensor.chain_endpoint or
         else:
-            subtensor_network = subtensor_network.lower()#bt_config.subtensor.network or 
+            subtensor_network = subtensor_network.lower()  # bt_config.subtensor.network or
         logger.info(f"Instantiating subtensor with network: {subtensor_network}")
         return bt.subtensor(network=subtensor_network)
 
@@ -213,7 +222,6 @@ class Settings(BaseSettings):
     def DENDRITE(self) -> bt.dendrite:
         logger.info(f"Instantiating dendrite with wallet: {self.WALLET}")
         return bt.dendrite(wallet=self.WALLET)
-    
 
 
 settings: Optional[Settings] = None

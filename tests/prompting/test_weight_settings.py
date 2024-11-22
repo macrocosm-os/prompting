@@ -1,12 +1,15 @@
 # ruff: noqa: E402
-import numpy as np
-from prompting import settings
 import asyncio
+
+import numpy as np
+
+from prompting import settings
 
 settings.settings = settings.Settings(mode="mock")
 raw_rewards = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
-from prompting.weight_setting.weight_setter import apply_reward_func, WeightSetter
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+from prompting.weight_setting.weight_setter import WeightSetter, apply_reward_func
 
 
 def test_apply_reward_func():

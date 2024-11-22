@@ -1,6 +1,7 @@
+from collections import Counter
+
 import nltk
 from nltk.corpus import brown
-from collections import Counter
 
 
 def load_most_common_words(n=25000):

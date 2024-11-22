@@ -1,12 +1,15 @@
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-from loguru import logger
 import random
-import numpy as np
-from prompting.utils.timer import Timer
-from prompting.settings import settings
 
-class ReproducibleHF():
+import numpy as np
+import torch
+from loguru import logger
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+
+from prompting.settings import settings
+from prompting.utils.timer import Timer
+
+
+class ReproducibleHF:
     def __init__(self, model_id="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", **kwargs):
         """
         Initialize Hugging Face model with reproducible settings and optimizations
@@ -15,7 +18,7 @@ class ReproducibleHF():
         self.seed = random.randint(0, 1_000_000)
         self.set_random_seeds(self.seed)
         quantization_config = settings.QUANTIZATION_CONFIG.get(model_id, None)
-        
+
         self.model = AutoModelForCausalLM.from_pretrained(
             model_id,
             torch_dtype=torch.float16,
@@ -23,9 +26,9 @@ class ReproducibleHF():
             device_map="cuda:0",
             quantization_config=quantization_config,
         )
-        
+
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
-    
+
         self.valid_generation_params = set(
             AutoModelForCausalLM.from_pretrained(model_id).generation_config.to_dict().keys()
         )
@@ -40,14 +43,14 @@ class ReproducibleHF():
         Generate text with optimized performance
         """
         self.set_random_seeds(seed)
-        
+
         inputs = self.tokenizer.apply_chat_template(
-                prompts,
-                tokenize=True,
-                add_generation_prompt=True,
-                return_tensors="pt",
-                return_dict=True,
-                ).to(settings.NEURON_DEVICE)
+            prompts,
+            tokenize=True,
+            add_generation_prompt=True,
+            return_tensors="pt",
+            return_dict=True,
+        ).to(settings.NEURON_DEVICE)
 
         params = sampling_params if sampling_params else self.sampling_params
         filtered_params = {k: v for k, v in params.items() if k in self.valid_generation_params}
@@ -59,9 +62,16 @@ class ReproducibleHF():
                 **filtered_params,
                 eos_token_id=self.tokenizer.eos_token_id,
             )
-            
-            outputs = self.model.generate(**inputs, **filtered_params, eos_token_id=self.tokenizer.eos_token_id,)
-            results = self.tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True, )[0]
+
+            outputs = self.model.generate(
+                **inputs,
+                **filtered_params,
+                eos_token_id=self.tokenizer.eos_token_id,
+            )
+            results = self.tokenizer.batch_decode(
+                outputs[:, inputs["input_ids"].shape[1] :],
+                skip_special_tokens=True,
+            )[0]
 
         logger.debug(
             f"PROMPT: {prompts}\n\nRESPONSES: {results}\n\n"
@@ -87,4 +97,4 @@ class ReproducibleHF():
 
 if __name__ == "__main__":
     llm = ReproducibleHF(model="Qwen/Qwen2-0.5B", tensor_parallel_size=1, seed=42)
-    llm.generate({'role': 'user', 'content': "Hello, world!"})
+    llm.generate({"role": "user", "content": "Hello, world!"})

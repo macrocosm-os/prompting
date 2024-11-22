@@ -1,17 +1,18 @@
-from pydantic import BaseModel
+import asyncio
+import random
+from typing import Dict
+
+import numpy as np
 from loguru import logger
-from prompting.tasks.base_task import BaseTask
-from prompting.llms.model_zoo import ModelZoo
+from pydantic import BaseModel
+
+from prompting.base.epistula import query_availabilities
 from prompting.base.loop_runner import AsyncLoopRunner
-from prompting.base.protocol import AvailabilitySynapse
+from prompting.llms.model_zoo import ModelZoo
 from prompting.settings import settings
+from prompting.tasks.base_task import BaseTask
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_uids
-import random
-import asyncio
-import numpy as np
-from prompting.base.epistula import query_availabilities
-from typing import Dict
 
 task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
 # task_config: dict[str, bool] = {
@@ -84,8 +85,8 @@ class CheckMinerAvailability(AsyncLoopRunner):
             if not response:
                 continue
             miner_availabilities.miners[uid] = MinerAvailability(
-                task_availabilities=response['task_availabilities'],
-                llm_model_availabilities=response['llm_model_availabilities'],
+                task_availabilities=response["task_availabilities"],
+                llm_model_availabilities=response["llm_model_availabilities"],
             )
 
         logger.debug("Miner availabilities updated.")

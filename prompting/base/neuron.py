@@ -1,15 +1,16 @@
 import sys
+import time
+from abc import ABC, abstractmethod
+
 import bittensor as bt
 from loguru import logger
-from abc import ABC, abstractmethod
-import time
+
+from prompting.settings import settings
 
 # Sync calls set weights and also resyncs the metagraph.π
 from prompting.utils.misc import ttl_get_block
 
 # from prompting import __spec_version__ as spec_version
-
-from prompting.settings import settings
 
 
 class BaseNeuron(ABC):
@@ -44,10 +45,12 @@ class BaseNeuron(ABC):
         self.step = 0
 
     @abstractmethod
-    def forward(self, synapse: bt.Synapse) -> bt.Synapse: ...
+    def forward(self, synapse: bt.Synapse) -> bt.Synapse:
+        ...
 
     @abstractmethod
-    def run(self): ...
+    def run(self):
+        ...
 
     def set_weights():
         raise NotImplementedError("set_weights() not implemented for this neuron.")

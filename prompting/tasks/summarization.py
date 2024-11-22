@@ -1,12 +1,11 @@
-from prompting.tasks.base_task import BaseTextTask
-from prompting.rewards.rouge import RougeRewardModel
-from prompting.rewards.relevance import RelevanceRewardModel
-from prompting.rewards.reward import BaseRewardModel
-from prompting.rewards.reward import BaseRewardConfig
-from prompting.utils.cleaners import RemoveRoles, RemoveQuotes, PruneEnding
-from prompting.datasets.base import Context
-from prompting.utils.cleaners import CleanerPipeline
 from typing import ClassVar
+
+from prompting.datasets.base import Context
+from prompting.rewards.relevance import RelevanceRewardModel
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
+from prompting.rewards.rouge import RougeRewardModel
+from prompting.tasks.base_task import BaseTextTask
+from prompting.utils.cleaners import CleanerPipeline, PruneEnding, RemoveQuotes, RemoveRoles
 
 QUERY_SYSTEM_PROMPT = """\
 You are a request-generating expert. When asked to generate a request, you ask for a detailed summary of a topic. Your request should be specificly about the topic.
