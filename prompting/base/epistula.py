@@ -168,11 +168,12 @@ async def handle_inference(
         )
         try:
             payload = json.loads(body)
+            print(f"http://{axon_info.ip}:{axon_info.port}/v1")
             chat = await miner.chat.completions.create(
                 messages=payload["messages"],
                 model=payload["model"],
                 stream=True,
-                extra_body=payload["sampling_parameters"],
+                extra_body={k: v for k, v in payload.items() if k not in ["messages", "model"]},
             )
             async for chunk in chat:
                 if chunk.choices[0].delta and chunk.choices[0].delta.content:
