@@ -73,7 +73,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.sync()
 
         if not settings.NEURON_AXON_OFF:
-            logger.info(f"Running validator {self.axon} with netuid: {settings.NETUID}")
+            logger.info(f"Running validator on netuid: {settings.NETUID}")
         else:
             logger.info(f"Running validator with netuid: {settings.NETUID}")
 
