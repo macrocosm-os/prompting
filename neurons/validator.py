@@ -14,7 +14,7 @@ from loguru import logger
 from prompting import mutable_globals
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.base.epistula import query_miners
-from prompting.base.forward import handle_response, log_stream_results
+from prompting.base.forward import log_stream_results
 from prompting.base.validator import BaseValidatorNeuron
 from prompting.llms.model_manager import model_scheduler
 from prompting.llms.utils import GPUInfo
@@ -25,23 +25,9 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_creation import task_loop
 from prompting.utils.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from prompting.utils.timer import Timer
-
-# from prompting.organic.organic_loop import start_organic
 from prompting.weight_setting.weight_setter import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
-
-
-def run_dendrite_and_handle_response_sync(uids, *args, **kwargs):
-    async def run_dendrite_and_handle_response(uids, *args, **kwargs):
-        # Run DENDRITE and handle_response sequentially within the main event loop
-        streams_responses = await settings.DENDRITE(*args, **kwargs)
-        # Handle the responses synchronously
-        stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
-        return stream_results
-
-    # Synchronously run the async function
-    return asyncio.run(run_dendrite_and_handle_response(uids, *args, **kwargs))
 
 
 class Validator(BaseValidatorNeuron):
@@ -51,7 +37,6 @@ class Validator(BaseValidatorNeuron):
         super(Validator, self).__init__(config=config)
         self.load_state()
         self._lock = asyncio.Lock()
-        # start_organic(self.axon)
         self.time_of_block_sync = None
 
     @property

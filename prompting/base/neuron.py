@@ -1,15 +1,17 @@
 import sys
+import time
+from abc import ABC, abstractmethod
+
 import bittensor as bt
 from loguru import logger
-from abc import ABC, abstractmethod
-import time
+
+from prompting.settings import settings
 
 # Sync calls set weights and also resyncs the metagraph.π
 from prompting.utils.misc import ttl_get_block
 
 # from prompting import __spec_version__ as spec_version
 
-from prompting.settings import settings
 
 
 class BaseNeuron(ABC):
@@ -30,8 +32,6 @@ class BaseNeuron(ABC):
         return self._block
 
     def __init__(self, config=None):
-        # self.config = self._config()
-
         # If a gpu is required, set the device to cuda:N (e.g. cuda:0)
         self.device = settings.NEURON_DEVICE
 
@@ -44,10 +44,12 @@ class BaseNeuron(ABC):
         self.step = 0
 
     @abstractmethod
-    def forward(self, synapse: bt.Synapse) -> bt.Synapse: ...
+    def forward(self, synapse: bt.Synapse) -> bt.Synapse:
+        ...
 
     @abstractmethod
-    def run(self): ...
+    def run(self):
+        ...
 
     def set_weights():
         raise NotImplementedError("set_weights() not implemented for this neuron.")
@@ -58,7 +60,7 @@ class BaseNeuron(ABC):
         """
         # Ensure miner or validator hotkey is still registered on the network.
         logger.info("Syncing neuron...")
-        
+
         self.check_registered()
 
         if self.should_sync_metagraph():
@@ -68,7 +70,7 @@ class BaseNeuron(ABC):
         self.save_state()
 
     def check_registered(self):
-        if not settings.WALLET.hotkey.ss58_address in settings.METAGRAPH.hotkeys:
+        if settings.WALLET.hotkey.ss58_address not in settings.METAGRAPH.hotkeys:
             logger.error(
                 f"Wallet: {settings.WALLET} is not registered on netuid {settings.NETUID}."
                 f" Please register the hotkey using `btcli subnets register` before trying again"

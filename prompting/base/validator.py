@@ -4,7 +4,6 @@ import sys
 import threading
 from traceback import print_exception
 
-import bittensor as bt
 import numpy as np
 import torch
 from loguru import logger

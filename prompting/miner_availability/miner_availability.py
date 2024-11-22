@@ -84,13 +84,13 @@ class CheckMinerAvailability(AsyncLoopRunner):
         for response, uid in zip(responses, uids_to_query):
             if not response:
                 miner_availabilities.miners[uid] = MinerAvailability(
-                    task_availabilities = {task: True for task in task_config},
+                    task_availabilities={task: True for task in task_config},
                     llm_model_availabilities={model: False for model in model_config},
                 )
             else:
                 miner_availabilities.miners[uid] = MinerAvailability(
-                    task_availabilities=response['task_availabilities'],
-                    llm_model_availabilities=response['llm_model_availabilities'],
+                    task_availabilities=response["task_availabilities"],
+                    llm_model_availabilities=response["llm_model_availabilities"],
                 )
 
         logger.debug("Miner availabilities updated.")
