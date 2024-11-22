@@ -183,6 +183,7 @@ class OpenAIMiner:
             port=settings.AXON_PORT,
             log_level="info",
             loop="asyncio",
+            workers = 4,
         )
         self.fast_api = FastAPIThreadedServer(config=fast_config)
         self.fast_api.start()
