@@ -1,17 +1,17 @@
+import random
 from typing import ClassVar
+
 import numpy as np
 from pydantic import Field, model_validator
-from prompting.rewards.reward import BaseRewardModel, BaseRewardConfig
+
+from prompting.datasets.sn13 import ChatEntry
+from prompting.llms.model_manager import model_manager
+from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.rewards.inference_reward_model import InferenceRewardModel
 from prompting.rewards.penalty import PenaltyModel
-
-from prompting.tasks.base_task import BaseTextTask
-from prompting.llms.model_zoo import ModelConfig
-import random
-from prompting.llms.model_manager import model_manager
-from prompting.datasets.sn13 import ChatEntry
-from prompting.llms.model_zoo import ModelZoo
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.settings import settings
+from prompting.tasks.base_task import BaseTextTask
 
 
 class InferenceRewardConfig(BaseRewardConfig):

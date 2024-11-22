@@ -1,17 +1,14 @@
-from typing import ClassVar
-from prompting.datasets.huggingface_github import (
-    HuggingFaceGithubDatasetEntry,
-    MIN_INPUT_LINES,
-    OUTPUT_LINES,
-)
-from prompting.tasks.base_task import BaseTextTask
-from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
-from prompting.rewards.rouge import RougeRewardModel
-from prompting.rewards.relevance import RelevanceRewardModel
-from prompting.utils.cleaners import CleanerPipeline
 import textwrap
+from typing import ClassVar
+
+from prompting.datasets.huggingface_github import MIN_INPUT_LINES, OUTPUT_LINES, HuggingFaceGithubDatasetEntry
 from prompting.llms.apis.llm_messages import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
+from prompting.rewards.relevance import RelevanceRewardModel
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
+from prompting.rewards.rouge import RougeRewardModel
+from prompting.tasks.base_task import BaseTextTask
+from prompting.utils.cleaners import CleanerPipeline
 
 
 class ProgrammingRewardConfig(BaseRewardConfig):

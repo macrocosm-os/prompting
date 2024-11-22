@@ -1,19 +1,19 @@
-import time
-from typing import Any
-from loguru import logger
-from abc import ABC
-from pydantic import BaseModel, Field, ConfigDict, model_validator
-from prompting.utils.cleaners import CleanerPipeline
-from typing import ClassVar
-from prompting.datasets.base import DatasetEntry
-from abc import abstractmethod
-from uuid import uuid4
-from prompting.llms.model_zoo import ModelConfig
-from prompting.llms.model_manager import model_manager
 import random
-from prompting.settings import settings
+import time
+from abc import ABC, abstractmethod
+from typing import Any, ClassVar
+from uuid import uuid4
+
+from loguru import logger
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from prompting.datasets.base import DatasetEntry
 from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
+from prompting.llms.model_manager import model_manager
+from prompting.llms.model_zoo import ModelConfig
+from prompting.settings import settings
+from prompting.utils.cleaners import CleanerPipeline
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -78,10 +78,12 @@ class BaseTextTask(BaseTask):
     def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
-        self.reference = model_manager.get_model(settings.LLM_MODEL).generate(prompts=messages) #This should be a list of dict
+        self.reference = model_manager.get_model(settings.LLM_MODEL).generate(
+            prompts=messages
+        )  # This should be a list of dict
         if self.reference is None:
             raise Exception("Reference generation failed")
-                
+
         return self.reference
 
     def generate_query(

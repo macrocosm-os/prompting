@@ -1,7 +1,9 @@
 from typing import ClassVar
+
 import numpy as np
-from pydantic import BaseModel, ConfigDict
 from loguru import logger
+from pydantic import BaseModel, ConfigDict
+
 from prompting.settings import settings
 
 

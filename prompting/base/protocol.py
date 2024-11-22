@@ -1,6 +1,7 @@
-import pydantic
+from typing import AsyncIterator, List
+
 import bittensor as bt
-from typing import List, AsyncIterator
+import pydantic
 from starlette.responses import StreamingResponse
 
 # from prompting.tasks.date_qa import DateQuestionAnsweringTask

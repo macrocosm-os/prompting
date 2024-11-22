@@ -1,9 +1,11 @@
 # ruff: noqa: E402
-import pytest
 from unittest.mock import MagicMock
+
 import numpy as np
+import pytest
 
 from prompting import settings
+
 settings.settings = settings.Settings.load(mode="mock")
 from prompting.rewards.web_retrieval import WebRetrievalRewardModel
 
@@ -15,33 +17,18 @@ from prompting.rewards.web_retrieval import WebRetrievalRewardModel
             '{"url": "http://example.com", "content": "This is some content.", "relevant": "Section 1"}',
             "http://example.com",
             "This is some content.",
-            "Section 1"
+            "Section 1",
         ),
-        (
-            '{"content": "This is some content.", "relevant": "Section 1"}',
-            None,
-            "This is some content.",
-            "Section 1"
-        ),
-        (
-            '{"url": "http://example.com", "relevant": "Section 1"}',
-            "http://example.com",
-            None,
-            "Section 1"
-        ),
+        ('{"content": "This is some content.", "relevant": "Section 1"}', None, "This is some content.", "Section 1"),
+        ('{"url": "http://example.com", "relevant": "Section 1"}', "http://example.com", None, "Section 1"),
         (
             '{"url": "http://example.com", "content": "This is some content."}',
             "http://example.com",
             "This is some content.",
-            None
-        ),
-        (
-            'Invalid JSON string',
             None,
-            None,
-            None
         ),
-    ]
+        ("Invalid JSON string", None, None, None),
+    ],
 )
 def test_parse_response(completion, expected_url, expected_content, expected_relevant):
     response_url, response_content, response_relevant = WebRetrievalRewardModel._parse_response(completion)
@@ -66,6 +53,7 @@ def test_cosine_similarity_orthogonal_embeddings():
     # Mock orthogonal embeddings.
     def encode_mock(text, to_numpy):
         return np.array([1, 0]) if text == "content1" else np.array([0, 1])
+
     mock_embedding_model = MagicMock()
     mock_embedding_model.encode.side_effect = encode_mock
 

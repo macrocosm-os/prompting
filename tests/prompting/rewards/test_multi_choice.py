@@ -2,9 +2,11 @@
 from prompting import settings
 
 settings.settings = settings.Settings(mode="mock")
-from prompting.rewards.multi_choice import MultiChoiceRewardModel
 from dataclasses import dataclass
+
 import pytest
+
+from prompting.rewards.multi_choice import MultiChoiceRewardModel
 
 
 @dataclass
@@ -15,12 +17,12 @@ class DendriteResponseEvent:
 JSON_PENALTY = 0.9
 
 test_cases = [
-    ("{\"A\": 0.1, \"B\": 0.3, \"C\": 0.6, \"D\": 0.0}", "C", 0.6),
-    ("{\"A\": 0.1, \"B\": 0.3, \"C\": 0.6, \"D\": 0.0}", "A", 0.1),
-    ("{\"a\": 0.0, \"b\": 0.0, \"c\": 1.0, \"d\": 0.0}", "C", 1.0),
-    ("{\"a\": 0.0, \"b\": 0.0, \"c\": 1.0, \"d\": 0.0}", "D", 0),
-    ("{\"A\": 0.1}", 'A', 1),
-    ("{\"A\": 0.1, \"B\": 0.1}", "B", 0.5),
+    ('{"A": 0.1, "B": 0.3, "C": 0.6, "D": 0.0}', "C", 0.6),
+    ('{"A": 0.1, "B": 0.3, "C": 0.6, "D": 0.0}', "A", 0.1),
+    ('{"a": 0.0, "b": 0.0, "c": 1.0, "d": 0.0}', "C", 1.0),
+    ('{"a": 0.0, "b": 0.0, "c": 1.0, "d": 0.0}', "D", 0),
+    ('{"A": 0.1}', "A", 1),
+    ('{"A": 0.1, "B": 0.1}', "B", 0.5),
     ("{}", "A", 0),
     ("", "D", 0),
     ("Test", "A", 0),

@@ -1,15 +1,16 @@
 from prompting import settings
+
 settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
 
 import argparse
 import asyncio
+import time
+from typing import Awaitable, List
 
 import bittensor as bt
-import time
 from loguru import logger
 
-from typing import List, Awaitable
 from prompting.base.protocol import StreamPromptingSynapse
 from prompting.settings import settings
 
@@ -25,7 +26,9 @@ Steps:
 - Iterate over the async generator to extract the yielded tokens on the server side
 """
 
-assert settings.TEST_MINER_IDS, "Please provide the miner ids to query in the .env.validator file as variable TEST_MINER_IDS"
+assert (
+    settings.TEST_MINER_IDS
+), "Please provide the miner ids to query in the .env.validator file as variable TEST_MINER_IDS"
 
 
 async def handle_response(responses: list[Awaitable]) -> List[str]:
@@ -55,11 +58,7 @@ async def query_stream_miner(
     if message is None:
         message = "Give me some information about the night sky."
 
-    synapse = synapse_protocol(
-        roles=["user"],
-        messages=[message],
-        task_name = 'inference'
-    )
+    synapse = synapse_protocol(roles=["user"], messages=[message], task_name="inference")
     dendrite = bt.dendrite(wallet=settings.WALLET)
 
     logger.info(f"Synapse: {synapse}")

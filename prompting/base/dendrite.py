@@ -1,8 +1,7 @@
 import numpy as np
-from prompting.base.protocol import StreamPromptingSynapse
+from pydantic import BaseModel, ConfigDict, model_validator
+
 from prompting.utils.misc import serialize_exception_to_string
-from pydantic import BaseModel, model_validator, ConfigDict
-from loguru import logger
 
 
 class SynapseStreamResult(BaseModel):
@@ -67,7 +66,9 @@ class DendriteResponseEvent(BaseModel):
                 status_code = 204
 
             self.status_codes.append(status_code)
-            process_time = stream_result.accumulated_chunks_timings[-1] if stream_result.accumulated_chunks_timings else 0
+            process_time = (
+                stream_result.accumulated_chunks_timings[-1] if stream_result.accumulated_chunks_timings else 0
+            )
             if status_code == 200 or status_code == 204:
                 self.timings.append(process_time)
             elif status_code == 408:
