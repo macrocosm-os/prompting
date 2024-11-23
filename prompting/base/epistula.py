@@ -168,7 +168,6 @@ async def handle_inference(
         )
         try:
             payload = json.loads(body)
-            print(f"http://{axon_info.ip}:{axon_info.port}/v1")
             chat = await miner.chat.completions.create(
                 messages=payload["messages"],
                 model=payload["model"],
