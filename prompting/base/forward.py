@@ -25,7 +25,3 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
     logger.debug(f"Total of non_empty responses: ({len(non_empty_responses)})")
     logger.debug(f"Total of empty responses: ({len(empty_responses)})")
     logger.debug(f"Total of failed responses: ({len(failed_responses)})")
-
-    for failed_response in failed_responses:
-        formatted_exception = serialize_exception_to_string(failed_response.exception)
-        logger.error(f"Failed response for uid {failed_response.uid}: {formatted_exception}")
