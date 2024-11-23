@@ -30,8 +30,8 @@ async def query_and_print():
     body = {
     "seed": 0,
     "sampling_parameters": settings.SAMPLING_PARAMS,
-    "task": "qa",
-    "model": None,
+    "task": "inference",
+    "model": "casperhansen/llama-3-8b-instruct-awq",
     "messages": [
         {"role": "user", "content": "what is the meaning of life?"},
         ],

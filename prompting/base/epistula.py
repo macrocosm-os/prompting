@@ -161,7 +161,7 @@ async def handle_inference(
             base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
             api_key="Apex",
             max_retries=0,
-            timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=5),
+            timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=10),
             http_client=openai.DefaultAsyncHttpxClient(
                 event_hooks={"request": [create_header_hook(wallet.hotkey, axon_info.hotkey)]}
             ),
