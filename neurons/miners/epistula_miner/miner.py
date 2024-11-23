@@ -44,7 +44,7 @@ class OpenAIMiner:
             },
         )
         if SHOULD_SERVE_LLM:
-            self.llm = ReproducibleHF(model_id= LOCAL_MODEL_ID, settings=settings)
+            self.llm = ReproducibleHF(model_id= LOCAL_MODEL_ID)
         else:
             self.llm = None
 
@@ -62,14 +62,15 @@ class OpenAIMiner:
 
     async def create_chat_completion(self, request: Request):
         if self.llm and request.headers.get("task", None) == 'inference':
-            return self.create_inference_completion(request)
+            return await self.create_inference_completion(request)
         req = self.client.build_request("POST", "chat/completions", json=await self.format_openai_query(request))
         r = await self.client.send(req, stream=True)
         return StreamingResponse(r.aiter_raw(), background=BackgroundTask(r.aclose), headers=r.headers)
 
     async def create_inference_completion(self, request: Request):
         async def word_stream():
-            words = self.run_inference(request).split()
+            inference = await self.run_inference(request)
+            words = inference.split()
             for word in words:
                 # Simulate the OpenAI streaming response format
                 data = {
