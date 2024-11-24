@@ -105,7 +105,7 @@ class Validator(BaseValidatorNeuron):
             if response_event is None:
                 logger.warning("No response event collected. This should not be happening.")
                 return
-            logger.debug(f"Collected responses in {timer.elapsed_time:.2f} seconds")
+            logger.debug(f"Collected responses in {timer.final_time:.2f} seconds")
 
             # scoring_manager will score the responses as and when the correct model is loaded
             task_scorer.add_to_queue(
@@ -121,7 +121,7 @@ class Validator(BaseValidatorNeuron):
             return ValidatorLoggingEvent(
                 block=self.estimate_block,
                 step=self.step,
-                step_time=timer.elapsed_time,
+                step_time=timer.final_time,
                 response_event=response_event,
                 task_id=task.task_id,
             )
@@ -174,7 +174,7 @@ class Validator(BaseValidatorNeuron):
         if not event:
             return
 
-        event.forward_time = timer.elapsed_time
+        event.forward_time = timer.final_time
 
     def __enter__(self):
         if settings.NO_BACKGROUND_THREAD:
@@ -207,7 +207,6 @@ class Validator(BaseValidatorNeuron):
 
 
 async def main():
-    # start api
     asyncio.create_task(start_api())
 
     GPUInfo.log_gpu_info()
@@ -228,9 +227,9 @@ async def main():
 
     # start scoring tasks in separate loop
     asyncio.create_task(task_scorer.start())
-    # TODO: Think about whether we want to store the task queue locally in case of a crash
-    # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
-    # TODO: Make weight setting happen as specific intervals as we load/unload models
+    # # TODO: Think about whether we want to store the task queue locally in case of a crash
+    # # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
+    # # TODO: Make weight setting happen as specific intervals as we load/unload models
     with Validator() as v:
         while True:
             logger.info(

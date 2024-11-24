@@ -160,10 +160,10 @@ class OpenAIMiner:
         # But use some specific fields from the body
         signed_by = request.headers.get("Epistula-Signed-By")
         signed_for = request.headers.get("Epistula-Signed-For")
-        if signed_for != self.wallet.hotkey.ss58_address:
-            raise HTTPException(status_code=400, detail="Bad Request, message is not intended for self")
+        if signed_for and signed_for != self.wallet.hotkey.ss58_address:
+            raise HTTPException(status_code=400, detail="EpistulaError: The message is not signed for this hotkey")
         if signed_by not in self.metagraph.hotkeys:
-            raise HTTPException(status_code=401, detail="Signer not in metagraph")
+            raise HTTPException(status_code=401, detail="EpistulaError: Signer not in metagraph")
 
         uid = self.metagraph.hotkeys.index(signed_by)
         stake = self.metagraph.S[uid].item()

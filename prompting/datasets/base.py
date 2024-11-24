@@ -81,7 +81,7 @@ class BaseDataset(ABC, BaseModel):
 
         context.source = self.__class__.__name__
         context.stats = {
-            "fetch_time": timer.elapsed_time,
+            "fetch_time": timer.final_time,
             "num_tries": tries,
             "fetch_method": method,
             "next_kwargs": kwargs,

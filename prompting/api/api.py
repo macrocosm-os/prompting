@@ -23,6 +23,7 @@ def health():
     return {"status": "healthy"}
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
+async def start_api():
     logger.info("Starting API...")
-    uvicorn.run("api:app", host="0.0.0.0", port=8004, loop="asyncio", reload=True)
+    uvicorn.run("prompting.api.api:app", host="0.0.0.0", port=8004, loop="asyncio", reload=False)

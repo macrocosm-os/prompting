@@ -1,4 +1,4 @@
-from fastapi import APIRouter, FastAPI, HTTPException, Header, Depends
+from fastapi import APIRouter, HTTPException, Header, Depends
 import json
 import secrets
 
@@ -72,6 +72,6 @@ def demo_endpoint(api_key_data: dict = Depends(validate_api_key)):
     return {"message": "Access granted", "your_rate_limit": api_key_data["rate_limit"]}
 
 
-# Create FastAPI app and include the router
-app = FastAPI()
-app.include_router(router)
+# # Create FastAPI app and include the router
+# app = FastAPI()
+# app.include_router(router)
