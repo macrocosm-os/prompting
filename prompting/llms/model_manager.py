@@ -182,7 +182,8 @@ class AsyncModelScheduler(AsyncLoopRunner):
 
         logger.debug(f"Active models: {model_manager.active_models.keys()}")
         # Load the selected model
-        model_manager.load_model(selected_model)
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, self.llm_model_manager.load_model, selected_model)
         await asyncio.sleep(0.01)
 
 
