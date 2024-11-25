@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 from loguru import logger
 import random
 import openai
@@ -31,6 +31,7 @@ async def process_and_collect_stream(miner_id: int, request: dict, response: Asy
         # After streaming is complete, put the response in the queue
     task = InferenceTask(
         query=request["messages"][-1]["content"],
+        messages=[message["content"] for message in request["messages"]],
         model=request.get("model"),
         seed=request.get("seed"),
         response="".join(collected_content),
@@ -46,6 +47,7 @@ async def process_and_collect_stream(miner_id: int, request: dict, response: Asy
         ],
         uids=[miner_id],
         timeout=settings.NEURON_TIMEOUT,
+        completions=["".join(collected_content)],
     )
 
     # TODO: Estimate block and step
@@ -55,34 +57,34 @@ async def process_and_collect_stream(miner_id: int, request: dict, response: Asy
     yield "data: [DONE]\n\n"
 
 
+@router.post("/mixture_of_agents")
+async def mixture_of_agents(request: Request):
+    # body = await request.json()
+    # return {"message": "Mixture of Agents"}
+    return {"message": "Mixture of Agents"}
+
+
 @router.post("/v1/chat/completions")
 async def proxy_chat_completions(request: Request):
-    # Get the request body
     body = await request.json()
     body["seed"] = body.get("seed") or str(
         random.randint(0, 1_000_000)
     )  # for some reason needs to be passed as string... it seems?
+    logger.debug(f"Seed provided by miner: {bool(body.get('seed'))} -- Using seed: {body.get('seed')}")
 
-    # Ensure streaming is enabled
-    # body["stream"] = True
     if settings.TEST_MINER_IDS:
         available_miners = settings.TEST_MINER_IDS
     elif not settings.mode == "mock" and not (
         available_miners := miner_availabilities.get_available_miners(task=InferenceTask(), model=None)
     ):
         return "No miners available"
-    axon_info = settings.METAGRAPH.axons[available_miners[0]]
 
-    # TODO: Remove this/build better testing mechanism
+    axon_info = settings.METAGRAPH.axons[available_miners[0]]
     base_url = "http://localhost:8008/v1" if settings.mode == "mock" else f"http://{axon_info.ip}:{axon_info.port}/v1"
     # base_url = "http://localhost:8008/v1"
-    # available_miners = [-1]
-
     miner_id = available_miners[0]
-
     logger.debug(f"Using base_url: {base_url}")
 
-    # TODO: Forward to actual miners
     miner = openai.AsyncOpenAI(
         base_url=base_url,
         max_retries=0,
@@ -92,11 +94,39 @@ async def proxy_chat_completions(request: Request):
         ),
     )
 
-    # Create streaming request to OpenAI
-    response = await miner.chat.completions.create(**body)
+    try:
+        with Timer() as timer:
+            # Create request to OpenAI
+            response = await miner.chat.completions.create(**body)
+        if body.get("stream"):
+            # If streaming is requested, return streaming response
+            return StreamingResponse(
+                process_and_collect_stream(miner_id, body, response), media_type="text/event-stream"
+            )
+    except Exception as e:
+        logger.exception(f"Error coming from Miner: {e}")
+        raise HTTPException(status_code=500, detail=f"Error coming from Miner: {e}")
 
-    # TODO: Add final response to scoring_queue
-
-    # Return a streaming response with properly formatted chunks
-    # return await process_and_collect_stream(process_stream(response))
-    return StreamingResponse(process_and_collect_stream(miner_id, body, response), media_type="text/event-stream")
+    response_event = DendriteResponseEvent(
+        stream_results=[
+            SynapseStreamResult(
+                uid=miner_id,
+                accumulated_chunks=[response.choices[0].message.content],
+                accumulated_chunks_timings=[timer.final_time],
+            )
+        ],
+        completions=[response.choices[0].message.content],
+        uids=[miner_id],
+        timeout=settings.NEURON_TIMEOUT,
+    )
+    task = InferenceTask(
+        query=body["messages"][-1]["content"],
+        messages=[message["content"] for message in body["messages"]],
+        model=body.get("model"),
+        seed=body.get("seed"),
+        response=response_event,
+    )
+    task_scorer.add_to_queue(
+        task=task, response=response_event, dataset_entry=task.dataset_entry, block=-1, step=-1, task_id=task.task_id
+    )
+    return response
