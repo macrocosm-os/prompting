@@ -1,8 +1,10 @@
-import numpy as np
-from typing import Literal
 import random
-from prompting.settings import settings
+from typing import Literal
+
+import numpy as np
 from loguru import logger
+
+from prompting.settings import settings
 
 
 def check_uid_availability(

@@ -1,11 +1,12 @@
 import random
 from typing import Optional
-from duckduckgo_search import DDGS
-import trafilatura
-from prompting.datasets.base import BaseDataset, Context, DatasetEntry
-from loguru import logger
-from prompting.datasets.utils import ENGLISH_WORDS
 
+import trafilatura
+from duckduckgo_search import DDGS
+from loguru import logger
+
+from prompting.datasets.base import BaseDataset, Context, DatasetEntry
+from prompting.datasets.utils import ENGLISH_WORDS
 
 MAX_CHARS = 5000
 

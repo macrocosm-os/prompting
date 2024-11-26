@@ -1,16 +1,27 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
-    hooks:
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  # Ruff version.
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.3.0
+  hooks:
+    - id: check-yaml
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+
+- repo: https://github.com/charliermarsh/ruff-pre-commit
   rev: v0.5.2
   hooks:
-    # Run the linter.
     - id: ruff
-      args: [ --fix ]
-    # Run the formatter.
-    - id: ruff-format
+      args: [--fix]
+
+- repo: https://github.com/psf/black
+  rev: 23.7.0
+  hooks:
+    - id: black
+      name: black (code formatter)
+      language_version: python3.10
+
+- repo: https://github.com/pycqa/isort
+  rev: 5.13.2
+  hooks:
+    - id: isort
+      name: isort (import sorting)
+      args: ["--profile", "black"]

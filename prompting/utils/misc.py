@@ -1,12 +1,14 @@
-import time
 import asyncio
+import time
 import traceback
-from math import floor
-from typing import Callable, Any
 from functools import lru_cache, update_wrapper
-from prompting.utils.exceptions import BittensorError
+from math import floor
+from typing import Any, Callable
+
 from loguru import logger
+
 from prompting.settings import settings
+from prompting.utils.exceptions import BittensorError
 
 
 class classproperty:

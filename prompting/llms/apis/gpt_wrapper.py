@@ -1,10 +1,11 @@
-import openai
 import numpy as np
-from prompting.settings import settings
+import openai
 from loguru import logger
 from openai.types.chat import ChatCompletion
 from pydantic import BaseModel
+
 from prompting.llms.apis.llm_messages import LLMMessage, LLMMessages
+from prompting.settings import settings
 
 
 class GPT(BaseModel):

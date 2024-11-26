@@ -1,8 +1,10 @@
-from prompting.utils.misc import classproperty
-import numpy as np
 import re
+
+import numpy as np
 import torch
 from loguru import logger
+
+from prompting.utils.misc import classproperty
 
 
 def contains_gpu_index_in_device(device: str) -> bool:

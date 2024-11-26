@@ -42,7 +42,7 @@ Validators and miners are based on large language models (LLM). The validation p
 
 # Agentic Tasks
 
-Subnet one utilizes the concept of "Tasks" to control the behavior of miners. Validator create a variety of tasks, which include a "challenge" for the miner to solve, and sends them to 100 miners, scoring all the completions they send back. 
+Subnet one utilizes the concept of "Tasks" to control the behavior of miners. Validator create a variety of tasks, which include a "challenge" for the miner to solve, and sends them to 100 miners, scoring all the completions they send back.
 
 ## Task Descriptions
 
@@ -53,16 +53,23 @@ The miner receives a question about a specific section from a Wikipedia page. Th
 Similar to QA, but the miner uses the entire Wikipedia page instead of a specific section. The miner reads the whole page, summarizes it, and provides a concise answer.
 
 ### 3. **DateQA**
-The miner receives a question about an event from Wikipedia. The miner must search through Wikipedia for the relevant event and return the correct answer based on the findings. References are again generated with validator's knowledge of the context, and similarity metrics are used to score miner completions. 
+The miner receives a question about an event from Wikipedia. The miner must search through Wikipedia for the relevant event and return the correct answer based on the findings. References are again generated with validator's knowledge of the context, and similarity metrics are used to score miner completions.
 
 ### 4. **Inference**
 A question is given with some pre-seeded information and a random seed. The miner must perform an inference based on this information to provide the correct answer. Completions are scored based on similarity metrics.
 
 ### 5. **MultiChoice**
-The miner is presented with a question from Wikipedia along with four possible answers (A, B, C, or D). The miner must search Wikipedia and return the correct answer by selecting one of the given options. Miner completions are scored by Regex matching. 
+The miner is presented with a question from Wikipedia along with four possible answers (A, B, C, or D). The miner must search Wikipedia and return the correct answer by selecting one of the given options. Miner completions are scored by Regex matching.
 
 ### 6. **Programming**
-The miner receives a code snippet that is incomplete. The task is to complete the code snippet to perform its intended function. The validator generates a reference using it's internal LLM, and the miner is scored based on its similarity to this reference. 
+The miner receives a code snippet that is incomplete. The task is to complete the code snippet to perform its intended function. The validator generates a reference using it's internal LLM, and the miner is scored based on its similarity to this reference.
 
 ### 7. **Web Retrieval**
-The miner is given a question based on a random web page and must return a scraped website that contains the answer. This requires searching the web to locate the most accurate and reliable source to provide the answer. The miner is scored based on the embedding similarity between the answer it returns and the original website that the validator generated the reference from. 
+The miner is given a question based on a random web page and must return a scraped website that contains the answer. This requires searching the web to locate the most accurate and reliable source to provide the answer. The miner is scored based on the embedding similarity between the answer it returns and the original website that the validator generated the reference from.
+
+# Contribute
+<div align="center">
+
+**[Contribution guide](./assets/CONTRIBUTING.md)**
+
+</div>

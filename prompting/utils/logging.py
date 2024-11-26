@@ -1,10 +1,10 @@
 import json
-import numpy as np
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Literal, Any
+from typing import Any, Literal
 
+import numpy as np
 import wandb
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
@@ -169,7 +169,7 @@ class ValidatorLoggingEvent(BaseEvent):
 
 
 class RewardLoggingEvent(BaseEvent):
-    block : int | None
+    block: int | None
     step: int
     response_event: DendriteResponseEvent
     reward_events: list[WeightedRewardEvent]

@@ -4,16 +4,15 @@ import sys
 import threading
 from traceback import print_exception
 
-import bittensor as bt
 import numpy as np
 import torch
 from loguru import logger
 
 from prompting.base.neuron import BaseNeuron
+from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.utils.exceptions import MaxRetryError
 from prompting.utils.logging import init_wandb
-from prompting.rewards.reward import WeightedRewardEvent
 
 
 class BaseValidatorNeuron(BaseNeuron):
@@ -25,7 +24,6 @@ class BaseValidatorNeuron(BaseNeuron):
         super().__init__(config=config)
         if settings.WANDB_ON:
             init_wandb(neuron="validator")
-        self.axon: bt.axon | None = None
         self.latest_block = -1
 
         # Save a copy of the hotkeys to local memory.
@@ -37,13 +35,6 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # Init sync with the network. Updates the metagraph.
         self.sync()
-
-        # Serve axon to enable external connections.
-        self.axon = bt.axon(wallet=settings.WALLET, port=settings.AXON_PORT)
-        if self.axon is not None:
-            self._serve_axon()
-        else:
-            logger.warning("axon off, not serving ip to chain.")
 
         # Create asyncio event loop to manage async tasks.
         self.loop = asyncio.get_event_loop()
@@ -82,7 +73,7 @@ class BaseValidatorNeuron(BaseNeuron):
         self.sync()
 
         if not settings.NEURON_AXON_OFF:
-            logger.info(f"Running validator {self.axon} with netuid: {settings.NETUID}")
+            logger.info(f"Running validator on netuid: {settings.NETUID}")
         else:
             logger.info(f"Running validator with netuid: {settings.NETUID}")
 

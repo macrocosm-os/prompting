@@ -1,21 +1,23 @@
-from loguru import logger
-from prompting.settings import settings
-from prompting.base.protocol import StreamPromptingSynapse
-from starlette.types import Send
-from typing import Tuple, AsyncGenerator
-import time
-import json
 import asyncio
-from prompting.tasks.inference import InferenceTask
+import json
+import time
+from dataclasses import dataclass, field
+from functools import partial
+from typing import AsyncGenerator, Tuple
+
 import bittensor as bt
 from bittensor.dendrite import dendrite
-from prompting.rewards.scoring import task_scorer
-from prompting.datasets.base import ChatEntry
-from prompting.utils.uids import get_random_uids
-from prompting.base.forward import SynapseStreamResult
+from loguru import logger
+from starlette.types import Send
+
 from prompting.base.dendrite import DendriteResponseEvent
-from functools import partial
-from dataclasses import dataclass, field
+from prompting.base.forward import SynapseStreamResult
+from prompting.base.protocol import StreamPromptingSynapse
+from prompting.datasets.base import ChatEntry
+from prompting.rewards.scoring import task_scorer
+from prompting.settings import settings
+from prompting.tasks.inference import InferenceTask
+from prompting.utils.uids import get_random_uids
 
 
 @dataclass

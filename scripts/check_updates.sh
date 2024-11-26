@@ -3,7 +3,7 @@
 # Initialize variables
 version_location="./prompting/__init__.py"
 version="__version__"
-proc_name="s1_validator_main_process" 
+proc_name="s1_validator_main_process"
 old_args=$@
 branch=$(git branch --show-current)  # get current branch.
 
@@ -122,7 +122,7 @@ check_for_update() {
         if version_less_than $current_version $latest_version; then
             echo "latest version $latest_version"
             echo "current version $current_version"
-            echo "current validator version: $current_version" 
+            echo "current validator version: $current_version"
             echo "latest validator version: $latest_version"
             update_script
         else
