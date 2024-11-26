@@ -4,9 +4,9 @@ from prompting import settings
 settings.settings = settings.Settings.load(mode="miner")
 settings = settings.settings
 
-import time
-import json
 import asyncio
+import json
+import time
 
 import httpx
 import netaddr
@@ -44,7 +44,7 @@ class OpenAIMiner:
             },
         )
         if SHOULD_SERVE_LLM:
-            self.llm = ReproducibleHF(model_id= LOCAL_MODEL_ID)
+            self.llm = ReproducibleHF(model_id=LOCAL_MODEL_ID)
         else:
             self.llm = None
 
@@ -61,7 +61,7 @@ class OpenAIMiner:
         return openai_request
 
     async def create_chat_completion(self, request: Request):
-        if self.llm and request.headers.get("task", None) == 'inference':
+        if self.llm and request.headers.get("task", None) == "inference":
             return await self.create_inference_completion(request)
         req = self.client.build_request("POST", "chat/completions", json=await self.format_openai_query(request))
         r = await self.client.send(req, stream=True)
@@ -73,31 +73,15 @@ class OpenAIMiner:
             words = inference.split()
             for word in words:
                 # Simulate the OpenAI streaming response format
-                data = {
-                    "choices": [
-                        {
-                            "delta": {"content": word + ' '},
-                            "index": 0,
-                            "finish_reason": None
-                        }
-                    ]
-                }
+                data = {"choices": [{"delta": {"content": word + " "}, "index": 0, "finish_reason": None}]}
                 yield f"data: {json.dumps(data)}\n\n"
                 await asyncio.sleep(0.1)  # Simulate a delay between words
             # Indicate the end of the stream
-            data = {
-                "choices": [
-                    {
-                        "delta": {},
-                        "index": 0,
-                        "finish_reason": "stop"
-                    }
-                ]
-            }
+            data = {"choices": [{"delta": {}, "index": 0, "finish_reason": "stop"}]}
             yield f"data: {json.dumps(data)}\n\n"
             yield "data: [DONE]\n\n"
 
-        return StreamingResponse(word_stream(), media_type='text/event-stream')
+        return StreamingResponse(word_stream(), media_type="text/event-stream")
 
     async def check_availability(self, request: Request):
         print("Checking availability")
@@ -193,7 +177,7 @@ class OpenAIMiner:
             port=settings.AXON_PORT,
             log_level="info",
             loop="asyncio",
-            workers = 4,
+            workers=4,
         )
         self.fast_api = FastAPIThreadedServer(config=fast_config)
         self.fast_api.start()
@@ -208,10 +192,12 @@ class OpenAIMiner:
             logger.error(str(e))
         self.shutdown()
 
-    async def run_inference(self,request: Request) -> str:
+    async def run_inference(self, request: Request) -> str:
         data = await request.json()
         try:
-            response = self.llm.generate(data.get("messages"), sampling_params=data.get("sampling_parameters"), seed = data.get("seed"))
+            response = self.llm.generate(
+                data.get("messages"), sampling_params=data.get("sampling_parameters"), seed=data.get("seed")
+            )
             return response
         except Exception as e:
             logger.error(f"An error occurred during text generation: {e}")

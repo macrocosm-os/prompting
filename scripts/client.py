@@ -3,13 +3,12 @@ from prompting import settings
 settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
 
-import json
 import asyncio
-from prompting.base.epistula import query_miners
+import json
 
-import bittensor as bt
 from loguru import logger
 
+from prompting.base.epistula import query_miners
 from prompting.settings import settings
 
 """
@@ -26,14 +25,15 @@ Steps:
 
 TEST_MINER_IDS = [203]
 
+
 async def query_and_print():
     body = {
-    "seed": 0,
-    "sampling_parameters": settings.SAMPLING_PARAMS,
-    "task": "inference",
-    "model": "casperhansen/llama-3-8b-instruct-awq",
-    "messages": [
-        {"role": "user", "content": "what is the meaning of life?"},
+        "seed": 0,
+        "sampling_parameters": settings.SAMPLING_PARAMS,
+        "task": "inference",
+        "model": "casperhansen/llama-3-8b-instruct-awq",
+        "messages": [
+            {"role": "user", "content": "what is the meaning of life?"},
         ],
     }
     res = await query_miners(TEST_MINER_IDS, json.dumps(body).encode("utf-8"))
@@ -42,6 +42,4 @@ async def query_and_print():
 
 
 if __name__ == "__main__":
-    asyncio.run(
-        query_and_print()
-    )
+    asyncio.run(query_and_print())

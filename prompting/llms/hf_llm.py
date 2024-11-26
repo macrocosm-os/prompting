@@ -30,7 +30,7 @@ class ReproducibleHF:
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 torch_dtype=torch.float16,
-                low_cpu_mem_usage=True, 
+                low_cpu_mem_usage=True,
                 device_map="cuda:0",
             )
 

@@ -1,15 +1,16 @@
-from typing import Awaitable, Dict, List
+from typing import List
 
 from loguru import logger
 
 from prompting.base.dendrite import SynapseStreamResult
-from prompting.utils.misc import async_log, serialize_exception_to_string
+from prompting.utils.misc import async_log
 
 
 @async_log
 async def execute_dendrite_call(dendrite_call):
     responses = await dendrite_call
     return responses
+
 
 def log_stream_results(stream_results: List[SynapseStreamResult]):
     failed_responses = [
