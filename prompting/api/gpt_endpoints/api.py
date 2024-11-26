@@ -66,9 +66,14 @@ async def mixture_of_agents(request: Request, api_key_data: dict = Depends(valid
 @router.post("/v1/chat/completions")
 async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(validate_api_key)):
     body = await request.json()
+    task = TaskRegistry.get_task_by_name(body.get("task"))
+    if body.get("task") and not task:
+        raise HTTPException(status_code=400, detail=f"Task {body.get('task')} not found")
+    logger.debug(f"Requested Task: {body.get('task')}, {task}")
+
+    body = {k: v for k, v in body.items() if k != "task"}
     body["seed"] = body.get("seed") or str(random.randint(0, 1_000_000))
     logger.debug(f"Seed provided by miner: {bool(body.get('seed'))} -- Using seed: {body.get('seed')}")
-    task = TaskRegistry.get_task_by_name(body.get("task"))
 
     if settings.TEST_MINER_IDS:
         available_miners = settings.TEST_MINER_IDS
@@ -81,7 +86,7 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
 
     axon_info = settings.METAGRAPH.axons[available_miners[0]]
     base_url = "http://localhost:8008/v1" if settings.mode == "mock" else f"http://{axon_info.ip}:{axon_info.port}/v1"
-    # base_url = "http://localhost:8008/v1"
+    base_url = "http://localhost:8008/v1"
     miner_id = available_miners[0]
     logger.debug(f"Using base_url: {base_url}")
 
@@ -96,7 +101,10 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
 
     try:
         with Timer() as timer:
-            response = await miner.chat.completions.create(**body)
+            if task:
+                response = await miner.chat.completions.create(**body, extra_body={"task": task.__name__})
+            else:
+                response = await miner.chat.completions.create(**body)
         if body.get("stream"):
             return StreamingResponse(
                 process_and_collect_stream(miner_id, body, response), media_type="text/event-stream"
