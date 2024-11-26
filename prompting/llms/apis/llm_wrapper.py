@@ -1,7 +1,8 @@
-from prompting.llms.apis.sn19_wrapper import chat_complete
+from loguru import logger
+
 from prompting.llms.apis.gpt_wrapper import openai_client
 from prompting.llms.apis.llm_messages import LLMMessages
-from loguru import logger
+from prompting.llms.apis.sn19_wrapper import chat_complete
 from prompting.settings import settings
 
 
@@ -36,8 +37,7 @@ class LLMWrapper:
                     logger.debug(f"Generated {len(response)} characters using {model}")
                     return response
                 logger.warning(
-                    "Failed to use SN19 API (check the SN19_API_KEY and/or SN19_API_URL), "
-                    "falling back to GPT-3.5"
+                    "Failed to use SN19 API (check the SN19_API_KEY and/or SN19_API_URL), " "falling back to GPT-3.5"
                 )
 
         model = "gpt-3.5-turbo"

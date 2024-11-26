@@ -1,12 +1,12 @@
 import random
+from typing import ClassVar
 
 import datasets
 import nltk
 from nltk.corpus import wordnet
-from prompting.datasets.base import ChatEntry
-from prompting.datasets.base import BaseDataset
 from pydantic import model_validator
-from typing import ClassVar
+
+from prompting.datasets.base import BaseDataset, ChatEntry
 
 nltk.download("wordnet")
 

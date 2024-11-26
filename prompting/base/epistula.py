@@ -1,17 +1,19 @@
-import json
-from hashlib import sha256
-from uuid import uuid4
-from math import ceil
-import time
-from substrateinterface import Keypair
 import asyncio
+import json
+import time
+from hashlib import sha256
+from math import ceil
+from typing import Annotated, Any, Dict, List, Optional
+from uuid import uuid4
+
 import bittensor as bt
-import traceback
-from typing import Dict, List, Optional, Any, Annotated
-from prompting.base.dendrite import SynapseStreamResult
-from httpx import Timeout
 import httpx
 import openai
+from httpx import Timeout
+from loguru import logger
+from substrateinterface import Keypair
+
+from prompting.base.dendrite import SynapseStreamResult
 from prompting.settings import settings
 
 
@@ -63,38 +65,21 @@ def generate_header(
         headers["Epistula-Secret-Signature-0"] = "0x" + hotkey.sign(str(timestampInterval - 1) + "." + signed_for).hex()
         headers["Epistula-Secret-Signature-1"] = "0x" + hotkey.sign(str(timestampInterval) + "." + signed_for).hex()
         headers["Epistula-Secret-Signature-2"] = "0x" + hotkey.sign(str(timestampInterval + 1) + "." + signed_for).hex()
-    return {**headers, **json.loads(body_bytes)}
+        headers.update(json.loads(body_bytes))
+    return headers
 
 
-def create_header_hook(hotkey, axon_hotkey=None, api_key=None):
-    """
-    Creates a header hook function that adds authentication headers including API key.
-
-    Args:
-        hotkey: The wallet hotkey
-        axon_hotkey: Optional axon hotkey
-        api_key: Optional API key for endpoint authentication
-
-    Returns:
-        Async function that adds headers to the request
-    """
-
+def create_header_hook(hotkey, axon_hotkey):
     async def add_headers(request: httpx.Request):
-        # Add standard headers
         for key, header in generate_header(hotkey, request.read(), axon_hotkey).items():
             if key not in ["messages", "model", "stream"]:
-                request.headers[key] = header
-
-        # Add API key if provided
-        if api_key:
-            request.headers["api-key"] = api_key
-
+                request.headers[key] = str(header)
         return request
 
     return add_headers
 
 
-async def query_miners(task, uids, body):
+async def query_miners(uids, body):
     try:
         tasks = []
         for uid in uids:
@@ -103,7 +88,6 @@ async def query_miners(task, uids, body):
                     handle_inference(
                         settings.METAGRAPH,
                         settings.WALLET,
-                        task,
                         body,
                         uid,
                     )
@@ -112,8 +96,7 @@ async def query_miners(task, uids, body):
         responses: List[SynapseStreamResult] = await asyncio.gather(*tasks)
         return responses
     except Exception as e:
-        bt.logging.error(f"Error in forward for: {e}")
-        bt.logging.error(traceback.format_exc())
+        logger.error(f"Error in forward for: {e}")
         return []
 
 
@@ -137,8 +120,7 @@ async def query_availabilities(uids, task_config, model_config):
         return responses
 
     except Exception as e:
-        bt.logging.error(f"Error in availability call: {e}")
-        bt.logging.error(traceback.format_exc())
+        logger.error(f"Error in availability call: {e}")
         return []
 
 
@@ -166,7 +148,6 @@ async def handle_availability(
 async def handle_inference(
     metagraph: "bt.NonTorchMetagraph",
     wallet: "bt.wallet",
-    task: str,
     body: Dict[str, Any],
     uid: int,
 ) -> SynapseStreamResult:
@@ -180,7 +161,7 @@ async def handle_inference(
             base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
             api_key="Apex",
             max_retries=0,
-            timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=5),
+            timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=10),
             http_client=openai.DefaultAsyncHttpxClient(
                 event_hooks={"request": [create_header_hook(wallet.hotkey, axon_info.hotkey)]}
             ),
@@ -188,7 +169,10 @@ async def handle_inference(
         try:
             payload = json.loads(body)
             chat = await miner.chat.completions.create(
-                messages=payload["messages"], model=payload["model"], stream=True
+                messages=payload["messages"],
+                model=payload["model"],
+                stream=True,
+                extra_body={k: v for k, v in payload.items() if k not in ["messages", "model"]},
             )
             async for chunk in chat:
                 if chunk.choices[0].delta and chunk.choices[0].delta.content:
@@ -196,17 +180,16 @@ async def handle_inference(
                     chunk_timings.append(time.time() - start_time)
 
         except openai.APIConnectionError as e:
-            bt.logging.trace(f"Miner {uid} failed request: {e}")
+            logger.trace(f"Miner {uid} failed request: {e}")
             exception = e
 
         except Exception as e:
-            bt.logging.trace(f"Unknown Error when sending to miner {uid}: {e}")
+            logger.trace(f"Unknown Error when sending to miner {uid}: {e}")
             exception = e
 
     except Exception as e:
         exception = e
-        bt.logging.error(f"{uid}: Error in forward for: {e}")
-        bt.logging.error(traceback.format_exc())
+        logger.error(f"{uid}: Error in forward for: {e}")
     finally:
         if exception:
             exception = str(exception)

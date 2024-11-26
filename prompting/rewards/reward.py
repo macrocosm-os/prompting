@@ -1,9 +1,11 @@
-import numpy as np
 import time
-from typing import Literal, ClassVar
 from abc import ABC, abstractmethod
-from prompting.base.dendrite import DendriteResponseEvent
+from typing import ClassVar, Literal
+
+import numpy as np
 from pydantic import BaseModel, ConfigDict
+
+from prompting.base.dendrite import DendriteResponseEvent
 from prompting.tasks.base_task import BaseTextTask
 
 RewardTypeLiteral = Literal["reward", "penalty"]

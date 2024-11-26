@@ -1,20 +1,20 @@
-from loguru import logger
+import asyncio
+import os
+
 import bittensor as bt
 import numpy as np
-import os
-import asyncio
 import pandas as pd
+from loguru import logger
 
-from prompting import __spec_version__
-from prompting.settings import settings
-from prompting.utils.misc import ttl_get_block
+from prompting import __spec_version__, mutable_globals
 from prompting.base.loop_runner import AsyncLoopRunner
-from prompting import mutable_globals
-from prompting.rewards.reward import WeightedRewardEvent
-from prompting.tasks.task_registry import TaskRegistry, TaskConfig
-from prompting.tasks.inference import InferenceTask
-from prompting.utils.logging import WeightSetEvent, log_event
 from prompting.llms.model_zoo import ModelZoo
+from prompting.rewards.reward import WeightedRewardEvent
+from prompting.settings import settings
+from prompting.tasks.inference import InferenceTask
+from prompting.tasks.task_registry import TaskConfig, TaskRegistry
+from prompting.utils.logging import WeightSetEvent, log_event
+from prompting.utils.misc import ttl_get_block
 
 PAST_WEIGHTS: list[np.ndarray] = []
 WEIGHTS_HISTORY_LENGTH = 24
@@ -139,9 +139,9 @@ class WeightSetter(AsyncLoopRunner):
             logger.debug(f"Found {len(mutable_globals.reward_events)} reward events in queue")
 
             # reward_events is a list of lists of WeightedRewardEvents - the 'sublists' each contain the multiple reward events for a single task
-            mutable_globals.reward_events: list[list[WeightedRewardEvent]] = (
-                mutable_globals.reward_events
-            )  # to get correct typehinting
+            mutable_globals.reward_events: list[
+                list[WeightedRewardEvent]
+            ] = mutable_globals.reward_events  # to get correct typehinting
 
             # reward_dict = {uid: 0 for uid in get_uids(sampling_mode="all")}
             reward_dict = {uid: 0 for uid in range(1024)}
