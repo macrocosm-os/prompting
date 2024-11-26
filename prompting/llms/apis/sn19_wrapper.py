@@ -38,6 +38,7 @@ def chat_complete(
     }
     response = requests.post(url, headers=headers, data=json.dumps(data))
     try:
-        return response.json()["choices"][0]["delta"]["content"]
+        response_json = response.json()
+        return response_json["choices"][0]["message"].get("content")
     except Exception as e:
         logger.exception(f"Error in chat_complete: {e}")
