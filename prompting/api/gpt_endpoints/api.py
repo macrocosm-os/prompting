@@ -13,6 +13,8 @@ from typing import AsyncGenerator
 from prompting.rewards.scoring import task_scorer
 from prompting.base.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.utils.timer import Timer
+from prompting.api.api_managements.api import validate_api_key
+from fastapi import Depends
 
 router = APIRouter()
 
@@ -26,9 +28,8 @@ async def process_and_collect_stream(miner_id: int, request: dict, response: Asy
             if hasattr(chunk, "choices") and chunk.choices and isinstance(chunk.choices[0].delta.content, str):
                 collected_content.append(chunk.choices[0].delta.content)
                 collected_chunks_timings.append(timer.elapsed_time())
-                # Format in SSE format
                 yield f"data: {json.dumps(chunk.model_dump())}\n\n"
-        # After streaming is complete, put the response in the queue
+
     task = InferenceTask(
         query=request["messages"][-1]["content"],
         messages=[message["content"] for message in request["messages"]],
@@ -50,7 +51,6 @@ async def process_and_collect_stream(miner_id: int, request: dict, response: Asy
         completions=["".join(collected_content)],
     )
 
-    # TODO: Estimate block and step
     task_scorer.add_to_queue(
         task=task, response=response_event, dataset_entry=task.dataset_entry, block=-1, step=-1, task_id=task.task_id
     )
@@ -58,18 +58,14 @@ async def process_and_collect_stream(miner_id: int, request: dict, response: Asy
 
 
 @router.post("/mixture_of_agents")
-async def mixture_of_agents(request: Request):
-    # body = await request.json()
-    # return {"message": "Mixture of Agents"}
+async def mixture_of_agents(request: Request, api_key_data: dict = Depends(validate_api_key)):
     return {"message": "Mixture of Agents"}
 
 
 @router.post("/v1/chat/completions")
-async def proxy_chat_completions(request: Request):
+async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(validate_api_key)):
     body = await request.json()
-    body["seed"] = body.get("seed") or str(
-        random.randint(0, 1_000_000)
-    )  # for some reason needs to be passed as string... it seems?
+    body["seed"] = body.get("seed") or str(random.randint(0, 1_000_000))
     logger.debug(f"Seed provided by miner: {bool(body.get('seed'))} -- Using seed: {body.get('seed')}")
 
     if settings.TEST_MINER_IDS:
@@ -77,11 +73,10 @@ async def proxy_chat_completions(request: Request):
     elif not settings.mode == "mock" and not (
         available_miners := miner_availabilities.get_available_miners(task=InferenceTask(), model=None)
     ):
-        return "No miners available"
+        raise HTTPException(status_code=503, detail="No miners available")
 
     axon_info = settings.METAGRAPH.axons[available_miners[0]]
     base_url = "http://localhost:8008/v1" if settings.mode == "mock" else f"http://{axon_info.ip}:{axon_info.port}/v1"
-    # base_url = "http://localhost:8008/v1"
     miner_id = available_miners[0]
     logger.debug(f"Using base_url: {base_url}")
 
@@ -96,10 +91,8 @@ async def proxy_chat_completions(request: Request):
 
     try:
         with Timer() as timer:
-            # Create request to OpenAI
             response = await miner.chat.completions.create(**body)
         if body.get("stream"):
-            # If streaming is requested, return streaming response
             return StreamingResponse(
                 process_and_collect_stream(miner_id, body, response), media_type="text/event-stream"
             )
@@ -119,6 +112,7 @@ async def proxy_chat_completions(request: Request):
         uids=[miner_id],
         timeout=settings.NEURON_TIMEOUT,
     )
+
     task = InferenceTask(
         query=body["messages"][-1]["content"],
         messages=[message["content"] for message in body["messages"]],
@@ -126,7 +120,9 @@ async def proxy_chat_completions(request: Request):
         seed=body.get("seed"),
         response=response_event,
     )
+
     task_scorer.add_to_queue(
         task=task, response=response_event, dataset_entry=task.dataset_entry, block=-1, step=-1, task_id=task.task_id
     )
+
     return response

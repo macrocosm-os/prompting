@@ -66,11 +66,29 @@ def generate_header(
     return {**headers, **json.loads(body_bytes)}
 
 
-def create_header_hook(hotkey, axon_hotkey=None):
+def create_header_hook(hotkey, axon_hotkey=None, api_key=None):
+    """
+    Creates a header hook function that adds authentication headers including API key.
+
+    Args:
+        hotkey: The wallet hotkey
+        axon_hotkey: Optional axon hotkey
+        api_key: Optional API key for endpoint authentication
+
+    Returns:
+        Async function that adds headers to the request
+    """
+
     async def add_headers(request: httpx.Request):
+        # Add standard headers
         for key, header in generate_header(hotkey, request.read(), axon_hotkey).items():
             if key not in ["messages", "model", "stream"]:
                 request.headers[key] = header
+
+        # Add API key if provided
+        if api_key:
+            request.headers["api-key"] = api_key
+
         return request
 
     return add_headers
