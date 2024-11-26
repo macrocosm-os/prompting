@@ -1,11 +1,11 @@
 from typing import ClassVar
 
-from prompting.rewards.rouge import RougeRewardModel
-from prompting.rewards.date import DateRewardModel
-from prompting.tasks.base_task import BaseTextTask
-from prompting.utils.cleaners import RemoveTags, FirstQuestion, CleanerPipeline
 from prompting.datasets.wiki import DateContext
+from prompting.rewards.date import DateRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
+from prompting.rewards.rouge import RougeRewardModel
+from prompting.tasks.base_task import BaseTextTask
+from prompting.utils.cleaners import CleanerPipeline, FirstQuestion, RemoveTags
 
 QUERY_SYSTEM_PROMPT = """You are a question creation expert. When asked to create a question, you use the context to make a specific question that would have the answer <date>. Your question should contain the topic."""
 QUERY_PROMPT_TEMPLATE = """\
@@ -44,5 +44,5 @@ class DateQuestionAnsweringTask(BaseTextTask):
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(
             date=dataset_entry.content, query=self.query, content=dataset_entry.subtopic
         )
-        self.reference = self.generate_reference(messages=[reference_prompt])
+        self.reference = self.generate_reference(messages=[{"role": "user", "content": reference_prompt}])
         return self.reference

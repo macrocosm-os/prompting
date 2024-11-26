@@ -11,14 +11,13 @@ Example response:
 import json
 import time
 
+import numpy as np
 from loguru import logger
 from scipy import spatial
-import numpy as np
 
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.datasets.random_website import DDGDataset, DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
-import numpy as np
 from prompting.rewards.reward import BatchRewardOutput
 
 _SEARCH_TERM_THRESH = 0.2

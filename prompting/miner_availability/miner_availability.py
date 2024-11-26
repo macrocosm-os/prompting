@@ -1,15 +1,18 @@
-from pydantic import BaseModel
+import asyncio
+import random
+from typing import Dict
+
+import numpy as np
 from loguru import logger
-from prompting.tasks.base_task import BaseTask
-from prompting.llms.model_zoo import ModelZoo
+from pydantic import BaseModel
+
+from prompting.base.epistula import query_availabilities
 from prompting.base.loop_runner import AsyncLoopRunner
-from prompting.base.protocol import AvailabilitySynapse
+from prompting.llms.model_zoo import ModelZoo
 from prompting.settings import settings
+from prompting.tasks.base_task import BaseTask
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_uids
-import random
-import asyncio
-import numpy as np
 
 task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
 # task_config: dict[str, bool] = {
@@ -55,7 +58,7 @@ class MinerAvailabilities(BaseModel):
 
 
 class CheckMinerAvailability(AsyncLoopRunner):
-    interval: int = 10  # Miners will be queried approximately once every hour
+    interval: int = 30  # Miners will be queried approximately once every hour
     uids: np.ndarray = settings.TEST_MINER_IDS or get_uids(sampling_mode="all")
     current_index: int = 0
     uids_per_step: int = 10
@@ -74,26 +77,21 @@ class CheckMinerAvailability(AsyncLoopRunner):
 
         if any(uid >= len(settings.METAGRAPH.axons) for uid in uids_to_query):
             raise ValueError("Some UIDs are out of bounds. Make sure all the TEST_MINER_IDS are valid.")
+        responses: list[Dict[str, bool]] = await query_availabilities(uids_to_query, task_config, model_config)
 
-        axons = [settings.METAGRAPH.axons[uid] for uid in uids_to_query]
-        responses: list[AvailabilitySynapse] = await settings.DENDRITE(
-            axons=axons,
-            synapse=AvailabilitySynapse(task_availabilities=task_config, llm_model_availabilities=model_config),
-            timeout=settings.NEURON_TIMEOUT,
-            deserialize=False,
-            streaming=False,
-        )
         logger.debug(f"Availability responses: {responses}")
-        for response, uid in zip(responses, uids_to_query):
-            if response.is_failure:
-                logger.warning(f"Miner {uid} failed to respond. Response is timeout: {response.timeout}")
-                continue
 
         for response, uid in zip(responses, uids_to_query):
-            miner_availabilities.miners[uid] = MinerAvailability(
-                task_availabilities=response.task_availabilities,
-                llm_model_availabilities=response.llm_model_availabilities,
-            )
+            if not response:
+                miner_availabilities.miners[uid] = MinerAvailability(
+                    task_availabilities={task: True for task in task_config},
+                    llm_model_availabilities={model: False for model in model_config},
+                )
+            else:
+                miner_availabilities.miners[uid] = MinerAvailability(
+                    task_availabilities=response["task_availabilities"],
+                    llm_model_availabilities=response["llm_model_availabilities"],
+                )
 
         logger.debug("Miner availabilities updated.")
         self.current_index = end_index

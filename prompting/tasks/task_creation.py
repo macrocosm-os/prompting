@@ -1,16 +1,15 @@
-from prompting.base.loop_runner import AsyncLoopRunner
-import threading
 import asyncio
-from prompting.mutable_globals import (
-    task_queue,
-    scoring_queue,
-)
-from prompting.settings import settings
+import threading
+
 from loguru import logger
-from prompting.tasks.task_registry import TaskRegistry
-from prompting.miner_availability.miner_availability import miner_availabilities
-from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
 from pydantic import ConfigDict
+
+from prompting.base.loop_runner import AsyncLoopRunner
+from prompting.miner_availability.miner_availability import miner_availabilities
+from prompting.mutable_globals import scoring_queue, task_queue
+from prompting.settings import settings
+from prompting.tasks.task_registry import TaskRegistry
+from prompting.utils.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 
 RETRIES = 3
 

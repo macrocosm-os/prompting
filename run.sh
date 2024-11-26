@@ -97,4 +97,3 @@ echo "module.exports = {
 cat app.config.js
 
 pm2 start app.config.js
-

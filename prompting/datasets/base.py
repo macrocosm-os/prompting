@@ -1,11 +1,11 @@
-from loguru import logger
-from abc import ABC, abstractmethod
-from typing import Literal
-from pydantic import BaseModel
-from typing import ClassVar
-from prompting.utils.timer import Timer
 import json
-from pydantic import model_validator
+from abc import ABC, abstractmethod
+from typing import ClassVar, Literal
+
+from loguru import logger
+from pydantic import BaseModel, model_validator
+
+from prompting.utils.timer import Timer
 
 
 class DatasetEntry(BaseModel):
@@ -54,7 +54,8 @@ class BaseDataset(ABC, BaseModel):
     max_tries: int = 10
 
     @abstractmethod
-    def random(self) -> DatasetEntry: ...
+    def random(self) -> DatasetEntry:
+        ...
 
     def get(self) -> DatasetEntry:
         return self.next()

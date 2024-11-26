@@ -1,10 +1,9 @@
 import time
+
 import numpy as np
+
 from prompting.base.dendrite import DendriteResponseEvent
-from prompting.rewards.reward import (
-    BaseRewardModel,
-    BatchRewardOutput,
-)
+from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 
 
 class StreamingRewardModel(BaseRewardModel):

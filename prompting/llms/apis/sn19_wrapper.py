@@ -1,9 +1,12 @@
-from prompting.settings import settings
+import json
+
+import requests
 from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
-import requests
-import json
+
 from prompting.llms.apis.llm_messages import LLMMessages
+from prompting.settings import settings
+
 
 # TODO: key error in response.json() when response is 500
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))

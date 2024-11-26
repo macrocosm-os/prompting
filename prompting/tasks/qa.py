@@ -89,5 +89,5 @@ class QuestionAnsweringTask(BaseTextTask):
 
     def make_reference(self, dataset_entry: Context):
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.content, question=self.query)
-        self.reference = self.generate_reference(messages=[reference_prompt])
+        self.reference = self.generate_reference(messages=[{"role": "user", "content": reference_prompt}])
         return self.reference

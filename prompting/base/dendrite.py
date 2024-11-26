@@ -1,26 +1,25 @@
 import numpy as np
-from prompting.base.protocol import StreamPromptingSynapse
+from pydantic import BaseModel, ConfigDict, model_validator
+
 from prompting.utils.misc import serialize_exception_to_string
-from pydantic import BaseModel, model_validator, ConfigDict
-from loguru import logger
 
 
 class SynapseStreamResult(BaseModel):
-    exception: BaseException | None = None
+    exception: str | None = None
     uid: int | None = None
     accumulated_chunks: list[str] | None = None
     accumulated_chunks_timings: list[float] | None = None
     tokens_per_chunk: list[int] | None = None
-    synapse: StreamPromptingSynapse | None = None
+    status_code: int = 200
+    status_message: str = ""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @property
     def completion(self) -> str:
-        if not self.synapse:
-            logger.warning("Synapse is None")
-            return
-        return self.synapse.completion
+        if not self.accumulated_chunks:
+            return ""
+        return "".join(self.accumulated_chunks)
 
     def model_dump(self):
         # without a custom model dump, this leads to serialization errors in DendriteResponseEvent...
@@ -31,7 +30,6 @@ class SynapseStreamResult(BaseModel):
             "accumulated_chunks": self.accumulated_chunks,
             "accumulated_chunks_timings": self.accumulated_chunks_timings,
             "tokens_per_chunk": self.tokens_per_chunk,
-            "synapse": self.synapse.model_dump() if self.synapse is not None else None,
         }
 
 
@@ -59,19 +57,18 @@ class DendriteResponseEvent(BaseModel):
             return self
         for stream_result in self.stream_results:
             # for some reason the language server needs this line to understand the type of stream_result
-            stream_result: SynapseStreamResult
 
-            synapse = stream_result.synapse
+            self.completions.append(stream_result.completion)
+            self.status_messages.append(stream_result.status_message)
+            status_code = stream_result.status_code
 
-            self.completions.append(synapse.completion)
-            self.status_messages.append(synapse.dendrite.status_message)
-            status_code = synapse.dendrite.status_code
-
-            if len(synapse.completion) == 0 and status_code == 200:
+            if len(stream_result.completion) == 0 and status_code == 200:
                 status_code = 204
 
             self.status_codes.append(status_code)
-            process_time = synapse.dendrite.process_time or 0
+            process_time = (
+                stream_result.accumulated_chunks_timings[-1] if stream_result.accumulated_chunks_timings else 0
+            )
             if status_code == 200 or status_code == 204:
                 self.timings.append(process_time)
             elif status_code == 408:

@@ -1,7 +1,9 @@
 from typing import ClassVar
+
 import numpy as np
-from pydantic import BaseModel, ConfigDict
 from loguru import logger
+from pydantic import BaseModel, ConfigDict
+
 from prompting.settings import settings
 
 
@@ -23,7 +25,6 @@ class ModelZoo:
             reward=1,
             min_ram=settings.MAX_ALLOWED_VRAM_GB,
         ),
-        ModelConfig(llm_model_id="casperhansen/llama-3-8b-instruct-awq", reward=0.2, min_ram=24),
     ]
 
     # Code below can be uncommended for testing purposes and demonstrates how we rotate multiple LLMs in the future

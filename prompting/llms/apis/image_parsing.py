@@ -1,11 +1,12 @@
 # This file is probably not needed for the project but came bundled with the LLM wrapper I wrote
 # for a previous project and thought it may be useful in the future if we expand the project to
 # also deal with multimodel inputs.
-from fastapi import UploadFile, HTTPException
-from PIL import Image
-import io
-from loguru import logger
 import base64
+import io
+
+from fastapi import HTTPException, UploadFile
+from loguru import logger
+from PIL import Image
 
 
 def encode_image(image_path):
