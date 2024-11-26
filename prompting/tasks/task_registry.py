@@ -76,6 +76,12 @@ class TaskRegistry(BaseModel):
     ]
 
     @classmethod
+    def get_task_by_name(cls, task_name: str) -> BaseTextTask:
+        if matching_tasks := [t.task for t in cls.task_configs if t.task.__name__ == task_name]:
+            return matching_tasks[0]
+        return None
+
+    @classmethod
     def get_task_config(cls, task: BaseTextTask.__class__ | BaseTextTask) -> TaskConfig:
         task = task.__class__ if isinstance(task, BaseTextTask) else task
         try:

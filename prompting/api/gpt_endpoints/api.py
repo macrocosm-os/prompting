@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 import json
 from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.tasks.inference import InferenceTask
+from prompting.tasks.task_registry import TaskRegistry
 from typing import AsyncGenerator
 from prompting.rewards.scoring import task_scorer
 from prompting.base.dendrite import DendriteResponseEvent, SynapseStreamResult
@@ -67,11 +68,12 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
     body = await request.json()
     body["seed"] = body.get("seed") or str(random.randint(0, 1_000_000))
     logger.debug(f"Seed provided by miner: {bool(body.get('seed'))} -- Using seed: {body.get('seed')}")
+    task = TaskRegistry.get_task_by_name(body.get("task"))
 
     if settings.TEST_MINER_IDS:
         available_miners = settings.TEST_MINER_IDS
     elif not settings.mode == "mock" and not (
-        available_miners := miner_availabilities.get_available_miners(task=InferenceTask(), model=body.get("model"))
+        available_miners := miner_availabilities.get_available_miners(task=task, model=body.get("model"))
     ):
         raise HTTPException(
             status_code=503, detail=f"No miners available for model: {body.get('model')} and task: {InferenceTask()}"
@@ -79,6 +81,7 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
 
     axon_info = settings.METAGRAPH.axons[available_miners[0]]
     base_url = "http://localhost:8008/v1" if settings.mode == "mock" else f"http://{axon_info.ip}:{axon_info.port}/v1"
+    # base_url = "http://localhost:8008/v1"
     miner_id = available_miners[0]
     logger.debug(f"Using base_url: {base_url}")
 
@@ -87,7 +90,7 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
         max_retries=0,
         timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=5),
         http_client=openai.DefaultAsyncHttpxClient(
-            event_hooks={"request": [create_header_hook(settings.WALLET.hotkey, None)]}
+            event_hooks={"request": [create_header_hook(settings.WALLET.hotkey, axon_info.hotkey)]}
         ),
     )
 
