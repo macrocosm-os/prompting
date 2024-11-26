@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Header, Depends
 import json
+from loguru import logger
 import secrets
 
 from prompting.settings import settings
@@ -24,6 +25,7 @@ def save_api_keys(api_keys):
 
 # Use lifespan to initialize API keys
 _keys = load_api_keys()
+logger.info(f"Loaded API keys: {_keys}")
 save_api_keys(_keys)
 
 
@@ -45,6 +47,7 @@ def create_api_key(rate_limit: int, admin_key: str = Depends(validate_admin_key)
     """Creates a new API key with a specified rate limit."""
     new_api_key = secrets.token_hex(16)
     _keys[new_api_key] = {"rate_limit": rate_limit, "usage": 0}
+    save_api_keys(_keys)
     return {"message": "API key created", "api_key": new_api_key}
 
 
@@ -54,6 +57,7 @@ def modify_api_key(api_key: str, rate_limit: int, admin_key: str = Depends(valid
     if api_key not in _keys:
         raise HTTPException(status_code=404, detail="API key not found")
     _keys[api_key]["rate_limit"] = rate_limit
+    save_api_keys(_keys)
     return {"message": "API key updated", "api_key": api_key}
 
 
@@ -63,6 +67,7 @@ def delete_api_key(api_key: str, admin_key: str = Depends(validate_admin_key)):
     if api_key not in _keys:
         raise HTTPException(status_code=404, detail="API key not found")
     del _keys[api_key]
+    save_api_keys(_keys)
     return {"message": "API key deleted"}
 
 

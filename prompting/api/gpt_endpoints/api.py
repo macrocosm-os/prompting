@@ -71,9 +71,11 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
     if settings.TEST_MINER_IDS:
         available_miners = settings.TEST_MINER_IDS
     elif not settings.mode == "mock" and not (
-        available_miners := miner_availabilities.get_available_miners(task=InferenceTask(), model=None)
+        available_miners := miner_availabilities.get_available_miners(task=InferenceTask(), model=body.get("model"))
     ):
-        raise HTTPException(status_code=503, detail="No miners available")
+        raise HTTPException(
+            status_code=503, detail=f"No miners available for model: {body.get('model')} and task: {InferenceTask()}"
+        )
 
     axon_info = settings.METAGRAPH.axons[available_miners[0]]
     base_url = "http://localhost:8008/v1" if settings.mode == "mock" else f"http://{axon_info.ip}:{axon_info.port}/v1"
