@@ -1,13 +1,12 @@
+# This ensures uvicorn is imported first
+import uvicorn
 from fastapi import FastAPI
 from loguru import logger
 
-# This ensures uvicorn is imported first
-import uvicorn
-
 # Now we can safely import the rest
 from prompting.api.api_managements.api import router as api_management_router
-from prompting.api.miner_availabilities.api import router as miner_availabilities_router
 from prompting.api.gpt_endpoints.api import router as gpt_router
+from prompting.api.miner_availabilities.api import router as miner_availabilities_router
 
 app = FastAPI()
 

@@ -1,21 +1,22 @@
-from fastapi import APIRouter, Request, HTTPException
-from loguru import logger
-import random
-import openai
-from prompting.settings import settings
-from httpx import Timeout
-from prompting.base.epistula import create_header_hook
-from fastapi.responses import StreamingResponse
 import json
+import random
+from typing import AsyncGenerator
+
+import openai
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
+from httpx import Timeout
+from loguru import logger
+
+from prompting.api.api_managements.api import validate_api_key
+from prompting.base.dendrite import DendriteResponseEvent, SynapseStreamResult
+from prompting.base.epistula import create_header_hook
 from prompting.miner_availability.miner_availability import miner_availabilities
+from prompting.rewards.scoring import task_scorer
+from prompting.settings import settings
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.task_registry import TaskRegistry
-from typing import AsyncGenerator
-from prompting.rewards.scoring import task_scorer
-from prompting.base.dendrite import DendriteResponseEvent, SynapseStreamResult
 from prompting.utils.timer import Timer
-from prompting.api.api_managements.api import validate_api_key
-from fastapi import Depends
 
 router = APIRouter()
 

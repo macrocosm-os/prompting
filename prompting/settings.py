@@ -1,11 +1,12 @@
 import os
 from functools import cached_property
 from typing import Any, Literal, Optional
-from loguru import logger
+
+import bittensor as bt
 import dotenv
+from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
-import bittensor as bt
 from transformers import AwqConfig
 
 # from prompting.utils.config import config

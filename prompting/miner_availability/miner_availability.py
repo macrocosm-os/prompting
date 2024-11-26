@@ -13,11 +13,6 @@ from prompting.settings import settings
 from prompting.tasks.base_task import BaseTask
 from prompting.tasks.task_registry import TaskRegistry
 from prompting.utils.uids import get_uids
-import random
-import asyncio
-import numpy as np
-from prompting.base.epistula import query_availabilities
-from typing import Dict
 
 task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
 # task_config: dict[str, bool] = {

@@ -1,8 +1,10 @@
-from fastapi import APIRouter
-from prompting.miner_availability.miner_availability import miner_availabilities
-from loguru import logger
-from prompting.tasks.task_registry import TaskRegistry
 from typing import Literal
+
+from fastapi import APIRouter
+from loguru import logger
+
+from prompting.miner_availability.miner_availability import miner_availabilities
+from prompting.tasks.task_registry import TaskRegistry
 
 router = APIRouter()
 

@@ -2,7 +2,7 @@
 import asyncio
 import json
 import time
-import json
+
 from prompting import settings
 from prompting.utils.profiling import profiler
 
@@ -12,6 +12,7 @@ settings = settings.settings
 from loguru import logger
 
 from prompting import mutable_globals
+from prompting.api.api import start_api
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.base.epistula import query_miners
 from prompting.base.forward import log_stream_results
@@ -26,9 +27,6 @@ from prompting.tasks.task_creation import task_loop
 from prompting.utils.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from prompting.utils.timer import Timer
 from prompting.weight_setting.weight_setter import weight_setter
-from prompting.llms.utils import GPUInfo
-from prompting.base.epistula import query_miners
-from prompting.api.api import start_api
 
 NEURON_SAMPLE_SIZE = 100
 
