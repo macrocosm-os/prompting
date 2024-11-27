@@ -6,6 +6,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from prompting.llms.apis.llm_messages import LLMMessages
 from prompting.settings import settings
+from test_sn19 import response
 
 
 # TODO: key error in response.json() when response is 500
@@ -39,6 +40,9 @@ def chat_complete(
     response = requests.post(url, headers=headers, data=json.dumps(data))
     try:
         response_json = response.json()
-        return response_json["choices"][0]["message"].get("content")
+        try:
+            return response_json["choices"][0]["message"].get("content")
+        except KeyError:
+            return response_json["choices"][0]["delta"].get("content")
     except Exception as e:
         logger.exception(f"Error in chat_complete: {e}")
