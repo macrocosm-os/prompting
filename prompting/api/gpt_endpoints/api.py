@@ -88,10 +88,11 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
             status_code=503, detail=f"No miners available for model: {body.get('model')} and task: {task.__class__.__name__}"
         )
 
-    response = query_miners(available_miners, body, stream = stream)
+    response = query_miners(available_miners, json.dumps(body).encode("utf-8"), stream = stream)
     if stream:
         return response
     else:
+        response = await response
         response_event = DendriteResponseEvent(
             stream_results = response,
             uids = available_miners,
@@ -110,6 +111,7 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
         task_scorer.add_to_queue(
             task=task, response=response_event, dataset_entry=task.dataset_entry, block=-1, step=-1, task_id=task.task_id
         )
+        
         return response
 
 
