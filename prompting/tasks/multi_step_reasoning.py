@@ -10,10 +10,12 @@ from prompting.tasks.qa import QuestionAnsweringTask
 from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
 from loguru import logger
+from prompting.utils.timer import Timer
 import json
 import time
 
 def make_api_call(messages, max_tokens, is_final_answer=False):
+    # TOOD: Make this use local model to prevent relay mining
     response = LLMWrapper.chat_complete(messages=LLMMessages(*messages))
     return json.loads(response)
 
@@ -57,10 +59,9 @@ Example of a valid JSON response:
     total_thinking_time = 0
 
     while True:
-        start_time = time.time()
-        step_data = make_api_call(messages, 300)
-        end_time = time.time()
-        thinking_time = end_time - start_time
+        with Timer() as timer:
+            step_data = make_api_call(messages, 300)
+        thinking_time = timer.final_time
         total_thinking_time += thinking_time
 
         steps.append((f"Step {step_count}: {step_data['title']}", step_data['content'], thinking_time))
@@ -72,8 +73,8 @@ Example of a valid JSON response:
 
         step_count += 1
 
-        # Yield after each step for Streamlit to update
-        yield steps, None  # We're not yielding the total time until the end
+        # Yield after each step
+        yield steps, None
 
     # Generate final answer
     messages.append({"role": "user", "content": "Please provide the final answer based on your reasoning above."})
@@ -123,5 +124,7 @@ class MultiStepReasoningTask(QuestionAnsweringTask):
     reference: str | None = None
 
     def make_reference(self, dataset_entry: Context):
-        self.reference = execute_multi_step_reasoning(user_query=self.query)
+        steps, total_thinking_time = execute_multi_step_reasoning(user_query=self.query)
+        logger.info(f"**Total thinking time for multi step reasoning: {total_thinking_time:.2f} seconds**")
+        self.reference = steps[-1][1]
         return self.reference
