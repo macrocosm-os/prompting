@@ -49,6 +49,7 @@ class BaseTask(BaseModel, ABC):
 
 class BaseTextTask(BaseTask):
     query: str | None = None
+    roles: list[str] | None = None
     messages: list[str] | None = None
     reference: str | None = None
     llm_model: ModelConfig = None
@@ -93,7 +94,7 @@ class BaseTextTask(BaseTask):
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
         llm_messages = [LLMMessage(role="system", content=self.query_system_prompt)] if self.query_system_prompt else []
-        llm_messages += [LLMMessage(role="user", content=message) for message in messages]
+        llm_messages.extemd([LLMMessage(role="user", content=message) for message in messages])
 
         self.query = LLMWrapper.chat_complete(messages=LLMMessages(*llm_messages))
 

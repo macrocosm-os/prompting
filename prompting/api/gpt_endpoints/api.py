@@ -34,6 +34,7 @@ async def process_and_collect_stream(miner_id: int, request: dict, response: Asy
     task = InferenceTask(
         query=request["messages"][-1]["content"],
         messages=[message["content"] for message in request["messages"]],
+        roles=request.get("roles", None),
         model=request.get("model"),
         seed=request.get("seed"),
         response="".join(collected_content),
@@ -121,6 +122,7 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
     task = InferenceTask(
         query=body["messages"][-1]["content"],
         messages=[message["content"] for message in body["messages"]],
+        roles=roles,
         model=body.get("model"),
         seed=body.get("seed"),
         response=response_event,

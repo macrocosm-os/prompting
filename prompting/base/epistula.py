@@ -94,7 +94,7 @@ def create_header_hook(hotkey, axon_hotkey=None, api_key=None):
     return add_headers
 
 
-async def query_miners(task, uids, body):
+async def query_miners(task: str, uids: list[int], body: dict[str, any]):
     try:
         tasks = []
         for uid in uids:

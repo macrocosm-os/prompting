@@ -140,12 +140,15 @@ class Validator(BaseValidatorNeuron):
             logger.warning("No available miners. This should already have been caught earlier.")
             return
 
+        messages: list[dict[str, str]] = []
+        if task.synapse_system_prompt:
+            messages.append({"role": "system", "content": task.synapse_system_prompt})
+        messages.append({"role": "user", "content": task.query})
+
         body = {
             "seed": task.seed,
             "model": task.llm_model_id,
-            "messages": [
-                {"role": "user", "content": task.query},
-            ],
+            "messages": messages,
         }
         body_bytes = json.dumps(body).encode("utf-8")
         stream_results = await query_miners(task.__class__.__name__, uids, body_bytes)
