@@ -149,7 +149,7 @@ black = "23.7.0"
 pytest = "^8.3.1"
 angle-emb = "0.4.3"
 organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main"}
-autoawq = "^0.2.5"
+autoawq = "0.2.0"
 loguru = "^0.7.2"
 duckduckgo-search = "^6.2.12"
 trafilatura = "^1.12.1"
