@@ -6,7 +6,6 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 from prompting.llms.apis.llm_messages import LLMMessages
 from prompting.settings import settings
-from test_sn19 import response
 
 
 # TODO: key error in response.json() when response is 500
