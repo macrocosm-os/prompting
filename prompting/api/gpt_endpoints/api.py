@@ -112,7 +112,7 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
             task=task, response=response_event, dataset_entry=task.dataset_entry, block=-1, step=-1, task_id=task.task_id
         )
         
-        return response
+        return [res.model_dump() for res in response]
 
 
     # axon_info = settings.METAGRAPH.axons[available_miners[0]]
