@@ -1,10 +1,12 @@
 import asyncio
+import datetime
 from abc import ABC, abstractmethod
+from datetime import timedelta
+
+import aiohttp
 from loguru import logger
 from pydantic import BaseModel, model_validator
-from datetime import timedelta
-import datetime
-import aiohttp
+
 from prompting.utils.profiling import profiler
 
 

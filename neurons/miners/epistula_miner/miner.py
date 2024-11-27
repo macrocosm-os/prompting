@@ -4,21 +4,23 @@ from prompting import settings
 settings.settings = settings.Settings.load(mode="miner")
 settings = settings.settings
 
+import asyncio
+import json
 import time
+
 import httpx
 import netaddr
-import uvicorn
 import requests
-import traceback
-import bittensor as bt
+import uvicorn
+from bittensor.core.axon import FastAPIThreadedServer
+from bittensor.core.extrinsics.serving import serve_extrinsic
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from loguru import logger
-from fastapi import APIRouter, FastAPI, Request, HTTPException
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
-from bittensor.subtensor import serve_extrinsic
-from bittensor.axon import FastAPIThreadedServer
-from prompting.base.epistula import verify_signature
 
+from prompting.base.epistula import verify_signature
+from prompting.llms.hf_llm import ReproducibleHF
 
 MODEL_ID: str = "gpt-3.5-turbo"
 NEURON_MAX_TOKENS: int = 256
@@ -27,8 +29,8 @@ NEURON_TOP_K: int = 50
 NEURON_TOP_P: float = 0.95
 NEURON_STREAMING_BATCH_SIZE: int = 12
 NEURON_STOP_ON_FORWARD_EXCEPTION: bool = False
-
-SYSTEM_PROMPT = """You are a helpful agent that does it's best to answer all questions!"""
+SHOULD_SERVE_LLM: bool = False
+LOCAL_MODEL_ID = "casperhansen/llama-3-8b-instruct-awq"
 
 
 class OpenAIMiner:
@@ -41,10 +43,12 @@ class OpenAIMiner:
                 "Content-Type": "application/json",
             },
         )
-        print("OpenAI Key: ", settings.OPENAI_API_KEY)
+        if SHOULD_SERVE_LLM:
+            self.llm = ReproducibleHF(model_id=LOCAL_MODEL_ID)
+        else:
+            self.llm = None
 
     async def format_openai_query(self, request: Request):
-        # Read the JSON data once
         data = await request.json()
 
         # Extract the required fields
@@ -57,19 +61,30 @@ class OpenAIMiner:
         return openai_request
 
     async def create_chat_completion(self, request: Request):
-        bt.logging.info(
-            "\u2713",
-            f"Getting Chat Completion request from {request.headers.get('Epistula-Signed-By', '')[:8]}!",
-        )
-        logger.debug("Starting chat completion request...")
+        if self.llm and request.headers.get("task", None) == "inference":
+            return await self.create_inference_completion(request)
         req = self.client.build_request("POST", "chat/completions", json=await self.format_openai_query(request))
         r = await self.client.send(req, stream=True)
-        logger.debug("Chat completion request returning...")
         return StreamingResponse(r.aiter_raw(), background=BackgroundTask(r.aclose), headers=r.headers)
+
+    async def create_inference_completion(self, request: Request):
+        async def word_stream():
+            inference = await self.run_inference(request)
+            words = inference.split()
+            for word in words:
+                # Simulate the OpenAI streaming response format
+                data = {"choices": [{"delta": {"content": word + " "}, "index": 0, "finish_reason": None}]}
+                yield f"data: {json.dumps(data)}\n\n"
+                await asyncio.sleep(0.1)  # Simulate a delay between words
+            # Indicate the end of the stream
+            data = {"choices": [{"delta": {}, "index": 0, "finish_reason": "stop"}]}
+            yield f"data: {json.dumps(data)}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(word_stream(), media_type="text/event-stream")
 
     async def check_availability(self, request: Request):
         print("Checking availability")
-        # Parse the incoming JSON request
         data = await request.json()
         task_availabilities = data.get("task_availabilities", {})
         llm_model_availabilities = data.get("llm_model_availabilities", {})
@@ -77,10 +92,9 @@ class OpenAIMiner:
         # Set all task availabilities to True
         task_response = {key: True for key in task_availabilities}
 
-        # Set all model availabilities to False
-        model_response = {key: False for key in llm_model_availabilities}
+        # Set all model availabilities to False (openai will not be able to handle seeded inference)
+        model_response = {key: key == LOCAL_MODEL_ID for key in llm_model_availabilities}
 
-        # Construct the response dictionary
         response = {"task_availabilities": task_response, "llm_model_availabilities": model_response}
 
         return response
@@ -89,26 +103,21 @@ class OpenAIMiner:
         self,
         request: Request,
     ):
-        # We do this as early as possible so that now has a lesser chance
-        # of causing a stale request
         now = round(time.time() * 1000)
 
-        # We need to check the signature of the body as bytes
-        # But use some specific fields from the body
         signed_by = request.headers.get("Epistula-Signed-By")
         signed_for = request.headers.get("Epistula-Signed-For")
-        if signed_for and signed_for != self.wallet.hotkey.ss58_address:
-            raise HTTPException(status_code=400, detail="EpistulaError: The message is not signed for this hotkey")
-        if signed_by not in self.metagraph.hotkeys:
-            raise HTTPException(status_code=401, detail="EpistulaError: Signer not in metagraph")
+        if signed_for != settings.WALLET.hotkey.ss58_address:
+            raise HTTPException(status_code=400, detail="Bad Request, message is not intended for self")
+        if signed_by not in settings.METAGRAPH.hotkeys:
+            raise HTTPException(status_code=401, detail="Signer not in metagraph")
 
-        uid = self.metagraph.hotkeys.index(signed_by)
-        stake = self.metagraph.S[uid].item()
-        if not self.config.no_force_validator_permit and stake < 10000:
-            bt.logging.warning(f"Blacklisting request from {signed_by} [uid={uid}], not enough stake -- {stake}")
+        uid = settings.METAGRAPH.hotkeys.index(signed_by)
+        stake = settings.METAGRAPH.S[uid].item()
+        if not settings.NETUID == 61 and stake < 10000:
+            logger.warning(f"Blacklisting request from {signed_by} [uid={uid}], not enough stake -- {stake}")
             raise HTTPException(status_code=401, detail="Stake below minimum: {stake}")
 
-        # If anything is returned here, we can throw
         body = await request.body()
         err = verify_signature(
             request.headers.get("Epistula-Request-Signature"),
@@ -120,7 +129,7 @@ class OpenAIMiner:
             now,
         )
         if err:
-            bt.logging.error(err)
+            logger.error(err)
             raise HTTPException(status_code=400, detail=err)
 
     def run(self):
@@ -130,9 +139,9 @@ class OpenAIMiner:
                 external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
                 netaddr.IPAddress(external_ip)
             except Exception:
-                bt.logging.error("Failed to get external IP")
+                logger.error("Failed to get external IP")
 
-        bt.logging.info(
+        logger.info(
             f"Serving miner endpoint {external_ip}:{settings.AXON_PORT} on network: {settings.SUBTENSOR_NETWORK} with netuid: {settings.NETUID}"
         )
 
@@ -145,17 +154,15 @@ class OpenAIMiner:
             netuid=settings.NETUID,
         )
         if not serve_success:
-            bt.logging.error("Failed to serve endpoint")
+            logger.error("Failed to serve endpoint")
             return
 
-        # Start  starts the miner's endpoint, making it active on the network.
-        # change the config in the axon
         app = FastAPI()
         router = APIRouter()
         router.add_api_route(
             "/v1/chat/completions",
             self.create_chat_completion,
-            # dependencies=[Depends(self.verify_request)],
+            dependencies=[Depends(self.verify_request)],
             methods=["POST"],
         )
         router.add_api_route(
@@ -167,24 +174,34 @@ class OpenAIMiner:
         fast_config = uvicorn.Config(
             app,
             host="0.0.0.0",
-            # port=settings.AXON_PORT,
-            port=8008,
+            port=settings.AXON_PORT,
             log_level="info",
             loop="asyncio",
+            workers=4,
         )
         self.fast_api = FastAPIThreadedServer(config=fast_config)
         self.fast_api.start()
 
-        bt.logging.info(f"Miner starting at block: {settings.SUBTENSOR.block}")
+        logger.info(f"Miner starting at block: {settings.SUBTENSOR.block}")
 
-        # This loop maintains the miner's operations until intentionally stopped.
+        # Main execution loop.
         try:
             while not self.should_exit:
                 time.sleep(1)
         except Exception as e:
-            bt.logging.error(str(e))
-            bt.logging.error(traceback.format_exc())
+            logger.error(str(e))
         self.shutdown()
+
+    async def run_inference(self, request: Request) -> str:
+        data = await request.json()
+        try:
+            response = self.llm.generate(
+                data.get("messages"), sampling_params=data.get("sampling_parameters"), seed=data.get("seed")
+            )
+            return response
+        except Exception as e:
+            logger.error(f"An error occurred during text generation: {e}")
+            return str(e)
 
 
 if __name__ == "__main__":

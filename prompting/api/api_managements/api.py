@@ -1,10 +1,10 @@
-from fastapi import APIRouter, HTTPException, Header, Depends
 import json
-from loguru import logger
 import secrets
 
-from prompting.settings import settings
+from fastapi import APIRouter, Depends, Header, HTTPException
+from loguru import logger
 
+from prompting.settings import settings
 
 router = APIRouter()
 

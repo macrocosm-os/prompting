@@ -1,7 +1,8 @@
 # ruff: noqa: E402
 import asyncio
-import time
 import json
+import time
+
 from prompting import settings
 from prompting.utils.profiling import profiler
 
@@ -9,37 +10,25 @@ settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
 
 from loguru import logger
-from prompting.base.validator import BaseValidatorNeuron
-from prompting.base.forward import log_stream_results, handle_response
-from prompting.base.dendrite import DendriteResponseEvent
-from prompting.tasks.task_creation import task_loop
-from prompting.utils.logging import ValidatorLoggingEvent, ErrorLoggingEvent
-from prompting.rewards.scoring import task_scorer
-from prompting.miner_availability.miner_availability import availability_checking_loop, miner_availabilities
-from prompting.llms.model_manager import model_scheduler
-from prompting.utils.timer import Timer
-from prompting.mutable_globals import scoring_queue
+
 from prompting import mutable_globals
-from prompting.tasks.base_task import BaseTextTask
-from prompting.organic.organic_loop import start_organic
-from prompting.weight_setting.weight_setter import weight_setter
-from prompting.llms.utils import GPUInfo
-from prompting.base.epistula import query_miners
 from prompting.api.api import start_api
+from prompting.base.dendrite import DendriteResponseEvent
+from prompting.base.epistula import query_miners
+from prompting.base.forward import log_stream_results
+from prompting.base.validator import BaseValidatorNeuron
+from prompting.llms.model_manager import model_scheduler
+from prompting.llms.utils import GPUInfo
+from prompting.miner_availability.miner_availability import availability_checking_loop, miner_availabilities
+from prompting.mutable_globals import scoring_queue
+from prompting.rewards.scoring import task_scorer
+from prompting.tasks.base_task import BaseTextTask
+from prompting.tasks.task_creation import task_loop
+from prompting.utils.logging import ErrorLoggingEvent, ValidatorLoggingEvent
+from prompting.utils.timer import Timer
+from prompting.weight_setting.weight_setter import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
-
-
-def run_dendrite_and_handle_response_sync(uids, *args, **kwargs):
-    async def run_dendrite_and_handle_response(uids, *args, **kwargs):
-        # Run DENDRITE and handle_response sequentially within the main event loop
-        streams_responses = await settings.DENDRITE(*args, **kwargs)
-        # Handle the responses synchronously
-        stream_results = await handle_response(stream_results_dict=dict(zip(uids, streams_responses)))
-        return stream_results
-
-    # Synchronously run the async function
-    return asyncio.run(run_dendrite_and_handle_response(uids, *args, **kwargs))
 
 
 class Validator(BaseValidatorNeuron):
@@ -49,7 +38,6 @@ class Validator(BaseValidatorNeuron):
         super(Validator, self).__init__(config=config)
         self.load_state()
         self._lock = asyncio.Lock()
-        start_organic(self.axon)
         self.time_of_block_sync = None
 
     @property
@@ -89,10 +77,10 @@ class Validator(BaseValidatorNeuron):
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
         while len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
-            logger.debug("Scoring queue is full. Waiting 1 second...")
+            # logger.debug("Scoring queue is full. Waiting 1 second...")
             await asyncio.sleep(1)
         while len(mutable_globals.task_queue) == 0:
-            logger.warning("No tasks in queue. Waiting 1 second...")
+            # logger.warning("No tasks in queue. Waiting 1 second...")
             await asyncio.sleep(1)
         try:
             # get task from the task queue
@@ -147,11 +135,13 @@ class Validator(BaseValidatorNeuron):
 
         body = {
             "seed": task.seed,
+            "sampling_parameters": task.sampling_params,
+            "task": task.__class__.__name__,
             "model": task.llm_model_id,
             "messages": messages,
         }
         body_bytes = json.dumps(body).encode("utf-8")
-        stream_results = await query_miners(task.__class__.__name__, uids, body_bytes)
+        stream_results = await query_miners(uids, body_bytes)
 
         log_stream_results(stream_results)
 
@@ -244,6 +234,7 @@ async def main():
                 f"| vtrust: {settings.METAGRAPH.validator_trust[v.uid]:.3f} "
                 f"| emission {settings.METAGRAPH.emission[v.uid]:.3f}"
             )
+            print(v.block)
             time.sleep(5)
 
             if v.should_exit:

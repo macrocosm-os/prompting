@@ -1,17 +1,19 @@
-import json
-from hashlib import sha256
-from uuid import uuid4
-from math import ceil
-import time
-from substrateinterface import Keypair
 import asyncio
+import json
+import time
+from hashlib import sha256
+from math import ceil
+from typing import Annotated, Any, Dict, List, Optional
+from uuid import uuid4
+
 import bittensor as bt
-import traceback
-from typing import Dict, List, Optional, Any, Annotated
-from prompting.base.dendrite import SynapseStreamResult
-from httpx import Timeout
 import httpx
 import openai
+from httpx import Timeout
+from loguru import logger
+from substrateinterface import Keypair
+
+from prompting.base.dendrite import SynapseStreamResult
 from prompting.settings import settings
 
 
@@ -63,38 +65,21 @@ def generate_header(
         headers["Epistula-Secret-Signature-0"] = "0x" + hotkey.sign(str(timestampInterval - 1) + "." + signed_for).hex()
         headers["Epistula-Secret-Signature-1"] = "0x" + hotkey.sign(str(timestampInterval) + "." + signed_for).hex()
         headers["Epistula-Secret-Signature-2"] = "0x" + hotkey.sign(str(timestampInterval + 1) + "." + signed_for).hex()
-    return {**headers, **json.loads(body_bytes)}
+        headers.update(json.loads(body_bytes))
+    return headers
 
 
-def create_header_hook(hotkey, axon_hotkey=None, api_key=None):
-    """
-    Creates a header hook function that adds authentication headers including API key.
-
-    Args:
-        hotkey: The wallet hotkey
-        axon_hotkey: Optional axon hotkey
-        api_key: Optional API key for endpoint authentication
-
-    Returns:
-        Async function that adds headers to the request
-    """
-
+def create_header_hook(hotkey, axon_hotkey):
     async def add_headers(request: httpx.Request):
-        # Add standard headers
         for key, header in generate_header(hotkey, request.read(), axon_hotkey).items():
             if key not in ["messages", "model", "stream"]:
-                request.headers[key] = header
-
-        # Add API key if provided
-        if api_key:
-            request.headers["api-key"] = api_key
-
+                request.headers[key] = str(header)
         return request
 
     return add_headers
 
 
-async def query_miners(task: str, uids: list[int], body: dict[str, any]):
+async def query_miners(uids: list = [], body: bytes = b"", stream: bool = False):
     try:
         tasks = []
         for uid in uids:
@@ -103,17 +88,55 @@ async def query_miners(task: str, uids: list[int], body: dict[str, any]):
                     handle_inference(
                         settings.METAGRAPH,
                         settings.WALLET,
-                        task,
                         body,
                         uid,
+                        stream=stream,
                     )
                 )
             )
-        responses: List[SynapseStreamResult] = await asyncio.gather(*tasks)
-        return responses
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Filter out exceptions from responses
+        exceptions = [resp for resp in responses if isinstance(resp, Exception)]
+        if exceptions:
+            for exc in exceptions:
+                logger.error(f"Error in handle_inference: {exc}")
+            # Handle exceptions as needed
+
+        if stream:
+            # 'responses' is a list of async iterators (chat objects)
+            async def merged_stream():
+                streams = [response.__aiter__() for response in responses if not isinstance(response, Exception)]
+                pending = {}
+                for stream in streams:
+                    try:
+                        task = asyncio.create_task(stream.__anext__())
+                        pending[task] = stream
+                    except StopAsyncIteration:
+                        continue  # Skip empty streams
+
+                while pending:
+                    done, _ = await asyncio.wait(pending.keys(), return_when=asyncio.FIRST_COMPLETED)
+                    for task in done:
+                        stream = pending.pop(task)
+                        try:
+                            result = task.result()
+                            yield result
+                            # Schedule the next item from the same stream
+                            next_task = asyncio.create_task(stream.__anext__())
+                            pending[next_task] = stream
+                        except StopAsyncIteration:
+                            # Stream is exhausted
+                            pass
+                        except Exception as e:
+                            logger.error(f"Error while streaming: {e}")
+
+            return merged_stream()
+        else:
+            # 'responses' is a list of SynapseStreamResult objects
+            return [resp for resp in responses if not isinstance(resp, Exception)]
     except Exception as e:
-        bt.logging.error(f"Error in forward for: {e}")
-        bt.logging.error(traceback.format_exc())
+        logger.error(f"Error in query_miners: {e}")
         return []
 
 
@@ -137,8 +160,7 @@ async def query_availabilities(uids, task_config, model_config):
         return responses
 
     except Exception as e:
-        bt.logging.error(f"Error in availability call: {e}")
-        bt.logging.error(traceback.format_exc())
+        logger.error(f"Error in availability call: {e}")
         return []
 
 
@@ -166,9 +188,9 @@ async def handle_availability(
 async def handle_inference(
     metagraph: "bt.NonTorchMetagraph",
     wallet: "bt.wallet",
-    task: str,
     body: Dict[str, Any],
     uid: int,
+    stream: bool = False,
 ) -> SynapseStreamResult:
     exception = None
     chunks = []
@@ -180,46 +202,43 @@ async def handle_inference(
             base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
             api_key="Apex",
             max_retries=0,
-            timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=5),
+            timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=10),
             http_client=openai.DefaultAsyncHttpxClient(
                 event_hooks={"request": [create_header_hook(wallet.hotkey, axon_info.hotkey)]}
             ),
         )
-        try:
-            payload = json.loads(body)
-            chat = await miner.chat.completions.create(
-                messages=payload["messages"], model=payload["model"], stream=True
-            )
+        payload = json.loads(body)
+        chat = await miner.chat.completions.create(
+            messages=payload["messages"],
+            model=payload["model"],
+            stream=True,
+            extra_body={k: v for k, v in payload.items() if k not in ["messages", "model"]},
+        )
+        if not stream:
             async for chunk in chat:
                 if chunk.choices[0].delta and chunk.choices[0].delta.content:
                     chunks.append(chunk.choices[0].delta.content)
                     chunk_timings.append(time.time() - start_time)
-
-        except openai.APIConnectionError as e:
-            bt.logging.trace(f"Miner {uid} failed request: {e}")
-            exception = e
-
-        except Exception as e:
-            bt.logging.trace(f"Unknown Error when sending to miner {uid}: {e}")
-            exception = e
-
+    except openai.APIConnectionError as e:
+        logger.trace(f"Miner {uid} failed request: {e}")
+        exception = str(e)
     except Exception as e:
-        exception = e
-        bt.logging.error(f"{uid}: Error in forward for: {e}")
-        bt.logging.error(traceback.format_exc())
+        logger.trace(f"Unknown Error when sending to miner {uid}: {e}")
+        exception = str(e)
     finally:
-        if exception:
-            exception = str(exception)
         if exception is None:
             status_code = 200
             status_message = "Success"
         elif isinstance(exception, openai.APIConnectionError):
             status_code = 502
-            status_message = str(exception)
+            status_message = exception
         else:
             status_code = 500
-            status_message = str(exception)
+            status_message = exception
 
+    if stream:
+        return chat
+    else:
         return SynapseStreamResult(
             accumulated_chunks=chunks,
             accumulated_chunks_timings=chunk_timings,

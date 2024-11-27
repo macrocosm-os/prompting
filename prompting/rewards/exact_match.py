@@ -1,10 +1,7 @@
 import numpy as np
-from prompting.rewards.reward import (
-    BaseRewardModel,
-    BatchRewardOutput,
-)
-from prompting.base.dendrite import DendriteResponseEvent
 
+from prompting.base.dendrite import DendriteResponseEvent
+from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 
 PENALTY_FACTOR = 0
 

@@ -1,17 +1,17 @@
+import random
 from typing import ClassVar
+
 import numpy as np
 from pydantic import Field, model_validator
-from prompting.rewards.reward import BaseRewardModel, BaseRewardConfig
+
+from prompting.datasets.sn13 import ChatEntry
+from prompting.llms.model_manager import model_manager
+from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.rewards.inference_reward_model import InferenceRewardModel
 from prompting.rewards.penalty import PenaltyModel
-
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
+from prompting.settings import settings
 from prompting.tasks.base_task import BaseTextTask
-from prompting.llms.model_zoo import ModelConfig
-import random
-from prompting.llms.model_manager import model_manager
-from prompting.datasets.sn13 import ChatEntry
-from prompting.llms.model_zoo import ModelZoo
-from vllm import SamplingParams
 
 
 class InferenceRewardConfig(BaseRewardConfig):
@@ -39,6 +39,7 @@ class InferenceTask(BaseTextTask):
     llm_model: ModelConfig | None = None
     llm_model_id: ModelConfig | None = random.choice(ModelZoo.models_configs).llm_model_id
     seed: int = Field(default_factory=lambda: random.randint(0, 1_000_000))
+    sampling_params: dict[str, float] = settings.SAMPLING_PARAMS
 
     @model_validator(mode="after")
     def random_llm_model_id(self):
@@ -60,6 +61,7 @@ class InferenceTask(BaseTextTask):
             messages=[self.messages[-1]] if self.roles is None else self.messages,
             roles=["user"] if self.roles is None else self.roles,
             model=self.llm_model,
-            sampling_params=SamplingParams(seed=self.seed),
-        )[0]
+            seed=self.seed,
+            sampling_params=self.sampling_params,
+        )
         return self.reference

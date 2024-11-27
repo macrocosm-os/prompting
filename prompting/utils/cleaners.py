@@ -1,8 +1,9 @@
+import re
 from abc import ABC, abstractmethod
 from typing import Union
-import re
-from pydantic import BaseModel
+
 from loguru import logger
+from pydantic import BaseModel
 
 
 class BaseCleaner(ABC, BaseModel):
