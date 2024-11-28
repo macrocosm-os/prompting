@@ -220,9 +220,9 @@ async def main():
 
     # start scoring tasks in separate loop
     asyncio.create_task(task_scorer.start())
-    # # TODO: Think about whether we want to store the task queue locally in case of a crash
-    # # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
-    # # TODO: Make weight setting happen as specific intervals as we load/unload models
+    # TODO: Think about whether we want to store the task queue locally in case of a crash
+    # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
+    # TODO: Make weight setting happen as specific intervals as we load/unload models
     with Validator() as v:
         while True:
             logger.info(
