@@ -82,7 +82,7 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
     ):
         raise HTTPException(
             status_code=503,
-            detail=f"No miners available for model: {body.get('model')} and task: {task.__class__.__name__}",
+            detail=f"No miners available for model: {body.get('model')} and task: {task.__name__}",
         )
 
     response = query_miners(available_miners, json.dumps(body).encode("utf-8"), stream=stream)

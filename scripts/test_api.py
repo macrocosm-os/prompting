@@ -38,7 +38,7 @@ def setup_miner_client(
     return openai.AsyncOpenAI(
         base_url=f"http://localhost:{port}/v1",
         max_retries=0,
-        timeout=Timeout(15, connect=5, read=10),
+        timeout=Timeout(30, connect=10, read=20),
         http_client=openai.DefaultAsyncHttpxClient(
             event_hooks={"request": [combined_header_hook]}
         ),
@@ -64,15 +64,16 @@ async def make_completion(
         Generated completion text
     """
     result = await miner.chat.completions.create(
-        model="Test-Model",
+        model=None,
         messages=[{"role": "user", "content": prompt}],
         stream=stream,
-        extra_body={"seed": seed, "sampling_parameters": settings.SAMPLING_PARAMS, "task": "QuestionAnsweringTask"}
+        extra_body={"seed": seed, "sampling_parameters": settings.SAMPLING_PARAMS, "task": "QuestionAnsweringTask", "mixture": False}
     )
     
     if not stream:
         return result
     else:
+        print('In the else')
         chunks = []
         async for chunk in result:
             print(chunk)
@@ -83,7 +84,7 @@ async def make_completion(
 
 async def main():
     PORT = 8004
-    API_KEY = "YOUR_API_KEY_HERE"
+    API_KEY = "0566dbe21ee33bba9419549716cd6f1f"
     miner = setup_miner_client(
         port=PORT,
         api_key=API_KEY,
@@ -92,9 +93,9 @@ async def main():
     response = await make_completion(
         miner=miner,
         prompt="Say 10 random numbers between 1 and 100",
-        stream=False
+        stream=True
     )
-    print(response)
+    print(["".join(res.accumulated_chunks) for res in response])
 
 
 # Run the async main function
