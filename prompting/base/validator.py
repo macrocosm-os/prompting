@@ -44,11 +44,11 @@ class BaseValidatorNeuron(BaseNeuron):
         self.is_running: bool = False
         self.thread: threading.Thread = None
 
-    def _serve_axon(self):
-        """Serve axon to enable external connections"""
-        validator_uid = settings.METAGRAPH.hotkeys.index(settings.WALLET.hotkey.ss58_address)
-        self.axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR).start()
-        logger.info(f"Serving validator UID {validator_uid} on {self.axon.ip}:{self.axon.port} to chain")
+    # def _serve_axon(self):
+    #     """Serve axon to enable external connections"""
+    #     validator_uid = settings.METAGRAPH.hotkeys.index(settings.WALLET.hotkey.ss58_address)
+    #     self.axon.serve(netuid=settings.NETUID, subtensor=settings.SUBTENSOR).start()
+    #     logger.info(f"Serving validator UID {validator_uid} on {self.axon.ip}:{self.axon.port} to chain")
 
     def run(self):
         """
@@ -113,7 +113,7 @@ class BaseValidatorNeuron(BaseNeuron):
 
         # If someone intentionally stops the validator, it'll safely terminate operations.
         except KeyboardInterrupt:
-            self.axon.stop()
+            # self.axon.stop()
             logger.success("Validator killed by keyboard interrupt.")
             sys.exit()
 

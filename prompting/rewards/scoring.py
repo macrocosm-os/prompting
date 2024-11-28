@@ -76,9 +76,13 @@ class TaskScorer(AsyncLoopRunner):
         scoring_config: ScoringConfig = scorable.pop(0)
 
         # here we generate the actual reference
-        scoring_config.task.make_reference(
-            dataset_entry=scoring_config.dataset_entry,
-        )
+        try:
+            scoring_config.task.make_reference(
+                dataset_entry=scoring_config.dataset_entry,
+            )
+        except Exception:
+            logger.exception(f"Failed to generate reference for task {scoring_config.task.__class__.__name__}")
+            return
 
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
