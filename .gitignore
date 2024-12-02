@@ -177,3 +177,5 @@ core
 app.config.js
 wandb
 .vscode
+api_keys.json
+prompting/api/api_keys.json

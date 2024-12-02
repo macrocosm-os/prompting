@@ -32,16 +32,11 @@ async def process_completions(body: dict[str, any]):
     ):
         raise HTTPException(
             status_code=503,
-            detail=f"No miners available for model: {body.get('model')} and task: {task.__class__.__name__}",
+            detail=f"No miners available for model: {body.get('model')} and task: {task.__name__}",
         )
 
     response = query_miners(available_miners, json.dumps(body).encode("utf-8"), stream=stream)
     if stream:
-        # If response is an async generator, wrap it in StreamingResponse.
-        # return StreamingResponse(
-        #     response,
-        #     media_type="application/json"
-        # )
         return response
 
     response = await response
