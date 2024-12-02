@@ -11,6 +11,8 @@ poetry install
 
 git clone git@github.com:casper-hansen/AutoAWQ.git && cd AutoAWQ && poetry run pip install -e . && cd ..
 
+poetry run pip install flash-attn --no-build-isolation
+
 # Updating the package list and installing jq and npm
 apt update && apt install -y jq npm
 
