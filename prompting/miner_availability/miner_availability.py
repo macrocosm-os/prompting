@@ -38,7 +38,7 @@ class MinerAvailability(BaseModel):
         if isinstance(task, BaseTask):
             try:
                 return self.task_availabilities[task.__class__.__name__]
-            except Exception as e: 
+            except Exception as e:
                 logger.error(f"Error in is_task_available: {e}")
                 return False
         else:

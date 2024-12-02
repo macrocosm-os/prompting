@@ -115,4 +115,3 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
         )
 
         return [res.model_dump() for res in response]
-
