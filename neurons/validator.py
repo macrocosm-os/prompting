@@ -129,8 +129,6 @@ class Validator(BaseValidatorNeuron):
             return
 
         messages: list[dict[str, str]] = []
-        if task.synapse_system_prompt:
-            messages.append({"role": "system", "content": task.synapse_system_prompt})
         messages.append({"role": "user", "content": task.query})
 
         body = {
