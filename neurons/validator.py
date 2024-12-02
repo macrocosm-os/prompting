@@ -128,14 +128,17 @@ class Validator(BaseValidatorNeuron):
             logger.warning("No available miners. This should already have been caught earlier.")
             return
 
+        messages: list[dict[str, str]] = []
+        if task.synapse_system_prompt:
+            messages.append({"role": "system", "content": task.synapse_system_prompt})
+        messages.append({"role": "user", "content": task.query})
+
         body = {
             "seed": task.seed,
             "sampling_parameters": task.sampling_params,
             "task": task.__class__.__name__,
             "model": task.llm_model_id,
-            "messages": [
-                {"role": "user", "content": task.query},
-            ],
+            "messages": messages,
         }
         body_bytes = json.dumps(body).encode("utf-8")
         stream_results = await query_miners(uids, body_bytes)
@@ -218,9 +221,9 @@ async def main():
 
     # start scoring tasks in separate loop
     asyncio.create_task(task_scorer.start())
-    # # TODO: Think about whether we want to store the task queue locally in case of a crash
-    # # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
-    # # TODO: Make weight setting happen as specific intervals as we load/unload models
+    # TODO: Think about whether we want to store the task queue locally in case of a crash
+    # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
+    # TODO: Make weight setting happen as specific intervals as we load/unload models
     with Validator() as v:
         while True:
             logger.info(
