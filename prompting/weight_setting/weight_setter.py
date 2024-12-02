@@ -1,4 +1,5 @@
 import asyncio
+import evaluate
 import os
 
 import bittensor as bt
@@ -16,7 +17,7 @@ from prompting.tasks.task_registry import TaskConfig, TaskRegistry
 from prompting.utils.logging import WeightSetEvent, log_event
 from prompting.utils.misc import ttl_get_block
 
-PAST_WEIGHTS: list[np.ndarray] = []
+PAST_WEIGHTS: list[np.ndarray] = load_weights()
 WEIGHTS_HISTORY_LENGTH = 24
 
 
@@ -34,6 +35,24 @@ def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
     all_rewards[raw_rewards <= 0] = raw_rewards[raw_rewards <= 0]
     return all_rewards
 
+def save_weights(weights: np.ndarray, filename: str = "./weights.npy"):
+    """Saves the state of the validator to a file."""
+    logger.info("Saving validator state.")
+
+    # Save the state of the validator to file.
+    np.save(weights = weights, filename = filename)
+
+def load_weights(filename: str = "./weights.npy") -> np.ndarray:
+    """Loads the state of the validator from a file."""
+    logger.info("Loading validator state.")
+
+    try:
+        weights = [np.load(filename)]
+    except Exception as ex:
+        logger.exception(f"Couldn't load weights from file: {ex}")
+        weights = []
+
+    return weights
 
 def set_weights(weights: np.ndarray, step: int = 0):
     """
@@ -50,6 +69,7 @@ def set_weights(weights: np.ndarray, step: int = 0):
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
         PAST_WEIGHTS.append(weights)
+        save_weights(weights, filename = "./weights.npy")
         if len(PAST_WEIGHTS) > WEIGHTS_HISTORY_LENGTH:
             PAST_WEIGHTS.pop(0)
         averaged_weights = np.average(np.array(PAST_WEIGHTS), axis=0)
