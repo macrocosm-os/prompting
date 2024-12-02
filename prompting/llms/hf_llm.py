@@ -70,11 +70,6 @@ class ReproducibleHF:
                 eos_token_id=self.tokenizer.eos_token_id,
             )
 
-            outputs = self.model.generate(
-                **inputs,
-                **filtered_params,
-                eos_token_id=self.tokenizer.eos_token_id,
-            )
             results = self.tokenizer.batch_decode(
                 outputs[:, inputs["input_ids"].shape[1] :],
                 skip_special_tokens=True,
