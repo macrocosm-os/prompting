@@ -80,6 +80,7 @@ class CheckMinerAvailability(AsyncLoopRunner):
         if self.step == 0:
             uids_to_query = self.uids
 
+        # TODO: logging as np.int64(37) instad of 37 - remove this log completely
         logger.info(f"Collecting miner availabilities on uids: {uids_to_query}")
 
         if any(uid >= len(settings.METAGRAPH.axons) for uid in uids_to_query):

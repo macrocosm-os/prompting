@@ -29,6 +29,7 @@ class LLMWrapper:
                     logprobs=logprobs,
                 )
 
+            # TODO: Remove constant exception logging
             except Exception as ex:
                 logger.exception(ex)
                 logger.warning("Failed to use SN19 API, falling back to GPT-3.5")
