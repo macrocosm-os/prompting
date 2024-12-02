@@ -36,9 +36,12 @@ def chat_complete(
         "stream": stream,
         "logprobs": logprobs,
     }
-    response = requests.post(url, headers=headers, data=json.dumps(data))
+    response = requests.post(url, headers=headers, data=json.dumps(data), timeout=30)
     try:
         response_json = response.json()
-        return response_json["choices"][0]["message"].get("content")
+        try:
+            return response_json["choices"][0]["message"].get("content")
+        except KeyError:
+            return response_json["choices"][0]["delta"].get("content")
     except Exception as e:
         logger.exception(f"Error in chat_complete: {e}")

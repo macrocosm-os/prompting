@@ -35,7 +35,14 @@ class MinerAvailability(BaseModel):
         return self.llm_model_availabilities[model]
 
     def is_task_available(self, task: BaseTask) -> bool:
-        return self.task_availabilities[task.__class__.__name__]
+        if isinstance(task, BaseTask):
+            try:
+                return self.task_availabilities[task.__class__.__name__]
+            except Exception as e:
+                logger.error(f"Error in is_task_available: {e}")
+                return False
+        else:
+            return self.task_availabilities[task.__name__]
 
 
 class MinerAvailabilities(BaseModel):
@@ -54,7 +61,7 @@ class MinerAvailabilities(BaseModel):
             available = [uid for uid in available if self.miners[uid].is_model_available(model)]
         if k:
             available = random.sample(available, min(len(available), k))
-        return available
+        return list(map(int, available))
 
 
 class CheckMinerAvailability(AsyncLoopRunner):

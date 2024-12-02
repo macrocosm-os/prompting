@@ -4,7 +4,6 @@ from typing import Any, Literal, Optional
 
 import bittensor as bt
 import dotenv
-import torch
 from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
@@ -31,7 +30,7 @@ class Settings(BaseSettings):
 
     # Neuron.
     NEURON_EPOCH_LENGTH: int = Field(100, env="NEURON_EPOCH_LENGTH")
-    NEURON_DEVICE: str = Field("cuda" if torch.cuda.is_available() else "cpu", env="NEURON_DEVICE")
+    NEURON_DEVICE: str | None = Field(None, env="NEURON_DEVICE")
     NEURON_GPUS: int = Field(1, env="NEURON_GPUS")
 
     # Logging.
@@ -66,6 +65,11 @@ class Settings(BaseSettings):
     TASK_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="TASK_QUEUE_LENGTH_THRESHOLD")
     SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
+    DEPLOY_API: bool = Field(False, env="DEPLOY_API")
+
+    # API Management.
+    API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
+    ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
 
     # Additional Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")
@@ -136,8 +140,9 @@ class Settings(BaseSettings):
             dotenv_file = ".env.miner"
         elif mode == "validator":
             dotenv_file = ".env.validator"
+        # For mock testing, still make validator env vars available where possible.
         elif mode == "mock":
-            dotenv_file = None
+            dotenv_file = ".env.validator"
         else:
             raise ValueError(f"Invalid mode: {mode}")
 
@@ -163,21 +168,28 @@ class Settings(BaseSettings):
     def complete_settings(cls, values: dict[str, Any]) -> dict[str, Any]:
         mode = values["mode"]
         netuid = values.get("NETUID", 61)
+
         if netuid is None:
             raise ValueError("NETUID must be specified")
         values["TEST"] = netuid != 1
-
+        if values.get("TEST_MINER_IDS"):
+            values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
         if mode == "mock":
             values["MOCK"] = True
+            values["NEURON_DEVICE"] = "cpu"
             logger.info("Running in mock mode. Bittensor objects will not be initialized.")
             return values
+
+        # load slow packages only if not in mock mode
+        import torch
+
+        if not values.get("NEURON_DEVICE"):
+            values["NEURON_DEVICE"] = "cuda" if torch.cuda.is_available() else "cpu"
 
         # Ensure SAVE_PATH exists.
         save_path = values.get("SAVE_PATH", "./storage")
         if not os.path.exists(save_path):
             os.makedirs(save_path)
-        if values.get("TEST_MINER_IDS"):
-            values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
         if values.get("SN19_API_KEY") is None or values.get("SN19_API_URL") is None:
             logger.warning(
                 "It is strongly recommended to provide an SN19 API KEY + URL to avoid incurring OpenAI API costs."
@@ -186,6 +198,8 @@ class Settings(BaseSettings):
             raise Exception(
                 "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
             )
+        if mode == "validator" and values.get("ADMIN_KEY") is None:
+            raise Exception("You must provide an admin key to access the API.")
         return values
 
     @cached_property
@@ -226,4 +240,12 @@ class Settings(BaseSettings):
         return bt.dendrite(wallet=self.WALLET)
 
 
+logger.info("Settings class instantiated.")
 settings: Optional[Settings] = None
+try:
+    settings: Optional[Settings] = Settings.load(mode="mock")
+    pass
+except Exception as e:
+    logger.exception(f"Error loading settings: {e}")
+    settings = None
+logger.info("Settings loaded.")
