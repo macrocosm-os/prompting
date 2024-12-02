@@ -96,8 +96,13 @@ def set_weights(weights: np.ndarray, step: int = 0):
             )
             step_filename = "weights.csv"
             file_exists = os.path.isfile(step_filename)
+
             # Append to the file if it exists, otherwise write a new file.
             weights_df.to_csv(step_filename, mode="a", index=False, header=not file_exists)
+
+            #This saves the weights matrix as a numpy file for later use.
+            save_weights(weights=averaged_weights)
+
         except Exception as ex:
             logger.exception(f"Couldn't write to df: {ex}")
 
@@ -120,6 +125,20 @@ def set_weights(weights: np.ndarray, step: int = 0):
         logger.info("set_weights on chain successfully!")
     else:
         logger.error("set_weights failed")
+    
+def save_weights(weights: np.ndarray, filename: str = "./weights.npy"):
+    """Saves the state of the validator to a file."""
+    logger.info("Saving validator state.")
+
+    # Save the state of the validator to file.
+    np.save(weights = weights, filename = filename)
+
+def load_weights(filename: str = "./weights.npy") -> np.ndarray:
+    """Loads the state of the validator from a file."""
+    logger.info("Loading validator state.")
+
+    # Load the state of the validator from file.
+    return np.load(filename)
 
 
 class WeightSetter(AsyncLoopRunner):
@@ -127,7 +146,13 @@ class WeightSetter(AsyncLoopRunner):
 
     sync: bool = True
     interval: int = 60 * 22  # set rewards every 20 minutes
-    # interval: int = 60
+    # interval: int = 60        
+
+    try: 
+        weights = load_weights(filename="./weights.npy")
+        bt.logging.info(f"Loaded previously stored weights from file: {weights}")
+    except:
+        bt.logging.info(f"Failed to load previously stored weights from file from location {os.path.abspath('./weights.npy')}")
 
     async def run_step(self):
         await asyncio.sleep(0.01)
@@ -200,17 +225,21 @@ class WeightSetter(AsyncLoopRunner):
                 # update reward dict
                 for uid, reward in zip(u, processed_rewards):
                     reward_dict[uid] += reward
-            final_rewards = np.array(list(reward_dict.values())).astype(float)
-            final_rewards[final_rewards < 0] = 0
-            final_rewards /= np.sum(final_rewards) + 1e-10
-            logger.debug(f"Final reward dict: {final_rewards}")
+
+            weights = np.array(list(reward_dict.values())).astype(float)
+            weights[weights < 0] = 0
+            weights /= np.sum(weights) + 1e-10
+            logger.debug(f"Final reward dict: {weights}")
+
         except Exception as ex:
             logger.exception(f"{ex}")
+
         # set weights on chain
-        set_weights(final_rewards, step=self.step)
+        set_weights(weights = weights, step=self.step)
+        
         mutable_globals.reward_events = []  # empty reward events queue
         await asyncio.sleep(0.01)
-        return final_rewards
+        return weights
 
 
 weight_setter = WeightSetter()
