@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     TASK_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="TASK_QUEUE_LENGTH_THRESHOLD")
     SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
+    DEPLOY_API: bool = Field(False, env="DEPLOY_API")
 
     # API Management.
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")

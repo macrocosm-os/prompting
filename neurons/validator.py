@@ -197,7 +197,8 @@ class Validator(BaseValidatorNeuron):
 
 
 async def main():
-    asyncio.create_task(start_api())
+    if settings.DEPLOY_API:
+        asyncio.create_task(start_api())
 
     GPUInfo.log_gpu_info()
     # start profiling
