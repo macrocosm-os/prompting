@@ -15,6 +15,7 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.date_qa import DateQARewardConfig, DateQuestionAnsweringTask
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
 from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTask
+from prompting.tasks.multi_step_reasoning import MultiStepReasoningRewardConfig, MultiStepReasoningTask
 from prompting.tasks.programming_task import ProgrammingRewardConfig, ProgrammingTask
 from prompting.tasks.qa import QARewardConfig, QuestionAnsweringTask
 from prompting.tasks.summarization import SummarizationRewardConfig, SummarizationTask
@@ -37,7 +38,7 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
-        TaskConfig(task=QuestionAnsweringTask, probability=0.2, datasets=[WikiDataset], reward_model=QARewardConfig),
+        TaskConfig(task=QuestionAnsweringTask, probability=0.15, datasets=[WikiDataset], reward_model=QARewardConfig),
         TaskConfig(
             task=SummarizationTask, probability=0.1, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
         ),
@@ -55,7 +56,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=MultiChoiceTask,
-            probability=0.31,
+            probability=0.26,
             datasets=[WikiDataset],
             reward_model=MultiChoiceRewardConfig,
         ),
@@ -70,6 +71,12 @@ class TaskRegistry(BaseModel):
             probability=0.03,
             datasets=[DDGDataset],
             reward_model=WebRetrievalRewardConfig,
+        ),
+        TaskConfig(
+            task=MultiStepReasoningTask,
+            probability=0.1,
+            datasets=[WikiDataset],
+            reward_model=MultiStepReasoningRewardConfig,
         ),
     ]
 
