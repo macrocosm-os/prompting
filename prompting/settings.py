@@ -204,8 +204,7 @@ class Settings(BaseSettings):
 
     @cached_property
     def QUANTIZATION_CONFIG(self) -> AwqConfig:
-        configs = {
-        }
+        configs = {}
         return configs
 
     @cached_property

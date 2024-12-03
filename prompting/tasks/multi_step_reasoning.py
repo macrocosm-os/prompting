@@ -20,33 +20,34 @@ MAX_THINKING_STEPS = 10
 def parse_multiple_json(api_response):
     """
     Parses a string containing multiple JSON objects and returns a list of dictionaries.
-    
+
     Args:
         api_response (str): The string returned by the API containing JSON objects.
-    
+
     Returns:
         list: A list of dictionaries parsed from the JSON objects.
     """
     # Regular expression pattern to match individual JSON objects
-    json_pattern = re.compile(r'\{.*?\}', re.DOTALL)
-    
+    json_pattern = re.compile(r"\{.*?\}", re.DOTALL)
+
     # Find all JSON object strings in the response
     json_strings = json_pattern.findall(api_response)
-    
+
     parsed_objects = []
     for json_str in json_strings:
         try:
             # Replace escaped single quotes with actual single quotes
             json_str_clean = json_str.replace("\\'", "'")
-            
+
             # Parse the JSON string into a dictionary
             obj = json.loads(json_str_clean)
             parsed_objects.append(obj)
         except json.JSONDecodeError as e:
             print(f"Failed to parse JSON object: {e}")
             continue
-    
+
     return parsed_objects
+
 
 def make_api_call(messages, max_tokens, is_final_answer=False):
     # TOOD: Make this use local model to prevent relay mining
@@ -139,7 +140,12 @@ Example of a valid JSON response:
         yield steps, None
 
     # Generate final answer
-    messages.append(LLMMessage(role="user", content="Please provide the final answer based on your reasoning above. You must return your answer in a valid json."))
+    messages.append(
+        LLMMessage(
+            role="user",
+            content="Please provide the final answer based on your reasoning above. You must return your answer in a valid json.",
+        )
+    )
 
     start_time = time.time()
     final_data = make_api_call(messages, 200, is_final_answer=True)
@@ -147,7 +153,7 @@ Example of a valid JSON response:
     thinking_time = end_time - start_time
     total_thinking_time += thinking_time
 
-    if final_data['title'] == "Error":
+    if final_data["title"] == "Error":
         steps.append(("Error", final_data["content"], thinking_time))
         raise ValueError("Failed to generate final answer: {final_data['content']}")
 

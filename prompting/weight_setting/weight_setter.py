@@ -25,6 +25,7 @@ except Exception as ex:
     PAST_WEIGHTS = []
 WEIGHTS_HISTORY_LENGTH = 24
 
+
 def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
     """Apply the reward function to the raw rewards. P adjusts the steepness of the function - p = 0.5 leaves
     the rewards unchanged, p < 0.5 makes the function more linear (at p=0 all miners with positives reward values get the same reward),
@@ -39,12 +40,14 @@ def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
     all_rewards[raw_rewards <= 0] = raw_rewards[raw_rewards <= 0]
     return all_rewards
 
+
 def save_weights(weights: np.ndarray):
     """Saves the state of the validator to a file."""
     logger.info("Saving validator state.")
 
     # Save the state of the validator to file.
-    np.save(weights = weights, filename = FILENAME)
+    np.save(weights=weights, filename=FILENAME)
+
 
 def set_weights(weights: np.ndarray, step: int = 0):
     """
