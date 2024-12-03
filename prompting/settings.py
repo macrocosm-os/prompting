@@ -204,11 +204,7 @@ class Settings(BaseSettings):
 
     @cached_property
     def QUANTIZATION_CONFIG(self) -> AwqConfig:
-        configs = {
-            "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4": AwqConfig(
-                bits=4, fuse_max_seq_len=4096, do_fuse=True
-            )
-        }
+        configs = {}
         return configs
 
     @cached_property
