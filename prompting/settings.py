@@ -198,7 +198,7 @@ class Settings(BaseSettings):
             raise Exception(
                 "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
             )
-        if mode == "validator" and values.get("ADMIN_KEY") is None:
+        if mode == "validator" and values.get("ADMIN_KEY") is None and values.get("DEPLOY_API"):
             raise Exception("You must provide an admin key to access the API.")
         return values
 
