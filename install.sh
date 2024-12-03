@@ -9,8 +9,9 @@ poetry config virtualenvs.in-project true
 # Install the project dependencies
 poetry install
 
-# uninstall uvloop which breaks the system
-poetry run pip uninstall -y uvloop
+git clone git@github.com:casper-hansen/AutoAWQ.git && cd AutoAWQ && poetry run pip install -e . && cd ..
+
+poetry run pip install flash-attn --no-build-isolation
 
 # Updating the package list and installing jq and npm
 apt update && apt install -y jq npm

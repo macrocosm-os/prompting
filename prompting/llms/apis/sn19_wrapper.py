@@ -36,7 +36,7 @@ def chat_complete(
         "stream": stream,
         "logprobs": logprobs,
     }
-    response = requests.post(url, headers=headers, data=json.dumps(data))
+    response = requests.post(url, headers=headers, data=json.dumps(data), timeout=30)
     try:
         response_json = response.json()
         try:
