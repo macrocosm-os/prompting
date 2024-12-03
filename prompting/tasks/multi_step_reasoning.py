@@ -17,12 +17,44 @@ from prompting.utils.timer import Timer
 MAX_THINKING_STEPS = 10
 
 
+def parse_multiple_json(api_response):
+    """
+    Parses a string containing multiple JSON objects and returns a list of dictionaries.
+    
+    Args:
+        api_response (str): The string returned by the API containing JSON objects.
+    
+    Returns:
+        list: A list of dictionaries parsed from the JSON objects.
+    """
+    # Regular expression pattern to match individual JSON objects
+    json_pattern = re.compile(r'\{.*?\}', re.DOTALL)
+    
+    # Find all JSON object strings in the response
+    json_strings = json_pattern.findall(api_response)
+    
+    parsed_objects = []
+    for json_str in json_strings:
+        try:
+            # Replace escaped single quotes with actual single quotes
+            json_str_clean = json_str.replace("\\'", "'")
+            
+            # Parse the JSON string into a dictionary
+            obj = json.loads(json_str_clean)
+            parsed_objects.append(obj)
+        except json.JSONDecodeError as e:
+            print(f"Failed to parse JSON object: {e}")
+            continue
+    
+    return parsed_objects
+
 def make_api_call(messages, max_tokens, is_final_answer=False):
     # TOOD: Make this use local model to prevent relay mining
     for attempt in range(3):
         try:
             response = LLMWrapper.chat_complete(messages=LLMMessages(*messages))
-            return json.loads(re.sub("```", "", re.sub(r"```json\s*", "", response)))
+            response_dict = parse_multiple_json(response)[0]
+            return response_dict
         except Exception as e:
             if attempt == 2:
                 if is_final_answer:
@@ -63,6 +95,7 @@ Key Instructions:
 - Quantify certainty levels for each step and the final conclusion when applicable.
 - Consider potential edge cases or exceptions to your reasoning.
 - Provide clear justifications for eliminating alternative hypotheses.
+- Output only one step at a time to ensure a detailed and coherent explanation.
 
 
 Example of a valid JSON response:
@@ -106,13 +139,17 @@ Example of a valid JSON response:
         yield steps, None
 
     # Generate final answer
-    messages.append(LLMMessage(role="user", content="Please provide the final answer based on your reasoning above."))
+    messages.append(LLMMessage(role="user", content="Please provide the final answer based on your reasoning above. You must return your answer in a valid json."))
 
     start_time = time.time()
     final_data = make_api_call(messages, 200, is_final_answer=True)
     end_time = time.time()
     thinking_time = end_time - start_time
     total_thinking_time += thinking_time
+
+    if final_data['title'] == "Error":
+        steps.append(("Error", final_data["content"], thinking_time))
+        raise ValueError("Failed to generate final answer: {final_data['content']}")
 
     steps.append(("Final Answer", final_data["content"], thinking_time))
 
