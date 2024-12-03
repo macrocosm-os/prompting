@@ -179,3 +179,5 @@ wandb
 .vscode
 api_keys.json
 prompting/api/api_keys.json
+weights.csv
+weights.npy
