@@ -46,7 +46,7 @@ def save_weights(weights: np.ndarray):
     logger.info("Saving validator state.")
 
     # Save the state of the validator to file.
-    np.save(weights=weights, filename=FILENAME)
+    np.save(FILENAME, weights)
 
 
 def set_weights(weights: np.ndarray, step: int = 0):
