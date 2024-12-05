@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prompting"
-version = "2.14.0"
+version = "2.14.1"
 description = "Subnetwork 1 runs on Bittensor and is maintained by Macrocosmos. It's an effort to create decentralised AI"
 authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz"]
 readme = "README.md"
