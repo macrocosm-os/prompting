@@ -84,8 +84,8 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
             status_code=503,
             detail=f"No miners available for model: {body.get('model')} and task: {task.__class__.__name__}",
         )
-
-    response = query_miners(available_miners, json.dumps(body).encode("utf-8"), stream=stream)
+    random.shuffle(available_miners)
+    response = query_miners(available_miners[:10], json.dumps(body).encode("utf-8"), stream=stream, return_first = True)
     if stream:
         return response
     else:

@@ -79,7 +79,7 @@ def create_header_hook(hotkey, axon_hotkey):
     return add_headers
 
 
-async def query_miners(uids: list = [], body: bytes = b"", stream: bool = False):
+async def query_miners(uids: list = [], body: bytes = b"", stream: bool = False, return_first: bool = False):
     try:
         tasks = []
         for uid in uids:
@@ -94,6 +94,9 @@ async def query_miners(uids: list = [], body: bytes = b"", stream: bool = False)
                     )
                 )
             )
+        if return_first: 
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            return [await done.pop()]
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Filter out exceptions from responses
