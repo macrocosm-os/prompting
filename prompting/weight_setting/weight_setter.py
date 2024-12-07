@@ -20,6 +20,9 @@ FILENAME = "./weights.npy"
 try:
     PAST_WEIGHTS = [np.load(FILENAME)]
     logger.info(f"Loaded weights from file: {PAST_WEIGHTS}")
+except FileNotFoundError:
+    logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
+    PAST_WEIGHTS = []
 except Exception as ex:
     logger.exception(f"Couldn't load weights from file: {ex}")
     PAST_WEIGHTS = []
