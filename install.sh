@@ -13,9 +13,6 @@ git clone git@github.com:casper-hansen/AutoAWQ.git && cd AutoAWQ && poetry run p
 
 poetry run pip install flash-attn --no-build-isolation
 
-# Updating the package list and installing jq and npm
-apt update && apt install -y jq npm
-
 # Check if jq is installed and install it if not
 if ! command -v jq &> /dev/null
 then
