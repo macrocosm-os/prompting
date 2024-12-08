@@ -16,9 +16,9 @@ from prompting.tasks.task_registry import TaskConfig, TaskRegistry
 from prompting.utils.logging import WeightSetEvent, log_event
 from prompting.utils.misc import ttl_get_block
 
-FILENAME = "./weights.npy"
+FILENAME = "validator_weights.npz"
 try:
-    PAST_WEIGHTS = [np.load(FILENAME)]
+    PAST_WEIGHTS = load_weights(FILENAME)
     logger.info(f"Loaded weights from file: {PAST_WEIGHTS}")
 except Exception as ex:
     logger.exception(f"Couldn't load weights from file: {ex}")
@@ -41,13 +41,17 @@ def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
     return all_rewards
 
 
-def save_weights(weights: np.ndarray):
-    """Saves the state of the validator to a file."""
+def save_weights(weights: list[np.ndarray], filename: str):
+    """Saves the list of numpy arrays to a file."""
     logger.info("Saving validator state.")
+    # Save all arrays into a single .npz file
+    np.savez_compressed(filename, *weights)
 
-    # Save the state of the validator to file.
-    np.save(FILENAME, weights)
-
+def load_weights(filename: str) -> list[np.ndarray]:
+    """Loads a list of numpy arrays from a saved file."""
+    logger.info("Loading validator state.")
+    with np.load(filename) as data:
+        return [data[key] for key in data.files]
 
 def set_weights(weights: np.ndarray, step: int = 0):
     """
@@ -61,14 +65,14 @@ def set_weights(weights: np.ndarray, step: int = 0):
                 f"Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions. Scores: {weights}"
             )
 
+        # Replace any NaN values with 0
+        weights = np.nan_to_num(weights, nan=0.0)
         # Calculate the average reward for each uid across non-zero values.
-        # Replace any NaN values with 0.
         PAST_WEIGHTS.append(weights)
-        save_weights(weights)
         if len(PAST_WEIGHTS) > WEIGHTS_HISTORY_LENGTH:
             PAST_WEIGHTS.pop(0)
         averaged_weights = np.average(np.array(PAST_WEIGHTS), axis=0)
-
+        save_weights(PAST_WEIGHTS)
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
