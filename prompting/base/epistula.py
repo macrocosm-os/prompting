@@ -239,11 +239,22 @@ async def handle_inference(
     if stream:
         return chat
     else:
-        return SynapseStreamResult(
-            accumulated_chunks=chunks,
-            accumulated_chunks_timings=chunk_timings,
-            uid=uid,
-            exception=exception,
-            status_code=status_code,
-            status_message=status_message,
-        )
+        try:
+            return SynapseStreamResult(
+                accumulated_chunks=chunks,
+                accumulated_chunks_timings=chunk_timings,
+                uid=uid,
+                exception=exception,
+                status_code=status_code,
+                status_message=status_message,
+            )
+        except Exception as e:
+            logger.error(f"Couldn't create SynapseStreamResult: {e}")
+            return SynapseStreamResult(
+                accumulated_chunks=[],
+                accumulated_chunks_timings=[],
+                uid=uid,
+                exception=f"Exception thrown validator-side: {str(e)}",
+                status_code=500,
+                status_message="Exception thrown validator-side",
+            )

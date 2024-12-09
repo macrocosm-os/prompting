@@ -17,12 +17,13 @@ from prompting.utils.logging import WeightSetEvent, log_event
 from prompting.utils.misc import ttl_get_block
 
 FILENAME = "./weights.npy"
+PAST_WEIGHTS = []
+
 try:
     PAST_WEIGHTS = [np.load(FILENAME)]
     logger.info(f"Loaded weights from file: {PAST_WEIGHTS}")
 except Exception as ex:
-    logger.exception(f"Couldn't load weights from file: {ex}")
-    PAST_WEIGHTS = []
+    logger.error(f"Couldn't load weights from file: {ex}")
 WEIGHTS_HISTORY_LENGTH = 24
 
 
@@ -46,7 +47,10 @@ def save_weights(weights: np.ndarray):
     logger.info("Saving validator state.")
 
     # Save the state of the validator to file.
-    np.save(FILENAME, weights)
+    try:
+        np.save(FILENAME, weights)
+    except Exception as ex:
+        logger.exception(f"Couldn't save weights to file: {ex}")
 
 
 def set_weights(weights: np.ndarray, step: int = 0):
