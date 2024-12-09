@@ -250,4 +250,3 @@ class BaseValidatorNeuron(BaseNeuron):
             self.hotkeys = state["hotkeys"]
         except Exception as ex:
             logger.error(f"Couldn't load state from file: {ex}")
-
