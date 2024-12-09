@@ -139,6 +139,7 @@ class Validator(BaseValidatorNeuron):
         }
         body_bytes = json.dumps(body).encode("utf-8")
         stream_results = await query_miners(uids, body_bytes)
+        logger.debug(f"🔍 Collected responses from {len(stream_results)} miners")
 
         log_stream_results(stream_results)
 
