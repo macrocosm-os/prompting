@@ -4,10 +4,10 @@ from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
+from starlette.responses import StreamingResponse
 
 from prompting.api.api_managements.api import validate_api_key
 from prompting.base.dendrite import DendriteResponseEvent, SynapseStreamResult
-from prompting.base.epistula import query_miners
 from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.rewards.scoring import task_scorer
 from prompting.settings import settings
@@ -61,6 +61,80 @@ async def mixture_of_agents(request: Request, api_key_data: dict = Depends(valid
     return {"message": "Mixture of Agents"}
 
 
+import asyncio
+
+from prompting.base.epistula import make_openai_query
+
+
+async def query_endpoint(metagraph, wallet, body, uid, stream):
+    try:
+        response = await make_openai_query(metagraph=metagraph, wallet=wallet, body=body, uid=uid, stream=stream)
+        if stream:
+
+            async def stream_response():
+                collected_content = []
+                collected_chunks_timings = []
+                with Timer() as timer:
+                    async for chunk in response:
+                        if (
+                            hasattr(chunk, "choices")
+                            and chunk.choices
+                            and isinstance(chunk.choices[0].delta.content, str)
+                        ):
+                            content = chunk.choices[0].delta.content
+                            collected_content.append(content)
+                            collected_chunks_timings.append(timer.elapsed_time())
+                            yield f"data: {json.dumps(chunk.model_dump())}\n\n"
+
+                    # Add task to scoring queue after stream completes
+                    task_obj = InferenceTask(
+                        query=body["messages"][-1]["content"],
+                        messages=[message["content"] for message in body["messages"]],
+                        model=body.get("model"),
+                        seed=body.get("seed"),
+                        response="".join(collected_content),
+                    )
+                    response_event = DendriteResponseEvent(
+                        stream_results=[
+                            SynapseStreamResult(
+                                uid=uid,
+                                accumulated_chunks=collected_content,
+                                accumulated_chunks_timings=collected_chunks_timings,
+                            )
+                        ],
+                        uids=[uid],
+                        timeout=settings.NEURON_TIMEOUT,
+                        completions=["".join(collected_content)],
+                    )
+                    task_scorer.add_to_queue(
+                        task=task_obj,
+                        response=response_event,
+                        dataset_entry=task_obj.dataset_entry,
+                        block=-1,
+                        step=-1,
+                        task_id=task_obj.task_id,
+                    )
+                    yield "data: [DONE]\n\n"
+
+            return StreamingResponse(stream_response(), media_type="text/event-stream")
+        else:
+            return response
+
+    except Exception as e:
+        logger.error(f"Error querying miner with uid {uid}: {e}")
+        return None
+
+
+async def query_all_endpoints(metagraph, wallet, body, uids, stream):
+    tasks = [query_endpoint(metagraph, wallet, body, uid, stream) for uid in uids]
+    for task in asyncio.as_completed(tasks):
+        result = await task
+        if result is not None:
+            return result
+    raise HTTPException(status_code=503, detail="No valid response from any endpoint")
+
+
+# TODO: Modify this so ALL of the responses are added for scoring rather than just the first one
 @router.post("/v1/chat/completions")
 async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(validate_api_key)):
     body = await request.json()
@@ -69,13 +143,16 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
         raise HTTPException(status_code=400, detail=f"Task {body.get('task')} not found")
     logger.debug(f"Requested Task: {body.get('task')}, {task}")
 
-    stream = body.get("stream")
+    stream = body.get("stream", False)
     body = {k: v for k, v in body.items() if k not in ["task", "stream"]}
     body["task"] = task.__class__.__name__
     body["seed"] = body.get("seed") or str(random.randint(0, 1_000_000))
     logger.debug(f"Seed provided by miner: {bool(body.get('seed'))} -- Using seed: {body.get('seed')}")
 
-    if settings.TEST_MINER_IDS:
+    # Get available miners
+    if uids := body.get("uids"):
+        available_miners = uids
+    elif settings.TEST_MINER_IDS:
         available_miners = settings.TEST_MINER_IDS
     elif not settings.mode == "mock" and not (
         available_miners := miner_availabilities.get_available_miners(task=task, model=body.get("model"))
@@ -84,33 +161,40 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
             status_code=503,
             detail=f"No miners available for model: {body.get('model')} and task: {task.__class__.__name__}",
         )
+    random.shuffle(available_miners)
 
-    response = query_miners(available_miners, json.dumps(body).encode("utf-8"), stream=stream)
-    if stream:
-        return response
-    else:
-        response = await response
-        response_event = DendriteResponseEvent(
-            stream_results=response,
-            uids=available_miners,
-            timeout=settings.NEURON_TIMEOUT,
-            completions=["".join(res.accumulated_chunks) for res in response],
-        )
-
-        task = task(
-            query=body["messages"][-1]["content"],
-            messages=[message["content"] for message in body["messages"]],
-            model=body.get("model"),
-            seed=body.get("seed"),
-            response=response_event,
-        )
-
-        task_scorer.add_to_queue(
-            task=task,
-            response=response_event,
-            dataset_entry=task.dataset_entry,
-            block=-1,
-            step=-1,
-            task_id=task.task_id,
-        )
-        return [res.model_dump() for res in response]
+    try:
+        result = await query_all_endpoints(settings.METAGRAPH, settings.WALLET, body, available_miners, stream)
+        if not stream:
+            # Handle non-streaming response scoring
+            response_event = DendriteResponseEvent(
+                stream_results=[
+                    SynapseStreamResult(
+                        uid=available_miners[0],
+                        accumulated_chunks=[result.choices[0].message.content],
+                        accumulated_chunks_timings=[0.0],
+                    )
+                ],
+                uids=[available_miners[0]],
+                timeout=settings.NEURON_TIMEOUT,
+                completions=[result.choices[0].message.content],
+            )
+            task_obj = InferenceTask(
+                query=body["messages"][-1]["content"],
+                messages=[message["content"] for message in body["messages"]],
+                model=body.get("model"),
+                seed=body.get("seed"),
+                response=result.choices[0].message.content,
+            )
+            task_scorer.add_to_queue(
+                task=task_obj,
+                response=response_event,
+                dataset_entry=task_obj.dataset_entry,
+                block=-1,
+                step=-1,
+                task_id=task_obj.task_id,
+            )
+        return result
+    except Exception as e:
+        logger.error(f"Failed to get a valid response: {e}")
+        raise HTTPException(status_code=503, detail=str(e))
