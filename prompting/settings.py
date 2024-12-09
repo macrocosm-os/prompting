@@ -4,12 +4,17 @@ from typing import Any, Literal, Optional
 
 import bittensor as bt
 import dotenv
-from loguru import logger
+# from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 from transformers import AwqConfig
+import loguru
+# Remove the default handler (which logs to the console)
+loguru.logger.remove()
 
-# from prompting.utils.config import config
+# Add a handler to write logs to a file
+loguru.logger.add("logfile.log", rotation="1000 MB", retention="10 days", level="DEBUG")
+from loguru import logger
 
 
 class Settings(BaseSettings):
