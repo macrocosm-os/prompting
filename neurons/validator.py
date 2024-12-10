@@ -1,6 +1,7 @@
 # ruff: noqa: E402
 import asyncio
 import time
+
 from loguru import logger
 
 from prompting import settings
@@ -12,17 +13,16 @@ settings = settings.settings
 from prompting.api.api import start_api
 from prompting.llms.model_manager import model_scheduler
 from prompting.llms.utils import GPUInfo
-from prompting.miner_availability.miner_availability import availability_checking_loop, miner_availabilities
+from prompting.miner_availability.miner_availability import availability_checking_loop
 from prompting.rewards.scoring import task_scorer
 from prompting.tasks.task_creation import task_loop
-from prompting.weight_setting.weight_setter import weight_setter
 from prompting.tasks.task_sending import task_sender
+from prompting.weight_setting.weight_setter import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
 
 
 async def main():
-
     # will start checking the availability of miners at regular intervals, needed for API and Validator
     asyncio.create_task(availability_checking_loop.start())
 
@@ -31,7 +31,6 @@ async def main():
 
     GPUInfo.log_gpu_info()
     if settings.DEPLOY_VALIDATOR:
-
         # start profiling
         asyncio.create_task(profiler.print_stats())
 

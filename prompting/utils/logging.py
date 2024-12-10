@@ -15,7 +15,6 @@ from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.tasks.task_registry import TaskRegistry
-from prompting.settings import settings
 
 WANDB: Run
 

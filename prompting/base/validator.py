@@ -9,7 +9,6 @@ import torch
 from loguru import logger
 
 from prompting.base.neuron import BaseNeuron
-from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.utils.exceptions import MaxRetryError
 from prompting.utils.logging import init_wandb
