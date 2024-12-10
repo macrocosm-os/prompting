@@ -2,23 +2,22 @@
 import asyncio
 import json
 import time
-from prompting import settings
-from prompting.settings import settings
+
 from loguru import logger
 
-from prompting import mutable_globals
-
+from prompting import mutable_globals, settings
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.base.epistula import query_miners
 from prompting.base.forward import log_stream_results
+from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.mutable_globals import scoring_queue
 from prompting.rewards.scoring import task_scorer
+from prompting.settings import settings
 from prompting.tasks.base_task import BaseTextTask
 from prompting.utils.logging import ErrorLoggingEvent, ValidatorLoggingEvent
-from prompting.utils.timer import Timer
-from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.utils.misc import ttl_get_block
+from prompting.utils.timer import Timer
 
 NEURON_SAMPLE_SIZE = 100
 
