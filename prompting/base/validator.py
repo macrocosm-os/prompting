@@ -78,7 +78,8 @@ class BaseValidatorNeuron(BaseNeuron):
                 forward_timeout = settings.NEURON_FORWARD_MAX_TIME
                 try:
                     loop = asyncio.get_event_loop()
-                    loop.run_until_complete(self.forward())
+                    result = loop.run_until_complete(self.forward())
+                    logger.debug(f"Result of forward loop {result}")
                 except torch.cuda.OutOfMemoryError as e:
                     logger.error(f"Out of memory error: {e}")
                     continue
