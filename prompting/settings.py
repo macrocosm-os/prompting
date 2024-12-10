@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
     DEPLOY_API: bool = Field(False, env="DEPLOY_API")
+    DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
     API_PORT: int = Field(8094, env="API_PORT")
 
     # API Management.
