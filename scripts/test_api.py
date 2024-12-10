@@ -38,7 +38,7 @@ def setup_miner_client(
     return openai.AsyncOpenAI(
         base_url=f"http://localhost:{port}/v1",
         max_retries=0,
-        timeout=Timeout(30, connect=10, read=20),
+        timeout=Timeout(60, connect=20, read=40),
         http_client=openai.DefaultAsyncHttpxClient(event_hooks={"request": [combined_header_hook]}),
     )
 

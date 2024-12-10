@@ -233,14 +233,20 @@ class BaseValidatorNeuron(BaseNeuron):
         logger.info("Saving validator state.")
 
         # Save the state of the validator to file.
-        np.savez(settings.SAVE_PATH + "/state.npz", step=self.step, scores=self.scores, hotkeys=self.hotkeys)
+        try:
+            np.savez(settings.SAVE_PATH + "/state.npz", step=self.step, scores=self.scores, hotkeys=self.hotkeys)
+        except Exception as ex:
+            logger.error(f"Couldn't save state to file: {ex}")
 
     def load_state(self):
         """Loads the state of the validator from a file."""
         logger.info("Loading validator state.")
 
         # Load the state of the validator from file.
-        state = np.load(settings.SAVE_PATH + "/state.npz")
-        self.step = state["step"]
-        self.scores = state["scores"]
-        self.hotkeys = state["hotkeys"]
+        try:
+            state = np.load(settings.SAVE_PATH + "/state.npz")
+            self.step = state["step"]
+            self.scores = state["scores"]
+            self.hotkeys = state["hotkeys"]
+        except Exception as ex:
+            logger.error(f"Couldn't load state from file: {ex}")
