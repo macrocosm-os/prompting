@@ -69,6 +69,7 @@ from prompting.base.epistula import make_openai_query
 async def query_endpoint(metagraph, wallet, body, uid, stream):
     try:
         response = await make_openai_query(metagraph=metagraph, wallet=wallet, body=body, uid=uid, stream=stream)
+        # TODO: make it so that we always stream from the miner
         if stream:
 
             async def stream_response():
@@ -118,7 +119,10 @@ async def query_endpoint(metagraph, wallet, body, uid, stream):
 
             return StreamingResponse(stream_response(), media_type="text/event-stream")
         else:
-            return response
+            if response.choices and response.choices[0].message.content:
+                return response
+            else:
+                return None
 
     except Exception as e:
         logger.error(f"Error querying miner with uid {uid}: {e}")
@@ -145,7 +149,7 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
 
     stream = body.get("stream", False)
     body = {k: v for k, v in body.items() if k not in ["task", "stream"]}
-    body["task"] = task.__class__.__name__
+    body["task"] = task.__name__
     body["seed"] = body.get("seed") or str(random.randint(0, 1_000_000))
     logger.debug(f"Seed provided by miner: {bool(body.get('seed'))} -- Using seed: {body.get('seed')}")
 
@@ -164,7 +168,9 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
     random.shuffle(available_miners)
 
     try:
-        result = await query_all_endpoints(settings.METAGRAPH, settings.WALLET, body, available_miners, stream)
+        result = await query_all_endpoints(
+            settings.METAGRAPH, settings.WALLET, body, available_miners[: settings.ORGANIC_SAMPLE_SIZE], stream
+        )
         if not stream:
             # Handle non-streaming response scoring
             response_event = DendriteResponseEvent(
@@ -196,5 +202,5 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
             )
         return result
     except Exception as e:
-        logger.error(f"Failed to get a valid response: {e}")
+        logger.exception(f"Failed to get a valid response: {e}")
         raise HTTPException(status_code=503, detail=str(e))
