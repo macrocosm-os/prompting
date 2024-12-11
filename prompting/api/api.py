@@ -7,6 +7,7 @@ from loguru import logger
 from prompting.api.api_managements.api import router as api_management_router
 from prompting.api.gpt_endpoints.api import router as gpt_router
 from prompting.api.miner_availabilities.api import router as miner_availabilities_router
+from prompting.settings import settings
 
 app = FastAPI()
 
@@ -25,4 +26,4 @@ def health():
 # if __name__ == "__main__":
 async def start_api():
     logger.info("Starting API...")
-    uvicorn.run("prompting.api.api:app", host="0.0.0.0", port=8004, loop="asyncio", reload=False)
+    uvicorn.run("prompting.api.api:app", host="0.0.0.0", port=settings.API_PORT, reload=False)
