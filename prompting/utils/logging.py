@@ -238,5 +238,5 @@ def convert_arrays_to_lists(data: dict) -> dict:
     return {key: value.tolist() if hasattr(value, "tolist") else value for key, value in data.items()}
 
 
-if settings.WANDB_ON:
+if settings.WANDB_ON and not settings.MOCK:
     init_wandb()
