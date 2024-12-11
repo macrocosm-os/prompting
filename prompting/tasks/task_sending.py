@@ -5,7 +5,7 @@ import time
 
 from loguru import logger
 
-from prompting import mutable_globals, settings
+from prompting import mutable_globals
 from prompting.base.dendrite import DendriteResponseEvent
 from prompting.base.epistula import query_miners
 from prompting.base.forward import log_stream_results
