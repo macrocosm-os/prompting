@@ -80,13 +80,9 @@ class CheckMinerAvailability(AsyncLoopRunner):
         if self.step == 0:
             uids_to_query = self.uids
 
-        logger.info(f"Collecting miner availabilities on uids: {uids_to_query}")
-
         if any(uid >= len(settings.METAGRAPH.axons) for uid in uids_to_query):
             raise ValueError("Some UIDs are out of bounds. Make sure all the TEST_MINER_IDS are valid.")
         responses: list[Dict[str, bool]] = await query_availabilities(uids_to_query, task_config, model_config)
-
-        logger.debug(f"Availability responses: {responses}")
 
         for response, uid in zip(responses, uids_to_query):
             if not response:

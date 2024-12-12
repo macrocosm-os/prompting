@@ -19,6 +19,7 @@ exclude = '''
 | \.mypy_cache
 | \.tox
 | \.venv
+| AutoAWQ
 | _build
 | buck-out
 | build

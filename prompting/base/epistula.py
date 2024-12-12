@@ -3,7 +3,7 @@ import json
 import time
 from hashlib import sha256
 from math import ceil
-from typing import Annotated, Any, Dict, List, Optional
+from typing import Annotated, Any, AsyncGenerator, Dict, List, Optional
 from uuid import uuid4
 
 import bittensor as bt
@@ -79,7 +79,34 @@ def create_header_hook(hotkey, axon_hotkey):
     return add_headers
 
 
-async def query_miners(uids: list = [], body: bytes = b"", stream: bool = False):
+async def merged_stream(responses: list[AsyncGenerator]):
+    streams = [response.__aiter__() for response in responses if not isinstance(response, Exception)]
+    pending = {}
+    for stream in streams:
+        try:
+            task = asyncio.create_task(stream.__anext__())
+            pending[task] = stream
+        except StopAsyncIteration:
+            continue  # Skip empty streams
+
+    while pending:
+        done, _ = await asyncio.wait(pending.keys(), return_when=asyncio.FIRST_COMPLETED)
+        for task in done:
+            stream = pending.pop(task)
+            try:
+                result = task.result()
+                yield result
+                # Schedule the next item from the same stream
+                next_task = asyncio.create_task(stream.__anext__())
+                pending[next_task] = stream
+            except StopAsyncIteration:
+                # Stream is exhausted
+                pass
+            except Exception as e:
+                logger.error(f"Error while streaming: {e}")
+
+
+async def query_miners(uids: list = [], body: bytes = b"", stream: bool = False, return_first: bool = False):
     try:
         tasks = []
         for uid in uids:
@@ -94,6 +121,9 @@ async def query_miners(uids: list = [], body: bytes = b"", stream: bool = False)
                     )
                 )
             )
+        if return_first:
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            return [await done.pop()]
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Filter out exceptions from responses
@@ -101,37 +131,10 @@ async def query_miners(uids: list = [], body: bytes = b"", stream: bool = False)
         if exceptions:
             for exc in exceptions:
                 logger.error(f"Error in handle_inference: {exc}")
-            # Handle exceptions as needed
 
         if stream:
             # 'responses' is a list of async iterators (chat objects)
-            async def merged_stream():
-                streams = [response.__aiter__() for response in responses if not isinstance(response, Exception)]
-                pending = {}
-                for stream in streams:
-                    try:
-                        task = asyncio.create_task(stream.__anext__())
-                        pending[task] = stream
-                    except StopAsyncIteration:
-                        continue  # Skip empty streams
-
-                while pending:
-                    done, _ = await asyncio.wait(pending.keys(), return_when=asyncio.FIRST_COMPLETED)
-                    for task in done:
-                        stream = pending.pop(task)
-                        try:
-                            result = task.result()
-                            yield result
-                            # Schedule the next item from the same stream
-                            next_task = asyncio.create_task(stream.__anext__())
-                            pending[next_task] = stream
-                        except StopAsyncIteration:
-                            # Stream is exhausted
-                            pass
-                        except Exception as e:
-                            logger.error(f"Error while streaming: {e}")
-
-            return merged_stream()
+            return merged_stream(responses)
         else:
             # 'responses' is a list of SynapseStreamResult objects
             return [resp for resp in responses if not isinstance(resp, Exception)]
@@ -183,6 +186,34 @@ async def handle_availability(
 
     except Exception:
         return {}
+
+
+async def make_openai_query(
+    metagraph: "bt.NonTorchMetagraph",
+    wallet: "bt.wallet",
+    body: dict[str, Any],
+    uid: int,
+    stream: bool = False,
+):
+    axon_info = metagraph.axons[uid]
+    miner = openai.AsyncOpenAI(
+        base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
+        api_key="Apex",
+        max_retries=0,
+        timeout=Timeout(10, connect=5, read=10),
+        http_client=openai.DefaultAsyncHttpxClient(
+            event_hooks={"request": [create_header_hook(wallet.hotkey, axon_info.hotkey)]}
+        ),
+    )
+    # payload = json.loads(body)
+    payload = body
+    chat = await miner.chat.completions.create(
+        messages=payload["messages"],
+        model=payload["model"],
+        stream=stream,
+        extra_body={k: v for k, v in payload.items() if k not in ["messages", "model"]},
+    )
+    return chat
 
 
 async def handle_inference(
@@ -239,11 +270,22 @@ async def handle_inference(
     if stream:
         return chat
     else:
-        return SynapseStreamResult(
-            accumulated_chunks=chunks,
-            accumulated_chunks_timings=chunk_timings,
-            uid=uid,
-            exception=exception,
-            status_code=status_code,
-            status_message=status_message,
-        )
+        try:
+            return SynapseStreamResult(
+                accumulated_chunks=chunks,
+                accumulated_chunks_timings=chunk_timings,
+                uid=uid,
+                exception=exception,
+                status_code=status_code,
+                status_message=status_message,
+            )
+        except Exception as e:
+            logger.error(f"Couldn't create SynapseStreamResult: {e}")
+            return SynapseStreamResult(
+                accumulated_chunks=[],
+                accumulated_chunks_timings=[],
+                uid=uid,
+                exception=f"Exception thrown validator-side: {str(e)}",
+                status_code=500,
+                status_message="Exception thrown validator-side",
+            )

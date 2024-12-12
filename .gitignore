@@ -5,6 +5,7 @@ __pycache__/
 .DS_Store
 **/.DS_Store
 
+*.npy
 *.npz
 prompting/storage/
 
@@ -179,3 +180,4 @@ wandb
 .vscode
 api_keys.json
 prompting/api/api_keys.json
+AutoAWQ/

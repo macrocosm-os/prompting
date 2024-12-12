@@ -17,12 +17,15 @@ from prompting.utils.logging import WeightSetEvent, log_event
 from prompting.utils.misc import ttl_get_block
 
 FILENAME = "validator_weights.npz"
+
 try:
     PAST_WEIGHTS = load_weights(FILENAME)
     logger.info(f"Loaded weights from file: {PAST_WEIGHTS}")
-except Exception as ex:
-    logger.exception(f"Couldn't load weights from file: {ex}")
+except FileNotFoundError:
+    logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
     PAST_WEIGHTS = []
+except Exception as ex:
+    logger.error(f"Couldn't load weights from file: {ex}")
 WEIGHTS_HISTORY_LENGTH = 24
 
 
@@ -50,8 +53,11 @@ def save_weights(weights: list[np.ndarray], filename: str):
 def load_weights(filename: str) -> list[np.ndarray]:
     """Loads a list of numpy arrays from a saved file."""
     logger.info("Loading validator state.")
-    with np.load(filename) as data:
-        return [data[key] for key in data.files]
+    try:
+      with np.load(filename) as data:
+          return [data[key] for key in data.files]
+    except Excpetion as ex:
+      logger.exception(f"Couldn't load weights from file: {ex}")
 
 def set_weights(weights: np.ndarray, step: int = 0):
     """
