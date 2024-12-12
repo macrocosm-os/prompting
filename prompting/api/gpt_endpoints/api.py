@@ -75,8 +75,10 @@ async def query_endpoint(metagraph, wallet, body, uid, stream):
             async def stream_response():
                 collected_content = []
                 collected_chunks_timings = []
+                await asyncio.sleep(5)
                 with Timer() as timer:
                     async for chunk in response:
+                        logger.debug(f"Chunk received from uid {uid}: {chunk}")
                         if (
                             hasattr(chunk, "choices")
                             and chunk.choices
@@ -86,6 +88,7 @@ async def query_endpoint(metagraph, wallet, body, uid, stream):
                             collected_content.append(content)
                             collected_chunks_timings.append(timer.elapsed_time())
                             yield f"data: {json.dumps(chunk.model_dump())}\n\n"
+                    logger.debug("Exiting async for loop")
 
                     # Add task to scoring queue after stream completes
                     task_obj = InferenceTask(
@@ -115,9 +118,11 @@ async def query_endpoint(metagraph, wallet, body, uid, stream):
                         step=-1,
                         task_id=task_obj.task_id,
                     )
+                    logger.debug(f"Yielding final chunk from uid {uid}")
                     yield "data: [DONE]\n\n"
 
-            return StreamingResponse(stream_response(), media_type="text/event-stream")
+            return stream_response()
+            # return StreamingResponse(stream_response(), media_type="text/event-stream")
         else:
             if response.choices and response.choices[0].message.content:
                 return response
@@ -134,6 +139,7 @@ async def query_all_endpoints(metagraph, wallet, body, uids, stream):
     for task in asyncio.as_completed(tasks):
         result = await task
         if result is not None:
+            logger.debug(f"Result received: {result}")
             return result
     raise HTTPException(status_code=503, detail="No valid response from any endpoint")
 
@@ -171,36 +177,37 @@ async def proxy_chat_completions(request: Request, api_key_data: dict = Depends(
         result = await query_all_endpoints(
             settings.METAGRAPH, settings.WALLET, body, available_miners[: settings.ORGANIC_SAMPLE_SIZE], stream
         )
-        if not stream:
-            # Handle non-streaming response scoring
-            response_event = DendriteResponseEvent(
-                stream_results=[
-                    SynapseStreamResult(
-                        uid=available_miners[0],
-                        accumulated_chunks=[result.choices[0].message.content],
-                        accumulated_chunks_timings=[0.0],
-                    )
-                ],
-                uids=[available_miners[0]],
-                timeout=settings.NEURON_TIMEOUT,
-                completions=[result.choices[0].message.content],
-            )
-            task_obj = InferenceTask(
-                query=body["messages"][-1]["content"],
-                messages=[message["content"] for message in body["messages"]],
-                model=body.get("model"),
-                seed=body.get("seed"),
-                response=result.choices[0].message.content,
-            )
-            task_scorer.add_to_queue(
-                task=task_obj,
-                response=response_event,
-                dataset_entry=task_obj.dataset_entry,
-                block=-1,
-                step=-1,
-                task_id=task_obj.task_id,
-            )
-        return result
+        return StreamingResponse(result, media_type="text/event-stream")
+    #     if not stream:
+    #         # Handle non-streaming response scoring
+    #         response_event = DendriteResponseEvent(
+    #             stream_results=[
+    #                 SynapseStreamResult(
+    #                     uid=available_miners[0],
+    #                     accumulated_chunks=[result.choices[0].message.content],
+    #                     accumulated_chunks_timings=[0.0],
+    #                 )
+    #             ],
+    #             uids=[available_miners[0]],
+    #             timeout=settings.NEURON_TIMEOUT,
+    #             completions=[result.choices[0].message.content],
+    #         )
+    #         task_obj = InferenceTask(
+    #             query=body["messages"][-1]["content"],
+    #             messages=[message["content"] for message in body["messages"]],
+    #             model=body.get("model"),
+    #             seed=body.get("seed"),
+    #             response=result.choices[0].message.content,
+    #         )
+    #         task_scorer.add_to_queue(
+    #             task=task_obj,
+    #             response=response_event,
+    #             dataset_entry=task_obj.dataset_entry,
+    #             block=-1,
+    #             step=-1,
+    #             task_id=task_obj.task_id,
+    #         )
+    #     return result
     except Exception as e:
         logger.exception(f"Failed to get a valid response: {e}")
         raise HTTPException(status_code=503, detail=str(e))

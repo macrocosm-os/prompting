@@ -18,6 +18,7 @@ from prompting.rewards.scoring import task_scorer
 from prompting.tasks.task_creation import task_loop
 from prompting.tasks.task_sending import task_sender
 from prompting.weight_setting.weight_setter import weight_setter
+import requests
 
 NEURON_SAMPLE_SIZE = 100
 
@@ -53,10 +54,22 @@ async def main():
     # # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
     # # TODO: Make weight setting happen as specific intervals as we load/unload models
     start = time.time()
+    await asyncio.sleep(60)
     while True:
-        await asyncio.sleep(1)
+        await asyncio.sleep(5)
         time_diff = -start + (start := time.time())
         logger.debug(f"Running {time_diff:.2f} seconds")
+        # try:
+        #     response = requests.get(f"http://localhost:{settings.API_PORT}/health", timeout=30)
+        #     if response.status_code != 200:
+        #         logger.error(f"API is not healthy, restarting...: {response.status_code}")
+        #         if settings.DEPLOY_API:
+        #             logger.info("Restarting API...")
+        #             asyncio.create_task(start_api())
+        #     else:
+        #         logger.info(f"API is healthy: {response.status_code}")
+        # except Exception as e:
+        #     logger.error(f"Error checking validator health: {e}")
 
 
 # The main function parses the configuration and runs the validator.
