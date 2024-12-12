@@ -15,6 +15,11 @@ import asyncio
 app = FastAPI()
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.post("/v1/chat/completions")
 async def chat_completion(request: Request):
     try:

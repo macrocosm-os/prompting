@@ -217,17 +217,7 @@ async def make_openai_query(
         model=None,
         messages=body["messages"],
         stream=True,
-        extra_body={
-            "task": "InferenceTask",
-            "sampling_parameters": {
-                "temperature": 0.7,
-                "top_p": 0.95,
-                "top_k": 50,
-                "max_new_tokens": 256,
-                "do_sample": True,
-                "seed": "895434",
-            },
-        },
+        extra_body=extra_body,
         timeout=20,
     )
     # chat = await miner.chat.completions.create(
