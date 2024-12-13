@@ -8,8 +8,8 @@ import json
 
 from loguru import logger
 
-from prompting.base.epistula import query_miners
 from prompting.settings import settings
+from shared.epistula import query_miners
 
 """
 This has assumed you have:

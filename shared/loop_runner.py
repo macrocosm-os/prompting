@@ -7,7 +7,7 @@ import aiohttp
 from loguru import logger
 from pydantic import BaseModel, model_validator
 
-from prompting.utils.profiling import profiler
+from shared.profiling import profiler
 
 
 class AsyncLoopRunner(BaseModel, ABC):

@@ -42,6 +42,7 @@ skip_gitignore = true
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
+    "AutoAWQ",
     ".bzr",
     ".direnv",
     ".eggs",
@@ -152,7 +153,6 @@ angle-emb = "0.4.3"
 organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main"}
 autoawq = "0.2.0"
 loguru = "^0.7.2"
-duckduckgo-search = "^6.2.12"
 trafilatura = "^1.12.1"
 pydantic-settings = "^2.5.2"
 huggingface-hub = "^0.25.2"
@@ -162,6 +162,7 @@ torchvision = "^0.20.1"
 tiktoken = "^0.8.0"
 tenacity = "^9.0.0"
 isort = "^5.13.2"
+duckduckgo-search = "^6.3.7"
 
 [build-system]
 requires = ["poetry-core"]

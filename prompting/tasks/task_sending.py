@@ -1,25 +1,67 @@
 # ruff: noqa: E402
 import asyncio
-import json
 import time
+from typing import List
 
 from loguru import logger
 
 from prompting import mutable_globals
-from prompting.base.dendrite import DendriteResponseEvent
-from prompting.base.epistula import query_miners
-from prompting.base.forward import log_stream_results
-from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.mutable_globals import scoring_queue
 from prompting.rewards.scoring import task_scorer
 from prompting.settings import settings
 from prompting.tasks.base_task import BaseTextTask
-from prompting.utils.logging import ErrorLoggingEvent, ValidatorLoggingEvent
-from prompting.utils.misc import ttl_get_block
-from prompting.utils.timer import Timer
+from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
+from shared.epistula import query_miners
+from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
+from shared.loop_runner import AsyncLoopRunner
+from shared.misc import ttl_get_block
+from shared.timer import Timer
 
 NEURON_SAMPLE_SIZE = 100
+
+
+# TODO: do we actually need this logging?
+def log_stream_results(stream_results: List[SynapseStreamResult]):
+    failed_responses = [
+        response for response in stream_results if response.exception is not None or response.completion is None
+    ]
+    empty_responses = [
+        response for response in stream_results if response.exception is None and response.completion == ""
+    ]
+    non_empty_responses = [
+        response for response in stream_results if response.exception is None and response.completion != ""
+    ]
+
+    logger.debug(f"Total of non_empty responses: ({len(non_empty_responses)})")
+    logger.debug(f"Total of empty responses: ({len(empty_responses)})")
+    logger.debug(f"Total of failed responses: ({len(failed_responses)})")
+
+
+async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
+    # Get the list of uids and their axons to query for this step.
+    uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
+    logger.debug(f"🔍 Querying uids: {uids}")
+    if len(uids) == 0:
+        logger.warning("No available miners. This should already have been caught earlier.")
+        return
+
+    body = {
+        "seed": task.seed,
+        "sampling_parameters": task.sampling_params,
+        "task": task.__class__.__name__,
+        "model": task.llm_model_id,
+        "messages": [
+            {"role": "user", "content": task.query},
+        ],
+    }
+    stream_results = await query_miners(uids, body)
+    logger.debug(f"🔍 Collected responses from {len(stream_results)} miners")
+
+    log_stream_results(stream_results)
+
+    response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=settings.NEURON_TIMEOUT)
+    return response_event
 
 
 class TaskSender(AsyncLoopRunner):
@@ -36,7 +78,6 @@ class TaskSender(AsyncLoopRunner):
     def estimate_block(self):
         """
         Estimate the current block number based on the time since the last block sync.
-
         Returns:
             Optional[int]: The estimated block number or None if an error occurs.
         """
@@ -83,7 +124,7 @@ class TaskSender(AsyncLoopRunner):
 
             # send the task to the miners and collect the responses
             with Timer() as timer:
-                response_event = await self.collect_responses(task=task)
+                response_event = await collect_responses(task=task)
             if response_event is None:
                 logger.warning("No response event collected. This should not be happening.")
                 return
@@ -113,34 +154,6 @@ class TaskSender(AsyncLoopRunner):
             return ErrorLoggingEvent(
                 error=str(ex),
             )
-
-    async def collect_responses(self, task: BaseTextTask) -> DendriteResponseEvent | None:
-        # Get the list of uids and their axons to query for this step.
-        uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
-        logger.debug(f"🔍 Querying uids: {uids}")
-        if len(uids) == 0:
-            logger.warning("No available miners. This should already have been caught earlier.")
-            return
-
-        body = {
-            "seed": task.seed,
-            "sampling_parameters": task.sampling_params,
-            "task": task.__class__.__name__,
-            "model": task.llm_model_id,
-            "messages": [
-                {"role": "user", "content": task.query},
-            ],
-        }
-        body_bytes = json.dumps(body).encode("utf-8")
-        stream_results = await query_miners(uids, body_bytes)
-        logger.debug(f"🔍 Collected responses from {len(stream_results)} miners")
-
-        log_stream_results(stream_results)
-
-        response_event = DendriteResponseEvent(
-            stream_results=stream_results, uids=uids, timeout=settings.NEURON_TIMEOUT
-        )
-        return response_event
 
 
 task_sender = TaskSender()
