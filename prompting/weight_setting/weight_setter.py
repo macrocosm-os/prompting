@@ -19,8 +19,8 @@ from prompting.utils.misc import ttl_get_block
 FILENAME = "validator_weights.npz"
 
 try:
-    PAST_WEIGHTS = load_weights(FILENAME)
-    logger.info(f"Loaded weights from file: {PAST_WEIGHTS}")
+    with np.load(FILENAME) as data:
+        PAST_WEIGHTS = [data[key] for key in data.files]
 except FileNotFoundError:
     logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
     PAST_WEIGHTS = []
@@ -49,16 +49,6 @@ def save_weights(weights: list[np.ndarray], filename: str):
     logger.info("Saving validator state.")
     # Save all arrays into a single .npz file
     np.savez_compressed(filename, *weights)
-
-
-def load_weights(filename: str) -> list[np.ndarray]:
-    """Loads a list of numpy arrays from a saved file."""
-    logger.info("Loading validator state.")
-    try:
-        with np.load(filename) as data:
-            return [data[key] for key in data.files]
-    except Excpetion as ex:
-        logger.exception(f"Couldn't load weights from file: {ex}")
 
 
 def set_weights(weights: np.ndarray, step: int = 0):
