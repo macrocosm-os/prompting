@@ -15,7 +15,7 @@ import numpy as np
 from loguru import logger
 from scipy import spatial
 
-from prompting.base.dendrite import DendriteResponseEvent
+from shared.dendrite import DendriteResponseEvent
 from prompting.datasets.random_website import DDGDataset, DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BatchRewardOutput

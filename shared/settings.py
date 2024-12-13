@@ -7,6 +7,11 @@ import dotenv
 from loguru import logger
 from pydantic import Field
 from pydantic_settings import BaseSettings
+import logging
+
+logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # from prompting.utils.config import config
 if not dotenv.load_dotenv(".env.validator"):

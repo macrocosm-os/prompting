@@ -31,24 +31,24 @@ async def main():
         asyncio.create_task(start_api())
 
     GPUInfo.log_gpu_info()
-    if settings.DEPLOY_VALIDATOR:
-        # start profiling
-        asyncio.create_task(profiler.print_stats())
 
-        # start rotating LLM models
-        asyncio.create_task(model_scheduler.start())
+    # start profiling
+    asyncio.create_task(profiler.print_stats())
 
-        # start creating tasks
-        asyncio.create_task(task_loop.start())
+    # start rotating LLM models
+    asyncio.create_task(model_scheduler.start())
 
-        # start sending tasks to miners
-        asyncio.create_task(task_sender.start())
+    # start creating tasks
+    asyncio.create_task(task_loop.start())
 
-        # sets weights at regular intervals (synchronised between all validators)
-        asyncio.create_task(weight_setter.start())
+    # start sending tasks to miners
+    asyncio.create_task(task_sender.start())
 
-        # start scoring tasks in separate loop
-        asyncio.create_task(task_scorer.start())
+    # sets weights at regular intervals (synchronised between all validators)
+    asyncio.create_task(weight_setter.start())
+
+    # start scoring tasks in separate loop
+    asyncio.create_task(task_scorer.start())
 
     # # TODO: Think about whether we want to store the task queue locally in case of a crash
     # # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating

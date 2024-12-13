@@ -55,7 +55,7 @@ async def chat_completion(request: Request):
                 },
             )
         else:
-            return response
+            return response[0]
 
     except Exception as e:
         logger.exception(f"Error setting up streaming: {e}")
@@ -63,4 +63,10 @@ async def chat_completion(request: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="debug", timeout_keep_alive=60)
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=8000,
+        log_level="debug",
+        timeout_keep_alive=60,
+    )

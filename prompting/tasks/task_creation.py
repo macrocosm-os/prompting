@@ -4,7 +4,7 @@ import threading
 from loguru import logger
 from pydantic import ConfigDict
 
-from prompting.base.loop_runner import AsyncLoopRunner
+from prompting.utils.loop_runner import AsyncLoopRunner
 from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.mutable_globals import scoring_queue, task_queue
 from prompting.settings import settings
