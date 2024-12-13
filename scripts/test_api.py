@@ -11,7 +11,7 @@ settings = settings.settings
 
 
 def setup_miner_client(
-    port: int = 8004, api_key: str = "123456", hotkey: Optional[str] = None  # Default key from your api_keys.json
+    port: int = 8094, api_key: str = "123456", hotkey: Optional[str] = None  # Default key from your api_keys.json
 ) -> openai.AsyncOpenAI:
     """
     Setup an authenticated OpenAI client for the miner.
@@ -71,23 +71,22 @@ async def make_completion(miner: openai.AsyncOpenAI, prompt: str, stream: bool =
     if not stream:
         return result
     else:
-        print("In the else")
         chunks = []
         async for chunk in result:
-            print(chunk)
             if chunk.choices[0].delta.content:
                 chunks.append(chunk.choices[0].delta.content)
         return "".join(chunks)
 
 
 async def main():
-    PORT = 8004
+    PORT = 8094
+    # Example API key, replace with yours:
     API_KEY = "0566dbe21ee33bba9419549716cd6f1f"
     miner = setup_miner_client(
         port=PORT, api_key=API_KEY, hotkey=settings.WALLET.hotkey if hasattr(settings, "WALLET") else None
     )
     response = await make_completion(miner=miner, prompt="Say 10 random numbers between 1 and 100", stream=True)
-    print(["".join(res.accumulated_chunks) for res in response])
+    print(response)
 
 
 # Run the async main function

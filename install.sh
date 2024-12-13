@@ -9,7 +9,10 @@ poetry config virtualenvs.in-project true
 # Install the project dependencies
 poetry install
 
-git clone git@github.com:casper-hansen/AutoAWQ.git && cd AutoAWQ && poetry run pip install -e . && cd ..
+# Build AutoAWQ==0.2.7.post3 from source
+git clone git@github.com:casper-hansen/AutoAWQ.git
+cd AutoAWQ && git checkout cbd6a75b065e94a3e530dfdbb8f3973f0d954ec0 && poetry run pip install -e . && cd ..
+rm -r AutoAWQ
 
 poetry run pip install flash-attn --no-build-isolation
 

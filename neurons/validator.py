@@ -1,5 +1,6 @@
 # ruff: noqa: E402
 import asyncio
+import multiprocessing
 import time
 
 from loguru import logger
@@ -27,7 +28,8 @@ async def main():
     asyncio.create_task(availability_checking_loop.start())
 
     if settings.DEPLOY_API:
-        asyncio.create_task(start_api())
+        api_process = multiprocessing.Process(target=lambda: asyncio.run(start_api()))
+        api_process.start()
 
     GPUInfo.log_gpu_info()
     if settings.DEPLOY_VALIDATOR:
