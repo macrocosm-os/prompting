@@ -24,4 +24,6 @@ def health():
 # if __name__ == "__main__":
 async def start_api():
     logger.info("Starting API...")
-    uvicorn.run("prompting.api.api:app", host="0.0.0.0", port=settings.API_PORT, reload=False)
+
+
+uvicorn.run("prompting.api.api:app", host="0.0.0.0", port=settings.API_PORT, loop="asyncio", reload=False)

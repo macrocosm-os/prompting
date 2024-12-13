@@ -118,6 +118,9 @@ async def query_miners(uids, body: dict[str, Any]):
             tasks.append(
                 asyncio.create_task(make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid))
             )
+        if return_first:
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+            return [await done.pop()]
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Show exceptions from responses
