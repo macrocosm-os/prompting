@@ -7,7 +7,7 @@ import aiohttp
 from loguru import logger
 from pydantic import BaseModel, model_validator
 
-from prompting.utils.profiling import profiler
+from shared.profiling import profiler
 
 
 class AsyncLoopRunner(BaseModel, ABC):
@@ -88,7 +88,8 @@ class AsyncLoopRunner(BaseModel, ABC):
                     next_run = await self.wait_for_next_execution(last_run_time)
                     logger.debug("Wait ended")
                     try:
-                        await self.run_step()
+                        run_results = await self.run_step()
+                        logger.debug(f"Run_results: {run_results}")
                         self.step += 1
                         logger.debug(f"{self.name}: Step {self.step} completed at {next_run}")
                     except Exception as ex:

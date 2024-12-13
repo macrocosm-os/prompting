@@ -2,8 +2,8 @@ import time
 
 import numpy as np
 
-from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
+from shared.dendrite import DendriteResponseEvent
 
 
 class StreamingRewardModel(BaseRewardModel):

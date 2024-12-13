@@ -41,7 +41,7 @@ def test_apply_reward_func():
 
 def test_run_step_with_reward_events():
     with (
-        patch("prompting.utils.uids.get_uids") as mock_get_uids,
+        patch("shared.uids.get_uids") as mock_get_uids,
         patch("prompting.weight_setting.weight_setter.TaskRegistry") as MockTaskRegistry,
         patch("prompting.weight_setting.weight_setter.mutable_globals") as mock_mutable_globals,
         patch("prompting.weight_setting.weight_setter.set_weights") as mock_set_weights,

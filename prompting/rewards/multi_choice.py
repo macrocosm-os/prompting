@@ -6,8 +6,8 @@ import numpy as np
 from loguru import logger
 from pydantic import Field, model_validator
 
-from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
+from shared.dendrite import DendriteResponseEvent
 
 
 class MultiChoiceRewardModel(BaseRewardModel):
@@ -64,7 +64,6 @@ class MultiChoiceRewardModel(BaseRewardModel):
         timings = []
 
         for completion in response_event.completions:
-            logger.debug(f"Completion: {completion}, reference: {reference}")
             start_time = time.perf_counter()
 
             reward = self.logit_reward(reference, completion)

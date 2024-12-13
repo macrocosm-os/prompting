@@ -6,22 +6,15 @@ import numpy as np
 from loguru import logger
 from pydantic import BaseModel
 
-from prompting.base.epistula import query_availabilities
-from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.llms.model_zoo import ModelZoo
 from prompting.settings import settings
 from prompting.tasks.base_task import BaseTask
 from prompting.tasks.task_registry import TaskRegistry
-from prompting.utils.uids import get_uids
+from shared.epistula import query_availabilities
+from shared.loop_runner import AsyncLoopRunner
+from shared.uids import get_uids
 
 task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
-# task_config: dict[str, bool] = {
-#     DateQuestionAnsweringTask.__name__: True,
-#     QuestionAnsweringTask.__name__: True,
-#     SummarizationTask.__name__: True,
-#     SyntheticInferenceTask.__name__: True,
-#     OrganicInferenceTask.__name__: True,
-# }
 model_config: dict[str, bool] = {conf.llm_model_id: False for conf in ModelZoo.models_configs}
 
 
@@ -34,7 +27,7 @@ class MinerAvailability(BaseModel):
     def is_model_available(self, model: str) -> bool:
         return self.llm_model_availabilities[model]
 
-    def is_task_available(self, task: BaseTask) -> bool:
+    def is_task_available(self, task: BaseTask | type[BaseTask]) -> bool:
         if isinstance(task, BaseTask):
             try:
                 return self.task_availabilities[task.__class__.__name__]
@@ -80,13 +73,9 @@ class CheckMinerAvailability(AsyncLoopRunner):
         if self.step == 0:
             uids_to_query = self.uids
 
-        logger.info(f"Collecting miner availabilities on uids: {uids_to_query}")
-
         if any(uid >= len(settings.METAGRAPH.axons) for uid in uids_to_query):
             raise ValueError("Some UIDs are out of bounds. Make sure all the TEST_MINER_IDS are valid.")
         responses: list[Dict[str, bool]] = await query_availabilities(uids_to_query, task_config, model_config)
-
-        logger.debug(f"Availability responses: {responses}")
 
         for response, uid in zip(responses, uids_to_query):
             if not response:

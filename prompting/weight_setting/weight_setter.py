@@ -7,16 +7,26 @@ import pandas as pd
 from loguru import logger
 
 from prompting import __spec_version__, mutable_globals
-from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.task_registry import TaskConfig, TaskRegistry
-from prompting.utils.logging import WeightSetEvent, log_event
-from prompting.utils.misc import ttl_get_block
+from shared.logging import WeightSetEvent, log_event
+from shared.loop_runner import AsyncLoopRunner
+from shared.misc import ttl_get_block
 
-PAST_WEIGHTS: list[np.ndarray] = []
+FILENAME = "./weights.npy"
+PAST_WEIGHTS = []
+
+try:
+    PAST_WEIGHTS = [np.load(FILENAME)]
+    logger.info(f"Loaded weights from file: {PAST_WEIGHTS}")
+except FileNotFoundError:
+    logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
+    PAST_WEIGHTS = []
+except Exception as ex:
+    logger.error(f"Couldn't load weights from file: {ex}")
 WEIGHTS_HISTORY_LENGTH = 24
 
 
@@ -35,6 +45,17 @@ def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
     return all_rewards
 
 
+def save_weights(weights: np.ndarray):
+    """Saves the state of the validator to a file."""
+    logger.info("Saving validator state.")
+
+    # Save the state of the validator to file.
+    try:
+        np.save(FILENAME, weights)
+    except Exception as ex:
+        logger.exception(f"Couldn't save weights to file: {ex}")
+
+
 def set_weights(weights: np.ndarray, step: int = 0):
     """
     Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
@@ -50,6 +71,7 @@ def set_weights(weights: np.ndarray, step: int = 0):
         # Calculate the average reward for each uid across non-zero values.
         # Replace any NaN values with 0.
         PAST_WEIGHTS.append(weights)
+        save_weights(weights)
         if len(PAST_WEIGHTS) > WEIGHTS_HISTORY_LENGTH:
             PAST_WEIGHTS.pop(0)
         averaged_weights = np.average(np.array(PAST_WEIGHTS), axis=0)

@@ -11,10 +11,10 @@ from pydantic import BaseModel, ConfigDict
 from wandb.wandb_run import Run
 
 import prompting
-from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.tasks.task_registry import TaskRegistry
+from shared.dendrite import DendriteResponseEvent
 
 WANDB: Run
 
@@ -61,6 +61,8 @@ def export_logs(logs: list[Log]):
 def should_reinit_wandb():
     """Checks if 24 hours have passed since the last wandb initialization."""
     # Get the start time from the wandb config
+    if wandb.run is None:
+        return False
     wandb_start_time = wandb.run.config.get("wandb_start_time", None)
 
     if wandb_start_time:
@@ -155,7 +157,6 @@ class ValidatorLoggingEvent(BaseEvent):
 
     def __str__(self):
         sample_completions = [completion for completion in self.response_event.completions if len(completion) > 0]
-        sample_completion = sample_completions[0] if sample_completions else "All completions are empty"
         return f"""ValidatorLoggingEvent:
             Block: {self.block}
             Step: {self.step}
@@ -164,8 +165,8 @@ class ValidatorLoggingEvent(BaseEvent):
             task_id: {self.task_id}
             Number of total completions: {len(self.response_event.completions)}
             Number of non-empty completions: {len(sample_completions)}
-            Completions: {sample_completions}
-            Sample completion: {sample_completion}"""
+            Sample Completions: {sample_completions[:5]}...
+            """
 
 
 class RewardLoggingEvent(BaseEvent):
@@ -235,3 +236,7 @@ def unpack_events(event: BaseEvent) -> dict[str, Any]:
 
 def convert_arrays_to_lists(data: dict) -> dict:
     return {key: value.tolist() if hasattr(value, "tolist") else value for key, value in data.items()}
+
+
+if settings.WANDB_ON and not settings.MOCK:
+    init_wandb()

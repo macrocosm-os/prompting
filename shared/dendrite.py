@@ -1,7 +1,7 @@
 import numpy as np
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from prompting.utils.misc import serialize_exception_to_string
+from shared.misc import serialize_exception_to_string
 
 
 class SynapseStreamResult(BaseModel):

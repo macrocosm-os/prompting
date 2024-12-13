@@ -8,7 +8,6 @@ from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.tasks.base_task import BaseTextTask
-from prompting.utils.cleaners import CleanerPipeline
 
 
 class ProgrammingRewardConfig(BaseRewardConfig):
@@ -35,7 +34,6 @@ CODE_MODIFICATION_PROMPT = textwrap.dedent(
 
 class ProgrammingTask(BaseTextTask):
     name: ClassVar[str] = "programming"
-    cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline()
     query: str | None = None
     reference: str | None = None
 

@@ -5,8 +5,8 @@ from typing import List
 import numpy as np
 import pandas as pd
 
-from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
+from shared.dendrite import DendriteResponseEvent
 
 
 class DateRewardModel(BaseRewardModel):

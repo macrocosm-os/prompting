@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prompting"
-version = "2.13.2"
+version = "2.14.1"
 description = "Subnetwork 1 runs on Bittensor and is maintained by Macrocosmos. It's an effort to create decentralised AI"
 authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz"]
 readme = "README.md"
@@ -19,6 +19,7 @@ exclude = '''
 | \.mypy_cache
 | \.tox
 | \.venv
+| AutoAWQ
 | _build
 | buck-out
 | build
@@ -41,6 +42,7 @@ skip_gitignore = true
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
+    "AutoAWQ",
     ".bzr",
     ".direnv",
     ".eggs",
@@ -129,7 +131,7 @@ sympy = "^1.13.0"
 tqdm = "^4.66.4"
 requests = "^2.32.3"
 numpy = "^2.0.1"
-bittensor = "8.3.1"
+bittensor = "8.4.3"
 pydantic = "^2.8.2"
 rouge = "^1.0.1"
 torch = "2.5.1"

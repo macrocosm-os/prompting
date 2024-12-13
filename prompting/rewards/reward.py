@@ -5,8 +5,8 @@ from typing import ClassVar, Literal
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 
-from prompting.base.dendrite import DendriteResponseEvent
 from prompting.tasks.base_task import BaseTextTask
+from shared.dendrite import DendriteResponseEvent
 
 RewardTypeLiteral = Literal["reward", "penalty"]
 
