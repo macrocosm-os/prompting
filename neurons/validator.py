@@ -28,6 +28,7 @@ async def main():
     asyncio.create_task(availability_checking_loop.start())
 
     if settings.DEPLOY_API:
+        # Use multiprocessing to bypass API blocking issue.
         api_process = multiprocessing.Process(target=lambda: asyncio.run(start_api()))
         api_process.start()
 
