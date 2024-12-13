@@ -1,11 +1,11 @@
 # ruff: noqa: E402
 import asyncio
-import multiprocessing
+import multiprocessing as mp
 import time
 
 from loguru import logger
 
-from prompting import settings
+from prompting import mutable_globals, settings
 from prompting.utils.profiling import profiler
 
 settings.settings = settings.Settings.load(mode="validator")
@@ -29,7 +29,7 @@ async def main():
 
     if settings.DEPLOY_API:
         # Use multiprocessing to bypass API blocking issue.
-        api_process = multiprocessing.Process(target=lambda: asyncio.run(start_api()))
+        api_process = mp.Process(target=lambda: asyncio.run(start_api()))
         api_process.start()
 
     GPUInfo.log_gpu_info()
@@ -64,5 +64,9 @@ async def main():
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
+    if settings.DEPLOY_API and settings.DEPLOY_VALIDATOR:
+        # Replace scoring queue with memory-shared list between processes, before starting the loops.
+        manager = mp.Manager()
+        mutable_globals.scoring_queue = manager.list()
+
     asyncio.run(main())
-    # will start rotating the different LLMs in/out of memory
