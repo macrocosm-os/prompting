@@ -4,7 +4,7 @@ import openai
 from httpx import Timeout
 
 from prompting import settings
-from prompting.base.epistula import create_header_hook
+from shared.epistula import create_header_hook
 
 settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings

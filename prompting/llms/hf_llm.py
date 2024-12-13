@@ -6,7 +6,7 @@ from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 from prompting.settings import settings
-from prompting.utils.timer import Timer
+from shared.timer import Timer
 
 
 class ReproducibleHF:

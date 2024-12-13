@@ -7,8 +7,8 @@ from typing import Any, Callable
 
 from loguru import logger
 
-from prompting.settings import settings
-from prompting.utils.exceptions import BittensorError
+from shared.exceptions import BittensorError
+from shared.settings import shared_settings
 
 
 class classproperty:
@@ -105,7 +105,7 @@ def ttl_get_block() -> int:
     Note: self here is the miner or validator instance
     """
     try:
-        return settings.SUBTENSOR.get_current_block()
+        return shared_settings.SUBTENSOR.get_current_block()
     except Exception as e:
         raise BittensorError(f"Bittensor error: {str(e)}") from e
 

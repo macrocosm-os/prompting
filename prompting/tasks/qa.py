@@ -5,7 +5,6 @@ from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.tasks.base_task import BaseTextTask
-from prompting.utils.cleaners import CleanerPipeline, PruneEnding, RemovePostQuestionText, RemoveQuotes, RemoveRoles
 
 # Used to instruct the LLM to provide a good query when given a context
 QUERY_SYSTEM_PROMPT = """\
@@ -52,14 +51,6 @@ class QuestionAnsweringTask(BaseTextTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
 
-    cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline(
-        cleaning_pipeline=[
-            RemoveQuotes(),
-            PruneEnding(),
-            RemoveRoles(),
-            RemovePostQuestionText(),
-        ]
-    )
     name: ClassVar[str] = "qa"
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     reference_system_prompt: ClassVar[str] = REFERENCE_SYSTEM_PROMPT

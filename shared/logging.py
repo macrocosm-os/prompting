@@ -11,10 +11,10 @@ from pydantic import BaseModel, ConfigDict
 from wandb.wandb_run import Run
 
 import prompting
-from prompting.base.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.tasks.task_registry import TaskRegistry
+from shared.dendrite import DendriteResponseEvent
 
 WANDB: Run
 
