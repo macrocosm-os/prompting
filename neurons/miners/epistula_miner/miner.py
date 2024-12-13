@@ -19,8 +19,8 @@ from loguru import logger
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
 
-from shared.epistula import verify_signature
 from prompting.llms.hf_llm import ReproducibleHF
+from shared.epistula import verify_signature
 
 MODEL_ID: str = "gpt-3.5-turbo"
 NEURON_MAX_TOKENS: int = 256

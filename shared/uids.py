@@ -1,7 +1,9 @@
 import random
 from typing import Literal
+
 import numpy as np
 from loguru import logger
+
 from shared.settings import shared_settings
 
 

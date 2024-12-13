@@ -7,8 +7,8 @@ from typing import Any, Callable
 
 from loguru import logger
 
-from shared.settings import shared_settings
 from shared.exceptions import BittensorError
+from shared.settings import shared_settings
 
 
 class classproperty:

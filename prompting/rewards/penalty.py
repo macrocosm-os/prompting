@@ -2,8 +2,8 @@ import time
 
 import numpy as np
 
-from shared.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
+from shared.dendrite import DendriteResponseEvent
 
 NON_RESPONSE_PENALTY = 3
 

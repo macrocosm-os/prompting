@@ -1,3 +1,4 @@
+import logging
 import os
 from functools import cached_property
 from typing import Any, Optional
@@ -7,7 +8,6 @@ import dotenv
 from loguru import logger
 from pydantic import Field
 from pydantic_settings import BaseSettings
-import logging
 
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)

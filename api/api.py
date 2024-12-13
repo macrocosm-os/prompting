@@ -1,16 +1,14 @@
-import bittensor as bt
-import json
-import bittensor as bt
-from shared.epistula import make_openai_query
-import random
-from loguru import logger
-import uvicorn
-from starlette.responses import StreamingResponse
-from shared.settings import shared_settings
-
-from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse
 import asyncio
+import json
+import random
+
+import uvicorn
+from fastapi import FastAPI, Request
+from loguru import logger
+from starlette.responses import StreamingResponse
+
+from shared.epistula import make_openai_query
+from shared.settings import shared_settings
 
 app = FastAPI()
 

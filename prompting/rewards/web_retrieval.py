@@ -15,10 +15,10 @@ import numpy as np
 from loguru import logger
 from scipy import spatial
 
-from shared.dendrite import DendriteResponseEvent
 from prompting.datasets.random_website import DDGDataset, DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BatchRewardOutput
+from shared.dendrite import DendriteResponseEvent
 
 _SEARCH_TERM_THRESH = 0.2
 _VALID_URL_SCORE = 0.8

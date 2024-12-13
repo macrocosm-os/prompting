@@ -1,6 +1,6 @@
 import openai
-
 from httpx import Timeout
+
 from prompting import settings
 
 settings.settings = settings.Settings.load(mode="validator")
@@ -10,7 +10,6 @@ from shared.epistula import create_header_hook
 
 
 async def main():
-
     payload = {
         "seed": "42",
         "sampling_parameters": settings.SAMPLING_PARAMS,

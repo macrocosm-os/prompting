@@ -6,8 +6,8 @@ import numpy as np
 from loguru import logger
 from pydantic import Field, model_validator
 
-from shared.dendrite import DendriteResponseEvent
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
+from shared.dendrite import DendriteResponseEvent
 
 
 class MultiChoiceRewardModel(BaseRewardModel):

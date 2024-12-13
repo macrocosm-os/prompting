@@ -6,12 +6,12 @@ import torch
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
 
-from shared.loop_runner import AsyncLoopRunner
 from prompting.llms.hf_llm import ReproducibleHF
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.llms.utils import GPUInfo
 from prompting.mutable_globals import scoring_queue
 from prompting.settings import settings
+from shared.loop_runner import AsyncLoopRunner
 
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work

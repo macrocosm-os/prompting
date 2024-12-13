@@ -54,7 +54,8 @@ class BaseDataset(ABC, BaseModel):
     max_tries: int = 10
 
     @abstractmethod
-    def random(self) -> DatasetEntry: ...
+    def random(self) -> DatasetEntry:
+        ...
 
     def get(self) -> DatasetEntry:
         return self.next()

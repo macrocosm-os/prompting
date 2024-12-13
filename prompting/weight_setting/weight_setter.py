@@ -7,13 +7,13 @@ import pandas as pd
 from loguru import logger
 
 from prompting import __spec_version__, mutable_globals
-from shared.loop_runner import AsyncLoopRunner
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.task_registry import TaskConfig, TaskRegistry
 from shared.logging import WeightSetEvent, log_event
+from shared.loop_runner import AsyncLoopRunner
 from shared.misc import ttl_get_block
 
 FILENAME = "./weights.npy"
@@ -161,9 +161,9 @@ class WeightSetter(AsyncLoopRunner):
             logger.debug(f"Found {len(mutable_globals.reward_events)} reward events in queue")
 
             # reward_events is a list of lists of WeightedRewardEvents - the 'sublists' each contain the multiple reward events for a single task
-            mutable_globals.reward_events: list[list[WeightedRewardEvent]] = (
-                mutable_globals.reward_events
-            )  # to get correct typehinting
+            mutable_globals.reward_events: list[
+                list[WeightedRewardEvent]
+            ] = mutable_globals.reward_events  # to get correct typehinting
 
             # reward_dict = {uid: 0 for uid in get_uids(sampling_mode="all")}
             reward_dict = {uid: 0 for uid in range(1024)}

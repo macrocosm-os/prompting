@@ -10,7 +10,6 @@ from shared.profiling import profiler
 settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
 
-from prompting.api.api import start_api
 from prompting.llms.model_manager import model_scheduler
 from prompting.llms.utils import GPUInfo
 from prompting.miner_availability.miner_availability import availability_checking_loop
@@ -18,7 +17,6 @@ from prompting.rewards.scoring import task_scorer
 from prompting.tasks.task_creation import task_loop
 from prompting.tasks.task_sending import task_sender
 from prompting.weight_setting.weight_setter import weight_setter
-import requests
 
 NEURON_SAMPLE_SIZE = 100
 

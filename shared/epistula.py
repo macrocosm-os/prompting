@@ -9,11 +9,11 @@ from uuid import uuid4
 import bittensor as bt
 import httpx
 import openai
-from openai.types.chat import ChatCompletion
-from openai.types.chat.chat_completion_message import ChatCompletionMessage
-from openai.types.chat.chat_completion import Choice
 from httpx import Timeout
 from loguru import logger
+from openai.types.chat import ChatCompletion
+from openai.types.chat.chat_completion import Choice
+from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from substrateinterface import Keypair
 
 from shared.dendrite import SynapseStreamResult
