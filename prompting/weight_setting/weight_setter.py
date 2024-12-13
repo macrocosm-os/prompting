@@ -50,14 +50,16 @@ def save_weights(weights: list[np.ndarray], filename: str):
     # Save all arrays into a single .npz file
     np.savez_compressed(filename, *weights)
 
+
 def load_weights(filename: str) -> list[np.ndarray]:
     """Loads a list of numpy arrays from a saved file."""
     logger.info("Loading validator state.")
     try:
-      with np.load(filename) as data:
-          return [data[key] for key in data.files]
+        with np.load(filename) as data:
+            return [data[key] for key in data.files]
     except Excpetion as ex:
-      logger.exception(f"Couldn't load weights from file: {ex}")
+        logger.exception(f"Couldn't load weights from file: {ex}")
+
 
 def set_weights(weights: np.ndarray, step: int = 0):
     """
@@ -164,9 +166,9 @@ class WeightSetter(AsyncLoopRunner):
             logger.debug(f"Found {len(mutable_globals.reward_events)} reward events in queue")
 
             # reward_events is a list of lists of WeightedRewardEvents - the 'sublists' each contain the multiple reward events for a single task
-            mutable_globals.reward_events: list[
-                list[WeightedRewardEvent]
-            ] = mutable_globals.reward_events  # to get correct typehinting
+            mutable_globals.reward_events: list[list[WeightedRewardEvent]] = (
+                mutable_globals.reward_events
+            )  # to get correct typehinting
 
             # reward_dict = {uid: 0 for uid in get_uids(sampling_mode="all")}
             reward_dict = {uid: 0 for uid in range(1024)}
