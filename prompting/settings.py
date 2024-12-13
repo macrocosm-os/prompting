@@ -87,6 +87,7 @@ class Settings(BaseSettings):
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
     MAX_ALLOWED_VRAM_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
     LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
+    PROXY_URL: Optional[str] = Field(None, env="PROXY_URL")
     LLM_MODEL: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")
     SAMPLING_PARAMS: dict[str, Any] = {
         "temperature": 0.7,
@@ -196,12 +197,17 @@ class Settings(BaseSettings):
             logger.warning(
                 "It is strongly recommended to provide an SN19 API KEY + URL to avoid incurring OpenAI API costs."
             )
-        if mode == "validator" and values.get("OPENAI_API_KEY") is None:
-            raise Exception(
-                "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
-            )
-        if mode == "validator" and values.get("ADMIN_KEY") is None and values.get("DEPLOY_API"):
-            raise Exception("You must provide an admin key to access the API.")
+        if mode == "validator":
+            if values.get("OPENAI_API_KEY") is None:
+                raise Exception(
+                    "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
+                )
+            if values.get("ADMIN_KEY") is None:
+                raise Exception("You must provide an admin key to access the API.")
+            if values.get("PROXY_URL") is None:
+                logger.warning(
+                    "You must provide a proxy URL to use the DuckDuckGo API - your vtrust might decrease if no DDG URL is provided."
+                )
         return values
 
     @cached_property
