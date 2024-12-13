@@ -10,14 +10,11 @@ poetry config virtualenvs.in-project true
 poetry install
 
 # Build AutoAWQ==0.2.7.post3 from source
-git clone git@github.com:casper-hansen/AutoAWQ.git
+git clone https://github.com/casper-hansen/AutoAWQ.git
 cd AutoAWQ && git checkout cbd6a75b065e94a3e530dfdbb8f3973f0d954ec0 && poetry run pip install -e . && cd ..
 rm -r AutoAWQ
 
 poetry run pip install flash-attn --no-build-isolation
-
-# Updating the package list and installing jq and npm
-apt update && apt install -y jq npm
 
 # Check if jq is installed and install it if not
 if ! command -v jq &> /dev/null
