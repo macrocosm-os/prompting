@@ -42,6 +42,7 @@ skip_gitignore = true
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
+    "AutoAWQ",
     ".bzr",
     ".direnv",
     ".eggs",
