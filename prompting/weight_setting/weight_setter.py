@@ -7,14 +7,14 @@ import pandas as pd
 from loguru import logger
 
 from prompting import __spec_version__, mutable_globals
-from prompting.utils.loop_runner import AsyncLoopRunner
+from shared.loop_runner import AsyncLoopRunner
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.settings import settings
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.task_registry import TaskConfig, TaskRegistry
-from prompting.utils.logging import WeightSetEvent, log_event
-from prompting.utils.misc import ttl_get_block
+from shared.logging import WeightSetEvent, log_event
+from shared.misc import ttl_get_block
 
 FILENAME = "./weights.npy"
 PAST_WEIGHTS = []

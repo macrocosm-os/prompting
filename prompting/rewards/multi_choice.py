@@ -64,7 +64,6 @@ class MultiChoiceRewardModel(BaseRewardModel):
         timings = []
 
         for completion in response_event.completions:
-            logger.debug(f"Completion: {completion}, reference: {reference}")
             start_time = time.perf_counter()
 
             reward = self.logit_reward(reference, completion)

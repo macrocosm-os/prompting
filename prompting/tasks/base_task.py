@@ -13,7 +13,6 @@ from prompting.llms.apis.llm_wrapper import LLMWrapper
 from prompting.llms.model_manager import model_manager
 from prompting.llms.model_zoo import ModelConfig
 from prompting.settings import settings
-from prompting.utils.cleaners import CleanerPipeline
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -59,8 +58,6 @@ class BaseTextTask(BaseTask):
     dataset_entry: DatasetEntry | None = None
     task_id: str = str(uuid4())
     sampling_params: dict[str, float] = settings.SAMPLING_PARAMS
-
-    cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
 
     @model_validator(mode="after")
     def get_model_id_and_seed(self) -> "BaseTextTask":

@@ -6,7 +6,7 @@ import torch
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
 
-from prompting.utils.loop_runner import AsyncLoopRunner
+from shared.loop_runner import AsyncLoopRunner
 from prompting.llms.hf_llm import ReproducibleHF
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.llms.utils import GPUInfo

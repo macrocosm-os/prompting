@@ -5,7 +5,6 @@ from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.tasks.base_task import BaseTextTask
-from prompting.utils.cleaners import CleanerPipeline, PruneEnding, RemoveQuotes, RemoveRoles
 
 QUERY_SYSTEM_PROMPT = """\
 You are a request-generating expert. When asked to generate a request, you ask for a detailed summary of a topic. Your request should be specificly about the topic.
@@ -40,13 +39,6 @@ class SummarizationRewardConfig(BaseRewardConfig):
 
 
 class SummarizationTask(BaseTextTask):
-    cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline(
-        cleaning_pipeline=[
-            RemoveQuotes(),
-            PruneEnding(),
-            RemoveRoles(),
-        ]
-    )
     name: ClassVar[str] = "summarization"
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     reference_system_prompt: ClassVar[str] = REFERENCE_SYSTEM_PROMPT
