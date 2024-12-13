@@ -5,8 +5,8 @@ from functools import partial
 from starlette.types import Send
 
 # import base miner class which takes care of most of the boilerplate
-from prompting.base.prompting_miner import BaseStreamPromptingMiner
-from prompting.base.protocol import StreamPromptingSynapse
+from shared.prompting_miner import BaseStreamPromptingMiner
+from shared.protocol import StreamPromptingSynapse
 
 
 class EchoMiner(BaseStreamPromptingMiner):

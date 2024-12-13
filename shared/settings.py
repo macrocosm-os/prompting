@@ -15,7 +15,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # from prompting.utils.config import config
 if not dotenv.load_dotenv(".env.validator"):
-    raise logger.warning("No .env.validator file found. Please create one.")
+    logger.warning("No .env.validator file found. Please create one.")
 
 
 class SharedSettings(BaseSettings):

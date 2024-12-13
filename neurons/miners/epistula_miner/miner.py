@@ -19,7 +19,7 @@ from loguru import logger
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
 
-from prompting.base.epistula import verify_signature
+from shared.epistula import verify_signature
 from prompting.llms.hf_llm import ReproducibleHF
 
 MODEL_ID: str = "gpt-3.5-turbo"

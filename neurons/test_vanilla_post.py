@@ -6,7 +6,8 @@ from prompting import settings
 settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
 
-from prompting.base.epistula import create_header_hook
+from shared.epistula import create_header_hook
+
 
 async def main():
 
@@ -46,6 +47,8 @@ async def main():
         print("something went wrong", e)
     return
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())

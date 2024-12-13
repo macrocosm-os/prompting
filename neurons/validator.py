@@ -27,9 +27,6 @@ async def main():
     # will start checking the availability of miners at regular intervals, needed for API and Validator
     asyncio.create_task(availability_checking_loop.start())
 
-    if settings.DEPLOY_API:
-        asyncio.create_task(start_api())
-
     GPUInfo.log_gpu_info()
     # start profiling
     asyncio.create_task(profiler.print_stats())
@@ -43,6 +40,9 @@ async def main():
     # will start checking the availability of miners at regular intervals
     asyncio.create_task(availability_checking_loop.start())
 
+    # start sending tasks to miners
+    asyncio.create_task(task_sender.start())
+
     # sets weights at regular intervals (synchronised between all validators)
     asyncio.create_task(weight_setter.start())
 
@@ -51,22 +51,12 @@ async def main():
     # # TODO: Think about whether we want to store the task queue locally in case of a crash
     # # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
     # # TODO: Make weight setting happen as specific intervals as we load/unload models
-    with Validator() as v:
-        while True:
-            logger.info(
-                f"Validator running:: network: {settings.SUBTENSOR.network} "
-                f"| block: {v.estimate_block} "
-                f"| step: {v.step} "
-                f"| uid: {v.uid} "
-                f"| last updated: {v.estimate_block - settings.METAGRAPH.last_update[v.uid]} "
-                f"| vtrust: {settings.METAGRAPH.validator_trust[v.uid]:.3f} "
-                f"| emission {settings.METAGRAPH.emission[v.uid]:.3f}"
-            )
-            print(v.block)
-            time.sleep(5)
-
-            if v.should_exit:
-                logger.warning("Ending validator...")
+    start = time.time()
+    await asyncio.sleep(60)
+    while True:
+        await asyncio.sleep(5)
+        time_diff = -start + (start := time.time())
+        logger.debug(f"Running {time_diff:.2f} seconds")
 
 
 # The main function parses the configuration and runs the validator.
