@@ -1,8 +1,8 @@
 import asyncio
 import json
 import random
-import httpx
 
+import httpx
 from fastapi import APIRouter, Request
 from loguru import logger
 from starlette.responses import StreamingResponse
@@ -25,19 +25,19 @@ async def chat_completion(request: Request):
         collected_chunks = []
 
         # Forwarding task
-        async def forward_response(chunks):
+        async def forward_response(body, chunks):
+            if body.get("task") != "InferenceTask":
+                logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
+                return
             url = f"http://{shared_settings.VALIDATOR_ADDRESS}/scoring"
-            payload = {
-                "task": "InferenceTask",
-                "response": chunks
-            }
+            payload = {"task": "InferenceTask", "response": chunks}
             headers = {
                 "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
                 "Content-Type": "application/json",
             }
             try:
                 async with httpx.AsyncClient() as client:
-                    response = await client.post(url, json=payload, headers = headers)
+                    response = await client.post(url, json=payload, headers=headers)
                     logger.info(f"Forwarding response completed with status {response.status_code}")
             except Exception as e:
                 logger.exception(f"Error while forwarding response: {e}")
@@ -61,7 +61,7 @@ async def chat_completion(request: Request):
 
         logger.info(f"Making {'streaming' if STREAM else 'non-streaming'} openai query with body: {body}")
         response = await make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid, stream=STREAM)
-        
+
         if STREAM:
             return StreamingResponse(
                 stream_with_error_handling(),

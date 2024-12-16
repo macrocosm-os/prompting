@@ -15,6 +15,11 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class SharedSettings(BaseSettings):
+    # API
+    VALIDATOR_ADDRESS: str = Field("http://localhost:8094", env="VALIDATOR_ADDRESS")
+    VALIDATOR_PORT: int = Field(8094, env="VALIDATOR_PORT")
+    VALIDATOR_SCORING_KEY: str = Field("1234567890", env="VALIDATOR_SCORING_KEY")
+
     mode: Literal["api", "validator", "miner"] = Field("validator", env="MODE")
     MOCK: bool = False
     NO_BACKGROUND_THREAD: bool = True
@@ -141,7 +146,9 @@ class SharedSettings(BaseSettings):
             if not dotenv.load_dotenv(".env.api"):
                 logger.warning("No .env.api file found. Please create one.")
             if not v.get("SCORING_KEY"):
-                logger.warning("No SCORING_KEY found in .env.api file. Please add one. It is reccomended to randomly generate a key.")
+                logger.warning(
+                    "No SCORING_KEY found in .env.api file. Please add one. It is reccomended to randomly generate a key."
+                )
         elif v["mode"] == "miner":
             if not dotenv.load_dotenv(".env.miner"):
                 logger.warning("No .env.miner file found. Please create one.")
