@@ -2,23 +2,17 @@ import asyncio
 import json
 import random
 
-import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, Request
 from loguru import logger
 from starlette.responses import StreamingResponse
 
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
 
-app = FastAPI()
+router = APIRouter()
 
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
-
-@app.post("/v1/chat/completions")
+@router.post("/v1/chat/completions")
 async def chat_completion(request: Request):
     try:
         body = await request.json()
@@ -58,13 +52,3 @@ async def chat_completion(request: Request):
     except Exception as e:
         logger.exception(f"Error setting up streaming: {e}")
         return StreamingResponse(content="Internal Server Error", status_code=500)
-
-
-if __name__ == "__main__":
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        log_level="debug",
-        timeout_keep_alive=60,
-    )
