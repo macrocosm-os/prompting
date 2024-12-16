@@ -5,7 +5,7 @@ import time
 
 from loguru import logger
 
-from prompting import mutable_globals,
+from prompting import mutable_globals
 from shared.profiling import profiler
 
 
