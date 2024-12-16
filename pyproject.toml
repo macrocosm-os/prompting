@@ -2,7 +2,7 @@
 name = "prompting"
 version = "2.14.1"
 description = "Subnetwork 1 runs on Bittensor and is maintained by Macrocosmos. It's an effort to create decentralised AI"
-authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz"]
+authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz, Richard Wardle"]
 readme = "README.md"
 
 [tool.poetry.group.dev.dependencies]
@@ -124,45 +124,62 @@ docstring-code-line-length = "dynamic"
 max-complexity = 13
 
 [tool.poetry.dependencies]
-python = ">=3.10 <3.11"
-transformers = "^4.46.3"
-mathgenerator = {git = "https://github.com/synapse-alpha/mathgenerator.git", rev = "main"}
-sympy = "^1.13.0"
+bittensor = "8.4.3"
 tqdm = "^4.66.4"
 requests = "^2.32.3"
-numpy = "^2.0.1"
-bittensor = "8.4.3"
-pydantic = "^2.8.2"
-rouge = "^1.0.1"
-torch = "2.5.1"
-wandb = "^0.17.4"
-starlette = "^0.37.2"
+python = ">=3.10 <3.11"
 openai = "^1.35.13"
-bs4 = "^0.0.2"
-wikipedia = "1.4.0"
 deprecated = "^1.2.14"
-pandas = "^2.2.1"
-datasets = "^3.1.0"
+starlette = "^0.37.2"
 python-dotenv = "^1.0.1"
 pre-commit = "^3.7.1"
 ruff = "^0.5.2"
 flake8 = "^7.1.0"
 black = "23.7.0"
 pytest = "^8.3.1"
-angle-emb = "0.4.3"
-organic-scoring = {git = "https://github.com/macrocosm-os/organic-scoring.git", rev = "main"}
-autoawq = "0.2.0"
 loguru = "^0.7.2"
-trafilatura = "^1.12.1"
+pydantic = "^2.8.2"
 pydantic-settings = "^2.5.2"
-huggingface-hub = "^0.25.2"
-accelerate = "^1.1.1"
-pillow = "^11.0.0"
-torchvision = "^0.20.1"
-tiktoken = "^0.8.0"
 tenacity = "^9.0.0"
 isort = "^5.13.2"
-duckduckgo-search = "^6.3.7"
+torch = { version = "2.5.1", optional = true }
+transformers = { version = ">=4.46.3", optional = true }
+torchvision = { version = ">=0.20.1", optional = true }
+accelerate = { version = ">=1.1.1", optional = true }
+pillow = { version = ">=11.0.0", optional = true }
+autoawq = { version = "0.2.0", optional = true }
+tiktoken = { version = ">=0.8.0", optional = true }
+angle-emb = { version = "0.4.3", optional = true }
+numpy = { version = ">=2.0.1", optional = true }
+rouge = { version = ">=1.0.1", optional = true }
+bs4 = { version = ">=0.0.2", optional = true }
+wikipedia = { version = ">=1.4.0", optional = true }
+duckduckgo-search = { version = ">=6.3.7", optional = true }
+huggingface-hub = { version = ">=0.25.2", optional = true }
+pandas = { version = ">=2.2.1", optional = true }
+trafilatura = { version = ">=1.12.1", optional = true }
+datasets = { version = ">=3.1.0", optional = true }
+
+[tool.poetry.extras]
+validator = [
+    "torch",
+    "transformers",
+    "torchvision",
+    "accelerate",
+    "pillow",
+    "autoawq",
+    "tiktoken",
+    "angle-emb",
+    "numpy",
+    "rouge",
+    "bs4",
+    "wikipedia",
+    "duckduckgo-search",
+    "huggingface-hub",
+    "pandas",
+    "trafilatura",
+    "datasets"
+]
 
 [build-system]
 requires = ["poetry-core"]
