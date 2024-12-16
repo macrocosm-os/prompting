@@ -1,6 +1,7 @@
 import asyncio
 import json
 import random
+import httpx
 
 from fastapi import APIRouter, Request
 from loguru import logger
@@ -25,9 +26,7 @@ async def chat_completion(request: Request):
 
         # Forwarding task
         async def forward_response(chunks):
-            target_ip = "target_ip"
-            target_port = "target_port"
-            url = f"http://{target_ip}:{target_port}/v1/forward"
+            url = f"http://{shared_settings.VALIDATOR_ADDRESS}/scoring"
             payload = {
                 "task": "InferenceTask",
                 "response": chunks
