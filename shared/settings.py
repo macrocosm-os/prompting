@@ -147,7 +147,7 @@ class SharedSettings(BaseSettings):
                 logger.warning("No .env.api file found. Please create one.")
             if not v.get("SCORING_KEY"):
                 logger.warning(
-                    "No SCORING_KEY found in .env.api file. Please add one. It is reccomended to randomly generate a key."
+                    "No SCORING_KEY found in .env.api file. You must add a scoring key that will allow us to forward miner responses to the validator for scoring."
                 )
         elif v["mode"] == "miner":
             if not dotenv.load_dotenv(".env.miner"):

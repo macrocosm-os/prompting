@@ -13,6 +13,26 @@ from shared.settings import shared_settings
 router = APIRouter()
 
 
+# Forwarding task
+async def forward_response(body, chunks):
+    if body.get("task") != "InferenceTask":
+        logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
+        return
+    url = f"http://{shared_settings.VALIDATOR_ADDRESS}/scoring"
+    payload = {"task": "InferenceTask", "response": chunks}
+    headers = {
+        "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, headers=headers)
+            logger.info(f"Forwarding response completed with status {response.status_code}")
+    except Exception as e:
+        logger.error(f"Tried to forward response to {url} with payload {payload} and headers {headers}")
+        logger.exception(f"Error while forwarding response: {e}")
+
+
 @router.post("/v1/chat/completions")
 async def chat_completion(request: Request):
     try:
@@ -24,24 +44,6 @@ async def chat_completion(request: Request):
 
         collected_chunks = []
 
-        # Forwarding task
-        async def forward_response(body, chunks):
-            if body.get("task") != "InferenceTask":
-                logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
-                return
-            url = f"http://{shared_settings.VALIDATOR_ADDRESS}/scoring"
-            payload = {"task": "InferenceTask", "response": chunks}
-            headers = {
-                "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
-                "Content-Type": "application/json",
-            }
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(url, json=payload, headers=headers)
-                    logger.info(f"Forwarding response completed with status {response.status_code}")
-            except Exception as e:
-                logger.exception(f"Error while forwarding response: {e}")
-
         # Create a wrapper for the streaming response
         async def stream_with_error_handling():
             try:
@@ -51,7 +53,7 @@ async def chat_completion(request: Request):
                     yield f"data: {json.dumps(chunk.model_dump())}\n\n"
                 yield "data: [DONE]\n\n"
                 # Once the stream is done, forward the collected chunks
-                asyncio.create_task(forward_response(collected_chunks))
+                asyncio.create_task(forward_response(body=body, chunks=collected_chunks))
             except asyncio.CancelledError:
                 logger.info("Client disconnected, streaming cancelled")
                 raise
@@ -72,10 +74,8 @@ async def chat_completion(request: Request):
                 },
             )
         else:
-            # For non-streaming, forward the response immediately
-            _response = response[0]
-            asyncio.create_task(forward_response([_response]))
-            return _response
+            asyncio.create_task(forward_response(body=body, chunks=response[1]))
+            return response[0]
 
     except Exception as e:
         logger.exception(f"Error setting up streaming: {e}")
