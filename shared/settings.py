@@ -76,6 +76,7 @@ class SharedSettings(BaseSettings):
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
     ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
     SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
+    VALIDATOR_ADDRESS: str = Field(None, env="VALIDATOR_ADDRESS")
 
     # Additional Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")
@@ -140,6 +141,8 @@ class SharedSettings(BaseSettings):
         if v["mode"] == "api":
             if not dotenv.load_dotenv(".env.api"):
                 logger.warning("No .env.api file found. Please create one.")
+            if not v.get("VALIDATOR_ADDRESS"):
+                logger.warning("No VALIDATOR_ADDRESS found in .env.api file. Please add one. Or Organic Scoring will not work.")
             if not v.get("SCORING_KEY"):
                 logger.warning("No SCORING_KEY found in .env.api file. Please add one. It is reccomended to randomly generate a key.")
         elif v["mode"] == "miner":
