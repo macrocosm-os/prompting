@@ -75,6 +75,7 @@ class SharedSettings(BaseSettings):
     # API Management.
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
     ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
+    SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
 
     # Additional Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")
@@ -139,6 +140,8 @@ class SharedSettings(BaseSettings):
         if v["mode"] == "api":
             if not dotenv.load_dotenv(".env.api"):
                 logger.warning("No .env.api file found. Please create one.")
+            if not v.get("SCORING_KEY"):
+                logger.warning("No SCORING_KEY found in .env.api file. Please add one. It is reccomended to randomly generate a key.")
         elif v["mode"] == "miner":
             if not dotenv.load_dotenv(".env.miner"):
                 logger.warning("No .env.miner file found. Please create one.")
