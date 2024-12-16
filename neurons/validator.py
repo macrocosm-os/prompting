@@ -26,26 +26,25 @@ async def main():
     asyncio.create_task(availability_checking_loop.start())
 
     GPUInfo.log_gpu_info()
-    # start profiling
-    asyncio.create_task(profiler.print_stats())
+    if settings.DEPLOY_VALIDATOR:
+        # start profiling
+        asyncio.create_task(profiler.print_stats())
 
-    # start rotating LLM models
-    asyncio.create_task(model_scheduler.start())
+        # start rotating LLM models
+        asyncio.create_task(model_scheduler.start())
 
-    # start creating tasks
-    asyncio.create_task(task_loop.start())
+        # start creating tasks
+        asyncio.create_task(task_loop.start())
 
-    # will start checking the availability of miners at regular intervals
-    asyncio.create_task(availability_checking_loop.start())
+        # start sending tasks to miners
+        asyncio.create_task(task_sender.start())
 
-    # start sending tasks to miners
-    asyncio.create_task(task_sender.start())
+        # sets weights at regular intervals (synchronised between all validators)
+        asyncio.create_task(weight_setter.start())
 
-    # sets weights at regular intervals (synchronised between all validators)
-    asyncio.create_task(weight_setter.start())
+        # start scoring tasks in separate loop
+        asyncio.create_task(task_scorer.start())
 
-    # start scoring tasks in separate loop
-    asyncio.create_task(task_scorer.start())
     # # TODO: Think about whether we want to store the task queue locally in case of a crash
     # # TODO: Possibly run task scorer & model scheduler with a lock so I don't unload a model whilst it's generating
     # # TODO: Make weight setting happen as specific intervals as we load/unload models
