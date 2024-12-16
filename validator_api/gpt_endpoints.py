@@ -21,13 +21,38 @@ async def chat_completion(request: Request):
         uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
         logger.debug(f"Querying uid {uid}")
 
+        collected_chunks = []
+
+        # Forwarding task
+        async def forward_response(chunks):
+            target_ip = "target_ip"
+            target_port = "target_port"
+            url = f"http://{target_ip}:{target_port}/v1/forward"
+            payload = {
+                "task": "InferenceTask",
+                "response": chunks
+            }
+            headers = {
+                "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
+                "Content-Type": "application/json",
+            }
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(url, json=payload, headers = headers)
+                    logger.info(f"Forwarding response completed with status {response.status_code}")
+            except Exception as e:
+                logger.exception(f"Error while forwarding response: {e}")
+
         # Create a wrapper for the streaming response
         async def stream_with_error_handling():
             try:
                 async for chunk in response:
                     logger.debug(chunk)
+                    collected_chunks.append(chunk.model_dump())
                     yield f"data: {json.dumps(chunk.model_dump())}\n\n"
                 yield "data: [DONE]\n\n"
+                # Once the stream is done, forward the collected chunks
+                asyncio.create_task(forward_response(collected_chunks))
             except asyncio.CancelledError:
                 logger.info("Client disconnected, streaming cancelled")
                 raise
@@ -37,6 +62,7 @@ async def chat_completion(request: Request):
 
         logger.info(f"Making {'streaming' if STREAM else 'non-streaming'} openai query with body: {body}")
         response = await make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid, stream=STREAM)
+        
         if STREAM:
             return StreamingResponse(
                 stream_with_error_handling(),
@@ -47,7 +73,10 @@ async def chat_completion(request: Request):
                 },
             )
         else:
-            return response[0]
+            # For non-streaming, forward the response immediately
+            _response = response[0]
+            asyncio.create_task(forward_response([_response]))
+            return _response
 
     except Exception as e:
         logger.exception(f"Error setting up streaming: {e}")
