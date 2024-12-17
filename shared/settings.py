@@ -47,7 +47,7 @@ class SharedSettings(BaseSettings):
 
     # Neuron.
     NEURON_EPOCH_LENGTH: int = Field(100, env="NEURON_EPOCH_LENGTH")
-    NEURON_DEVICE: str | None = Field(None, env="NEURON_DEVICE")
+    NEURON_DEVICE: str | None = Field("cuda", env="NEURON_DEVICE")
     NEURON_GPUS: int = Field(1, env="NEURON_GPUS")
 
     # Logging.
@@ -241,8 +241,9 @@ class SharedSettings(BaseSettings):
                 raise Exception(
                     "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
                 )
-            if values.get("SCORING_ADMIN_KEY") is None:
-                raise Exception("You must provide an admin key to access the API.")
+            if values.get("SCORING_ADMIN_KEY") is None and values.get("DEPLOY_SCORING_API"):
+                logger.warning("You must provide a SCORING_ADMIN_KEY to access the API. Disabling scoring endpoint")
+                values["DEPLOY_SCORING_API"] = False
             if values.get("PROXY_URL") is None:
                 logger.warning(
                     "You must provide a proxy URL to use the DuckDuckGo API - your vtrust might decrease if no DDG URL is provided."
