@@ -5,11 +5,9 @@ import time
 
 from loguru import logger
 
-from prompting import mutable_globals
-from prompting import settings
+from prompting import mutable_globals, settings
 from prompting.api.api import start_scoring_api
 from shared.profiling import profiler
-
 
 settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings

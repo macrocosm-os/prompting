@@ -61,7 +61,7 @@ async def score(request: Request):
             seed=seed,
             llm_model_id=llm_model_id,
             sampling_params=sampling_params,
-            dataset_entry_id=dataset_entry_id
+            dataset_entry_id=dataset_entry_id,
         )
 
         # Build the SynapseStreamResult.
@@ -71,16 +71,12 @@ async def score(request: Request):
             uid=response_uid,
             accumulated_chunks=[response_str],
             accumulated_chunks_timings=[],
-            tokens_per_chunk=[]
+            tokens_per_chunk=[],
         )
 
         # Construct DendriteResponseEvent.
         timeout = data.get("timeout", 10)
-        response_event = DendriteResponseEvent(
-            stream_results=[stream_result],
-            uids=[uid],
-            timeout=timeout
-        )
+        response_event = DendriteResponseEvent(stream_results=[stream_result], uids=[uid], timeout=timeout)
 
         # Construct DatasetEntry if provided, else empty.
         dataset_entry = DatasetEntry()
