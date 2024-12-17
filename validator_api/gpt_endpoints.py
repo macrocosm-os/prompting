@@ -63,11 +63,19 @@ async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundT
 
         # Create a wrapper for the streaming response
         async def stream_with_error_handling():
+            chunks_received = False
             try:
                 async for chunk in response:
+                    chunks_received = True
+                    logger.debug(chunk.choices[0].delta.content)
                     collected_chunks.append(chunk.choices[0].delta.content)
                     yield f"data: {json.dumps(chunk.model_dump())}\n\n"
+
+                if not chunks_received:
+                    logger.error("Stream is empty: No chunks were received")
+                    yield 'data: {"error": "502 - Response is empty"}\n\n'
                 yield "data: [DONE]\n\n"
+
                 # Once the stream is done, forward the collected chunks
                 asyncio.create_task(forward_response(uid=uid, body=body, chunks=collected_chunks))
                 # background_tasks.add_task(forward_response, uid=uid, body=body, chunks=collected_chunks)
