@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from prompting.datasets.base import Context
+from shared.base import Context
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel

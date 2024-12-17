@@ -4,7 +4,7 @@ from typing import ClassVar
 
 import numpy as np
 
-from prompting.datasets.base import Context
+from shared.base import Context
 from prompting.rewards.multi_choice import MultiChoiceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.tasks.base_task import BaseTextTask

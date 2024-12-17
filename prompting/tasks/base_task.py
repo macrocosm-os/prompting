@@ -7,7 +7,7 @@ from uuid import uuid4
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from prompting.datasets.base import DatasetEntry
+from shared.base import DatasetEntry
 from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
 from prompting.llms.model_manager import model_manager
@@ -47,7 +47,7 @@ class BaseTask(BaseModel, ABC):
 
 class BaseTextTask(BaseTask):
     query: str | None = None
-    messages: list[str] | None = None
+    messages: list[str] | list[dict] | None = None
     reference: str | None = None
     llm_model: ModelConfig = None
     llm_model_id: str = None

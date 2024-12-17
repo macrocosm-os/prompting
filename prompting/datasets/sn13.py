@@ -6,7 +6,7 @@ import nltk
 from nltk.corpus import wordnet
 from pydantic import model_validator
 
-from prompting.datasets.base import BaseDataset, ChatEntry
+from shared.base import BaseDataset, ChatEntry
 
 nltk.download("wordnet")
 

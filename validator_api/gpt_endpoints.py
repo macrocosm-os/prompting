@@ -1,6 +1,6 @@
 import asyncio
 import json
-
+import random
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
@@ -20,17 +20,24 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
     url = f"http://{shared_settings.VALIDATOR_IP}:{shared_settings.VALIDATOR_PORT}/scoring"
     logger.info(url)
     payload = {"body": body, "chunks": chunks, "uid": uid}
-    headers = {
-        "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
-        "Content-Type": "application/json",
-    }
+    # headers = {
+    #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
+    #     "Content-Type": "application/json",
+    # }
     try:
         async with httpx.AsyncClient() as client:
             logger.debug(f"Payload: {payload}")
-            response = await client.post(url, json=payload, headers=headers)
-            logger.info(f"Forwarding response completed with status {response.status_code}")
+            response = await client.post(url, json=payload)  # , headers=headers)
+            if response.status_code == 200:
+                logger.info(f"Forwarding response completed with status {response.status_code}")
+
+            else:
+                logger.exception(
+                    f"Forwarding response uid {uid} failed with status {response.status_code} and payload {payload}"
+                )
+
     except Exception as e:
-        logger.error(f"Tried to forward response to {url} with payload {payload} and headers {headers}")
+        logger.error(f"Tried to forward response to {url} with payload {payload}")
         logger.exception(f"Error while forwarding response: {e}")
 
 
@@ -38,6 +45,7 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
 async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundTasks):
     try:
         body = await request.json()
+        body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         STREAM = body.get("stream") or False
         logger.debug(f"Streaming: {STREAM}")
         # uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)

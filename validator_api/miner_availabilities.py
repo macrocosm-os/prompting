@@ -65,7 +65,7 @@ class MinerAvailabilitiesUpdater(AsyncLoopRunner):
         url = f"http://{shared_settings.VALIDATOR_IP}:{shared_settings.VALIDATOR_PORT}/miner_availabilities/miner_availabilities"
 
         try:
-            result = requests.post(url, json=uids)
+            result = requests.post(url, json=uids, timeout=10)
             result.raise_for_status()  # Raise an exception for bad status codes
 
             response_data = result.json()

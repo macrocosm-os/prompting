@@ -5,7 +5,7 @@ from typing import ClassVar
 
 from loguru import logger
 
-from prompting.datasets.base import Context
+from shared.base import Context
 from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
 from prompting.rewards.relevance import RelevanceRewardModel

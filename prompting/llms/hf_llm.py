@@ -45,7 +45,7 @@ class ReproducibleHF:
         self.sampling_params = settings.SAMPLING_PARAMS
 
     @torch.inference_mode()
-    def generate(self, messages, sampling_params=None, seed=None):
+    def generate(self, messages: list[str] | list[dict], sampling_params=None, seed=None):
         """
         Generate text with optimized performance
         """
