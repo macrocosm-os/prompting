@@ -1,3 +1,6 @@
+import random
+from typing import Optional
+
 import requests
 from fastapi import APIRouter
 from loguru import logger
@@ -18,6 +21,40 @@ class APIMinerAvailability(BaseModel):
 
 # Initialize as a dict with the correct type annotation
 miner_availabilities: dict[str, APIMinerAvailability] = {}
+
+
+def get_available_miner(task: Optional[str] = None, model: Optional[str] = None) -> Optional[str]:
+    """
+    Fetch an available miner that supports the specified task and model.
+
+    Args:
+        task (Optional[str]): The task to check for. Defaults to "InferenceTask" if None
+        model (Optional[str]): The model to check for. No constraints if None
+
+    Returns:
+        Optional[str]: UID of the first available miner that meets the criteria, or None if no miner is available
+    """
+    task = task or "InferenceTask"
+
+    valid_uids = []
+    for uid, availability in miner_availabilities.items():
+        # Check if the miner supports the required task
+        if not availability.task_availabilities.get(task, False):
+            continue
+
+        # If model is specified, check if the miner supports it
+        if model is not None:
+            if not availability.llm_model_availabilities.get(model, False):
+                continue
+
+        # If we reach here, the miner meets all requirements
+        valid_uids.append(uid)
+    if valid_uids:
+        return int(random.choice(valid_uids))
+
+    # No suitable miner found
+    logger.warning(f"No available miner found for task: {task}, model: {model}")
+    return None
 
 
 class MinerAvailabilitiesUpdater(AsyncLoopRunner):

@@ -1,15 +1,14 @@
 import asyncio
 import json
-import random
-from typing import AsyncGenerator
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
 from starlette.responses import StreamingResponse
 
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
+from validator_api.miner_availabilities import get_available_miner
 
 router = APIRouter()
 
@@ -34,12 +33,16 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
 
 
 @router.post("/v1/chat/completions")
-async def chat_completion(request: Request):#, background_tasks: BackgroundTasks):
+async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundTasks):
     try:
         body = await request.json()
         STREAM = body.get("stream") or False
         logger.debug(f"Streaming: {STREAM}")
-        uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
+        # uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
+        uid = get_available_miner(task=body.get("task"), model=body.get("model"))
+        if uid is None:
+            logger.error("No available miner found")
+            raise HTTPException(status_code=503, detail="No available miner found")
         logger.debug(f"Querying uid {uid}")
 
         collected_chunks: list[str] = []
