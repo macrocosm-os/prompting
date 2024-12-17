@@ -14,12 +14,12 @@ router = APIRouter()
 
 
 # Forwarding task
-async def forward_response(body, chunks):
+async def forward_response(uid: int, body, chunks):
     if body.get("task") != "InferenceTask":
         logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
         return
     url = f"http://{shared_settings.VALIDATOR_ADDRESS}/scoring"
-    payload = {"task": "InferenceTask", "response": chunks}
+    payload = {"body": body, "response": chunks, "uid": uid}
     headers = {
         "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
         "Content-Type": "application/json",
@@ -53,7 +53,7 @@ async def chat_completion(request: Request):
                     yield f"data: {json.dumps(chunk.model_dump())}\n\n"
                 yield "data: [DONE]\n\n"
                 # Once the stream is done, forward the collected chunks
-                asyncio.create_task(forward_response(body=body, chunks=collected_chunks))
+                asyncio.create_task(forward_response(uid=uid, body=body, chunks=collected_chunks))
             except asyncio.CancelledError:
                 logger.info("Client disconnected, streaming cancelled")
                 raise
@@ -74,7 +74,7 @@ async def chat_completion(request: Request):
                 },
             )
         else:
-            asyncio.create_task(forward_response(body=body, chunks=response[1]))
+            asyncio.create_task(forward_response(uid=uid, body=body, chunks=response[1]))
             return response[0]
 
     except Exception as e:
