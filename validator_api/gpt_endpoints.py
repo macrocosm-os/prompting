@@ -1,6 +1,7 @@
 import asyncio
 import json
 import random
+
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
@@ -8,30 +9,26 @@ from starlette.responses import StreamingResponse
 
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
-from validator_api.miner_availabilities import get_available_miner
 
 router = APIRouter()
 
 
 async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
+    if not shared_settings.SCORE_ORGANICS:  # Allow disabling of scoring by default
+        return
+
     # if body.get("task") != "InferenceTask":
     #     logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
     #     return
-    url = f"http://{shared_settings.VALIDATOR_IP}:{shared_settings.VALIDATOR_PORT}/scoring"
+    url = f"http://{shared_settings.VALIDATOR_API}/scoring"
     logger.info(url)
     payload = {"body": body, "chunks": chunks, "uid": uid}
     # headers = {
-    #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
+    #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  #Add API key in Authorization header
     #     "Content-Type": "application/json",
     # }
     try:
-        timeout = httpx.Timeout(
-            timeout=180.0,
-            connect=120.0,
-            read=60.0,
-            write=60.0,
-            pool=5.0
-        )
+        timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
             logger.debug(f"Payload: {payload}")
             response = await client.post(url, json=payload)  # , headers=headers)

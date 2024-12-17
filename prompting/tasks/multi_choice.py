@@ -4,10 +4,10 @@ from typing import ClassVar
 
 import numpy as np
 
-from shared.base import Context
 from prompting.rewards.multi_choice import MultiChoiceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.tasks.base_task import BaseTextTask
+from shared.base import Context
 from shared.exceptions import TaskCreationError
 
 # TODO: Introduce criteria for the query and reference answer (length, layout, etc.) and make these arguments.

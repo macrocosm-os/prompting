@@ -131,6 +131,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.api
 .env.miner
 .env.validator
 .venv

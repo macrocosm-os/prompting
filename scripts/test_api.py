@@ -1,4 +1,5 @@
 import asyncio
+
 import openai
 from httpx import Timeout
 
@@ -56,7 +57,6 @@ async def main():
     )
     response = await make_completion(client=client, prompt="Say 10 random numbers between 1 and 100", stream=True)
     print(response)
-
 
 
 asyncio.run(main())

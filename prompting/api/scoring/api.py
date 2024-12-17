@@ -1,22 +1,21 @@
-from typing import Any
-from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel
-from shared.settings import shared_settings
 import uuid
+from typing import Any
 
-from prompting.api.api_managements.api import validate_api_key
+from fastapi import APIRouter, Request
+
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.scoring import task_scorer
 from prompting.tasks.inference import InferenceTask
+from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.epistula import SynapseStreamResult
-from shared.base import DatasetEntry
+from shared.settings import shared_settings
 
 router = APIRouter()
 
 
 @router.post("/scoring")
-async def score_response(request: Request):  #, api_key_data: dict = Depends(validate_api_key)):
+async def score_response(request: Request):  # , api_key_data: dict = Depends(validate_api_key)):
     payload: dict[str, Any] = await request.json()
     body = payload.get("body")
     uid = int(payload.get("uid"))
