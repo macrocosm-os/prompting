@@ -6,12 +6,16 @@ import time
 from loguru import logger
 
 from prompting import mutable_globals, settings
+<<<<<<< HEAD
 from prompting.api.api import start_scoring_api
+=======
+>>>>>>> API-working-branch-felix
 from shared.profiling import profiler
 
 settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings
 
+from prompting.api.api import start_api
 from prompting.llms.model_manager import model_scheduler
 from prompting.llms.utils import GPUInfo
 from prompting.miner_availability.miner_availability import availability_checking_loop

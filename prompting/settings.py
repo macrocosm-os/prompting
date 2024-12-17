@@ -67,7 +67,8 @@ class Settings(BaseSettings):
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
 
-    # Scoring API Management.
+    # API Management.
+    API_PORT: int = Field(8005, env="API_PORT")
     DEPLOY_SCORING_API: bool = Field(True, env="DEPLOY_SCORING_API")
     SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
     SCORING_API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")

@@ -58,7 +58,7 @@ class InferenceTask(BaseTextTask):
 
     def make_reference(self, dataset_entry: ChatEntry) -> str:
         self.reference = model_manager.generate(
-            messages=[self.messages[-1]],
+            messages=self.messages,
             roles=["user"],
             model=self.llm_model,
             seed=self.seed,

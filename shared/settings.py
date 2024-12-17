@@ -1,24 +1,26 @@
 import logging
 import os
 from functools import cached_property
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import bittensor as bt
 import dotenv
 from loguru import logger
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
-# from prompting.utils.config import config
-if not dotenv.load_dotenv(".env.validator"):
-    logger.warning("No .env.validator file found. Please create one.")
-
 
 class SharedSettings(BaseSettings):
+    # API
+    VALIDATOR_ADDRESS: str = Field("http://localhost:8094", env="VALIDATOR_ADDRESS")
+    VALIDATOR_PORT: int = Field(8094, env="VALIDATOR_PORT")
+    VALIDATOR_SCORING_KEY: str = Field("1234567890", env="VALIDATOR_SCORING_KEY")
+
+    mode: Literal["api", "validator", "miner"] = Field("validator", env="MODE")
     MOCK: bool = False
     NO_BACKGROUND_THREAD: bool = True
     SAVE_PATH: Optional[str] = Field("./storage", env="SAVE_PATH")
@@ -70,13 +72,18 @@ class SharedSettings(BaseSettings):
     TASK_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="TASK_QUEUE_LENGTH_THRESHOLD")
     SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
-    DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
-    SCORING_API_PORT: int = Field(8094, env="API_PORT")
+
+    DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
+    SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
+    SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
+    API_PORT: int = Field(8005, env="API_PORT")
+    API_HOST: str = Field("0.0.0.0", env="API_HOST")
 
     # API Management.
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
-    SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
+    ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
+    SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
 
     # Additional Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")
@@ -136,6 +143,24 @@ class SharedSettings(BaseSettings):
     }
     model_config = {"frozen": True, "arbitrary_types_allowed": False}
 
+    @model_validator(mode="before")
+    def validate_mode(cls, v):
+        if v["mode"] == "api":
+            if not dotenv.load_dotenv(".env.api"):
+                logger.warning("No .env.api file found. Please create one.")
+            if not v.get("SCORING_KEY"):
+                logger.warning(
+                    "No SCORING_KEY found in .env.api file. You must add a scoring key that will allow us to forward miner responses to the validator for scoring."
+                )
+        elif v["mode"] == "miner":
+            if not dotenv.load_dotenv(".env.miner"):
+                logger.warning("No .env.miner file found. Please create one.")
+        elif v["mode"] == "validator":
+            if not dotenv.load_dotenv(".env.validator"):
+                logger.warning("No .env.validator file found. Please create one.")
+
+        return v
+
     @cached_property
     def WALLET(self):
         wallet_name = self.WALLET_NAME  # or config().wallet.name
@@ -165,4 +190,4 @@ class SharedSettings(BaseSettings):
         return bt.dendrite(wallet=self.WALLET)
 
 
-shared_settings = SharedSettings()
+shared_settings = SharedSettings(mode="validator")

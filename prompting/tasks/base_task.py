@@ -76,7 +76,7 @@ class BaseTextTask(BaseTask):
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
         self.reference = model_manager.get_model(settings.LLM_MODEL).generate(
-            prompts=messages
+            messages=messages
         )  # This should be a list of dict
         if self.reference is None:
             raise Exception("Reference generation failed")
