@@ -11,7 +11,6 @@ from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
 from prompting.llms.model_manager import model_manager
 from prompting.llms.model_zoo import ModelConfig
-
 from shared.base import DatasetEntry
 from shared.settings import shared_settings
 
