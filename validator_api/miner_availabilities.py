@@ -84,8 +84,12 @@ class MinerAvailabilitiesUpdater(AsyncLoopRunner):
                 f"Updated miner availabilities for {len(miner_availabilities)} miners, sample availabilities: {list(miner_availabilities.items())[:2]}"
             )
 
+        except requests.exceptions.ConnectionError as e:
+            logger.error(
+                f"Failed to update miner availabilities - check that your validator is running and all ports/ips are set correctly!: {e}"
+            )
         except requests.exceptions.RequestException as e:
-            logger.exception(f"Failed to update miner availabilities: {e}")
+            logger.error(f"Failed to update miner availabilities: {e}")
         except Exception as e:
             logger.exception(f"Unexpected error while updating miner availabilities: {e}")
 

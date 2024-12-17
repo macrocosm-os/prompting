@@ -5,7 +5,7 @@ import time
 
 from loguru import logger
 
-from prompting import mutable_globals, settings
+from prompting import settings
 from prompting.api.api import start_scoring_api
 from shared.profiling import profiler
 
@@ -66,9 +66,4 @@ async def main():
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
-    if settings.DEPLOY_SCORING_API and settings.DEPLOY_VALIDATOR:
-        # Replace scoring queue with memory-shared list between processes, before starting the loops.
-        manager = mp.Manager()
-        mutable_globals.scoring_queue = manager.list()
-
     asyncio.run(main())
