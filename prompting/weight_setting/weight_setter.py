@@ -21,6 +21,7 @@ FILENAME = "validator_weights.npz"
 try:
     with np.load(FILENAME) as data:
         PAST_WEIGHTS = [data[key] for key in data.files]
+    logger.debug(f"Loaded Past Weights: {PAST_WEIGHTS}")
 except FileNotFoundError:
     logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
     PAST_WEIGHTS = []
@@ -44,11 +45,11 @@ def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
     return all_rewards
 
 
-def save_weights(weights: list[np.ndarray], filename: str):
+def save_weights(weights: list[np.ndarray]):
     """Saves the list of numpy arrays to a file."""
     logger.info("Saving validator state.")
     # Save all arrays into a single .npz file
-    np.savez_compressed(filename, *weights)
+    np.savez_compressed(FILENAME, *weights)
 
 
 def set_weights(weights: np.ndarray, step: int = 0):
