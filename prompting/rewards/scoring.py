@@ -6,10 +6,10 @@ from loguru import logger
 from pydantic import ConfigDict
 
 from prompting import mutable_globals
-from shared.base import DatasetEntry
 from prompting.llms.model_manager import model_manager, model_scheduler
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_registry import TaskRegistry
+from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.logging import RewardLoggingEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
