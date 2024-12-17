@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 from loguru import logger
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, pipeline
 
 from prompting.settings import settings
 from shared.timer import Timer
@@ -19,7 +19,7 @@ class ReproducibleHF:
         self.set_random_seeds(self.seed)
         quantization_config = settings.QUANTIZATION_CONFIG.get(model_id, None)
         if quantization_config:
-            self.model = AutoModelForCausalLM.from_pretrained(
+            self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 torch_dtype=torch.float16,
                 low_cpu_mem_usage=True,
@@ -27,7 +27,7 @@ class ReproducibleHF:
                 quantization_config=quantization_config,
             )
         else:
-            self.model = AutoModelForCausalLM.from_pretrained(
+            self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 torch_dtype=torch.float16,
                 low_cpu_mem_usage=True,
@@ -45,14 +45,14 @@ class ReproducibleHF:
         self.sampling_params = settings.SAMPLING_PARAMS
 
     @torch.inference_mode()
-    def generate(self, prompts, sampling_params=None, seed=None):
+    def generate(self, messages, sampling_params=None, seed=None):
         """
         Generate text with optimized performance
         """
         self.set_random_seeds(seed)
 
         inputs = self.tokenizer.apply_chat_template(
-            prompts,
+            messages,
             tokenize=True,
             add_generation_prompt=True,
             return_tensors="pt",
@@ -76,7 +76,7 @@ class ReproducibleHF:
             )[0]
 
         logger.debug(
-            f"PROMPT: {prompts}\n\nRESPONSES: {results}\n\n"
+            f"PROMPT: {messages}\n\nRESPONSES: {results}\n\n"
             f"SAMPLING PARAMS: {params}\n\n"
             f"TIME FOR RESPONSE: {timer.elapsed_time}"
         )
@@ -97,6 +97,6 @@ class ReproducibleHF:
             torch.backends.cudnn.benchmark = False
 
 
-if __name__ == "__main__":
-    llm = ReproducibleHF(model="Qwen/Qwen2-0.5B", tensor_parallel_size=1, seed=42)
-    llm.generate({"role": "user", "content": "Hello, world!"})
+# if __name__ == "__main__":
+#     llm = ReproducibleHF(model="Qwen/Qwen2-0.5B", tensor_parallel_size=1, seed=42)
+#     llm.generate({"role": "user", "content": "Hello, world!"})

@@ -6,6 +6,7 @@ from loguru import logger
 # Now we can safely import the rest
 from prompting.api.api_managements.api import router as api_management_router
 from prompting.api.miner_availabilities.api import router as miner_availabilities_router
+from prompting.api.scoring.api import router as scoring_router
 from prompting.settings import settings
 
 app = FastAPI()
@@ -13,6 +14,7 @@ app = FastAPI()
 # Add routers at the application level
 app.include_router(api_management_router, prefix="/api_management", tags=["api_management"])
 app.include_router(miner_availabilities_router, prefix="/miner_availabilities", tags=["miner_availabilities"])
+app.include_router(scoring_router, prefix="/scoring", tags=["scoring"])
 
 
 @app.get("/health")
