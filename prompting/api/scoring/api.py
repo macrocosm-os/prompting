@@ -18,23 +18,23 @@ router = APIRouter()
 async def score_response(request: Request):  # , api_key_data: dict = Depends(validate_api_key)):
     payload: dict[str, Any] = await request.json()
     body = payload.get("body")
-    uid = payload.get("uid")
+    uid = int(payload.get("uid"))
     chunks = payload.get("chunks")
     task_scorer.add_to_queue(
         task=InferenceTask(
-            messages=body.get("messages"),
+            messages=[msg["content"] for msg in body.get("messages")],
             llm_model=ModelZoo.get_model_by_id(model) if (model := body.get("model")) else None,
             llm_model_id=body.get("model"),
-            seed=int(body.get("seed")),
-            sampling_params=body.get("sampling_parameters"),
+            seed=int(body.get("seed", 0)),
+            sampling_params=body.get("sampling_params", {}),
         ),
         response=DendriteResponseEvent(
             uids=[uid],
-            stream_results=[SynapseStreamResult(accumulated_chunks=chunks)],
+            stream_results=[SynapseStreamResult(accumulated_chunks=[chunk for chunk in chunks if chunk is not None])],
             timeout=shared_settings.NEURON_TIMEOUT,
         ),
         dataset_entry=DatasetEntry(),
-        block=-1,
+        block=shared_settings.METAGRAPH.block,
         step=-1,
         task_id=str(uuid.uuid4()),
     )

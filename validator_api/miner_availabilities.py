@@ -58,14 +58,14 @@ def get_available_miner(task: Optional[str] = None, model: Optional[str] = None)
 
 
 class MinerAvailabilitiesUpdater(AsyncLoopRunner):
-    interval: int = 10
+    interval: int = 20
 
     async def run_step(self):
-        uids = get_uids(sampling_mode="all")
+        uids = get_uids(sampling_mode="random", k=100)
         url = f"http://{shared_settings.VALIDATOR_IP}:{shared_settings.VALIDATOR_PORT}/miner_availabilities/miner_availabilities"
 
         try:
-            result = requests.post(url, json=uids, timeout=10)
+            result = requests.post(url, json=uids.tolist(), timeout=10)
             result.raise_for_status()  # Raise an exception for bad status codes
 
             response_data = result.json()
