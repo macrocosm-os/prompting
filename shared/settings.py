@@ -70,13 +70,13 @@ class SharedSettings(BaseSettings):
     TASK_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="TASK_QUEUE_LENGTH_THRESHOLD")
     SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
-    DEPLOY_API: bool = Field(False, env="DEPLOY_API")
+    DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
-    API_PORT: int = Field(8094, env="API_PORT")
+    SCORING_API_PORT: int = Field(8094, env="API_PORT")
 
     # API Management.
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
-    ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
+    SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
 
     # Additional Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")

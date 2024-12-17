@@ -65,13 +65,13 @@ class Settings(BaseSettings):
     TASK_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="TASK_QUEUE_LENGTH_THRESHOLD")
     SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
-    DEPLOY_API: bool = Field(True, env="DEPLOY_API")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
-    API_PORT: int = Field(8094, env="API_PORT")
 
-    # API Management.
-    API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
-    ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
+    # Scoring API Management.
+    DEPLOY_SCORING_API: bool = Field(True, env="DEPLOY_SCORING_API")
+    SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
+    SCORING_API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
+    SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
 
     # Additional Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")
@@ -202,7 +202,7 @@ class Settings(BaseSettings):
                 raise Exception(
                     "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
                 )
-            if values.get("ADMIN_KEY") is None:
+            if values.get("SCORING_ADMIN_KEY") is None:
                 raise Exception("You must provide an admin key to access the API.")
             if values.get("PROXY_URL") is None:
                 logger.warning(

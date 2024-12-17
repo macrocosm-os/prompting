@@ -12,14 +12,14 @@ router = APIRouter()
 # Load and save functions for API keys
 def load_api_keys():
     try:
-        with open(settings.API_KEYS_FILE, "r") as f:
+        with open(settings.SCORING_API_KEYS_FILE, "r") as f:
             return json.load(f)
     except FileNotFoundError:
         return {}
 
 
 def save_api_keys(api_keys):
-    with open(settings.API_KEYS_FILE, "w") as f:
+    with open(settings.SCORING_API_KEYS_FILE, "w") as f:
         json.dump(api_keys, f)
 
 
@@ -31,7 +31,7 @@ save_api_keys(_keys)
 
 # Dependency to validate the admin key
 def validate_admin_key(admin_key: str = Header(...)):
-    if admin_key != settings.ADMIN_KEY:
+    if admin_key != settings.SCORING_ADMIN_KEY:
         raise HTTPException(status_code=403, detail="Invalid admin key")
 
 
@@ -75,8 +75,3 @@ def delete_api_key(api_key: str, admin_key: str = Depends(validate_admin_key)):
 def demo_endpoint(api_key_data: dict = Depends(validate_api_key)):
     """A demo endpoint that requires a valid API key."""
     return {"message": "Access granted", "your_rate_limit": api_key_data["rate_limit"]}
-
-
-# # Create FastAPI app and include the router
-# app = FastAPI()
-# app.include_router(router)
