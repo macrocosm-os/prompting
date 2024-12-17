@@ -9,15 +9,15 @@ from prompting import mutable_globals
 from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.mutable_globals import scoring_queue
 from prompting.rewards.scoring import task_scorer
-from shared.settings import shared_settings
 from prompting.tasks.base_task import BaseTextTask
+from prompting.tasks.inference import InferenceTask
 from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
 from shared.epistula import query_miners
 from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
 from shared.misc import ttl_get_block
+from shared.settings import shared_settings
 from shared.timer import Timer
-from prompting.tasks.inference import InferenceTask
 
 NEURON_SAMPLE_SIZE = 100
 
