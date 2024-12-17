@@ -6,10 +6,7 @@ import time
 from loguru import logger
 
 from prompting import mutable_globals, settings
-<<<<<<< HEAD
 from prompting.api.api import start_scoring_api
-=======
->>>>>>> API-working-branch-felix
 from shared.profiling import profiler
 
 settings.settings = settings.Settings.load(mode="validator")
