@@ -17,25 +17,14 @@ class ReproducibleHF:
         # Create a random seed for reproducibility
         self.seed = random.randint(0, 1_000_000)
         self.set_random_seeds(self.seed)
-        quantization_config = settings.QUANTIZATION_CONFIG.get(model_id, None)
-        if quantization_config:
-            self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                torch_dtype=torch.float16,
-                low_cpu_mem_usage=True,
-                device_map="cuda:0",
-                quantization_config=quantization_config,
-            )
-        else:
-            self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                torch_dtype=torch.float16,
-                low_cpu_mem_usage=True,
-                device_map="cuda:0",
-            )
+        self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True,
+            device_map="cuda:0",
+        )
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
-
         self.valid_generation_params = set(
             AutoModelForCausalLM.from_pretrained(model_id).generation_config.to_dict().keys()
         )

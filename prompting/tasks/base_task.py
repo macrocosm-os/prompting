@@ -7,12 +7,12 @@ from uuid import uuid4
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from shared.base import DatasetEntry
 from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
 from prompting.llms.model_manager import model_manager
 from prompting.llms.model_zoo import ModelConfig
 from prompting.settings import settings
+from shared.base import DatasetEntry
 
 
 def CHATTENSOR_SYSTEM_PROMPT():

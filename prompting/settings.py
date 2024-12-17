@@ -7,7 +7,6 @@ import dotenv
 from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
-from transformers import AwqConfig
 
 # from prompting.utils.config import config
 
@@ -210,11 +209,6 @@ class Settings(BaseSettings):
                     "You must provide a proxy URL to use the DuckDuckGo API - your vtrust might decrease if no DDG URL is provided."
                 )
         return values
-
-    @cached_property
-    def QUANTIZATION_CONFIG(self) -> AwqConfig:
-        configs = {}
-        return configs
 
     @cached_property
     def WALLET(self):

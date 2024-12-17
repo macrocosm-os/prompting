@@ -6,9 +6,9 @@ from loguru import logger
 
 # from duckduckgo_search import DDGS
 from prompting.base.duckduckgo_patch import PatchedDDGS
-from shared.base import BaseDataset, Context, DatasetEntry
 from prompting.datasets.utils import ENGLISH_WORDS
 from prompting.settings import settings
+from shared.base import BaseDataset, Context, DatasetEntry
 
 MAX_CHARS = 5000
 
