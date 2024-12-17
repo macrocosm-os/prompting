@@ -1,5 +1,5 @@
 from typing import Any
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from prompting.api.api_managements.api import validate_api_key
@@ -12,23 +12,27 @@ from shared.epistula import SynapseStreamResult
 router = APIRouter()
 
 
-class ScoringPayload(BaseModel):
-    body: dict[str, Any]
-    chunks: list[str]
-    uid: int
+# class ScoringPayload(BaseModel):
+#     body: dict[str, Any]
+#     chunks: list[str]
+#     uid: int
 
 
 @router.post("/scoring")
-def score_response(payload: ScoringPayload, api_key_data: dict = Depends(validate_api_key)):
+async def score_response(request: Request, api_key_data: dict = Depends(validate_api_key)):
+    payload: dict[str, Any] = await request.json()
+    body = payload.get("body")
+    uid = payload.get("uid")
+    chunks = payload.get("chunks")
     task_scorer.add_to_queue(
         task=InferenceTask(
-            messages=payload.body.get("messages"),
-            llm_model=ModelZoo.get_model_by_id(payload.body.get("model")),
-            llm_model_id=payload.body.get("model"),
-            seed=payload.body.get("seed"),
-            sampling_params=payload.body.get("sampling_params"),
+            messages=body.get("messages"),
+            llm_model=ModelZoo.get_model_by_id(body.get("model")),
+            llm_model_id=body.get("model"),
+            seed=body.get("seed"),
+            sampling_params=body.get("sampling_params"),
         ),
         response=DendriteResponseEvent(
-            uids=[payload.uid], stream_results=[SynapseStreamResult(accumulated_chunks=payload.chunks)]
+            uids=[uid], stream_results=[SynapseStreamResult(accumulated_chunks=chunks)]
         ),
     )
