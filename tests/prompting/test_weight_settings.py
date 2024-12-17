@@ -3,7 +3,7 @@ import asyncio
 
 import numpy as np
 
-from prompting import settings
+from shared import settings
 
 settings.settings = settings.Settings(mode="mock")
 raw_rewards = np.array([1.0, 2.0, 3.0, 4.0, 5.0])

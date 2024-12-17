@@ -3,7 +3,7 @@ from typing import Optional
 import openai
 from httpx import Timeout
 
-from prompting import settings
+from shared import settings
 from shared.epistula import create_header_hook
 
 settings.settings = settings.Settings.load(mode="validator")

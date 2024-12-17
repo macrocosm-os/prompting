@@ -1,7 +1,7 @@
 import openai
 from httpx import Timeout
 
-from prompting import settings
+from shared import settings
 
 settings.settings = settings.Settings.load(mode="validator")
 settings = settings.settings

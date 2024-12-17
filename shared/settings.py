@@ -1,7 +1,7 @@
 import logging
 import os
 from functools import cached_property
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import bittensor as bt
 import dotenv
@@ -19,6 +19,7 @@ if not dotenv.load_dotenv(".env.validator"):
 
 
 class SharedSettings(BaseSettings):
+    mode: Literal["miner", "validator", "mock"]
     MOCK: bool = False
     NO_BACKGROUND_THREAD: bool = True
     SAVE_PATH: Optional[str] = Field("./storage", env="SAVE_PATH")
@@ -137,6 +138,39 @@ class SharedSettings(BaseSettings):
     }
     model_config = {"frozen": True, "arbitrary_types_allowed": False}
 
+    @classmethod
+    def load_env_file(cls, mode: Literal["miner", "validator", "mock", "api"]):
+        """Load the appropriate .env file based on the mode."""
+        if mode == "miner":
+            dotenv_file = ".env.miner"
+        elif mode == "validator":
+            dotenv_file = ".env.validator"
+        # For mock testing, still make validator env vars available where possible.
+        elif mode == "mock":
+            dotenv_file = ".env.validator"
+        elif mode == "api":
+            dotenv_file = ".env.api"
+        else:
+            raise ValueError(f"Invalid mode: {mode}")
+
+        if dotenv_file:
+            if not dotenv.load_dotenv(dotenv.find_dotenv(filename=dotenv_file)):
+                logger.warning(
+                    f"No {dotenv_file} file found. The use of args when running a {mode} will be deprecated "
+                    "in the near future."
+                )
+
+    @classmethod
+    def load(cls, mode: Literal["miner", "validator", "mock"]) -> "SharedSettings":
+        """Load or retrieve the Settings instance based on the mode."""
+        if cls._instance is not None and cls._instance_mode == mode:
+            return cls._instance
+        else:
+            cls.load_env_file(mode)
+            cls._instance = cls(mode=mode)
+            cls._instance_mode = mode
+            return cls._instance
+
     @cached_property
     def WALLET(self):
         wallet_name = self.WALLET_NAME  # or config().wallet.name
@@ -166,4 +200,12 @@ class SharedSettings(BaseSettings):
         return bt.dendrite(wallet=self.WALLET)
 
 
-shared_settings = SharedSettings()
+logger.info("Settings class instantiated.")
+settings: Optional[SharedSettings] = None
+try:
+    settings: Optional[SharedSettings] = SharedSettings.load(mode="mock")
+    pass
+except Exception as e:
+    logger.exception(f"Error loading settings: {e}")
+    settings = None
+logger.info("Settings loaded.")

@@ -4,7 +4,7 @@ import time
 
 from loguru import logger
 
-from prompting import settings
+from shared import settings
 from shared.profiling import profiler
 
 settings.settings = settings.Settings.load(mode="validator")

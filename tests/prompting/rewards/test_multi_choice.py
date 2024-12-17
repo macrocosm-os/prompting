@@ -1,5 +1,5 @@
 # ruff: noqa: E402
-from prompting import settings
+from shared import settings
 
 settings.settings = settings.Settings(mode="mock")
 from dataclasses import dataclass
