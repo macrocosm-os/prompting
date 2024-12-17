@@ -3,7 +3,7 @@ import json
 import random
 
 import httpx
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from loguru import logger
 from starlette.responses import StreamingResponse
 
@@ -13,47 +13,72 @@ from shared.settings import shared_settings
 router = APIRouter()
 
 
-# Forwarding task
-async def forward_response(uid: int, body, chunks):
-    if body.get("task") != "InferenceTask":
-        logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
+async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
+    if not shared_settings.SCORE_ORGANICS:  # Allow disabling of scoring by default
         return
-    url = f"http://{shared_settings.VALIDATOR_ADDRESS}/scoring"
-    payload = {"body": body, "response": chunks, "uid": uid}
-    headers = {
-        "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
-        "Content-Type": "application/json",
-    }
+
+    # if body.get("task") != "InferenceTask":
+    #     logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
+    #     return
+    url = f"http://{shared_settings.VALIDATOR_API}/scoring"
+    logger.info(url)
+    payload = {"body": body, "chunks": chunks, "uid": uid}
+    # headers = {
+    #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  #Add API key in Authorization header
+    #     "Content-Type": "application/json",
+    # }
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=payload, headers=headers)
-            logger.info(f"Forwarding response completed with status {response.status_code}")
+        timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            logger.debug(f"Payload: {payload}")
+            response = await client.post(url, json=payload)  # , headers=headers)
+            if response.status_code == 200:
+                logger.info(f"Forwarding response completed with status {response.status_code}")
+
+            else:
+                logger.exception(
+                    f"Forwarding response uid {uid} failed with status {response.status_code} and payload {payload}"
+                )
+
     except Exception as e:
-        logger.error(f"Tried to forward response to {url} with payload {payload} and headers {headers}")
+        logger.error(f"Tried to forward response to {url} with payload {payload}")
         logger.exception(f"Error while forwarding response: {e}")
 
 
 @router.post("/v1/chat/completions")
-async def chat_completion(request: Request):
+async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundTasks):
     try:
         body = await request.json()
+        body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         STREAM = body.get("stream") or False
         logger.debug(f"Streaming: {STREAM}")
         uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
+        # uid = get_available_miner(task=body.get("task"), model=body.get("model"))
+        if uid is None:
+            logger.error("No available miner found")
+            raise HTTPException(status_code=503, detail="No available miner found")
         logger.debug(f"Querying uid {uid}")
 
-        collected_chunks = []
+        collected_chunks: list[str] = []
 
         # Create a wrapper for the streaming response
         async def stream_with_error_handling():
+            chunks_received = False
             try:
                 async for chunk in response:
-                    logger.debug(chunk)
-                    collected_chunks.append(chunk.model_dump())
+                    chunks_received = True
+                    logger.debug(chunk.choices[0].delta.content)
+                    collected_chunks.append(chunk.choices[0].delta.content)
                     yield f"data: {json.dumps(chunk.model_dump())}\n\n"
+
+                if not chunks_received:
+                    logger.error("Stream is empty: No chunks were received")
+                    yield 'data: {"error": "502 - Response is empty"}\n\n'
                 yield "data: [DONE]\n\n"
+
                 # Once the stream is done, forward the collected chunks
                 asyncio.create_task(forward_response(uid=uid, body=body, chunks=collected_chunks))
+                # background_tasks.add_task(forward_response, uid=uid, body=body, chunks=collected_chunks)
             except asyncio.CancelledError:
                 logger.info("Client disconnected, streaming cancelled")
                 raise

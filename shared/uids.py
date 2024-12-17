@@ -133,4 +133,4 @@ def get_uids(
         vpermit_tao_limit = shared_settings.NEURON_VPERMIT_TAO_LIMIT
         return get_top_incentive_uids(k=k, vpermit_tao_limit=vpermit_tao_limit, own_uid=own_uid)
     if sampling_mode == "all":
-        return [uid for uid in shared_settings.METAGRAPH.uids if (uid != own_uid and check_uid_availability(uid))]
+        return [int(uid) for uid in shared_settings.METAGRAPH.uids if (uid != own_uid and check_uid_availability(uid))]

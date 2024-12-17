@@ -4,9 +4,9 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from prompting import settings
+from shared import settings
 
-settings.settings = settings.Settings.load(mode="mock")
+settings.shared_settings = settings.SharedSettings(mode="mock")
 from prompting.rewards.web_retrieval import WebRetrievalRewardModel
 
 

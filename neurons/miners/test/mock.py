@@ -4,11 +4,10 @@ from functools import partial
 
 from starlette.types import Send
 
-from prompting.settings import settings
-
 # import base miner class which takes care of most of the boilerplate
 from shared.prompting_miner import BaseStreamPromptingMiner
 from shared.protocol import StreamPromptingSynapse
+from shared.settings import shared_settings
 
 
 class MockMiner(BaseStreamPromptingMiner):
@@ -29,7 +28,7 @@ class MockMiner(BaseStreamPromptingMiner):
                 }
             )
 
-        message = f"Hey you reached mock miner {settings.HOTKEY}. Please leave a message after the tone.. Beep!"
+        message = f"Hey you reached mock miner {shared_settings.HOTKEY}. Please leave a message after the tone.. Beep!"
         token_streamer = partial(_forward, message)
         return synapse.create_streaming_response(token_streamer)
 

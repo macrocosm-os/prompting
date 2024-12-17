@@ -1,15 +1,16 @@
 # ruff: noqa: E402
+from shared import settings
+
+settings.shared_settings = settings.SharedSettings.load(mode="validator")
+shared_settings = settings.shared_settings
+
 import asyncio
+import multiprocessing as mp
 import time
 
 from loguru import logger
 
-from prompting import settings
-from shared.profiling import profiler
-
-settings.settings = settings.Settings.load(mode="validator")
-settings = settings.settings
-
+from prompting.api.api import start_scoring_api
 from prompting.llms.model_manager import model_scheduler
 from prompting.llms.utils import GPUInfo
 from prompting.miner_availability.miner_availability import availability_checking_loop
@@ -17,6 +18,7 @@ from prompting.rewards.scoring import task_scorer
 from prompting.tasks.task_creation import task_loop
 from prompting.tasks.task_sending import task_sender
 from prompting.weight_setting.weight_setter import weight_setter
+from shared.profiling import profiler
 
 NEURON_SAMPLE_SIZE = 100
 
@@ -24,6 +26,11 @@ NEURON_SAMPLE_SIZE = 100
 async def main():
     # will start checking the availability of miners at regular intervals, needed for API and Validator
     asyncio.create_task(availability_checking_loop.start())
+
+    if shared_settings.DEPLOY_SCORING_API:
+        # Use multiprocessing to bypass API blocking issue.
+        api_process = mp.Process(target=lambda: asyncio.run(start_scoring_api()))
+        api_process.start()
 
     GPUInfo.log_gpu_info()
     # start profiling
@@ -60,4 +67,3 @@ async def main():
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
     asyncio.run(main())
-    # will start rotating the different LLMs in/out of memory

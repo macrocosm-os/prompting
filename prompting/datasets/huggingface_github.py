@@ -2,7 +2,7 @@ from datasets import load_dataset
 from loguru import logger
 from pydantic import ConfigDict, model_validator
 
-from prompting.datasets.base import BaseDataset, DatasetEntry
+from shared.base import BaseDataset, DatasetEntry
 
 ALLOWED_FILE_ENDINGS = {
     "python": [".py"],

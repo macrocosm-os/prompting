@@ -1,4 +1,13 @@
+import sys
+
+# Need to delete logging from modules and load in standard python logging
+if "logging" in sys.modules:
+    del sys.modules["logging"]
+current_directory = sys.path.pop(0)
 import logging
+
+sys.path.insert(0, current_directory)
+
 import os
 from functools import cached_property
 from typing import Any, Literal, Optional
@@ -15,12 +24,13 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 class SharedSettings(BaseSettings):
+    _instance: Optional["SharedSettings"] = None
+    _instance_mode: Optional[str] = None
     # API
-    VALIDATOR_ADDRESS: str = Field("http://localhost:8094", env="VALIDATOR_ADDRESS")
-    VALIDATOR_PORT: int = Field(8094, env="VALIDATOR_PORT")
+    VALIDATOR_API: str = Field("0.0.0.0:8094", env="VALIDATOR_API")
     VALIDATOR_SCORING_KEY: str = Field("1234567890", env="VALIDATOR_SCORING_KEY")
 
-    mode: Literal["api", "validator", "miner"] = Field("validator", env="MODE")
+    mode: Literal["api", "validator", "miner", "mock"] = Field("validator", env="MODE")
     MOCK: bool = False
     NO_BACKGROUND_THREAD: bool = True
     SAVE_PATH: Optional[str] = Field("./storage", env="SAVE_PATH")
@@ -37,7 +47,7 @@ class SharedSettings(BaseSettings):
 
     # Neuron.
     NEURON_EPOCH_LENGTH: int = Field(100, env="NEURON_EPOCH_LENGTH")
-    NEURON_DEVICE: str | None = Field(None, env="NEURON_DEVICE")
+    NEURON_DEVICE: str | None = Field("cuda", env="NEURON_DEVICE")
     NEURON_GPUS: int = Field(1, env="NEURON_GPUS")
 
     # Logging.
@@ -46,6 +56,7 @@ class SharedSettings(BaseSettings):
 
     # Neuron parameters.
     NEURON_TIMEOUT: int = Field(15, env="NEURON_TIMEOUT")
+    INFERENCE_TIMEOUT: int = Field(60, env="INFERENCE_TIMEOUT")
     NEURON_DISABLE_SET_WEIGHTS: bool = Field(False, env="NEURON_DISABLE_SET_WEIGHTS")
     NEURON_MOVING_AVERAGE_ALPHA: float = Field(0.1, env="NEURON_MOVING_AVERAGE_ALPHA")
     NEURON_DECAY_ALPHA: float = Field(0.001, env="NEURON_DECAY_ALPHA")
@@ -72,15 +83,19 @@ class SharedSettings(BaseSettings):
     TASK_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="TASK_QUEUE_LENGTH_THRESHOLD")
     SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
-    DEPLOY_API: bool = Field(False, env="DEPLOY_API")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
-    API_PORT: int = Field(8094, env="API_PORT")
+
+    DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
+    SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
+    SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
+    API_PORT: int = Field(8005, env="API_PORT")
     API_HOST: str = Field("0.0.0.0", env="API_HOST")
 
     # API Management.
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
     ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
     SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
+    SCORE_ORGANICS: bool = Field(False, env="SCORE_ORGANICS")
 
     # Additional Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")
@@ -145,7 +160,7 @@ class SharedSettings(BaseSettings):
         if v["mode"] == "api":
             if not dotenv.load_dotenv(".env.api"):
                 logger.warning("No .env.api file found. Please create one.")
-            if not v.get("SCORING_KEY"):
+            if not os.getenv("SCORING_KEY"):
                 logger.warning(
                     "No SCORING_KEY found in .env.api file. You must add a scoring key that will allow us to forward miner responses to the validator for scoring."
                 )
@@ -157,6 +172,83 @@ class SharedSettings(BaseSettings):
                 logger.warning("No .env.validator file found. Please create one.")
 
         return v
+
+    @classmethod
+    def load_env_file(cls, mode: Literal["miner", "validator", "mock", "api"]):
+        """Load the appropriate .env file based on the mode."""
+        if mode == "miner":
+            dotenv_file = ".env.miner"
+        elif mode == "validator":
+            dotenv_file = ".env.validator"
+        # For mock testing, still make validator env vars available where possible.
+        elif mode == "mock":
+            dotenv_file = ".env.validator"
+        elif mode == "api":
+            dotenv_file = ".env.api"
+        else:
+            raise ValueError(f"Invalid mode: {mode}")
+
+        if dotenv_file:
+            if not dotenv.load_dotenv(dotenv.find_dotenv(filename=dotenv_file)):
+                logger.warning(
+                    f"No {dotenv_file} file found. The use of args when running a {mode} will be deprecated "
+                    "in the near future."
+                )
+
+    @classmethod
+    def load(cls, mode: Literal["miner", "validator", "mock", "api"]) -> "SharedSettings":
+        """Load or retrieve the Settings instance based on the mode."""
+        if cls._instance is not None and cls._instance_mode == mode:
+            return cls._instance
+        else:
+            cls.load_env_file(mode)
+            cls._instance = cls(mode=mode)
+            cls._instance_mode = mode
+            return cls._instance
+
+    @model_validator(mode="before")
+    def complete_settings(cls, values: dict[str, Any]) -> dict[str, Any]:
+        mode = values["mode"]
+        netuid = values.get("NETUID", 61)
+
+        if netuid is None:
+            raise ValueError("NETUID must be specified")
+        values["TEST"] = netuid != 1
+        if values.get("TEST_MINER_IDS"):
+            values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
+        if mode == "mock":
+            values["MOCK"] = True
+            values["NEURON_DEVICE"] = "cpu"
+            logger.info("Running in mock mode. Bittensor objects will not be initialized.")
+            return values
+
+        # load slow packages only if not in mock mode
+        import torch
+
+        if not values.get("NEURON_DEVICE"):
+            values["NEURON_DEVICE"] = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # Ensure SAVE_PATH exists.
+        save_path = values.get("SAVE_PATH", "./storage")
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+        if values.get("SN19_API_KEY") is None or values.get("SN19_API_URL") is None:
+            logger.warning(
+                "It is strongly recommended to provide an SN19 API KEY + URL to avoid incurring OpenAI API costs."
+            )
+        if mode == "validator":
+            if values.get("OPENAI_API_KEY") is None:
+                raise Exception(
+                    "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
+                )
+            if values.get("SCORING_ADMIN_KEY") is None and values.get("DEPLOY_SCORING_API"):
+                logger.warning("You must provide a SCORING_ADMIN_KEY to access the API. Disabling scoring endpoint")
+                values["DEPLOY_SCORING_API"] = False
+            if values.get("PROXY_URL") is None:
+                logger.warning(
+                    "You must provide a proxy URL to use the DuckDuckGo API - your vtrust might decrease if no DDG URL is provided."
+                )
+        return values
 
     @cached_property
     def WALLET(self):
@@ -187,4 +279,11 @@ class SharedSettings(BaseSettings):
         return bt.dendrite(wallet=self.WALLET)
 
 
-shared_settings = SharedSettings(mode="validator")
+shared_settings: Optional[SharedSettings] = None
+try:
+    shared_settings = SharedSettings.load(mode="mock")
+    pass
+except Exception as e:
+    logger.exception(f"Error loading settings: {e}")
+    shared_settings = None
+logger.info("Shared settings loaded.")
