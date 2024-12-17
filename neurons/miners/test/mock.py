@@ -4,11 +4,10 @@ from functools import partial
 
 from starlette.types import Send
 
-from prompting.settings import settings
-
 # import base miner class which takes care of most of the boilerplate
 from shared.prompting_miner import BaseStreamPromptingMiner
 from shared.protocol import StreamPromptingSynapse
+from shared.settings import settings
 
 
 class MockMiner(BaseStreamPromptingMiner):

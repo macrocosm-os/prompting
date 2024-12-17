@@ -7,8 +7,8 @@ from pydantic import ConfigDict, model_validator
 from scipy import spatial
 
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
-from prompting.settings import settings
 from shared.dendrite import DendriteResponseEvent
+from shared.settings import settings
 
 MODEL = AnglE.from_pretrained("WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=settings.NEURON_DEVICE)
 if settings.NEURON_DEVICE.startswith("cuda"):

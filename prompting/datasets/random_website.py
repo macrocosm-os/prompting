@@ -8,7 +8,7 @@ from loguru import logger
 from prompting.base.duckduckgo_patch import PatchedDDGS
 from prompting.datasets.base import BaseDataset, Context, DatasetEntry
 from prompting.datasets.utils import ENGLISH_WORDS
-from prompting.settings import settings
+from shared.settings import settings
 
 MAX_CHARS = 5000
 

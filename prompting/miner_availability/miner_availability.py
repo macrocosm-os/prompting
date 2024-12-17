@@ -7,11 +7,11 @@ from loguru import logger
 from pydantic import BaseModel
 
 from prompting.llms.model_zoo import ModelZoo
-from prompting.settings import settings
 from prompting.tasks.base_task import BaseTask
 from prompting.tasks.task_registry import TaskRegistry
 from shared.epistula import query_availabilities
 from shared.loop_runner import AsyncLoopRunner
+from shared.settings import settings
 from shared.uids import get_uids
 
 task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
