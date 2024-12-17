@@ -95,6 +95,7 @@ class SharedSettings(BaseSettings):
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
     ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
     SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
+    SCORE_ORGANICS: bool = Field(False, env="SCORE_ORGANICS")
 
     # Additional Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")

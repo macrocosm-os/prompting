@@ -14,6 +14,9 @@ router = APIRouter()
 
 
 async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
+    if not shared_settings.SCORE_ORGANICS:  # Allow disabling of scoring by default
+        return
+
     # if body.get("task") != "InferenceTask":
     #     logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
     #     return
