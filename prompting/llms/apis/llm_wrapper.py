@@ -3,7 +3,7 @@ from loguru import logger
 from prompting.llms.apis.gpt_wrapper import openai_client
 from prompting.llms.apis.llm_messages import LLMMessages
 from prompting.llms.apis.sn19_wrapper import chat_complete
-from prompting.settings import settings
+from shared.settings import shared_settings
 
 
 class LLMWrapper:
@@ -17,7 +17,7 @@ class LLMWrapper:
         logprobs=True,
     ) -> str:
         response: str | None = None
-        if "gpt" not in model.lower() and settings.SN19_API_KEY and settings.SN19_API_URL:
+        if "gpt" not in model.lower() and shared_settings.SN19_API_KEY and shared_settings.SN19_API_URL:
             try:
                 response = chat_complete(
                     messages=messages,
