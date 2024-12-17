@@ -191,4 +191,11 @@ class SharedSettings(BaseSettings):
         return bt.dendrite(wallet=self.WALLET)
 
 
-shared_settings = SharedSettings(mode="validator")
+shared_settings: Optional[SharedSettings] = None
+try:
+    shared_settings: Optional[SharedSettings] = SharedSettings.load(mode="mock")
+    pass
+except Exception as e:
+    logger.exception(f"Error loading settings: {e}")
+    shared_settings = None
+logger.info("Shared settings loaded.")

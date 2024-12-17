@@ -5,12 +5,12 @@ import time
 
 from loguru import logger
 
-from prompting import settings
+from shared import settings
 from prompting.api.api import start_scoring_api
 from shared.profiling import profiler
 
-settings.settings = settings.Settings.load(mode="validator")
-settings = settings.settings
+settings.shared_settings = settings.SharedSettings.load(mode="validator")
+shared_settings = settings.shared_settings
 
 from prompting.llms.model_manager import model_scheduler
 from prompting.llms.utils import GPUInfo
@@ -27,7 +27,7 @@ async def main():
     # will start checking the availability of miners at regular intervals, needed for API and Validator
     asyncio.create_task(availability_checking_loop.start())
 
-    if settings.DEPLOY_SCORING_API:
+    if shared_settings.DEPLOY_SCORING_API:
         # Use multiprocessing to bypass API blocking issue.
         api_process = mp.Process(target=lambda: asyncio.run(start_scoring_api()))
         api_process.start()
