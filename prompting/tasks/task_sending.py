@@ -9,13 +9,14 @@ from prompting import mutable_globals
 from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.mutable_globals import scoring_queue
 from prompting.rewards.scoring import task_scorer
-from prompting.settings import settings
 from prompting.tasks.base_task import BaseTextTask
+from prompting.tasks.inference import InferenceTask
 from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
 from shared.epistula import query_miners
 from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
 from shared.misc import ttl_get_block
+from shared.settings import shared_settings
 from shared.timer import Timer
 
 NEURON_SAMPLE_SIZE = 100
@@ -60,7 +61,13 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
 
     log_stream_results(stream_results)
 
-    response_event = DendriteResponseEvent(stream_results=stream_results, uids=uids, timeout=settings.NEURON_TIMEOUT)
+    response_event = DendriteResponseEvent(
+        stream_results=stream_results,
+        uids=uids,
+        timeout=(
+            shared_settings.INFERENCE_TIMEOUT if isinstance(task, InferenceTask) else shared_settings.NEURON_TIMEOUT
+        ),
+    )
     return response_event
 
 
@@ -95,7 +102,7 @@ class TaskSender(AsyncLoopRunner):
         return estimated_block
 
     async def run_step(
-        self, k: int = settings.ORGANIC_SAMPLE_SIZE, timeout: float = settings.NEURON_TIMEOUT
+        self, k: int = shared_settings.ORGANIC_SAMPLE_SIZE, timeout: float = shared_settings.NEURON_TIMEOUT
     ) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
         """Executes a single step of the agent, which consists of:
         - Getting a list of uids to query
@@ -111,7 +118,7 @@ class TaskSender(AsyncLoopRunner):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        while len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
+        while len(scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Waiting 1 second...")
             await asyncio.sleep(1)
         while len(mutable_globals.task_queue) == 0:

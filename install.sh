@@ -7,7 +7,7 @@ pip install poetry
 poetry config virtualenvs.in-project true
 
 # Install the project dependencies
-poetry install
+poetry install --extras "validator"
 
 # Build AutoAWQ==0.2.7.post3 from source
 git clone https://github.com/casper-hansen/AutoAWQ.git
