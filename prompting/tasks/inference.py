@@ -11,7 +11,7 @@ from prompting.rewards.inference_reward_model import InferenceRewardModel
 from prompting.rewards.penalty import PenaltyModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.tasks.base_task import BaseTextTask
-from shared.settings import settings
+from shared.settings import shared_settings
 
 
 class InferenceRewardConfig(BaseRewardConfig):
@@ -39,7 +39,7 @@ class InferenceTask(BaseTextTask):
     llm_model: ModelConfig | None = None
     llm_model_id: ModelConfig | None = random.choice(ModelZoo.models_configs).llm_model_id
     seed: int = Field(default_factory=lambda: random.randint(0, 1_000_000))
-    sampling_params: dict[str, float] = settings.SAMPLING_PARAMS
+    sampling_params: dict[str, float] = shared_settings.SAMPLING_PARAMS
 
     @model_validator(mode="after")
     def random_llm_model_id(self):

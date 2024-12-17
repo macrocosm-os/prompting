@@ -8,7 +8,7 @@ from loguru import logger
 from prompting.base.duckduckgo_patch import PatchedDDGS
 from prompting.datasets.utils import ENGLISH_WORDS
 from shared.base import BaseDataset, Context, DatasetEntry
-from shared.settings import settings
+from shared.settings import shared_settings
 
 MAX_CHARS = 5000
 
@@ -24,7 +24,7 @@ class DDGDataset(BaseDataset):
 
     def search_random_term(self, retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
         try:
-            ddg = PatchedDDGS(proxy=settings.PROXY_URL, verify=False)
+            ddg = PatchedDDGS(proxy=shared_settings.PROXY_URL, verify=False)
             for _ in range(retries):
                 random_words = " ".join(random.sample(ENGLISH_WORDS, 5))
                 results = list(ddg.text(random_words))

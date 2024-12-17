@@ -5,7 +5,7 @@ from loguru import logger
 from prompting.api.api_managements.api import router as api_management_router
 from prompting.api.miner_availabilities.api import router as miner_availabilities_router
 from prompting.api.scoring.api import router as scoring_router
-from shared.settings import settings
+from shared.settings import shared_settings
 
 app = FastAPI()
 
@@ -22,4 +22,6 @@ def health():
 
 async def start_scoring_api():
     logger.info("Starting API...")
-    uvicorn.run("prompting.api.api:app", host="0.0.0.0", port=settings.SCORING_API_PORT, loop="asyncio", reload=False)
+    uvicorn.run(
+        "prompting.api.api:app", host="0.0.0.0", port=shared_settings.SCORING_API_PORT, loop="asyncio", reload=False
+    )

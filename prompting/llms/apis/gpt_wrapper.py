@@ -5,7 +5,7 @@ from openai.types.chat import ChatCompletion
 from pydantic import BaseModel
 
 from prompting.llms.apis.llm_messages import LLMMessage, LLMMessages
-from shared.settings import settings
+from shared.settings import shared_settings
 
 
 class GPT(BaseModel):
@@ -15,7 +15,7 @@ class GPT(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-    def __init__(self, api_key: str = settings.OPENAI_API_KEY):
+    def __init__(self, api_key: str = shared_settings.OPENAI_API_KEY):
         super().__init__()
         if api_key:
             self.client = openai.Client(api_key=api_key)
@@ -77,13 +77,13 @@ class GPT(BaseModel):
         while True:
             # If no max tokens are specified, we use however many tokens are left in the context window
             output_tokens = min(
-                settings.GPT_MODEL_CONFIG[model]["context_window"] - input_tokens - tool_tokens,
-                settings.GPT_MODEL_CONFIG[model]["max_tokens"],
+                shared_settings.GPT_MODEL_CONFIG[model]["context_window"] - input_tokens - tool_tokens,
+                shared_settings.GPT_MODEL_CONFIG[model]["max_tokens"],
             )
             if min_tokens < output_tokens:
                 break
             else:
-                model = settings.GPT_MODEL_CONFIG[model].get("upgrade")
+                model = shared_settings.GPT_MODEL_CONFIG[model].get("upgrade")
                 logger.debug(f"INPUT TOKENS: {input_tokens}")
                 logger.warning(
                     f"Upgrading to model {model} because output tokens ({output_tokens}) < min tokens({min_tokens})"
@@ -108,10 +108,10 @@ class GPT(BaseModel):
                     **kwargs,
                 )
                 output_cost = (
-                    response.usage.completion_tokens * settings.GPT_MODEL_CONFIG[model]["output_token_cost"]
+                    response.usage.completion_tokens * shared_settings.GPT_MODEL_CONFIG[model]["output_token_cost"]
                 ) / 1000
                 input_cost = (
-                    response.usage.prompt_tokens * settings.GPT_MODEL_CONFIG[model]["input_token_cost"]
+                    response.usage.prompt_tokens * shared_settings.GPT_MODEL_CONFIG[model]["input_token_cost"]
                 ) / 1000
                 logger.debug(f"MSG TOKENS: {messages.get_tokens(model)}")
                 logger.debug(f"USAGE: {response.usage}")
@@ -157,13 +157,13 @@ class GPT(BaseModel):
         while True:
             # If no max tokens are specified, we use however many tokens are left in the context window
             output_tokens = min(
-                settings.GPT_MODEL_CONFIG[model]["context_window"] - input_tokens,
-                settings.GPT_MODEL_CONFIG[model]["max_tokens"],
+                shared_settings.GPT_MODEL_CONFIG[model]["context_window"] - input_tokens,
+                shared_settings.GPT_MODEL_CONFIG[model]["max_tokens"],
             )
             if min_tokens < output_tokens:
                 break
             else:
-                model = settings.GPT_MODEL_CONFIG[model].get("upgrade")
+                model = shared_settings.GPT_MODEL_CONFIG[model].get("upgrade")
                 logger.debug(f"INPUT TOKENS: {input_tokens}")
                 logger.warning(
                     f"Upgrading to model {model} because output tokens ({output_tokens}) < min tokens({min_tokens})"
@@ -188,10 +188,10 @@ class GPT(BaseModel):
                     **kwargs,
                 )
                 output_cost = (
-                    response.usage.completion_tokens * settings.GPT_MODEL_CONFIG[model]["output_token_cost"]
+                    response.usage.completion_tokens * shared_settings.GPT_MODEL_CONFIG[model]["output_token_cost"]
                 ) / 1000
                 input_cost = (
-                    response.usage.prompt_tokens * settings.GPT_MODEL_CONFIG[model]["input_token_cost"]
+                    response.usage.prompt_tokens * shared_settings.GPT_MODEL_CONFIG[model]["input_token_cost"]
                 ) / 1000
                 logger.info(f"MSG TOKENS: {messages.get_tokens(model)}")
                 logger.info(f"USAGE: {response.usage}")
@@ -217,4 +217,4 @@ class GPT(BaseModel):
         raise Exception(f"GPT embedding call failed after {retries} retries")
 
 
-openai_client = GPT(api_key=settings.OPENAI_API_KEY)
+openai_client = GPT(api_key=shared_settings.OPENAI_API_KEY)

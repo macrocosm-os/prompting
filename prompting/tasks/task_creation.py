@@ -9,7 +9,7 @@ from prompting.mutable_globals import scoring_queue, task_queue
 from prompting.tasks.task_registry import TaskRegistry
 from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
-from shared.settings import settings
+from shared.settings import shared_settings
 
 RETRIES = 3
 
@@ -22,10 +22,10 @@ class TaskLoop(AsyncLoopRunner):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def run_step(self) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
-        if len(task_queue) > settings.TASK_QUEUE_LENGTH_THRESHOLD:
+        if len(task_queue) > shared_settings.TASK_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Task queue is full. Skipping task generation.")
             return None
-        if len(scoring_queue) > settings.SCORING_QUEUE_LENGTH_THRESHOLD:
+        if len(scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Skipping task generation.")
             return None
         await asyncio.sleep(0.1)

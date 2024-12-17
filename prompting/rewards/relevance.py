@@ -8,10 +8,10 @@ from scipy import spatial
 
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from shared.dendrite import DendriteResponseEvent
-from shared.settings import settings
+from shared.settings import shared_settings
 
-MODEL = AnglE.from_pretrained("WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=settings.NEURON_DEVICE)
-if settings.NEURON_DEVICE.startswith("cuda"):
+MODEL = AnglE.from_pretrained("WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=shared_settings.NEURON_DEVICE)
+if shared_settings.NEURON_DEVICE.startswith("cuda"):
     # This line is necessary to pass the model to the device defined at its initialization
     MODEL = MODEL.cuda()
 

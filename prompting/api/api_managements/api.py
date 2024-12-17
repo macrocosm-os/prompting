@@ -4,7 +4,7 @@ import secrets
 from fastapi import APIRouter, Depends, Header, HTTPException
 from loguru import logger
 
-from shared.settings import settings
+from shared.settings import shared_settings
 
 router = APIRouter()
 
@@ -12,14 +12,14 @@ router = APIRouter()
 # Load and save functions for API keys
 def load_api_keys():
     try:
-        with open(settings.SCORING_API_KEYS_FILE, "r") as f:
+        with open(shared_settings.SCORING_API_KEYS_FILE, "r") as f:
             return json.load(f)
     except FileNotFoundError:
         return {}
 
 
 def save_api_keys(api_keys):
-    with open(settings.SCORING_API_KEYS_FILE, "w") as f:
+    with open(shared_settings.SCORING_API_KEYS_FILE, "w") as f:
         json.dump(api_keys, f)
 
 
@@ -31,7 +31,7 @@ save_api_keys(_keys)
 
 # Dependency to validate the admin key
 def validate_admin_key(admin_key: str = Header(...)):
-    if admin_key != settings.SCORING_ADMIN_KEY:
+    if admin_key != shared_settings.SCORING_ADMIN_KEY:
         raise HTTPException(status_code=403, detail="Invalid admin key")
 
 
