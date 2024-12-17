@@ -13,7 +13,7 @@ poetry install --extras "validator"
 git clone https://github.com/casper-hansen/AutoAWQ.git
 cd AutoAWQ  && poetry run pip install -e . && cd ..
 
-poetry run pip install flash-attn
+poetry run pip install flash-attn --no-build-isolation
 
 # Check if jq is installed and install it if not
 if ! command -v jq &> /dev/null
