@@ -5,8 +5,8 @@ import time
 
 from loguru import logger
 
-from shared import settings
 from prompting.api.api import start_scoring_api
+from shared import settings
 from shared.profiling import profiler
 
 settings.shared_settings = settings.SharedSettings.load(mode="validator")
