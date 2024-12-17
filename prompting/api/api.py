@@ -5,7 +5,7 @@ from loguru import logger
 from prompting.api.api_managements.api import router as api_management_router
 from prompting.api.miner_availabilities.api import router as miner_availabilities_router
 from prompting.api.scoring.api import router as scoring_router
-from prompting.settings import settings
+from shared.settings import settings
 
 app = FastAPI()
 

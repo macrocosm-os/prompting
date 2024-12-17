@@ -4,7 +4,7 @@ import secrets
 from fastapi import APIRouter, Depends, Header, HTTPException
 from loguru import logger
 
-from prompting.settings import settings
+from shared.settings import settings
 
 router = APIRouter()
 

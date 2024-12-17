@@ -10,8 +10,8 @@ from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.rewards.inference_reward_model import InferenceRewardModel
 from prompting.rewards.penalty import PenaltyModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
-from prompting.settings import settings
 from prompting.tasks.base_task import BaseTextTask
+from shared.settings import settings
 
 
 class InferenceRewardConfig(BaseRewardConfig):

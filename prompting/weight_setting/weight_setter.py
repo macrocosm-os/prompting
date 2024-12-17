@@ -9,12 +9,12 @@ from loguru import logger
 from prompting import __spec_version__, mutable_globals
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.reward import WeightedRewardEvent
-from prompting.settings import settings
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.task_registry import TaskConfig, TaskRegistry
 from shared.logging import WeightSetEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
 from shared.misc import ttl_get_block
+from shared.settings import settings
 
 FILENAME = "validator_weights.npz"
 

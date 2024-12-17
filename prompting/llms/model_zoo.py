@@ -4,7 +4,7 @@ import numpy as np
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
 
-from prompting.settings import settings
+from shared.settings import settings
 
 
 class ModelConfig(BaseModel):

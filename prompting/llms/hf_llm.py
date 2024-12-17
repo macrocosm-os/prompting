@@ -5,7 +5,7 @@ import torch
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, pipeline
 
-from prompting.settings import settings
+from shared.settings import settings
 from shared.timer import Timer
 
 
