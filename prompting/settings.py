@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     NEURON_DEVICE: str | None = Field(None, env="NEURON_DEVICE")
     NEURON_GPUS: int = Field(1, env="NEURON_GPUS")
 
+    # Scoring Endpoint
+    SCORING_ENDPOINT_HOST: str | None = Field(None, env="SCORING_ENDPOINT_HOST")
+    SCORING_ENDPOINT_PORT: str | None = Field(None, env="SCORING_ENDPOINT_PORT")
+
     # Logging.
     LOGGING_DONT_SAVE_EVENTS: bool = Field(False, env="LOGGING_DONT_SAVE_EVENTS")
     LOG_WEIGHTS: bool = Field(False, env="LOG_WEIGHTS")
