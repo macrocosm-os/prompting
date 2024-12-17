@@ -5,7 +5,7 @@ from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from prompting.llms.apis.llm_messages import LLMMessages
-from prompting.settings import settings
+from shared.settings import shared_settings
 
 
 # TODO: key error in response.json() when response is 500
@@ -19,11 +19,11 @@ def chat_complete(
     stream=False,
     logprobs=True,
 ):
-    url = f"{settings.SN19_API_URL}v1/chat/completions"
+    url = f"{shared_settings.SN19_API_URL}v1/chat/completions"
 
     headers = {
         "accept": "application/json",
-        "Authorization": f"Bearer {settings.SN19_API_KEY}",
+        "Authorization": f"Bearer {shared_settings.SN19_API_KEY}",
         "Content-Type": "application/json",
     }
 

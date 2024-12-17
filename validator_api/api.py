@@ -5,11 +5,11 @@ from fastapi import FastAPI
 
 from shared import settings
 
-settings.shared_settings = settings.SharedSettings(mode="api")
+settings.shared_settings = settings.SharedSettings.load(mode="api")
+shared_settings = settings.shared_settings
 
 from validator_api.api_management import router as api_management_router
 from validator_api.gpt_endpoints import router as gpt_router
-from validator_api.miner_availabilities import availability_updater
 
 app = FastAPI()
 app.include_router(gpt_router, tags=["GPT Endpoints"])
@@ -25,11 +25,11 @@ async def health():
 
 
 async def main():
-    asyncio.create_task(availability_updater.start())
+    # asyncio.create_task(availability_updater.start())
     uvicorn.run(
         app,
-        host=settings.shared_settings.API_HOST,
-        port=settings.shared_settings.API_PORT,
+        host=shared_settings.API_HOST,
+        port=shared_settings.API_PORT,
         log_level="debug",
         timeout_keep_alive=60,
     )

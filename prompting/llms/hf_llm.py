@@ -5,7 +5,7 @@ import torch
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, pipeline
 
-from prompting.settings import settings
+from shared.settings import shared_settings
 from shared.timer import Timer
 
 
@@ -17,32 +17,21 @@ class ReproducibleHF:
         # Create a random seed for reproducibility
         self.seed = random.randint(0, 1_000_000)
         self.set_random_seeds(self.seed)
-        quantization_config = settings.QUANTIZATION_CONFIG.get(model_id, None)
-        if quantization_config:
-            self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                torch_dtype=torch.float16,
-                low_cpu_mem_usage=True,
-                device_map="cuda:0",
-                quantization_config=quantization_config,
-            )
-        else:
-            self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
-                model_id,
-                torch_dtype=torch.float16,
-                low_cpu_mem_usage=True,
-                device_map="cuda:0",
-            )
+        self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True,
+            device_map="cuda:0",
+        )
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
-
         self.valid_generation_params = set(
             AutoModelForCausalLM.from_pretrained(model_id).generation_config.to_dict().keys()
         )
 
         self.llm = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer)
 
-        self.sampling_params = settings.SAMPLING_PARAMS
+        self.sampling_params = shared_settings.SAMPLING_PARAMS
 
     @torch.inference_mode()
     def generate(self, messages: list[str] | list[dict], sampling_params=None, seed=None):
@@ -57,7 +46,7 @@ class ReproducibleHF:
             add_generation_prompt=True,
             return_tensors="pt",
             return_dict=True,
-        ).to(settings.NEURON_DEVICE)
+        ).to(shared_settings.NEURON_DEVICE)
 
         params = sampling_params if sampling_params else self.sampling_params
         filtered_params = {k: v for k, v in params.items() if k in self.valid_generation_params}
@@ -65,7 +54,7 @@ class ReproducibleHF:
         with Timer() as timer:
             # Generate with optimized settings
             outputs = self.model.generate(
-                **inputs.to(settings.NEURON_DEVICE),
+                **inputs.to(shared_settings.NEURON_DEVICE),
                 **filtered_params,
                 eos_token_id=self.tokenizer.eos_token_id,
             )

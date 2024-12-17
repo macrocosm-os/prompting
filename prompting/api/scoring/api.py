@@ -20,10 +20,11 @@ async def score_response(request: Request):  # , api_key_data: dict = Depends(va
     body = payload.get("body")
     uid = int(payload.get("uid"))
     chunks = payload.get("chunks")
+    llm_model = ModelZoo.get_model_by_id(model) if (model := body.get("model")) else None
     task_scorer.add_to_queue(
         task=InferenceTask(
             messages=[msg["content"] for msg in body.get("messages")],
-            llm_model=ModelZoo.get_model_by_id(model) if (model := body.get("model")) else None,
+            llm_model=llm_model,
             llm_model_id=body.get("model"),
             seed=int(body.get("seed", 0)),
             sampling_params=body.get("sampling_params", {}),

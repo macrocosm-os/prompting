@@ -9,20 +9,22 @@ from starlette.responses import StreamingResponse
 
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
-from validator_api.miner_availabilities import get_available_miner
 
 router = APIRouter()
 
 
 async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
+    if not shared_settings.SCORE_ORGANICS:  # Allow disabling of scoring by default
+        return
+
     # if body.get("task") != "InferenceTask":
     #     logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
     #     return
-    url = f"http://{shared_settings.VALIDATOR_IP}:{shared_settings.VALIDATOR_PORT}/scoring"
+    url = f"http://{shared_settings.VALIDATOR_API}/scoring"
     logger.info(url)
     payload = {"body": body, "chunks": chunks, "uid": uid}
     # headers = {
-    #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
+    #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  #Add API key in Authorization header
     #     "Content-Type": "application/json",
     # }
     try:
@@ -50,8 +52,8 @@ async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundT
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         STREAM = body.get("stream") or False
         logger.debug(f"Streaming: {STREAM}")
-        # uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
-        uid = get_available_miner(task=body.get("task"), model=body.get("model"))
+        uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
+        # uid = get_available_miner(task=body.get("task"), model=body.get("model"))
         if uid is None:
             logger.error("No available miner found")
             raise HTTPException(status_code=503, detail="No available miner found")

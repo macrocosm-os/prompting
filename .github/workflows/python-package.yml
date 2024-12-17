@@ -43,20 +43,15 @@ jobs:
     # Style/format checks.
     - name: Run Black (code formatter)
       run: |
-        poetry run black --check .
+        poetry run black --check --diff .
 
     - name: Run isort (import sorting)
       run: |
-        poetry run isort --check-only --profile black .
-
-    # TODO: "pyflakes[F]" failed during execution due to RecursionError('maximum recursion depth exceeded')
-    # - name: Run Flake8 (style guide enforcement)
-    #   run: |
-    #     poetry run flake8 .
+        poetry run isort --check-only --diff --profile black .
 
     - name: Run Ruff (linter)
       run: |
-        poetry run ruff check .
+        poetry run ruff check --diff .
 
     - name: Test with pytest
       run: |
