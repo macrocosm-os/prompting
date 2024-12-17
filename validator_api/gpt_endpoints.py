@@ -22,7 +22,7 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
     logger.info(url)
     payload = {"body": body, "chunks": chunks, "uid": uid}
     # headers = {
-    #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
+    #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  #Add API key in Authorization header
     #     "Content-Type": "application/json",
     # }
     try:
