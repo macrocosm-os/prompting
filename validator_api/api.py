@@ -26,7 +26,7 @@ async def health():
 
 
 async def main():
-    asyncio.create_task(availability_updater.start())
+    # asyncio.create_task(availability_updater.start())
     uvicorn.run(
         app,
         host=shared_settings.API_HOST,

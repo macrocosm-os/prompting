@@ -50,8 +50,8 @@ async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundT
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         STREAM = body.get("stream") or False
         logger.debug(f"Streaming: {STREAM}")
-        # uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
-        uid = get_available_miner(task=body.get("task"), model=body.get("model"))
+        uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
+        # uid = get_available_miner(task=body.get("task"), model=body.get("model"))
         if uid is None:
             logger.error("No available miner found")
             raise HTTPException(status_code=503, detail="No available miner found")
