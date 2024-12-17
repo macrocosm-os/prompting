@@ -40,9 +40,18 @@ jobs:
         poetry env info
         poetry run pip list
 
-    - name: Run pre-commit checks
+    # Style/format checks.
+    - name: Run Black (code formatter)
       run: |
-        poetry run pre-commit run --all-files
+        poetry run black --check --diff .
+
+    - name: Run isort (import sorting)
+      run: |
+        poetry run isort --check-only --diff --profile black .
+
+    - name: Run Ruff (linter)
+      run: |
+        poetry run ruff check --diff .
 
     - name: Test with pytest
       run: |

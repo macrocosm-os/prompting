@@ -18,6 +18,7 @@ repos:
     - id: black
       name: black (code formatter)
       language_version: python3.10
+      additional_dependencies: ["black[jupyter]"]
 
 - repo: https://github.com/pycqa/isort
   rev: 5.13.2
