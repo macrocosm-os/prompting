@@ -22,6 +22,7 @@ from prompting.weight_setting.weight_setter import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
 
+
 async def start_dummy_endpoint():
     logger.debug("Starting Dummy Endpoint")
     while True:
@@ -29,7 +30,6 @@ async def start_dummy_endpoint():
 
 
 async def main():
-
     if settings.DEPLOY_API:
         # Use multiprocessing to bypass API blocking issue.
         api_process = mp.Process(target=lambda: asyncio.run(start_dummy_endpoint()))
