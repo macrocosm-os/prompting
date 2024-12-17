@@ -9,7 +9,6 @@ from starlette.responses import StreamingResponse
 
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
-from validator_api.miner_availabilities import get_available_miner
 
 router = APIRouter()
 

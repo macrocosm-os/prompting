@@ -7,18 +7,12 @@ from loguru import logger
 
 from prompting.api.api import start_scoring_api
 from shared import settings
-from shared.profiling import profiler
 
 settings.shared_settings = settings.SharedSettings.load(mode="validator")
 shared_settings = settings.shared_settings
 
-from prompting.llms.model_manager import model_scheduler
 from prompting.llms.utils import GPUInfo
 from prompting.miner_availability.miner_availability import availability_checking_loop
-from prompting.rewards.scoring import task_scorer
-from prompting.tasks.task_creation import task_loop
-from prompting.tasks.task_sending import task_sender
-from prompting.weight_setting.weight_setter import weight_setter
 
 NEURON_SAMPLE_SIZE = 100
 
