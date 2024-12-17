@@ -16,7 +16,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 class SharedSettings(BaseSettings):
     # API
-    VALIDATOR_ADDRESS: str = Field("http://localhost:8094", env="VALIDATOR_ADDRESS")
+    VALIDATOR_IP: str = Field("0.0.0.0", env="VALIDATOR_IP")
     VALIDATOR_PORT: int = Field(8094, env="VALIDATOR_PORT")
     VALIDATOR_SCORING_KEY: str = Field("1234567890", env="VALIDATOR_SCORING_KEY")
 
@@ -149,7 +149,7 @@ class SharedSettings(BaseSettings):
         if v["mode"] == "api":
             if not dotenv.load_dotenv(".env.api"):
                 logger.warning("No .env.api file found. Please create one.")
-            if not v.get("SCORING_KEY"):
+            if not os.getenv("SCORING_KEY"):
                 logger.warning(
                     "No SCORING_KEY found in .env.api file. You must add a scoring key that will allow us to forward miner responses to the validator for scoring."
                 )

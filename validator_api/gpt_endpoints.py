@@ -1,9 +1,10 @@
 import asyncio
 import json
 import random
+from typing import AsyncGenerator
 
 import httpx
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, BackgroundTasks, Request
 from loguru import logger
 from starlette.responses import StreamingResponse
 
@@ -13,12 +14,11 @@ from shared.settings import shared_settings
 router = APIRouter()
 
 
-# Forwarding task
-async def forward_response(uid: int, body, chunks):
+async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
     if body.get("task") != "InferenceTask":
         logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
         return
-    url = f"http://{shared_settings.VALIDATOR_ADDRESS}/scoring"
+    url = f"http://{shared_settings.VALIDATOR_IP}:{shared_settings.VALIDATOR_PORT}/scoring"
     payload = {"body": body, "response": chunks, "uid": uid}
     headers = {
         "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
@@ -34,7 +34,7 @@ async def forward_response(uid: int, body, chunks):
 
 
 @router.post("/v1/chat/completions")
-async def chat_completion(request: Request):
+async def chat_completion(request: Request):#, background_tasks: BackgroundTasks):
     try:
         body = await request.json()
         STREAM = body.get("stream") or False
@@ -42,7 +42,7 @@ async def chat_completion(request: Request):
         uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
         logger.debug(f"Querying uid {uid}")
 
-        collected_chunks = []
+        collected_chunks: list[str] = []
 
         # Create a wrapper for the streaming response
         async def stream_with_error_handling():
@@ -53,7 +53,8 @@ async def chat_completion(request: Request):
                     yield f"data: {json.dumps(chunk.model_dump())}\n\n"
                 yield "data: [DONE]\n\n"
                 # Once the stream is done, forward the collected chunks
-                asyncio.create_task(forward_response(uid=uid, body=body, chunks=collected_chunks))
+                # asyncio.create_task(forward_response(uid=uid, body=body, chunks=collected_chunks))
+                # background_tasks.add_task(forward_response, uid=uid, body=body, chunks=collected_chunks)
             except asyncio.CancelledError:
                 logger.info("Client disconnected, streaming cancelled")
                 raise
