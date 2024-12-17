@@ -16,12 +16,11 @@ from shared.logging import WeightSetEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
 from shared.misc import ttl_get_block
 
-FILENAME = "./weights.npy"
-PAST_WEIGHTS = []
+FILENAME = "validator_weights.npz"
 
 try:
-    PAST_WEIGHTS = [np.load(FILENAME)]
-    logger.info(f"Loaded weights from file: {PAST_WEIGHTS}")
+    with np.load(FILENAME) as data:
+        PAST_WEIGHTS = [data[key] for key in data.files]
 except FileNotFoundError:
     logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
     PAST_WEIGHTS = []
@@ -45,15 +44,11 @@ def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
     return all_rewards
 
 
-def save_weights(weights: np.ndarray):
-    """Saves the state of the validator to a file."""
+def save_weights(weights: list[np.ndarray], filename: str):
+    """Saves the list of numpy arrays to a file."""
     logger.info("Saving validator state.")
-
-    # Save the state of the validator to file.
-    try:
-        np.save(FILENAME, weights)
-    except Exception as ex:
-        logger.exception(f"Couldn't save weights to file: {ex}")
+    # Save all arrays into a single .npz file
+    np.savez_compressed(filename, *weights)
 
 
 def set_weights(weights: np.ndarray, step: int = 0):
@@ -68,14 +63,14 @@ def set_weights(weights: np.ndarray, step: int = 0):
                 f"Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions. Scores: {weights}"
             )
 
+        # Replace any NaN values with 0
+        weights = np.nan_to_num(weights, nan=0.0)
         # Calculate the average reward for each uid across non-zero values.
-        # Replace any NaN values with 0.
         PAST_WEIGHTS.append(weights)
-        save_weights(weights)
         if len(PAST_WEIGHTS) > WEIGHTS_HISTORY_LENGTH:
             PAST_WEIGHTS.pop(0)
         averaged_weights = np.average(np.array(PAST_WEIGHTS), axis=0)
-
+        save_weights(PAST_WEIGHTS)
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
