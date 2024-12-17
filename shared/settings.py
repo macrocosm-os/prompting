@@ -27,8 +27,7 @@ class SharedSettings(BaseSettings):
     _instance: Optional["SharedSettings"] = None
     _instance_mode: Optional[str] = None
     # API
-    VALIDATOR_IP: str = Field("0.0.0.0", env="VALIDATOR_IP")
-    VALIDATOR_PORT: int = Field(8094, env="VALIDATOR_PORT")
+    VALIDATOR_API: str = Field("0.0.0.0:8094", env="VALIDATOR_API")
     VALIDATOR_SCORING_KEY: str = Field("1234567890", env="VALIDATOR_SCORING_KEY")
 
     mode: Literal["api", "validator", "miner", "mock"] = Field("validator", env="MODE")
@@ -96,7 +95,6 @@ class SharedSettings(BaseSettings):
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
     ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
     SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
-    SCORING_API_KEYS_FILE: str | None = Field(None, env="SCORING_API_KEYS_FILE")
 
     # Additional Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")

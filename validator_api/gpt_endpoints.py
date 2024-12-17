@@ -18,7 +18,7 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
     # if body.get("task") != "InferenceTask":
     #     logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
     #     return
-    url = f"http://{shared_settings.VALIDATOR_IP}:{shared_settings.VALIDATOR_PORT}/scoring"
+    url = f"http://{shared_settings.VALIDATOR_API}/scoring"
     logger.info(url)
     payload = {"body": body, "chunks": chunks, "uid": uid}
     # headers = {
