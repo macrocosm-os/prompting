@@ -25,7 +25,14 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
     #     "Content-Type": "application/json",
     # }
     try:
-        async with httpx.AsyncClient() as client:
+        timeout = httpx.Timeout(
+            timeout=120.0,
+            connect=60.0,
+            read=30.0,
+            write=30.0,
+            pool=5.0
+        )
+        async with httpx.AsyncClient(timeout=timeout) as client:
             logger.debug(f"Payload: {payload}")
             response = await client.post(url, json=payload)  # , headers=headers)
             if response.status_code == 200:
@@ -61,7 +68,6 @@ async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundT
         async def stream_with_error_handling():
             try:
                 async for chunk in response:
-                    logger.debug(chunk.choices[0].delta.content)
                     collected_chunks.append(chunk.choices[0].delta.content)
                     yield f"data: {json.dumps(chunk.model_dump())}\n\n"
                 yield "data: [DONE]\n\n"
