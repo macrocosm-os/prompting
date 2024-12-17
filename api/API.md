@@ -3,7 +3,7 @@
 This document describes the API endpoints available for [Subnet 1](https://github.com/macrocosm-os/prompting)
 
 ## Table of Contents
-
+- [Getting Started](#getting-started)
 - [API Management](#api-management)
   - [Create API Key](#create-api-key)
   - [Modify API Key](#modify-api-key)
@@ -15,6 +15,22 @@ This document describes the API endpoints available for [Subnet 1](https://githu
   - [Mixture of Agents](#mixture-of-agents)
   - [Proxy Chat Completions](#proxy-chat-completions)
 - [Health](#health)
+
+---
+
+## Getting Started
+
+Follow these steps to set up and run the API server:
+
+1. **Install dependencies**: Ensure all required dependencies are installed using Poetry.
+2. **Run the API server**: Start the server to access the API endpoints.
+
+Use the following command:
+
+```bash
+# Run the API server
+bash run_api.sh
+```
 
 ---
 
