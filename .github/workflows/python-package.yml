@@ -40,23 +40,9 @@ jobs:
         poetry env info
         poetry run pip list
 
-    # Style/format checks.
-    - name: Run Black (code formatter)
+    - name: Run pre-commit checks
       run: |
-        poetry run black --check .
-
-    - name: Run isort (import sorting)
-      run: |
-        poetry run isort --check-only --profile black .
-
-    # TODO: "pyflakes[F]" failed during execution due to RecursionError('maximum recursion depth exceeded')
-    # - name: Run Flake8 (style guide enforcement)
-    #   run: |
-    #     poetry run flake8 .
-
-    - name: Run Ruff (linter)
-      run: |
-        poetry run ruff check .
+        poetry run pre-commit run --all-files
 
     - name: Test with pytest
       run: |
