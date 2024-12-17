@@ -13,7 +13,7 @@ from shared.settings import shared_settings
 
 router = APIRouter()
 
-# TEST COMMIT
+
 @router.post("/scoring")
 async def score_response(request: Request):  # , api_key_data: dict = Depends(validate_api_key)):
     payload: dict[str, Any] = await request.json()

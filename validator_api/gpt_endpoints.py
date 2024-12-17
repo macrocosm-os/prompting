@@ -26,13 +26,7 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
     #     "Content-Type": "application/json",
     # }
     try:
-        timeout = httpx.Timeout(
-            timeout=120.0,
-            connect=60.0,
-            read=30.0,
-            write=30.0,
-            pool=5.0
-        )
+        timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
             logger.debug(f"Payload: {payload}")
             response = await client.post(url, json=payload)  # , headers=headers)
