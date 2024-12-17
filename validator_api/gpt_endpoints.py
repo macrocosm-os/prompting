@@ -26,10 +26,10 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
     # }
     try:
         timeout = httpx.Timeout(
-            timeout=120.0,
-            connect=60.0,
-            read=30.0,
-            write=30.0,
+            timeout=180.0,
+            connect=120.0,
+            read=60.0,
+            write=60.0,
             pool=5.0
         )
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -55,8 +55,8 @@ async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundT
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         STREAM = body.get("stream") or False
         logger.debug(f"Streaming: {STREAM}")
-        # uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
-        uid = get_available_miner(task=body.get("task"), model=body.get("model"))
+        uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
+        # uid = get_available_miner(task=body.get("task"), model=body.get("model"))
         if uid is None:
             logger.error("No available miner found")
             raise HTTPException(status_code=503, detail="No available miner found")
