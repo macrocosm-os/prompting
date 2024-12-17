@@ -11,7 +11,7 @@ app = FastAPI()
 
 app.include_router(api_management_router, prefix="/api_management", tags=["api_management"])
 app.include_router(miner_availabilities_router, prefix="/miner_availabilities", tags=["miner_availabilities"])
-app.include_router(scoring_router, prefix="/scoring", tags=["scoring"])
+app.include_router(scoring_router, tags=["scoring"])
 
 
 @app.get("/health")

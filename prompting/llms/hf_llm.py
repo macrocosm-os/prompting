@@ -65,7 +65,7 @@ class ReproducibleHF:
         with Timer() as timer:
             # Generate with optimized settings
             outputs = self.model.generate(
-                **inputs,
+                **inputs.to(settings.NEURON_DEVICE),
                 **filtered_params,
                 eos_token_id=self.tokenizer.eos_token_id,
             )
