@@ -14,17 +14,19 @@ router = APIRouter()
 
 
 async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
-    if body.get("task") != "InferenceTask":
-        logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
-        return
+    # if body.get("task") != "InferenceTask":
+    #     logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
+    #     return
     url = f"http://{shared_settings.VALIDATOR_IP}:{shared_settings.VALIDATOR_PORT}/scoring"
-    payload = {"body": body, "response": chunks, "uid": uid}
+    logger.info(url)
+    payload = {"body": body, "chunks": chunks, "uid": uid}
     headers = {
         "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  # Add API key in Authorization header
         "Content-Type": "application/json",
     }
     try:
         async with httpx.AsyncClient() as client:
+            logger.debug(f"Payload: {payload}")
             response = await client.post(url, json=payload, headers=headers)
             logger.info(f"Forwarding response completed with status {response.status_code}")
     except Exception as e:
@@ -51,12 +53,12 @@ async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundT
         async def stream_with_error_handling():
             try:
                 async for chunk in response:
-                    logger.debug(chunk)
-                    collected_chunks.append(chunk.model_dump())
+                    logger.debug(chunk.choices[0].delta.content)
+                    collected_chunks.append(chunk.choices[0].delta.content)
                     yield f"data: {json.dumps(chunk.model_dump())}\n\n"
                 yield "data: [DONE]\n\n"
                 # Once the stream is done, forward the collected chunks
-                # asyncio.create_task(forward_response(uid=uid, body=body, chunks=collected_chunks))
+                asyncio.create_task(forward_response(uid=uid, body=body, chunks=collected_chunks))
                 # background_tasks.add_task(forward_response, uid=uid, body=body, chunks=collected_chunks)
             except asyncio.CancelledError:
                 logger.info("Client disconnected, streaming cancelled")

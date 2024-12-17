@@ -51,7 +51,7 @@ async def main():
     client = openai.AsyncOpenAI(
         base_url=f"http://localhost:{PORT}/v1",
         max_retries=0,
-        timeout=Timeout(90, connect=20, read=40),
+        timeout=Timeout(90, connect=30, read=60),
         api_key=API_KEY,
     )
     response = await make_completion(client=client, prompt="Say 10 random numbers between 1 and 100", stream=True)

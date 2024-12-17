@@ -1,3 +1,4 @@
+from typing import Any
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
@@ -12,8 +13,8 @@ router = APIRouter()
 
 
 class ScoringPayload(BaseModel):
-    body: dict
-    response: list[dict]
+    body: dict[str, Any]
+    chunks: list[str]
     uid: int
 
 
@@ -28,6 +29,6 @@ def score_response(payload: ScoringPayload, api_key_data: dict = Depends(validat
             sampling_params=payload.body.get("sampling_params"),
         ),
         response=DendriteResponseEvent(
-            uids=[payload.uid], stream_results=[SynapseStreamResult(accumulated_chunks=payload.response)]
+            uids=[payload.uid], stream_results=[SynapseStreamResult(accumulated_chunks=payload.chunks)]
         ),
     )
