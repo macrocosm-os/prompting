@@ -28,7 +28,9 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
     try:
         timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(url, json=payload)  # , headers=headers)
+            response = await client.post(
+                url, json=payload, headers={"api-key": shared_settings.SCORING_KEY, "Content-Type": "application/json"}
+            )
             if response.status_code == 200:
                 logger.info(f"Forwarding response completed with status {response.status_code}")
 

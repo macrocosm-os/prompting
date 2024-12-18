@@ -11,12 +11,18 @@ from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.epistula import SynapseStreamResult
 from shared.settings import shared_settings
+from fastapi import Depends, HTTPException, Header
 
 router = APIRouter()
 
 
+def validate_scoring_key(api_key: str = Header(...)):
+    if api_key != shared_settings.SCORING_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+
+
 @router.post("/scoring")
-async def score_response(request: Request):  # , api_key_data: dict = Depends(validate_api_key)):
+async def score_response(request: Request, api_key_data: dict = Depends(validate_scoring_key)):
     model = None
     payload: dict[str, Any] = await request.json()
     body = payload.get("body")
