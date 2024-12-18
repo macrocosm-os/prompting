@@ -6,13 +6,13 @@ from loguru import logger
 from pydantic import ConfigDict
 
 from prompting import mutable_globals
-from prompting.base.dendrite import DendriteResponseEvent
-from prompting.base.loop_runner import AsyncLoopRunner
-from prompting.datasets.base import DatasetEntry
 from prompting.llms.model_manager import model_manager, model_scheduler
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_registry import TaskRegistry
-from prompting.utils.logging import RewardLoggingEvent, log_event
+from shared.base import DatasetEntry
+from shared.dendrite import DendriteResponseEvent
+from shared.logging import RewardLoggingEvent, log_event
+from shared.loop_runner import AsyncLoopRunner
 
 
 @dataclass
@@ -45,7 +45,6 @@ class TaskScorer(AsyncLoopRunner):
         step: int,
         task_id: str,
     ) -> None:
-        logger.debug(f"SCORING: Added to queue: {task.__class__.__name__} {task.task_id}")
         mutable_globals.scoring_queue.append(
             ScoringConfig(
                 task=task,
@@ -55,6 +54,9 @@ class TaskScorer(AsyncLoopRunner):
                 step=step,
                 task_id=task_id,
             )
+        )
+        logger.debug(
+            f"SCORING: Added to queue: {task.__class__.__name__}. Queue size: {len(mutable_globals.scoring_queue)}"
         )
 
     async def run_step(self) -> RewardLoggingEvent:

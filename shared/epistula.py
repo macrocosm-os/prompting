@@ -11,10 +11,15 @@ import httpx
 import openai
 from httpx import Timeout
 from loguru import logger
+from openai.types.chat import ChatCompletion
+from openai.types.chat.chat_completion import Choice
+from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from substrateinterface import Keypair
 
-from prompting.base.dendrite import SynapseStreamResult
-from prompting.settings import settings
+from shared.dendrite import SynapseStreamResult
+from shared.settings import shared_settings
+
+# from openai.types import Com
 
 
 def verify_signature(
@@ -106,38 +111,39 @@ async def merged_stream(responses: list[AsyncGenerator]):
                 logger.error(f"Error while streaming: {e}")
 
 
-async def query_miners(uids: list = [], body: bytes = b"", stream: bool = False, return_first: bool = False):
+async def query_miners(uids, body: dict[str, Any]):
     try:
         tasks = []
         for uid in uids:
             tasks.append(
-                asyncio.create_task(
-                    handle_inference(
-                        settings.METAGRAPH,
-                        settings.WALLET,
-                        body,
-                        uid,
-                        stream=stream,
-                    )
-                )
+                asyncio.create_task(make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid))
             )
-        if return_first:
-            done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-            return [await done.pop()]
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Filter out exceptions from responses
+        # Show exceptions from responses
         exceptions = [resp for resp in responses if isinstance(resp, Exception)]
         if exceptions:
             for exc in exceptions:
-                logger.error(f"Error in handle_inference: {exc}")
+                logger.error(f"Error in make_openai_query: {exc}")
 
-        if stream:
-            # 'responses' is a list of async iterators (chat objects)
-            return merged_stream(responses)
-        else:
-            # 'responses' is a list of SynapseStreamResult objects
-            return [resp for resp in responses if not isinstance(resp, Exception)]
+        # 'responses' is a list of SynapseStreamResult objects
+        results = []
+        for response, uid in zip(responses, uids):
+            if isinstance(response, Exception):
+                results.append(SynapseStreamResult(exception=str(response)))
+            elif isinstance(response, tuple) and isinstance(response[0], ChatCompletion):
+                results.append(
+                    SynapseStreamResult(
+                        uid=uid,
+                        response=response[0],
+                        accumulated_chunks=response[1],
+                        accumulated_chunks_timings=response[2],
+                    )
+                )
+            else:
+                logger.error(f"Unknown response type: {response}")
+                results.append(SynapseStreamResult(uid=uid, exception=f"Unknown response type: {response}"))
+        return results
     except Exception as e:
         logger.error(f"Error in query_miners: {e}")
         return []
@@ -153,7 +159,7 @@ async def query_availabilities(uids, task_config, model_config):
             tasks.append(
                 asyncio.create_task(
                     handle_availability(
-                        settings.METAGRAPH,
+                        shared_settings.METAGRAPH,
                         availability_dict,
                         uid,
                     )
@@ -176,7 +182,7 @@ async def handle_availability(
         axon_info = metagraph.axons[uid]
         url = f"http://{axon_info.ip}:{axon_info.port}/availability"
 
-        timeout = httpx.Timeout(settings.NEURON_TIMEOUT, connect=5, read=5)
+        timeout = httpx.Timeout(shared_settings.NEURON_TIMEOUT, connect=5, read=5)
 
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(url, json=request)
@@ -194,26 +200,62 @@ async def make_openai_query(
     body: dict[str, Any],
     uid: int,
     stream: bool = False,
-):
+) -> tuple[ChatCompletion, list, list] | AsyncGenerator:
     axon_info = metagraph.axons[uid]
     miner = openai.AsyncOpenAI(
         base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
         api_key="Apex",
         max_retries=0,
-        timeout=Timeout(10, connect=5, read=10),
+        timeout=Timeout(30, connect=5, read=10),
         http_client=openai.DefaultAsyncHttpxClient(
             event_hooks={"request": [create_header_hook(wallet.hotkey, axon_info.hotkey)]}
         ),
     )
-    # payload = json.loads(body)
-    payload = body
+    extra_body = {k: v for k, v in body.items() if k not in ["messages", "model"]}
     chat = await miner.chat.completions.create(
-        messages=payload["messages"],
-        model=payload["model"],
-        stream=stream,
-        extra_body={k: v for k, v in payload.items() if k not in ["messages", "model"]},
+        model=None,
+        messages=body["messages"],
+        stream=True,
+        extra_body=extra_body,
+        timeout=20,
     )
-    return chat
+    if stream:
+        return chat
+    else:
+        choices = []
+        chunks = []
+        chunk_timings = []
+        start_time = time.time()
+        async for chunk in chat:
+            if not chunk.choices:
+                continue
+            for i, choice in enumerate(chunk.choices):
+                if i >= len(choices):
+                    choices.append("")
+                if choice.delta.content:
+                    choices[i] += choice.delta.content
+            if chunk.choices[0].delta.content:
+                chunks.append(chunk.choices[0].delta.content)
+                chunk_timings.append(time.time() - start_time)
+        choices = [
+            Choice(index=i, message=ChatCompletionMessage(content=choice, role="assistant"), finish_reason="stop")
+            for i, choice in enumerate(choices)
+        ]
+        # TODO: We need to find a better way to do this instead of sometimes returning a tuple and sometimes not, but for now this has to do
+        return (
+            ChatCompletion(
+                id=str(uuid4()),
+                choices=choices,
+                created=int(time.time()),
+                model=body.get("model") or "",
+                object="chat.completion",
+                service_tier=None,
+                system_fingerprint=None,
+                usage=None,
+            ),
+            chunks,
+            chunk_timings,
+        )
 
 
 async def handle_inference(
@@ -233,7 +275,7 @@ async def handle_inference(
             base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
             api_key="Apex",
             max_retries=0,
-            timeout=Timeout(settings.NEURON_TIMEOUT, connect=5, read=10),
+            timeout=Timeout(shared_settings.NEURON_TIMEOUT, connect=5, read=10),
             http_client=openai.DefaultAsyncHttpxClient(
                 event_hooks={"request": [create_header_hook(wallet.hotkey, axon_info.hotkey)]}
             ),

@@ -8,8 +8,8 @@ import json
 
 from loguru import logger
 
-from prompting.base.epistula import query_miners
-from prompting.settings import settings
+from shared.epistula import query_miners
+from shared.settings import shared_settings
 
 """
 This has assumed you have:
@@ -29,7 +29,7 @@ TEST_MINER_IDS = [203]
 async def query_and_print():
     body = {
         "seed": 0,
-        "sampling_parameters": settings.SAMPLING_PARAMS,
+        "sampling_parameters": shared_settings.SAMPLING_PARAMS,
         "task": "inference",
         "model": "casperhansen/llama-3-8b-instruct-awq",
         "messages": [

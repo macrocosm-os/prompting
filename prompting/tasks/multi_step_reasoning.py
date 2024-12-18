@@ -5,14 +5,13 @@ from typing import ClassVar
 
 from loguru import logger
 
-from prompting.datasets.base import Context
 from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.tasks.qa import QuestionAnsweringTask
-from prompting.utils.cleaners import CleanerPipeline, PruneEnding, RemovePostQuestionText, RemoveQuotes, RemoveRoles
-from prompting.utils.timer import Timer
+from shared.base import Context
+from shared.timer import Timer
 
 MAX_THINKING_STEPS = 10
 
@@ -179,14 +178,6 @@ class MultiStepReasoningTask(QuestionAnsweringTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
 
-    cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline(
-        cleaning_pipeline=[
-            RemoveQuotes(),
-            PruneEnding(),
-            RemoveRoles(),
-            RemovePostQuestionText(),
-        ]
-    )
     name: ClassVar[str] = "multi_step_reasoning"
     augmentation_system_prompt: ClassVar[str] = ""
     query: str | None = None

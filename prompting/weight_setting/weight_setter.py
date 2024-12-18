@@ -7,21 +7,21 @@ import pandas as pd
 from loguru import logger
 
 from prompting import __spec_version__, mutable_globals
-from prompting.base.loop_runner import AsyncLoopRunner
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.reward import WeightedRewardEvent
-from prompting.settings import settings
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.task_registry import TaskConfig, TaskRegistry
-from prompting.utils.logging import WeightSetEvent, log_event
-from prompting.utils.misc import ttl_get_block
+from shared.logging import WeightSetEvent, log_event
+from shared.loop_runner import AsyncLoopRunner
+from shared.misc import ttl_get_block
+from shared.settings import shared_settings
 
-FILENAME = "./weights.npy"
-PAST_WEIGHTS = []
+FILENAME = "validator_weights.npz"
 
 try:
-    PAST_WEIGHTS = [np.load(FILENAME)]
-    logger.info(f"Loaded weights from file: {PAST_WEIGHTS}")
+    with np.load(FILENAME) as data:
+        PAST_WEIGHTS = [data[key] for key in data.files]
+    logger.debug(f"Loaded Past Weights: {PAST_WEIGHTS}")
 except FileNotFoundError:
     logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
     PAST_WEIGHTS = []
@@ -45,15 +45,11 @@ def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
     return all_rewards
 
 
-def save_weights(weights: np.ndarray):
-    """Saves the state of the validator to a file."""
+def save_weights(weights: list[np.ndarray]):
+    """Saves the list of numpy arrays to a file."""
     logger.info("Saving validator state.")
-
-    # Save the state of the validator to file.
-    try:
-        np.save(FILENAME, weights)
-    except Exception as ex:
-        logger.exception(f"Couldn't save weights to file: {ex}")
+    # Save all arrays into a single .npz file
+    np.savez_compressed(FILENAME, *weights)
 
 
 def set_weights(weights: np.ndarray, step: int = 0):
@@ -68,24 +64,24 @@ def set_weights(weights: np.ndarray, step: int = 0):
                 f"Scores contain NaN values. This may be due to a lack of responses from miners, or a bug in your reward functions. Scores: {weights}"
             )
 
+        # Replace any NaN values with 0
+        weights = np.nan_to_num(weights, nan=0.0)
         # Calculate the average reward for each uid across non-zero values.
-        # Replace any NaN values with 0.
         PAST_WEIGHTS.append(weights)
-        save_weights(weights)
         if len(PAST_WEIGHTS) > WEIGHTS_HISTORY_LENGTH:
             PAST_WEIGHTS.pop(0)
         averaged_weights = np.average(np.array(PAST_WEIGHTS), axis=0)
-
+        save_weights(PAST_WEIGHTS)
         # Process the raw weights to final_weights via subtensor limitations.
         (
             processed_weight_uids,
             processed_weights,
         ) = bt.utils.weight_utils.process_weights_for_netuid(
-            uids=settings.METAGRAPH.uids,
+            uids=shared_settings.METAGRAPH.uids,
             weights=averaged_weights,
-            netuid=settings.NETUID,
-            subtensor=settings.SUBTENSOR,
-            metagraph=settings.METAGRAPH,
+            netuid=shared_settings.NETUID,
+            subtensor=shared_settings.SUBTENSOR,
+            metagraph=shared_settings.METAGRAPH,
         )
 
         # Convert to uint16 weights and uids.
@@ -101,7 +97,7 @@ def set_weights(weights: np.ndarray, step: int = 0):
         logger.exception(f"Issue with setting weights: {ex}")
 
     # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
-    if settings.LOG_WEIGHTS:
+    if shared_settings.LOG_WEIGHTS:
         try:
             logger.debug(
                 f"Lengths... UIDS: {len(uint_uids)}, WEIGHTS: {len(processed_weights.flatten())}, RAW_WEIGHTS: {len(weights.flatten())}, UINT_WEIGHTS: {len(uint_weights)}"
@@ -123,14 +119,14 @@ def set_weights(weights: np.ndarray, step: int = 0):
         except Exception as ex:
             logger.exception(f"Couldn't write to df: {ex}")
 
-    if settings.NEURON_DISABLE_SET_WEIGHTS:
-        logger.debug(f"Set weights disabled: {settings.NEURON_DISABLE_SET_WEIGHTS}")
+    if shared_settings.NEURON_DISABLE_SET_WEIGHTS:
+        logger.debug(f"Set weights disabled: {shared_settings.NEURON_DISABLE_SET_WEIGHTS}")
         return
 
     # Set the weights on chain via our subtensor connection.
-    result = settings.SUBTENSOR.set_weights(
-        wallet=settings.WALLET,
-        netuid=settings.NETUID,
+    result = shared_settings.SUBTENSOR.set_weights(
+        wallet=shared_settings.WALLET,
+        netuid=shared_settings.NETUID,
         uids=uint_uids,
         weights=uint_weights,
         wait_for_finalization=False,
@@ -217,7 +213,7 @@ class WeightSetter(AsyncLoopRunner):
                 if task_config.task == InferenceTask:
                     processed_rewards = r / max(1, (np.sum(r[r > 0]) + 1e-10))
                 else:
-                    processed_rewards = apply_reward_func(raw_rewards=r, p=settings.REWARD_STEEPNESS)
+                    processed_rewards = apply_reward_func(raw_rewards=r, p=shared_settings.REWARD_STEEPNESS)
                 processed_rewards *= task_config.probability
                 # update reward dict
                 for uid, reward in zip(u, processed_rewards):

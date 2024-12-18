@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup
 from loguru import logger
 from pydantic import ConfigDict, model_validator
 
-from prompting.datasets.base import BaseDataset, Context
+from shared.base import BaseDataset, Context
 
 # Create a queue called CACHED_ARTICLES to store wikipedia articles that have been fetched
 CACHED_ARTICLES: Queue[Context] = Queue(maxsize=300)

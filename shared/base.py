@@ -5,7 +5,7 @@ from typing import ClassVar, Literal
 from loguru import logger
 from pydantic import BaseModel, model_validator
 
-from prompting.utils.timer import Timer
+from shared.timer import Timer
 
 
 class DatasetEntry(BaseModel):
