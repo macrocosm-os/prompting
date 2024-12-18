@@ -62,7 +62,7 @@ class MinerAvailabilitiesUpdater(AsyncLoopRunner):
 
     async def run_step(self):
         uids = get_uids(sampling_mode="random", k=100)
-        url = f"http://{shared_settings.VALIDATOR_IP}:{shared_settings.VALIDATOR_PORT}/miner_availabilities/miner_availabilities"
+        url = f"{shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities"
 
         try:
             result = requests.post(url, json=uids.tolist(), timeout=10)
