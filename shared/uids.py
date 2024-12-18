@@ -131,6 +131,6 @@ def get_uids(
         return get_random_uids(k=k, exclude=exclude or [])
     if sampling_mode == "top_incentive":
         vpermit_tao_limit = shared_settings.NEURON_VPERMIT_TAO_LIMIT
-        return get_top_incentive_uids(k=k, vpermit_tao_limit=vpermit_tao_limit, own_uid=own_uid)
+        return get_top_incentive_uids(k=k, vpermit_tao_limit=vpermit_tao_limit)
     if sampling_mode == "all":
         return [int(uid) for uid in shared_settings.METAGRAPH.uids if (uid != own_uid and check_uid_availability(uid))]
