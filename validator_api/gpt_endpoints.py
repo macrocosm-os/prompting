@@ -15,18 +15,16 @@ router = APIRouter()
 
 
 async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
+    uid = int(uid)  # sometimes uid is type np.uint64
+    logger.info(f"Forwarding response to scoring with body: {body}")
     if not shared_settings.SCORE_ORGANICS:  # Allow disabling of scoring by default
         return
 
-    # if body.get("task") != "InferenceTask":
-    #     logger.debug(f"Skipping forwarding for non-inference task: {body.get('task')}")
-    #     return
+    if body.get("task") != "InferenceTask":
+        logger.debug(f"Skipping forwarding for non-inference task: {body.get('task')}")
+        return
     url = f"http://{shared_settings.VALIDATOR_API}/scoring"
     payload = {"body": body, "chunks": chunks, "uid": uid}
-    # headers = {
-    #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  #Add API key in Authorization header
-    #     "Content-Type": "application/json",
-    # }
     try:
         timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -98,6 +96,7 @@ async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundT
                 },
             )
         else:
+            logger.info(f"Forwarding response to scoring...")
             asyncio.create_task(forward_response(uid=uid, body=body, chunks=response[1]))
             return response[0]
 

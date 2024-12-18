@@ -164,6 +164,8 @@ class SharedSettings(BaseSettings):
                 logger.warning(
                     "No SCORING_KEY found in .env.api file. You must add a scoring key that will allow us to forward miner responses to the validator for scoring."
                 )
+            if not os.getenv("SCORE_ORGANICS"):
+                logger.warning("Not scoring organics. This means that miners may not respond as consistently.")
         elif v["mode"] == "miner":
             if not dotenv.load_dotenv(".env.miner"):
                 logger.warning("No .env.miner file found. Please create one.")

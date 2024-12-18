@@ -1,5 +1,6 @@
 import uuid
 from typing import Any
+from loguru import logger
 
 from fastapi import APIRouter, Request
 
@@ -16,8 +17,18 @@ router = APIRouter()
 
 @router.post("/scoring")
 async def score_response(request: Request):  # , api_key_data: dict = Depends(validate_api_key)):
+    model = None
     payload: dict[str, Any] = await request.json()
     body = payload.get("body")
+
+    try:
+        if not body.get("model") is None:
+            model = ModelZoo.get_model_by_id(body.get("model"))
+    except Exception as e:
+        logger.warning(
+            f"Organic request with model {body.get('model')} made but the model cannot be found in model zoo. Skipping scoring."
+        )
+        return
     uid = int(payload.get("uid"))
     chunks = payload.get("chunks")
     llm_model = ModelZoo.get_model_by_id(model) if (model := body.get("model")) else None
@@ -39,3 +50,4 @@ async def score_response(request: Request):  # , api_key_data: dict = Depends(va
         step=-1,
         task_id=str(uuid.uuid4()),
     )
+    logger.info("Organic tas appended to scoring queue")
