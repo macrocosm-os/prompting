@@ -1,5 +1,6 @@
 import uuid
 from typing import Any
+from loguru import logger
 
 from fastapi import APIRouter, Request
 
@@ -10,14 +11,30 @@ from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.epistula import SynapseStreamResult
 from shared.settings import shared_settings
+from fastapi import Depends, HTTPException, Header
 
 router = APIRouter()
 
 
+def validate_scoring_key(api_key: str = Header(...)):
+    if api_key != shared_settings.SCORING_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+
+
 @router.post("/scoring")
-async def score_response(request: Request):  # , api_key_data: dict = Depends(validate_api_key)):
+async def score_response(request: Request, api_key_data: dict = Depends(validate_scoring_key)):
+    model = None
     payload: dict[str, Any] = await request.json()
     body = payload.get("body")
+
+    try:
+        if not body.get("model") is None:
+            model = ModelZoo.get_model_by_id(body.get("model"))
+    except Exception as e:
+        logger.warning(
+            f"Organic request with model {body.get('model')} made but the model cannot be found in model zoo. Skipping scoring."
+        )
+        return
     uid = int(payload.get("uid"))
     chunks = payload.get("chunks")
     llm_model = ModelZoo.get_model_by_id(model) if (model := body.get("model")) else None
@@ -39,3 +56,4 @@ async def score_response(request: Request):  # , api_key_data: dict = Depends(va
         step=-1,
         task_id=str(uuid.uuid4()),
     )
+    logger.info("Organic tas appended to scoring queue")
