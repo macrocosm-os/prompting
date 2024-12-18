@@ -25,7 +25,7 @@ class MinerAvailability(BaseModel):
     llm_model_availabilities: dict[str, bool] = model_config
 
     def is_model_available(self, model: str) -> bool:
-        return self.llm_model_availabilities[model]
+        return self.llm_model_availabilities.get(model, False)
 
     def is_task_available(self, task: BaseTask | type[BaseTask]) -> bool:
         if isinstance(task, BaseTask):
