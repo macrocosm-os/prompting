@@ -5,11 +5,19 @@ import numpy as np
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
 
-from prompting.datasets.base import BaseDataset
+from prompting.datasets.huggingface_github import HuggingFaceGithubDataset
+from prompting.datasets.random_website import DDGDataset
 from prompting.datasets.sn13 import SN13Dataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
+from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTask
+from prompting.tasks.multi_step_reasoning import MultiStepReasoningRewardConfig, MultiStepReasoningTask
+from prompting.tasks.programming_task import ProgrammingRewardConfig, ProgrammingTask
+from prompting.tasks.qa import QARewardConfig, QuestionAnsweringTask
+from prompting.tasks.summarization import SummarizationRewardConfig, SummarizationTask
+from prompting.tasks.web_retrieval import WebRetrievalRewardConfig, WebRetrievalTask
+from shared.base import BaseDataset
 
 # from prompting.tasks.
 
@@ -28,16 +36,16 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
-        # TaskConfig(task=QuestionAnsweringTask, probability=0.2, datasets=[WikiDataset], reward_model=QARewardConfig),
-        # TaskConfig(
-        #     task=SummarizationTask, probability=0.1, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
-        # ),
-        # TaskConfig(
-        #     task=DateQuestionAnsweringTask,
-        #     probability=0.1,
-        #     datasets=[WikiDateDataset],
-        #     reward_model=DateQARewardConfig,
-        # ),
+        TaskConfig(task=QuestionAnsweringTask, probability=0.15, datasets=[WikiDataset], reward_model=QARewardConfig),
+        TaskConfig(
+            task=SummarizationTask, probability=0.1, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
+        ),
+        TaskConfig(
+            task=DateQuestionAnsweringTask,
+            probability=0.1,
+            datasets=[WikiDateDataset],
+            reward_model=DateQARewardConfig,
+        ),
         TaskConfig(
             task=InferenceTask,
             # probability=0.16,
@@ -45,28 +53,34 @@ class TaskRegistry(BaseModel):
             datasets=[SN13Dataset],
             reward_model=InferenceRewardConfig,
         ),
-        # TaskConfig(
-        #     task=MultiChoiceTask,
-        #     probability=0.31,
-        #     datasets=[WikiDataset],
-        #     reward_model=MultiChoiceRewardConfig,
-        # ),
-        # TaskConfig(
-        #     task=ProgrammingTask,
-        #     probability=0.1,
-        #     datasets=[HuggingFaceGithubDataset],
-        #     reward_model=ProgrammingRewardConfig,
-        # ),
-        # TaskConfig(
-        #     task=WebRetrievalTask,
-        #     probability=0.03,
-        #     datasets=[DDGDataset],
-        #     reward_model=WebRetrievalRewardConfig,
-        # ),
+        TaskConfig(
+            task=MultiChoiceTask,
+            probability=0.26,
+            datasets=[WikiDataset],
+            reward_model=MultiChoiceRewardConfig,
+        ),
+        TaskConfig(
+            task=ProgrammingTask,
+            probability=0.1,
+            datasets=[HuggingFaceGithubDataset],
+            reward_model=ProgrammingRewardConfig,
+        ),
+        TaskConfig(
+            task=WebRetrievalTask,
+            probability=0.03,
+            datasets=[DDGDataset],
+            reward_model=WebRetrievalRewardConfig,
+        ),
+        TaskConfig(
+            task=MultiStepReasoningTask,
+            probability=0.1,
+            datasets=[WikiDataset],
+            reward_model=MultiStepReasoningRewardConfig,
+        ),
     ]
 
     @classmethod
-    def get_task_by_name(cls, task_name: str) -> BaseTextTask:
+    def get_task_by_name(cls, task_name: str) -> BaseTextTask.__class__:
         if matching_tasks := [t.task for t in cls.task_configs if t.task.__name__ == task_name]:
             return matching_tasks[0]
         return None

@@ -4,7 +4,7 @@ from typing import Literal
 import numpy as np
 from loguru import logger
 
-from prompting.settings import settings
+from shared.settings import shared_settings
 
 
 def check_uid_availability(
@@ -22,16 +22,20 @@ def check_uid_availability(
     Returns:
         bool: True if uid is available, False otherwise
     """
-    metagraph = settings.METAGRAPH
+    metagraph = shared_settings.METAGRAPH
     # Filter non serving axons.
     if not metagraph.axons[uid].is_serving:
         logger.debug(f"uid: {uid} is not serving")
         return False
 
     # Filter validator permit > 1024 stake.
-    if metagraph.validator_permit[uid] and metagraph.S[uid] > settings.NEURON_VPERMIT_TAO_LIMIT:
-        logger.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {settings.NEURON_VPERMIT_TAO_LIMIT}")
-        logger.debug(f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {settings.NEURON_VPERMIT_TAO_LIMIT}")
+    if metagraph.validator_permit[uid] and metagraph.S[uid] > shared_settings.NEURON_VPERMIT_TAO_LIMIT:
+        logger.debug(
+            f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {shared_settings.NEURON_VPERMIT_TAO_LIMIT}"
+        )
+        logger.debug(
+            f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {shared_settings.NEURON_VPERMIT_TAO_LIMIT}"
+        )
         return False
 
     if coldkeys and metagraph.axons[uid].coldkey in coldkeys:
@@ -54,12 +58,12 @@ def get_random_uids(k: int | None = 10**6, exclude: list[int] = None, own_uid: i
     Notes:
         If `k` is larger than the number of available `uids`, set `k` to the number of available `uids`.
     """
-    if settings.TEST and settings.TEST_MINER_IDS:
-        return np.array(random.sample(settings.TEST_MINER_IDS, min(len(settings.TEST_MINER_IDS), k)))
+    if shared_settings.TEST and shared_settings.TEST_MINER_IDS:
+        return np.array(random.sample(shared_settings.TEST_MINER_IDS, min(len(shared_settings.TEST_MINER_IDS), k)))
     candidate_uids = []
     coldkeys = set()
     ips = set()
-    for uid in range(settings.METAGRAPH.n.item()):
+    for uid in range(shared_settings.METAGRAPH.n.item()):
         if uid == own_uid:
             continue
 
@@ -71,11 +75,11 @@ def get_random_uids(k: int | None = 10**6, exclude: list[int] = None, own_uid: i
         if not uid_is_available:
             continue
 
-        if settings.NEURON_QUERY_UNIQUE_COLDKEYS:
-            coldkeys.add(settings.METAGRAPH.axons[uid].coldkey)
+        if shared_settings.NEURON_QUERY_UNIQUE_COLDKEYS:
+            coldkeys.add(shared_settings.METAGRAPH.axons[uid].coldkey)
 
-        if settings.NEURON_QUERY_UNIQUE_IPS:
-            ips.add(settings.METAGRAPH.axons[uid].ip)
+        if shared_settings.NEURON_QUERY_UNIQUE_IPS:
+            ips.add(shared_settings.METAGRAPH.axons[uid].ip)
 
         if exclude is None or uid not in exclude:
             candidate_uids.append(uid)
@@ -93,12 +97,12 @@ def get_random_uids(k: int | None = 10**6, exclude: list[int] = None, own_uid: i
 
 
 def get_top_incentive_uids(k: int, vpermit_tao_limit: int) -> np.ndarray:
-    miners_uids = list(map(int, filter(lambda uid: check_uid_availability(uid), settings.METAGRAPH.uids)))
+    miners_uids = list(map(int, filter(lambda uid: check_uid_availability(uid), shared_settings.METAGRAPH.uids)))
 
     # Builds a dictionary of uids and their corresponding incentives.
     all_miners_incentives = {
         "miners_uids": miners_uids,
-        "incentives": list(map(lambda uid: settings.METAGRAPH.I[uid], miners_uids)),
+        "incentives": list(map(lambda uid: shared_settings.METAGRAPH.I[uid], miners_uids)),
     }
 
     # Zip the uids and their corresponding incentives into a list of tuples.
@@ -119,12 +123,14 @@ def get_uids(
     exclude: list[int] = [],
     own_uid: int | None = None,
 ) -> np.ndarray:
-    if settings.TEST and settings.TEST_MINER_IDS:
-        return random.sample(list(np.array(settings.TEST_MINER_IDS)), min(len(settings.TEST_MINER_IDS), k or 10**6))
+    if shared_settings.TEST and shared_settings.TEST_MINER_IDS:
+        return random.sample(
+            list(np.array(shared_settings.TEST_MINER_IDS)), min(len(shared_settings.TEST_MINER_IDS), k or 10**6)
+        )
     if sampling_mode == "random":
         return get_random_uids(k=k, exclude=exclude or [])
     if sampling_mode == "top_incentive":
-        vpermit_tao_limit = settings.NEURON_VPERMIT_TAO_LIMIT
+        vpermit_tao_limit = shared_settings.NEURON_VPERMIT_TAO_LIMIT
         return get_top_incentive_uids(k=k, vpermit_tao_limit=vpermit_tao_limit, own_uid=own_uid)
     if sampling_mode == "all":
-        return [uid for uid in settings.METAGRAPH.uids if (uid != own_uid and check_uid_availability(uid))]
+        return [int(uid) for uid in shared_settings.METAGRAPH.uids if (uid != own_uid and check_uid_availability(uid))]

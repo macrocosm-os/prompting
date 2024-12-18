@@ -7,13 +7,12 @@ from uuid import uuid4
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from prompting.datasets.base import DatasetEntry
 from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
 from prompting.llms.model_manager import model_manager
 from prompting.llms.model_zoo import ModelConfig
-from prompting.settings import settings
-from prompting.utils.cleaners import CleanerPipeline
+from shared.base import DatasetEntry
+from shared.settings import shared_settings
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -48,8 +47,7 @@ class BaseTask(BaseModel, ABC):
 
 class BaseTextTask(BaseTask):
     query: str | None = None
-    roles: list[str] | None = None
-    messages: list[str] | None = None
+    messages: list[str] | list[dict] | None = None
     reference: str | None = None
     llm_model: ModelConfig = None
     llm_model_id: str = None
@@ -59,9 +57,7 @@ class BaseTextTask(BaseTask):
     augmentation_system_prompt: ClassVar[str | None] = None
     dataset_entry: DatasetEntry | None = None
     task_id: str = str(uuid4())
-    sampling_params: dict[str, float] = settings.SAMPLING_PARAMS
-
-    cleaner: ClassVar[CleanerPipeline] = CleanerPipeline()
+    sampling_params: dict[str, float] = shared_settings.SAMPLING_PARAMS
 
     @model_validator(mode="after")
     def get_model_id_and_seed(self) -> "BaseTextTask":
@@ -79,8 +75,8 @@ class BaseTextTask(BaseTask):
     def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
-        self.reference = model_manager.get_model(settings.LLM_MODEL).generate(
-            prompts=messages
+        self.reference = model_manager.get_model(shared_settings.LLM_MODEL).generate(
+            messages=messages
         )  # This should be a list of dict
         if self.reference is None:
             raise Exception("Reference generation failed")
@@ -114,7 +110,7 @@ class BaseTextTask(BaseTask):
                 LLMMessage(role="system", content=self.augmentation_system_prompt),
                 LLMMessage(role="user", content=query),
             ),
-            max_tokens=settings.NEURON_MAX_TOKENS,
+            max_tokens=shared_settings.NEURON_MAX_TOKENS,
         )
         self.query = challenge
         return challenge

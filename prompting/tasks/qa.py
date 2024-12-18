@@ -1,11 +1,10 @@
 from typing import ClassVar
 
-from prompting.datasets.base import Context
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.tasks.base_task import BaseTextTask
-from prompting.utils.cleaners import CleanerPipeline, PruneEnding, RemovePostQuestionText, RemoveQuotes, RemoveRoles
+from shared.base import Context
 
 # Used to instruct the LLM to provide a good query when given a context
 QUERY_SYSTEM_PROMPT = """\
@@ -39,21 +38,6 @@ Answer the question you will receive in detail, utilizing the following context.
 {question}
 """
 
-FOLLOWUP_REFERENCE_PROMPT_TEMPLATE = """\
-You are a helpful assistant. Answer the question below in detail, prioritizing the use of the provided conversation history. The context is available for additional information if needed, but it may not always be relevant.
-
-# Conversation History:
-{history}
-
-# Context (optional):
-{context}
-
-# Question:
-{question}
-
-Ensure your answer references relevant parts of the conversation history. Use the context only if it provides additional necessary information.
-"""
-
 
 class QARewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[BaseRewardModel]] = [
@@ -67,14 +51,6 @@ class QuestionAnsweringTask(BaseTextTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
 
-    cleaning_pipeline: ClassVar[CleanerPipeline] = CleanerPipeline(
-        cleaning_pipeline=[
-            RemoveQuotes(),
-            PruneEnding(),
-            RemoveRoles(),
-            RemovePostQuestionText(),
-        ]
-    )
     name: ClassVar[str] = "qa"
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     reference_system_prompt: ClassVar[str] = REFERENCE_SYSTEM_PROMPT

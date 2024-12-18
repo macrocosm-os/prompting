@@ -5,7 +5,6 @@ from prompting.rewards.date import DateRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.tasks.base_task import BaseTextTask
-from prompting.utils.cleaners import CleanerPipeline, FirstQuestion, RemoveTags
 
 QUERY_SYSTEM_PROMPT = """You are a question creation expert. When asked to create a question, you use the context to make a specific question that would have the answer <date>. Your question should contain the topic."""
 QUERY_PROMPT_TEMPLATE = """\
@@ -29,7 +28,6 @@ class DateQARewardConfig(BaseRewardConfig):
 
 class DateQuestionAnsweringTask(BaseTextTask):
     name: ClassVar[str] = "date_qa"
-    cleaner: ClassVar[CleanerPipeline] = CleanerPipeline(cleaning_pipeline=[RemoveTags(), FirstQuestion()])
     query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
     augmentation_system_prompt: ClassVar[str] = ""
     query: str | None = None

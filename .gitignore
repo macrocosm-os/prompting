@@ -5,6 +5,7 @@ __pycache__/
 .DS_Store
 **/.DS_Store
 
+*.npy
 *.npz
 prompting/storage/
 
@@ -130,6 +131,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.api
 .env.miner
 .env.validator
 .venv
@@ -170,6 +172,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+# Repository-specific files.
+AutoAWQ/
 testing/
 data/*
 plots/*
