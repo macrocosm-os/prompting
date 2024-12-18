@@ -29,13 +29,8 @@ class MinerAvailability(BaseModel):
 
     def is_task_available(self, task: BaseTask | type[BaseTask]) -> bool:
         if isinstance(task, BaseTask):
-            try:
-                return self.task_availabilities[task.__class__.__name__]
-            except Exception as e:
-                logger.error(f"Error in is_task_available: {e}")
-                return False
-        else:
-            return self.task_availabilities[task.__name__]
+            return self.task_availabilities.get(task.__class__.__name__, False)
+        return self.task_availabilities.get(task.__name__, False)
 
 
 class MinerAvailabilities(BaseModel):
