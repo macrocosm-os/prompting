@@ -10,7 +10,6 @@ shared_settings = settings.shared_settings
 
 from validator_api.api_management import router as api_management_router
 from validator_api.gpt_endpoints import router as gpt_router
-from validator_api.miner_availabilities import availability_updater
 
 app = FastAPI()
 app.include_router(gpt_router, tags=["GPT Endpoints"])
