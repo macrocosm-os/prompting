@@ -9,6 +9,8 @@ from starlette.responses import StreamingResponse
 
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
+from shared.uids import get_uids
+from validator_api.miner_availabilities import get_available_miner
 
 router = APIRouter()
 
@@ -18,10 +20,9 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
         return
 
     # if body.get("task") != "InferenceTask":
-    #     logger.info(f"Skipping forwarding for non-inference task: {body.get('task')}")
+    #     logger.debug(f"Skipping forwarding for non-inference task: {body.get('task')}")
     #     return
     url = f"http://{shared_settings.VALIDATOR_API}/scoring"
-    logger.info(url)
     payload = {"body": body, "chunks": chunks, "uid": uid}
     # headers = {
     #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  #Add API key in Authorization header
@@ -30,7 +31,6 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
     try:
         timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
-            logger.debug(f"Payload: {payload}")
             response = await client.post(url, json=payload)  # , headers=headers)
             if response.status_code == 200:
                 logger.info(f"Forwarding response completed with status {response.status_code}")
@@ -52,7 +52,8 @@ async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundT
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         STREAM = body.get("stream") or False
         logger.debug(f"Streaming: {STREAM}")
-        uid = random.randint(0, len(shared_settings.METAGRAPH.axons) - 1)
+        # Get random miner from top 100 incentive.
+        uid = random.choice(get_uids(sampling_mode="top_incentive", k=100))
         # uid = get_available_miner(task=body.get("task"), model=body.get("model"))
         if uid is None:
             logger.error("No available miner found")
@@ -67,7 +68,6 @@ async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundT
             try:
                 async for chunk in response:
                     chunks_received = True
-                    logger.debug(chunk.choices[0].delta.content)
                     collected_chunks.append(chunk.choices[0].delta.content)
                     yield f"data: {json.dumps(chunk.model_dump())}\n\n"
 
