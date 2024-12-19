@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from loguru import logger
 
 from shared.uids import get_uids
-from validator_api.chat_completion import get_response_from_miner, regular_chat_completion
+from validator_api.chat_completion import get_response_from_miner, chat_completion
 
 
 DEFAULT_SYSTEM_PROMPT = """You have been provided with a set of responses from various open-source models to the latest user query.
@@ -55,7 +55,7 @@ async def mixture_of_miners(body: dict[str, any]) -> tuple | StreamingResponse:
 
     # Get multiple miners
     miner_uids = get_uids(sampling_mode="top_incentive", k=NUM_MIXTURE_MINERS)
-    if not miner_uids:
+    if len(miner_uids) == 0:
         raise HTTPException(status_code=503, detail="No available miners found")
 
     # Concurrently collect responses from all miners.
@@ -87,4 +87,4 @@ async def mixture_of_miners(body: dict[str, any]) -> tuple | StreamingResponse:
     
     # Get final response using a random top miner.
     final_uid = random.choice(get_uids(sampling_mode="top_incentive", k=TOP_INCENTIVE_POOL))
-    return await regular_chat_completion(final_body, final_uid)
+    return await chat_completion(final_body, final_uid)

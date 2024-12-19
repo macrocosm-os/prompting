@@ -2,6 +2,7 @@
 import asyncio
 import json
 import random
+from typing import AsyncGenerator
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 import httpx
@@ -41,7 +42,12 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
         logger.exception(f"Error while forwarding response: {e}")
 
 
-async def stream_response(response, collected_chunks: list[str], body: dict[str, any], uid: int) -> AsyncGenerator[str, None]:
+async def stream_response(
+        response,
+        collected_chunks: list[str],
+        body: dict[str, any],
+        uid: int
+    ) -> AsyncGenerator[str, None]:
     chunks_received = False
     try:
         async for chunk in response:
@@ -64,7 +70,7 @@ async def stream_response(response, collected_chunks: list[str], body: dict[str,
         yield 'data: {"error": "Internal server Error"}\n\n'
 
 
-async def regular_chat_completion(body: dict[str, any], uid: int | None = None) -> tuple | StreamingResponse:
+async def chat_completion(body: dict[str, any], uid: int | None = None) -> tuple | StreamingResponse:
     """Handle regular chat completion without mixture of miners."""
     if uid is None:
         uid = random.choice(get_uids(sampling_mode="top_incentive", k=100))
