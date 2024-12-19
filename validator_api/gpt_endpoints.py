@@ -4,8 +4,8 @@ from fastapi import APIRouter, Request
 from loguru import logger
 from starlette.responses import StreamingResponse
 
-from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.chat_completion import chat_completion
+from validator_api.mixture_of_miners import mixture_of_miners
 
 router = APIRouter()
 
@@ -16,7 +16,7 @@ async def completions(request: Request):
     try:
         body = await request.json()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
-        
+
         # Choose between regular completion and mixture of miners.
         if body.get("mixture", False):
             return await mixture_of_miners(body)

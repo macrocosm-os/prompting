@@ -7,8 +7,7 @@ from fastapi.responses import StreamingResponse
 from loguru import logger
 
 from shared.uids import get_uids
-from validator_api.chat_completion import get_response_from_miner, chat_completion
-
+from validator_api.chat_completion import chat_completion, get_response_from_miner
 
 DEFAULT_SYSTEM_PROMPT = """You have been provided with a set of responses from various open-source models to the latest user query.
 Your task is to synthesize these responses into a single, high-quality and concise response.
@@ -27,7 +26,6 @@ NUM_MIXTURE_MINERS = 5
 TOP_INCENTIVE_POOL = 100
 
 
-
 async def get_miner_response(body: dict, uid: str) -> tuple | None:
     """Get response from a single miner with error handling."""
     try:
@@ -39,10 +37,10 @@ async def get_miner_response(body: dict, uid: str) -> tuple | None:
 
 async def mixture_of_miners(body: dict[str, any]) -> tuple | StreamingResponse:
     """Handle chat completion with mixture of miners approach.
-    
+
     Based on Mixture-of-Agents Enhances Large Language Model Capabilities, 2024, Wang et al.:
         https://arxiv.org/abs/2406.04692
-    
+
     Args:
         body: Query parameters:
             messages: User prompt.
@@ -61,30 +59,30 @@ async def mixture_of_miners(body: dict[str, any]) -> tuple | StreamingResponse:
     # Concurrently collect responses from all miners.
     miner_tasks = [get_miner_response(body_first_step, uid) for uid in miner_uids]
     responses = await asyncio.gather(*miner_tasks)
-    
+
     # Filter out None responses (failed requests).
     valid_responses = [r for r in responses if r is not None]
-    
+
     if not valid_responses:
         raise HTTPException(status_code=503, detail="Failed to get responses from miners")
 
     # Extract completions from the responses.
     completions = [response[1][0] for response in valid_responses if response and len(response) > 1]
-    
+
     task_name = body.get("task")
     system_prompt = TASK_SYSTEM_PROMPT.get(task_name, DEFAULT_SYSTEM_PROMPT)
-    
+
     # Aggregate responses into one system prompt.
     agg_system_prompt = system_prompt + "\n" + "\n".join([f"{i+1}. {comp}" for i, comp in enumerate(completions)])
-    
+
     # Prepare new messages with the aggregated system prompt.
     new_messages = [{"role": "system", "content": agg_system_prompt}]
     new_messages.extend([msg for msg in body["messages"] if msg["role"] != "system"])
-    
+
     # Update the body with the new messages.
     final_body = copy.deepcopy(body)
     final_body["messages"] = new_messages
-    
+
     # Get final response using a random top miner.
     final_uid = random.choice(get_uids(sampling_mode="top_incentive", k=TOP_INCENTIVE_POOL))
     return await chat_completion(final_body, final_uid)

@@ -1,12 +1,13 @@
-
 import asyncio
 import json
 import random
 from typing import AsyncGenerator
+
+import httpx
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
-import httpx
 from loguru import logger
+
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
 from shared.uids import get_uids
@@ -43,11 +44,8 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
 
 
 async def stream_response(
-        response,
-        collected_chunks: list[str],
-        body: dict[str, any],
-        uid: int
-    ) -> AsyncGenerator[str, None]:
+    response, collected_chunks: list[str], body: dict[str, any], uid: int
+) -> AsyncGenerator[str, None]:
     chunks_received = False
     try:
         async for chunk in response:
@@ -74,19 +72,19 @@ async def chat_completion(body: dict[str, any], uid: int | None = None) -> tuple
     """Handle regular chat completion without mixture of miners."""
     if uid is None:
         uid = random.choice(get_uids(sampling_mode="top_incentive", k=100))
-        
+
     if uid is None:
         logger.error("No available miner found")
         raise HTTPException(status_code=503, detail="No available miner found")
-        
+
     logger.debug(f"Querying uid {uid}")
     STREAM = body.get("stream", False)
-    
+
     collected_chunks: list[str] = []
-    
+
     logger.info(f"Making {'streaming' if STREAM else 'non-streaming'} openai query with body: {body}")
     response = await make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid, stream=STREAM)
-    
+
     if STREAM:
         return StreamingResponse(
             stream_response(response, collected_chunks, body, uid),
@@ -103,10 +101,4 @@ async def chat_completion(body: dict[str, any], uid: int | None = None) -> tuple
 
 async def get_response_from_miner(body: dict[str, any], uid: int) -> tuple:
     """Get response from a single miner."""
-    return await make_openai_query(
-        shared_settings.METAGRAPH,
-        shared_settings.WALLET,
-        body,
-        uid,
-        stream=False
-    )
+    return await make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid, stream=False)
