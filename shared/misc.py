@@ -106,10 +106,7 @@ def ttl_get_block(subtensor: bt.Subtensor | None = None) -> int:
     Note: self here is the miner or validator instance
     """
     try:
-        if subtensor:
-            return subtensor.get_current_block()
-        else:
-            return shared_settings.SUBTENSOR.get_current_block()
+        return subtensor.get_current_block()
     except Exception as e:
         raise BittensorError(f"Bittensor error: {str(e)}") from e
 

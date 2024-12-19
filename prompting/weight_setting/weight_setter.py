@@ -17,17 +17,8 @@ from shared.misc import ttl_get_block
 from shared.settings import shared_settings
 
 FILENAME = "validator_weights.npz"
-
-try:
-    with np.load(FILENAME) as data:
-        PAST_WEIGHTS = [data[key] for key in data.files]
-    logger.debug(f"Loaded Past Weights: {PAST_WEIGHTS}")
-except FileNotFoundError:
-    logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
-    PAST_WEIGHTS = []
-except Exception as ex:
-    logger.error(f"Couldn't load weights from file: {ex}")
 WEIGHTS_HISTORY_LENGTH = 24
+PAST_WEIGHTS: list[np.ndarray] = []
 
 
 def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
@@ -126,7 +117,7 @@ def set_weights(
         return
 
     # Set the weights on chain via our subtensor connection.
-    result = shared_settings.SUBTENSOR.set_weights(
+    result = subtensor.set_weights(
         wallet=shared_settings.WALLET,
         netuid=shared_settings.NETUID,
         uids=uint_uids,
@@ -152,10 +143,24 @@ class WeightSetter(AsyncLoopRunner):
     metagraph: bt.Metagraph | None = None
     # interval: int = 60
 
+    class Config:
+        arbitrary_types_allowed = True
+
     async def start(self, reward_events):
         self.reward_events = reward_events
         self.subtensor = bt.Subtensor(network=shared_settings.SUBTENSOR_NETWORK)
         self.metagraph = self.subtensor.metagraph(netuid=shared_settings.NETUID)
+        global PAST_WEIGHTS
+
+        try:
+            with np.load(FILENAME) as data:
+                PAST_WEIGHTS = [data[key] for key in data.files]
+            logger.debug(f"Loaded Past Weights: {PAST_WEIGHTS}")
+        except FileNotFoundError:
+            logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
+            PAST_WEIGHTS = []
+        except Exception as ex:
+            logger.error(f"Couldn't load weights from file: {ex}")
         return await super().start()
 
     async def run_step(self):
