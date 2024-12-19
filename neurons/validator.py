@@ -27,41 +27,20 @@ NEURON_SAMPLE_SIZE = 100
 
 
 async def spawn_loops(task_queue, scoring_queue, reward_events):
-    # logger.info("Test appending to scoring queue...")
-    # from prompting.tasks.task_sending import ScoringConfig
-    # from prompting.tasks.base_task import BaseTextTask
-    # from shared.base import DatasetEntry
-    # from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
-
-    # scoring_queue.append(
-    #     ScoringConfig(
-    #         task=BaseTextTask(task_id="1"),
-    #         response=DendriteResponseEvent(
-    #             uids=[1, 2, 3], stream_results=[SynapseStreamResult()], completions=["a", "b", "c"], timeout=10
-    #         ),
-    #         dataset_entry=DatasetEntry(),
-    #         block=1,
-    #         step=1,
-    #         task_id=1,
-    #     )
-    # )
-    # logger.info("Test appended to scoring queue")
     logger.info("Starting Profiler...")
     asyncio.create_task(profiler.print_stats(), name="Profiler"),
     logger.info("Starting ModelScheduler...")
     asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
-    logger.info("Starting TaskLoop...")
-    asyncio.create_task(task_loop.start(task_queue, scoring_queue), name="TaskLoop"),
-    logger.info("Starting TaskSender...")
-    asyncio.create_task(task_sender.start(task_queue, scoring_queue), name="TaskSender"),
-    logger.info("Starting WeightSetter...")
-    asyncio.create_task(weight_setter.start(reward_events), name="WeightSetter"),
+    # logger.info("Starting TaskLoop...")
+    # asyncio.create_task(task_loop.start(task_queue, scoring_queue), name="TaskLoop"),
+    # logger.info("Starting TaskSender...")
+    # asyncio.create_task(task_sender.start(task_queue, scoring_queue), name="TaskSender"),
+    # logger.info("Starting WeightSetter...")
+    # asyncio.create_task(weight_setter.start(reward_events), name="WeightSetter"),
     logger.info("Starting TaskScorer...")
     asyncio.create_task(task_scorer.start(scoring_queue, reward_events), name="TaskScorer"),
-    logger.info("Starting AvailabilityCheckingLoop...")
-    asyncio.create_task(availability_checking_loop.start())
-
-    # Create and start all async tasks
+    logger.info("Starting WeightSetter...")
+    asyncio.create_task(weight_setter.start(reward_events))
 
     # Main monitoring loop
     start = time.time()
@@ -85,7 +64,31 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
 
 
 def start_api():
-    asyncio.run(start_scoring_api())
+    async def async_start_api():
+        await start_scoring_api()
+        while True:
+            await asyncio.sleep(10)
+            logger.debug("Running API...")
+
+    asyncio.run(async_start_api())
+
+
+def create_task_loop(task_queue, scoring_queue):
+    asyncio.run(start_task_loop(task_queue, scoring_queue))
+
+
+async def start_task_loop(task_queue, scoring_queue):
+    logger.info("Starting AvailabilityCheckingLoop...")
+    asyncio.create_task(availability_checking_loop.start())
+
+    logger.info("Starting TaskSender...")
+    asyncio.create_task(task_sender.start(task_queue, scoring_queue))
+
+    logger.info("Starting TaskLoop...")
+    asyncio.create_task(task_loop.start(task_queue, scoring_queue))
+    while True:
+        await asyncio.sleep(10)
+        logger.debug("Running task loop...")
 
 
 async def main():
@@ -110,14 +113,18 @@ async def main():
             loop_process = mp.Process(
                 target=create_loop_process, args=(task_queue, scoring_queue, reward_events), name="LoopProcess"
             )
+            task_loop_process = mp.Process(
+                target=create_task_loop, args=(task_queue, scoring_queue), name="TaskLoopProcess"
+            )
             loop_process.start()
+            task_loop_process.start()
             processes.append(loop_process)
+            processes.append(task_loop_process)
             GPUInfo.log_gpu_info()
 
             while True:
-                await asyncio.sleep(1)
+                await asyncio.sleep(10)
                 logger.debug("Running...")
-                # Log GPU information
 
         except Exception as e:
             logger.error(f"Main loop error: {e}")
