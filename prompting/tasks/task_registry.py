@@ -8,8 +8,10 @@ from pydantic import BaseModel, ConfigDict
 from prompting.datasets.huggingface_github import HuggingFaceGithubDataset
 from prompting.datasets.random_website import DDGDataset
 from prompting.datasets.sn13 import SN13Dataset
+from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
+from prompting.tasks.date_qa import DateQARewardConfig, DateQuestionAnsweringTask
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
 from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTask
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningRewardConfig, MultiStepReasoningTask
@@ -48,8 +50,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=InferenceTask,
-            # probability=0.16,
-            probability=1.00,
+            probability=0.16,
             datasets=[SN13Dataset],
             reward_model=InferenceRewardConfig,
         ),
