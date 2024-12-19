@@ -9,7 +9,6 @@ from pydantic import BaseModel, ConfigDict
 from prompting.llms.hf_llm import ReproducibleHF
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.llms.utils import GPUInfo
-from prompting.mutable_globals import scoring_queue
 from shared.loop_runner import AsyncLoopRunner
 from shared.settings import shared_settings
 
@@ -158,6 +157,11 @@ class ModelManager(BaseModel):
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
     interval: int = 14400
+    scoring_queue: list | None = None
+
+    async def start(self, scoring_queue: list):
+        self.scoring_queue = scoring_queue
+        return await super().start()
 
     async def initialise_loop(self):
         model_manager.load_always_active_models()
@@ -165,7 +169,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
     async def run_step(self):
         """This method is called periodically according to the interval."""
         # try to load the model belonging to the oldest task in the queue
-        selected_model = scoring_queue[0].task.llm_model if scoring_queue else None
+        selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
         if not selected_model:
             selected_model = ModelZoo.get_random(max_ram=self.llm_model_manager.total_ram)
         logger.info(f"Loading model {selected_model.llm_model_id} for {self.interval} seconds.")
@@ -174,7 +178,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
             logger.info(f"Model {selected_model.llm_model_id} is already loaded.")
             return
 
-        logger.debug(f"Active models: {model_manager.active_models.keys()}")
+        logger.debug(f"Active models: {self.llm_model_manager.active_models.keys()}")
         # Load the selected model
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, self.llm_model_manager.load_model, selected_model)

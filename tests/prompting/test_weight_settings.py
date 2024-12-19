@@ -43,7 +43,7 @@ def test_run_step_with_reward_events():
     with (
         patch("shared.uids.get_uids") as mock_get_uids,
         patch("prompting.weight_setting.weight_setter.TaskRegistry") as MockTaskRegistry,
-        patch("prompting.weight_setting.weight_setter.mutable_globals") as mock_mutable_globals,
+        # patch("prompting.weight_setting.weight_setter.mutable_globals") as mock_mutable_globals,
         patch("prompting.weight_setting.weight_setter.set_weights") as mock_set_weights,
         patch("prompting.weight_setting.weight_setter.logger") as mock_logger,
     ):
@@ -75,7 +75,9 @@ def test_run_step_with_reward_events():
         mock_task_registry.get_task_config = MagicMock(return_value=mock_task_registry.task_configs[0])
 
         # Set up the mock mutable_globals
-        mock_mutable_globals.reward_events = [
+
+        weight_setter = WeightSetter()
+        reward_events = [
             [
                 WeightedRewardEvent(
                     task=mock_task_registry.task_configs[0], uids=mock_uids, rewards=[1.0, 2.0, 3.0, 4.0, 5.0], weight=1
@@ -87,8 +89,7 @@ def test_run_step_with_reward_events():
                 ),
             ],
         ]
-
-        weight_setter = WeightSetter()
+        weight_setter.reward_events = reward_events
         output = asyncio.run(weight_setter.run_step())
 
         print(output)

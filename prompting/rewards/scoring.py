@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from loguru import logger
 from pydantic import ConfigDict
 
-from prompting import mutable_globals
 from prompting.llms.model_manager import model_manager, model_scheduler
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_registry import TaskRegistry
@@ -33,8 +32,15 @@ class TaskScorer(AsyncLoopRunner):
     is_running: bool = False
     thread: threading.Thread = None
     interval: int = 10
+    scoring_queue: list | None = None
+    reward_events: list | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    async def start(self, scoring_queue, reward_events):
+        self.scoring_queue = scoring_queue
+        self.reward_events = reward_events
+        return await super().start()
 
     def add_to_queue(
         self,
@@ -45,7 +51,7 @@ class TaskScorer(AsyncLoopRunner):
         step: int,
         task_id: str,
     ) -> None:
-        mutable_globals.scoring_queue.append(
+        self.scoring_queue.append(
             ScoringConfig(
                 task=task,
                 response=response,
@@ -55,26 +61,24 @@ class TaskScorer(AsyncLoopRunner):
                 task_id=task_id,
             )
         )
-        logger.debug(
-            f"SCORING: Added to queue: {task.__class__.__name__}. Queue size: {len(mutable_globals.scoring_queue)}"
-        )
+        logger.debug(f"SCORING: Added to queue: {task.__class__.__name__}. Queue size: {len(self.scoring_queue)}")
 
     async def run_step(self) -> RewardLoggingEvent:
         await asyncio.sleep(0.1)
         # Only score responses for which the model is loaded
         scorable = [
             scoring_config
-            for scoring_config in mutable_globals.scoring_queue
+            for scoring_config in self.scoring_queue
             if (scoring_config.task.llm_model in model_manager.active_models.keys())
             or (scoring_config.task.llm_model is None)
         ]
         if len(scorable) == 0:
             logger.debug("Nothing to score. Skipping scoring step.")
             # Run a model_scheduler step to load a new model as there are no more tasks to be scored
-            if len(mutable_globals.scoring_queue) > 0:
+            if len(self.scoring_queue) > 0:
                 await model_scheduler.run_step()
             return
-        mutable_globals.scoring_queue.remove(scorable[0])
+        self.scoring_queue.remove(scorable[0])
         scoring_config: ScoringConfig = scorable.pop(0)
 
         # here we generate the actual reference
@@ -94,7 +98,7 @@ class TaskScorer(AsyncLoopRunner):
             model_id=scoring_config.task.llm_model,
             task=scoring_config.task,
         )
-        mutable_globals.reward_events.append(reward_events)
+        self.reward_events.append(reward_events)
         logger.debug(
             f"REFERENCE: {scoring_config.task.reference}\n\n||||RESPONSES: {scoring_config.response.completions}"
         )
