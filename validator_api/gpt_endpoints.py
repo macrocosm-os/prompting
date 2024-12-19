@@ -10,7 +10,6 @@ from validator_api.chat_completion import regular_chat_completion
 router = APIRouter()
 
 
-
 @router.post("/v1/chat/completions")
 async def chat_completion(request: Request):
     """Main endpoint that handles both regular and mixture of miners chat completion."""
