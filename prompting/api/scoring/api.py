@@ -1,8 +1,8 @@
 import uuid
 from typing import Any
-from loguru import logger
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from loguru import logger
 
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.scoring import task_scorer
@@ -11,7 +11,6 @@ from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.epistula import SynapseStreamResult
 from shared.settings import shared_settings
-from fastapi import Depends, HTTPException, Header
 
 router = APIRouter()
 
@@ -28,9 +27,9 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
     body = payload.get("body")
 
     try:
-        if not body.get("model") is None:
+        if body.get("model") is not None:
             model = ModelZoo.get_model_by_id(body.get("model"))
-    except Exception as e:
+    except Exception:
         logger.warning(
             f"Organic request with model {body.get('model')} made but the model cannot be found in model zoo. Skipping scoring."
         )

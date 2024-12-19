@@ -98,7 +98,7 @@ async def chat_completion(request: Request):  # , cbackground_tasks: BackgroundT
                 },
             )
         else:
-            logger.info(f"Forwarding response to scoring...")
+            logger.info("Forwarding response to scoring...")
             asyncio.create_task(forward_response(uid=uid, body=body, chunks=response[1]))
             return response[0]
 

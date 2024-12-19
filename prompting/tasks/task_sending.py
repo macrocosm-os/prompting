@@ -1,9 +1,9 @@
 # ruff: noqa: E402
 import asyncio
-import bittensor as bt
 import time
 from typing import List
 
+import bittensor as bt
 from loguru import logger
 
 from prompting.miner_availability.miner_availability import miner_availabilities
@@ -16,7 +16,6 @@ from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
 from shared.epistula import query_miners
 from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
-from shared.misc import ttl_get_block
 from shared.settings import shared_settings
 from shared.timer import Timer
 

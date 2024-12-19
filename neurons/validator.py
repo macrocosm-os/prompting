@@ -8,6 +8,7 @@ import asyncio
 import multiprocessing as mp
 import time
 
+import torch
 from loguru import logger
 
 from prompting.api.api import start_scoring_api
@@ -19,7 +20,6 @@ from prompting.tasks.task_creation import task_loop
 from prompting.tasks.task_sending import task_sender
 from prompting.weight_setting.weight_setter import weight_setter
 from shared.profiling import profiler
-import torch
 
 torch.multiprocessing.set_start_method("spawn", force=True)
 

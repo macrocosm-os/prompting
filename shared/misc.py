@@ -1,15 +1,14 @@
 import asyncio
-import bittensor as bt
 import time
 import traceback
 from functools import lru_cache, update_wrapper
 from math import floor
 from typing import Any, Callable
 
+import bittensor as bt
 from loguru import logger
 
 from shared.exceptions import BittensorError
-from shared.settings import shared_settings
 
 
 class classproperty:
