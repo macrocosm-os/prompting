@@ -25,17 +25,12 @@ class MinerAvailability(BaseModel):
     llm_model_availabilities: dict[str, bool] = model_config
 
     def is_model_available(self, model: str) -> bool:
-        return self.llm_model_availabilities[model]
+        return self.llm_model_availabilities.get(model, False)
 
     def is_task_available(self, task: BaseTask | type[BaseTask]) -> bool:
         if isinstance(task, BaseTask):
-            try:
-                return self.task_availabilities[task.__class__.__name__]
-            except Exception as e:
-                logger.error(f"Error in is_task_available: {e}")
-                return False
-        else:
-            return self.task_availabilities[task.__name__]
+            return self.task_availabilities.get(task.__class__.__name__, False)
+        return self.task_availabilities.get(task.__name__, False)
 
 
 class MinerAvailabilities(BaseModel):
