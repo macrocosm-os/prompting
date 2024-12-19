@@ -1,14 +1,15 @@
 # ruff: noqa: E402
 import asyncio
+import bittensor as bt
 import time
 from typing import List
 
 from loguru import logger
 
-from prompting import mutable_globals
 from prompting.miner_availability.miner_availability import miner_availabilities
-from prompting.mutable_globals import scoring_queue
-from prompting.rewards.scoring import task_scorer
+
+# from prompting.rewards.scoring import task_scorer
+from prompting.rewards.scoring import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceTask
 from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
@@ -61,6 +62,8 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
 
     log_stream_results(stream_results)
 
+    logger.debug("🔍 Creating response event")
+
     response_event = DendriteResponseEvent(
         stream_results=stream_results,
         uids=uids,
@@ -68,6 +71,7 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
             shared_settings.INFERENCE_TIMEOUT if isinstance(task, InferenceTask) else shared_settings.NEURON_TIMEOUT
         ),
     )
+    logger.debug("🔍 Response event created")
     return response_event
 
 
@@ -76,10 +80,25 @@ class TaskSender(AsyncLoopRunner):
     _lock: asyncio.Lock = asyncio.Lock()
     time_of_block_sync: float | None = None
 
+    task_queue: list | None = None
+    scoring_queue: list | None = None
+    subtensor: bt.Subtensor | None = None
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    async def start(self, task_queue, scoring_queue):
+        self.task_queue = task_queue
+        self.scoring_queue = scoring_queue
+
+        # shared_settings is not initialised inside this process, meaning it cannot access any non-constants from here
+        self.subtensor = bt.subtensor(network=shared_settings.SUBTENSOR_NETWORK)
+        return await super().start()
+
     @property
     def block(self):
         self.time_of_block_sync = time.time()
-        return ttl_get_block()
+        return self.subtensor.get_current_block()
 
     @property
     def estimate_block(self):
@@ -118,16 +137,16 @@ class TaskSender(AsyncLoopRunner):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        while len(scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
+        while len(self.scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Waiting 1 second...")
             await asyncio.sleep(1)
-        while len(mutable_globals.task_queue) == 0:
+        while len(self.task_queue) == 0:
             logger.warning("No tasks in queue. Waiting 1 second...")
             await asyncio.sleep(1)
         try:
             # get task from the task queue
-            mutable_globals.task_queue: list[BaseTextTask]
-            task = mutable_globals.task_queue.pop(0)
+            self.task_queue: list[BaseTextTask]
+            task = self.task_queue.pop(0)
 
             # send the task to the miners and collect the responses
             with Timer() as timer:
@@ -135,17 +154,33 @@ class TaskSender(AsyncLoopRunner):
             if response_event is None:
                 logger.warning("No response event collected. This should not be happening.")
                 return
-            logger.debug(f"Collected responses in {timer.final_time:.2f} seconds")
 
-            # scoring_manager will score the responses as and when the correct model is loaded
-            task_scorer.add_to_queue(
+            logger.debug("🔍 Estimating block")
+            estimated_block = self.estimate_block
+            logger.debug("🔍 Creating scoring config")
+
+            scoring_config = ScoringConfig(
                 task=task,
                 response=response_event,
                 dataset_entry=task.dataset_entry,
-                block=self.estimate_block,
+                block=estimated_block,
                 step=self.step,
                 task_id=task.task_id,
             )
+            logger.debug(f"Collected responses in {timer.final_time:.2f} seconds")
+
+            # scoring_manager will score the responses as and when the correct model is loaded
+
+            # task_scorer.add_to_queue(
+            #     task=task,
+            #     response=response_event,
+            #     dataset_entry=task.dataset_entry,
+            #     block=self.estimate_block,
+            #     step=self.step,
+            #     task_id=task.task_id,
+            # )
+            self.scoring_queue.append(scoring_config)
+            logger.debug(f"SCORING: Added to queue: {task.__class__.__name__}. Queue size: {len(self.scoring_queue)}")
 
             # Log the step event.
             return ValidatorLoggingEvent(

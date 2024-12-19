@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from prompting import __spec_version__, mutable_globals
+from prompting import __spec_version__
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.inference import InferenceTask
@@ -145,21 +145,24 @@ class WeightSetter(AsyncLoopRunner):
 
     sync: bool = True
     interval: int = 60 * 22  # set rewards every 20 minutes
+    reward_events: list[list[WeightedRewardEvent]] | None = None
     # interval: int = 60
+
+    async def start(self, reward_events):
+        self.reward_events = reward_events
+        return await super().start()
 
     async def run_step(self):
         await asyncio.sleep(0.01)
         try:
             logger.info("Reward setting loop running")
-            if len(mutable_globals.reward_events) == 0:
+            if len(self.reward_events) == 0:
                 logger.warning("No reward events in queue, skipping weight setting...")
                 return
-            logger.debug(f"Found {len(mutable_globals.reward_events)} reward events in queue")
+            logger.debug(f"Found {len(self.reward_events)} reward events in queue")
 
             # reward_events is a list of lists of WeightedRewardEvents - the 'sublists' each contain the multiple reward events for a single task
-            mutable_globals.reward_events: list[
-                list[WeightedRewardEvent]
-            ] = mutable_globals.reward_events  # to get correct typehinting
+            self.reward_events: list[list[WeightedRewardEvent]] = self.reward_events  # to get correct typehinting
 
             # reward_dict = {uid: 0 for uid in get_uids(sampling_mode="all")}
             reward_dict = {uid: 0 for uid in range(1024)}
@@ -174,7 +177,7 @@ class WeightSetter(AsyncLoopRunner):
             logger.debug(f"Miner rewards before processing: {miner_rewards}")
 
             inference_events: list[WeightedRewardEvent] = []
-            for reward_events in mutable_globals.reward_events:
+            for reward_events in self.reward_events:
                 await asyncio.sleep(0.01)
                 for reward_event in reward_events:
                     if np.sum(reward_event.rewards) > 0:
@@ -226,7 +229,7 @@ class WeightSetter(AsyncLoopRunner):
             logger.exception(f"{ex}")
         # set weights on chain
         set_weights(final_rewards, step=self.step)
-        mutable_globals.reward_events = []  # empty reward events queue
+        self.reward_events = []  # empty reward events queue
         await asyncio.sleep(0.01)
         return final_rewards
 
