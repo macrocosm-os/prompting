@@ -94,9 +94,6 @@ async def main():
         reward_events = manager.list()
         scoring_queue = manager.list()
         task_queue = manager.list()
-        # mutable_globals.reward_events = []
-        # mutable_globals.scoring_queue = []
-        # mutable_globals.task_queue = []
 
         # Create process pool for managed processes
         processes = []

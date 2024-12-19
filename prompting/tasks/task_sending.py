@@ -120,9 +120,7 @@ class TaskSender(AsyncLoopRunner):
 
         return estimated_block
 
-    async def run_step(
-        self, k: int = shared_settings.ORGANIC_SAMPLE_SIZE, timeout: float = shared_settings.NEURON_TIMEOUT
-    ) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
+    async def run_step(self) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
         """Executes a single step of the agent, which consists of:
         - Getting a list of uids to query
         - Querying the network
@@ -168,17 +166,6 @@ class TaskSender(AsyncLoopRunner):
                 task_id=task.task_id,
             )
             logger.debug(f"Collected responses in {timer.final_time:.2f} seconds")
-
-            # scoring_manager will score the responses as and when the correct model is loaded
-
-            # task_scorer.add_to_queue(
-            #     task=task,
-            #     response=response_event,
-            #     dataset_entry=task.dataset_entry,
-            #     block=self.estimate_block,
-            #     step=self.step,
-            #     task_id=task.task_id,
-            # )
             self.scoring_queue.append(scoring_config)
             logger.debug(f"SCORING: Added to queue: {task.__class__.__name__}. Queue size: {len(self.scoring_queue)}")
 

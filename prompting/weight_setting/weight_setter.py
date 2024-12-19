@@ -52,7 +52,9 @@ def save_weights(weights: list[np.ndarray]):
     np.savez_compressed(FILENAME, *weights)
 
 
-def set_weights(weights: np.ndarray, step: int = 0):
+def set_weights(
+    weights: np.ndarray, step: int = 0, subtensor: bt.Subtensor | None = None, metagraph: bt.Metagraph | None = None
+):
     """
     Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
     """
@@ -80,8 +82,8 @@ def set_weights(weights: np.ndarray, step: int = 0):
             uids=shared_settings.METAGRAPH.uids,
             weights=averaged_weights,
             netuid=shared_settings.NETUID,
-            subtensor=shared_settings.SUBTENSOR,
-            metagraph=shared_settings.METAGRAPH,
+            subtensor=subtensor,
+            metagraph=metagraph,
         )
 
         # Convert to uint16 weights and uids.
@@ -146,10 +148,14 @@ class WeightSetter(AsyncLoopRunner):
     sync: bool = True
     interval: int = 60 * 22  # set rewards every 20 minutes
     reward_events: list[list[WeightedRewardEvent]] | None = None
+    subtensor: bt.Subtensor | None = None
+    metagraph: bt.Metagraph | None = None
     # interval: int = 60
 
     async def start(self, reward_events):
         self.reward_events = reward_events
+        self.subtensor = bt.Subtensor(network=shared_settings.SUBTENSOR_NETWORK)
+        self.metagraph = self.subtensor.metagraph(netuid=shared_settings.NETUID)
         return await super().start()
 
     async def run_step(self):
@@ -228,7 +234,7 @@ class WeightSetter(AsyncLoopRunner):
         except Exception as ex:
             logger.exception(f"{ex}")
         # set weights on chain
-        set_weights(final_rewards, step=self.step)
+        set_weights(final_rewards, step=self.step, subtensor=self.subtensor, metagraph=self.metagraph)
         self.reward_events = []  # empty reward events queue
         await asyncio.sleep(0.01)
         return final_rewards
