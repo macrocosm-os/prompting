@@ -26,69 +26,61 @@ torch.multiprocessing.set_start_method("spawn", force=True)
 NEURON_SAMPLE_SIZE = 100
 
 
-async def spawn_loops(task_queue, scoring_queue, reward_events):
-    logger.info("Starting Profiler...")
-    asyncio.create_task(profiler.print_stats(), name="Profiler"),
-    logger.info("Starting ModelScheduler...")
-    asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
-    # logger.info("Starting TaskLoop...")
-    # asyncio.create_task(task_loop.start(task_queue, scoring_queue), name="TaskLoop"),
-    # logger.info("Starting TaskSender...")
-    # asyncio.create_task(task_sender.start(task_queue, scoring_queue), name="TaskSender"),
-    # logger.info("Starting WeightSetter...")
-    # asyncio.create_task(weight_setter.start(reward_events), name="WeightSetter"),
-    logger.info("Starting TaskScorer...")
-    asyncio.create_task(task_scorer.start(scoring_queue, reward_events), name="TaskScorer"),
-    logger.info("Starting WeightSetter...")
-    asyncio.create_task(weight_setter.start(reward_events))
-
-    # Main monitoring loop
-    start = time.time()
-
-    logger.info("Starting Main Monitoring Loop...")
-    while True:
-        await asyncio.sleep(5)
-        current_time = time.time()
-        time_diff = current_time - start
-        start = current_time
-
-        # Check if all tasks are still running
-        logger.debug(f"Running {time_diff:.2f} seconds")
-        logger.debug(f"Number of tasks in Task Queue: {len(task_queue)}")
-        logger.debug(f"Number of tasks in Scoring Queue: {len(scoring_queue)}")
-        logger.debug(f"Number of tasks in Reward Events: {len(reward_events)}")
-
-
 def create_loop_process(task_queue, scoring_queue, reward_events):
+    async def spawn_loops(task_queue, scoring_queue, reward_events):
+        logger.info("Starting Profiler...")
+        asyncio.create_task(profiler.print_stats(), name="Profiler"),
+        logger.info("Starting ModelScheduler...")
+        asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
+        logger.info("Starting TaskScorer...")
+        asyncio.create_task(task_scorer.start(scoring_queue, reward_events), name="TaskScorer"),
+        logger.info("Starting WeightSetter...")
+        asyncio.create_task(weight_setter.start(reward_events))
+
+        # Main monitoring loop
+        start = time.time()
+
+        logger.info("Starting Main Monitoring Loop...")
+        while True:
+            await asyncio.sleep(5)
+            current_time = time.time()
+            time_diff = current_time - start
+            start = current_time
+
+            # Check if all tasks are still running
+            logger.debug(f"Running {time_diff:.2f} seconds")
+            logger.debug(f"Number of tasks in Task Queue: {len(task_queue)}")
+            logger.debug(f"Number of tasks in Scoring Queue: {len(scoring_queue)}")
+            logger.debug(f"Number of tasks in Reward Events: {len(reward_events)}")
+
     asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events))
 
 
 def start_api():
-    async def async_start_api():
+    async def start():
         await start_scoring_api()
         while True:
             await asyncio.sleep(10)
             logger.debug("Running API...")
 
-    asyncio.run(async_start_api())
+    asyncio.run(start())
 
 
 def create_task_loop(task_queue, scoring_queue):
-    asyncio.run(start_task_loop(task_queue, scoring_queue))
+    async def start(task_queue, scoring_queue):
+        logger.info("Starting AvailabilityCheckingLoop...")
+        asyncio.create_task(availability_checking_loop.start())
 
+        logger.info("Starting TaskSender...")
+        asyncio.create_task(task_sender.start(task_queue, scoring_queue))
 
-async def start_task_loop(task_queue, scoring_queue):
-    logger.info("Starting AvailabilityCheckingLoop...")
-    asyncio.create_task(availability_checking_loop.start())
+        logger.info("Starting TaskLoop...")
+        asyncio.create_task(task_loop.start(task_queue, scoring_queue))
+        while True:
+            await asyncio.sleep(10)
+            logger.debug("Running task loop...")
 
-    logger.info("Starting TaskSender...")
-    asyncio.create_task(task_sender.start(task_queue, scoring_queue))
-
-    logger.info("Starting TaskLoop...")
-    asyncio.create_task(task_loop.start(task_queue, scoring_queue))
-    while True:
-        await asyncio.sleep(10)
-        logger.debug("Running task loop...")
+    asyncio.run(start(task_queue, scoring_queue))
 
 
 async def main():
