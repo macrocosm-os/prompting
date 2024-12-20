@@ -15,8 +15,8 @@ class ReproducibleHF:
         Initialize Hugging Face model with reproducible settings and optimizations
         """
         # Create a random seed for reproducibility
-        self.seed = random.randint(0, 1_000_000)
-        self.set_random_seeds(self.seed)
+        # self.seed = random.randint(0, 1_000_000)
+        # self.set_random_seeds(self.seed)
         self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
             model_id,
             torch_dtype=torch.float16,
@@ -65,9 +65,12 @@ class ReproducibleHF:
             )[0]
 
         logger.debug(
-            f"PROMPT: {messages}\n\nRESPONSES: {results}\n\n"
-            f"SAMPLING PARAMS: {params}\n\n"
-            f"TIME FOR RESPONSE: {timer.elapsed_time}"
+            f"""REPRODUCIBLEHF WAS QUERIED: 
+            PROMPT: {messages}\n\n
+            RESPONSES: {results}\n\n
+            SAMPLING PARAMS: {params}\n\n
+            SEED: {seed}\n\n
+            TIME FOR RESPONSE: {timer.elapsed_time}"""
         )
 
         return results if len(results) > 1 else results[0]

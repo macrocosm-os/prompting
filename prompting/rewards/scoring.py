@@ -115,6 +115,7 @@ class TaskScorer(AsyncLoopRunner):
                 block=scoring_config.block,
                 step=scoring_config.step,
                 task_id=scoring_config.task_id,
+                task_dict=scoring_config.task.model_dump(),
             )
         )
         logger.info("Adding scores to rewards_and_uids")

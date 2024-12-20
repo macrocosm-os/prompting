@@ -9,8 +9,6 @@ import multiprocessing as mp
 import time
 
 import torch
-from loguru import logger
-
 from prompting.api.api import start_scoring_api
 from prompting.llms.model_manager import model_scheduler
 from prompting.llms.utils import GPUInfo
@@ -20,6 +18,11 @@ from prompting.tasks.task_creation import task_loop
 from prompting.tasks.task_sending import task_sender
 from prompting.weight_setting.weight_setter import weight_setter
 from shared.profiling import profiler
+import loguru
+
+# Add a handler to write logs to a file
+loguru.logger.add("logfile.log", rotation="1000 MB", retention="10 days", level="DEBUG")
+from loguru import logger
 
 torch.multiprocessing.set_start_method("spawn", force=True)
 
