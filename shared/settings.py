@@ -107,6 +107,7 @@ class SharedSettings(BaseSettings):
     ORGANIC_WHITELIST_HOTKEY: Optional[str] = Field(
         "5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3", env="ORGANIC_WHITELIST_HOTKEY"
     )
+    DEBUG: bool = Field(False, env="DEBUG")
     TEST_MINER_IDS: list[int] = Field([], env="TEST_MINER_IDS")
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
     MAX_ALLOWED_VRAM_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
