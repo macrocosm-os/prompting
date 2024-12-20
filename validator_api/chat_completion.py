@@ -14,22 +14,22 @@ from shared.uids import get_uids
 
 
 async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
+    uid = int(uid)  # sometimes uid is type np.uint64
+    logger.info(f"Forwarding response to scoring with body: {body}")
     if not shared_settings.SCORE_ORGANICS:  # Allow disabling of scoring by default
         return
 
-    # if body.get("task") != "InferenceTask":
-    #     logger.debug(f"Skipping forwarding for non-inference task: {body.get('task')}")
-    #     return
+    if body.get("task") != "InferenceTask":
+        logger.debug(f"Skipping forwarding for non-inference task: {body.get('task')}")
+        return
     url = f"http://{shared_settings.VALIDATOR_API}/scoring"
     payload = {"body": body, "chunks": chunks, "uid": uid}
-    # headers = {
-    #     "Authorization": f"Bearer {shared_settings.SCORING_KEY}",  #Add API key in Authorization header
-    #     "Content-Type": "application/json",
-    # }
     try:
         timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(url, json=payload)  # , headers=headers)
+            response = await client.post(
+                url, json=payload, headers={"api-key": shared_settings.SCORING_KEY, "Content-Type": "application/json"}
+            )
             if response.status_code == 200:
                 logger.info(f"Forwarding response completed with status {response.status_code}")
 

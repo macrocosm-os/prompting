@@ -5,7 +5,6 @@ from loguru import logger
 from pydantic import ConfigDict
 
 from prompting.miner_availability.miner_availability import miner_availabilities
-from prompting.mutable_globals import scoring_queue, task_queue
 from prompting.tasks.task_registry import TaskRegistry
 from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
@@ -18,14 +17,20 @@ class TaskLoop(AsyncLoopRunner):
     is_running: bool = False
     thread: threading.Thread = None
     interval: int = 10
-
+    task_queue: list | None = []
+    scoring_queue: list | None = []
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    async def start(self, task_queue, scoring_queue):
+        self.task_queue = task_queue
+        self.scoring_queue = scoring_queue
+        await super().start()
+
     async def run_step(self) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
-        if len(task_queue) > shared_settings.TASK_QUEUE_LENGTH_THRESHOLD:
+        if len(self.task_queue) > shared_settings.TASK_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Task queue is full. Skipping task generation.")
             return None
-        if len(scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
+        if len(self.scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Scoring queue is full. Skipping task generation.")
             return None
         await asyncio.sleep(0.1)
@@ -55,7 +60,9 @@ class TaskLoop(AsyncLoopRunner):
             if not task.query:
                 logger.debug(f"Generating query for task: {task.__class__.__name__}.")
                 task.make_query(dataset_entry=dataset_entry)
-            task_queue.append(task)
+
+            logger.debug(f"Appending task: {task.__class__.__name__} to task queue.")
+            self.task_queue.append(task)
         except Exception as ex:
             logger.exception(ex)
             return None
