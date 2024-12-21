@@ -5,10 +5,10 @@ from functools import lru_cache, update_wrapper
 from math import floor
 from typing import Any, Callable
 
+import bittensor as bt
 from loguru import logger
 
 from shared.exceptions import BittensorError
-from shared.settings import shared_settings
 
 
 class classproperty:
@@ -86,7 +86,7 @@ def _ttl_hash_gen(seconds: int):
 
 # 12 seconds updating block.
 @ttl_cache(maxsize=1, ttl=12)
-def ttl_get_block() -> int:
+def ttl_get_block(subtensor: bt.Subtensor | None = None) -> int:
     """
     Retrieves the current block number from the blockchain. This method is cached with a time-to-live (TTL)
     of 12 seconds, meaning that it will only refresh the block number from the blockchain at most every 12 seconds,
@@ -105,7 +105,7 @@ def ttl_get_block() -> int:
     Note: self here is the miner or validator instance
     """
     try:
-        return shared_settings.SUBTENSOR.get_current_block()
+        return subtensor.get_current_block()
     except Exception as e:
         raise BittensorError(f"Bittensor error: {str(e)}") from e
 

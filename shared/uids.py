@@ -114,7 +114,7 @@ def get_top_incentive_uids(k: int, vpermit_tao_limit: int) -> np.ndarray:
     # Extract the top uids.
     top_k_uids = [uid for uid, incentive in uid_incentive_pairs_sorted[:k]]
 
-    return np.array(top_k_uids)
+    return np.array(top_k_uids).astype(int)
 
 
 def get_uids(
@@ -125,7 +125,8 @@ def get_uids(
 ) -> np.ndarray:
     if shared_settings.TEST and shared_settings.TEST_MINER_IDS:
         return random.sample(
-            list(np.array(shared_settings.TEST_MINER_IDS)), min(len(shared_settings.TEST_MINER_IDS), k or 10**6)
+            list(np.array(shared_settings.TEST_MINER_IDS).astype(int)),
+            min(len(shared_settings.TEST_MINER_IDS), k or 10**6),
         )
     if sampling_mode == "random":
         return get_random_uids(k=k, exclude=exclude or [])

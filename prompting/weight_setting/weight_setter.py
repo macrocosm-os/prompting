@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from prompting import __spec_version__, mutable_globals
+from prompting import __spec_version__
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.inference import InferenceTask
@@ -17,17 +17,8 @@ from shared.misc import ttl_get_block
 from shared.settings import shared_settings
 
 FILENAME = "validator_weights.npz"
-
-try:
-    with np.load(FILENAME) as data:
-        PAST_WEIGHTS = [data[key] for key in data.files]
-    logger.debug(f"Loaded Past Weights: {PAST_WEIGHTS}")
-except FileNotFoundError:
-    logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
-    PAST_WEIGHTS = []
-except Exception as ex:
-    logger.error(f"Couldn't load weights from file: {ex}")
 WEIGHTS_HISTORY_LENGTH = 24
+PAST_WEIGHTS: list[np.ndarray] = []
 
 
 def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
@@ -52,7 +43,9 @@ def save_weights(weights: list[np.ndarray]):
     np.savez_compressed(FILENAME, *weights)
 
 
-def set_weights(weights: np.ndarray, step: int = 0):
+def set_weights(
+    weights: np.ndarray, step: int = 0, subtensor: bt.Subtensor | None = None, metagraph: bt.Metagraph | None = None
+):
     """
     Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
     """
@@ -80,8 +73,8 @@ def set_weights(weights: np.ndarray, step: int = 0):
             uids=shared_settings.METAGRAPH.uids,
             weights=averaged_weights,
             netuid=shared_settings.NETUID,
-            subtensor=shared_settings.SUBTENSOR,
-            metagraph=shared_settings.METAGRAPH,
+            subtensor=subtensor,
+            metagraph=metagraph,
         )
 
         # Convert to uint16 weights and uids.
@@ -124,7 +117,7 @@ def set_weights(weights: np.ndarray, step: int = 0):
         return
 
     # Set the weights on chain via our subtensor connection.
-    result = shared_settings.SUBTENSOR.set_weights(
+    result = subtensor.set_weights(
         wallet=shared_settings.WALLET,
         netuid=shared_settings.NETUID,
         uids=uint_uids,
@@ -145,21 +138,42 @@ class WeightSetter(AsyncLoopRunner):
 
     sync: bool = True
     interval: int = 60 * 22  # set rewards every 20 minutes
+    reward_events: list[list[WeightedRewardEvent]] | None = None
+    subtensor: bt.Subtensor | None = None
+    metagraph: bt.Metagraph | None = None
     # interval: int = 60
+
+    class Config:
+        arbitrary_types_allowed = True
+
+    async def start(self, reward_events):
+        self.reward_events = reward_events
+        self.subtensor = bt.Subtensor(network=shared_settings.SUBTENSOR_NETWORK)
+        self.metagraph = self.subtensor.metagraph(netuid=shared_settings.NETUID)
+        global PAST_WEIGHTS
+
+        try:
+            with np.load(FILENAME) as data:
+                PAST_WEIGHTS = [data[key] for key in data.files]
+            logger.debug(f"Loaded Past Weights: {PAST_WEIGHTS}")
+        except FileNotFoundError:
+            logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
+            PAST_WEIGHTS = []
+        except Exception as ex:
+            logger.error(f"Couldn't load weights from file: {ex}")
+        return await super().start()
 
     async def run_step(self):
         await asyncio.sleep(0.01)
         try:
             logger.info("Reward setting loop running")
-            if len(mutable_globals.reward_events) == 0:
+            if len(self.reward_events) == 0:
                 logger.warning("No reward events in queue, skipping weight setting...")
                 return
-            logger.debug(f"Found {len(mutable_globals.reward_events)} reward events in queue")
+            logger.debug(f"Found {len(self.reward_events)} reward events in queue")
 
             # reward_events is a list of lists of WeightedRewardEvents - the 'sublists' each contain the multiple reward events for a single task
-            mutable_globals.reward_events: list[
-                list[WeightedRewardEvent]
-            ] = mutable_globals.reward_events  # to get correct typehinting
+            self.reward_events: list[list[WeightedRewardEvent]] = self.reward_events  # to get correct typehinting
 
             # reward_dict = {uid: 0 for uid in get_uids(sampling_mode="all")}
             reward_dict = {uid: 0 for uid in range(1024)}
@@ -174,7 +188,7 @@ class WeightSetter(AsyncLoopRunner):
             logger.debug(f"Miner rewards before processing: {miner_rewards}")
 
             inference_events: list[WeightedRewardEvent] = []
-            for reward_events in mutable_globals.reward_events:
+            for reward_events in self.reward_events:
                 await asyncio.sleep(0.01)
                 for reward_event in reward_events:
                     if np.sum(reward_event.rewards) > 0:
@@ -225,8 +239,8 @@ class WeightSetter(AsyncLoopRunner):
         except Exception as ex:
             logger.exception(f"{ex}")
         # set weights on chain
-        set_weights(final_rewards, step=self.step)
-        mutable_globals.reward_events = []  # empty reward events queue
+        set_weights(final_rewards, step=self.step, subtensor=self.subtensor, metagraph=self.metagraph)
+        self.reward_events = []  # empty reward events queue
         await asyncio.sleep(0.01)
         return final_rewards
 
