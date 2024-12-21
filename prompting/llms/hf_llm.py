@@ -65,7 +65,7 @@ class ReproducibleHF:
             )[0]
 
         logger.debug(
-            f"""REPRODUCIBLEHF WAS QUERIED: 
+            f"""REPRODUCIBLEHF WAS QUERIED:
             PROMPT: {messages}\n\n
             RESPONSES: {results}\n\n
             SAMPLING PARAMS: {params}\n\n
