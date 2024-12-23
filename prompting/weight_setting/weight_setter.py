@@ -237,7 +237,9 @@ class WeightSetter(AsyncLoopRunner):
         except Exception as ex:
             logger.exception(f"{ex}")
         # set weights on chain
-        set_weights(final_rewards, step=self.step, subtensor=shared_settings.SUBTENSOR, metagraph=shared_settings.METAGRAPH)
+        set_weights(
+            final_rewards, step=self.step, subtensor=shared_settings.SUBTENSOR, metagraph=shared_settings.METAGRAPH
+        )
         self.reward_events = []  # empty reward events queue
         shared_settings.refresh_metagraph()
         await asyncio.sleep(0.01)

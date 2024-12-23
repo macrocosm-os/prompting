@@ -253,7 +253,7 @@ class SharedSettings(BaseSettings):
         if "METAGRAPH" in self.__dict__:
             del self.__dict__["METAGRAPH"]
         return self.METAGRAPH
-    
+
     @cached_property
     def DENDRITE(self) -> bt.dendrite:
         logger.info(f"Instantiating dendrite with wallet: {self.WALLET}")
