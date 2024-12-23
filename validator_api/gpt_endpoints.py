@@ -1,6 +1,7 @@
+import json
 import random
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends, Header, HTTPException
 from loguru import logger
 from starlette.responses import StreamingResponse
 
@@ -9,9 +10,19 @@ from validator_api.mixture_of_miners import mixture_of_miners
 
 router = APIRouter()
 
+# load api keys from api_keys.json
+with open("api_keys.json", "r") as f:
+    _keys = json.load(f)
+
+
+def validate_api_key(api_key: str = Header(...)):
+    if api_key not in _keys:
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    return _keys[api_key]
+
 
 @router.post("/v1/chat/completions")
-async def completions(request: Request):
+async def completions(request: Request, api_key: str = Depends(validate_api_key)):
     """Main endpoint that handles both regular and mixture of miners chat completion."""
     try:
         body = await request.json()
