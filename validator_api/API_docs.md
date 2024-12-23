@@ -20,10 +20,15 @@ This document describes the API endpoints available for [Subnet 1](https://githu
 
 ## Getting Started
 
-Follow these steps to set up and run the API server:
+SN1 can run either in validator mode or in API mode. Both modes will require the validator hotkey.
+
+As a validator, you MUST be running one instance in validator mode and can launch an arbitrary number of API instances. These API instances will proxy the responses from miners to the validator for scoring.
+
+To set up and run the API server:
 
 1. **Install dependencies**: Ensure all required dependencies are installed using Poetry.
-2. **Run the API server**: Start the server to access the API endpoints.
+2. **Set up the .env.api file**: Copy the .env.api.example file to .env.api and fill in the validator hotkey.
+3. **Run the API server**: Start the server to access the API endpoints.
 
 Use the following command:
 
