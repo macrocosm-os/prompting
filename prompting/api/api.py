@@ -18,7 +18,7 @@ def health():
 
 
 async def start_scoring_api():
-    logger.info("Starting API...")
+    logger.info(f"Starting Scoring API on https://0.0.0.0:{shared_settings.SCORING_API_PORT}")
     uvicorn.run(
         "prompting.api.api:app", host="0.0.0.0", port=shared_settings.SCORING_API_PORT, loop="asyncio", reload=False
     )

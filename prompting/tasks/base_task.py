@@ -51,7 +51,7 @@ class BaseTextTask(BaseTask):
     reference: str | None = None
     llm_model: ModelConfig = None
     llm_model_id: str = None
-    seed: str = None
+    seed: int = Field(default_factory=lambda: random.randint(0, 1000000), allow_mutation=False)
     query_system_prompt: ClassVar[str | None] = None
     reference_system_prompt: ClassVar[str | None] = None
     augmentation_system_prompt: ClassVar[str | None] = None
@@ -63,7 +63,6 @@ class BaseTextTask(BaseTask):
     def get_model_id_and_seed(self) -> "BaseTextTask":
         if self.llm_model:
             self.llm_model_id = self.llm_model.llm_model_id if self.llm_model else None
-            self.seed = random.randint(0, 1000000)
         return self
 
     def make_query(self, dataset_entry: DatasetEntry, **kwargs) -> str:
@@ -90,7 +89,7 @@ class BaseTextTask(BaseTask):
         """Generates a query to be used for generating the challenge"""
         logger.info("🤖 Generating query...")
         llm_messages = [LLMMessage(role="system", content=self.query_system_prompt)] if self.query_system_prompt else []
-        llm_messages += [LLMMessage(role="user", content=message) for message in messages]
+        llm_messages.extend([LLMMessage(role="user", content=message) for message in messages])
 
         self.query = LLMWrapper.chat_complete(messages=LLMMessages(*llm_messages))
 

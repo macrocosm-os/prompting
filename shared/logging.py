@@ -180,6 +180,7 @@ class RewardLoggingEvent(BaseEvent):
     reference: str
     challenge: str
     task: str
+    task_dict: dict
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -222,6 +223,7 @@ def log_event(event: BaseEvent):
             reinit_wandb()
         unpacked_event = unpack_events(event)
         unpacked_event = convert_arrays_to_lists(unpacked_event)
+        logger.debug(f"""LOGGING WANDB EVENT: {unpacked_event}""")
         wandb.log(unpacked_event)
 
 

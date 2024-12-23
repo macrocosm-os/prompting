@@ -164,6 +164,8 @@ class SharedSettings(BaseSettings):
                 logger.warning(
                     "No SCORING_KEY found in .env.api file. You must add a scoring key that will allow us to forward miner responses to the validator for scoring."
                 )
+            if not os.getenv("SCORE_ORGANICS"):
+                logger.warning("Not scoring organics. This means that miners may not respond as consistently.")
         elif v["mode"] == "miner":
             if not dotenv.load_dotenv(".env.miner"):
                 logger.warning("No .env.miner file found. Please create one.")
@@ -210,7 +212,6 @@ class SharedSettings(BaseSettings):
     def complete_settings(cls, values: dict[str, Any]) -> dict[str, Any]:
         mode = values["mode"]
         netuid = values.get("NETUID", 61)
-
         if netuid is None:
             raise ValueError("NETUID must be specified")
         values["TEST"] = netuid != 1
@@ -222,32 +223,6 @@ class SharedSettings(BaseSettings):
             logger.info("Running in mock mode. Bittensor objects will not be initialized.")
             return values
 
-        # load slow packages only if not in mock mode
-        import torch
-
-        if not values.get("NEURON_DEVICE"):
-            values["NEURON_DEVICE"] = "cuda" if torch.cuda.is_available() else "cpu"
-
-        # Ensure SAVE_PATH exists.
-        save_path = values.get("SAVE_PATH", "./storage")
-        if not os.path.exists(save_path):
-            os.makedirs(save_path)
-        if values.get("SN19_API_KEY") is None or values.get("SN19_API_URL") is None:
-            logger.warning(
-                "It is strongly recommended to provide an SN19 API KEY + URL to avoid incurring OpenAI API costs."
-            )
-        if mode == "validator":
-            if values.get("OPENAI_API_KEY") is None:
-                raise Exception(
-                    "You must provide an OpenAI API key as a backup. It is recommended to also provide an SN19 API key + url to avoid incurring API costs."
-                )
-            if values.get("SCORING_ADMIN_KEY") is None and values.get("DEPLOY_SCORING_API"):
-                logger.warning("You must provide a SCORING_ADMIN_KEY to access the API. Disabling scoring endpoint")
-                values["DEPLOY_SCORING_API"] = False
-            if values.get("PROXY_URL") is None:
-                logger.warning(
-                    "You must provide a proxy URL to use the DuckDuckGo API - your vtrust might decrease if no DDG URL is provided."
-                )
         return values
 
     @cached_property
