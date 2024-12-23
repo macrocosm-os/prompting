@@ -148,8 +148,6 @@ class WeightSetter(AsyncLoopRunner):
 
     async def start(self, reward_events):
         self.reward_events = reward_events
-        self.subtensor = bt.Subtensor(network=shared_settings.SUBTENSOR_NETWORK)
-        self.metagraph = self.subtensor.metagraph(netuid=shared_settings.NETUID)
         global PAST_WEIGHTS
 
         try:
@@ -239,8 +237,9 @@ class WeightSetter(AsyncLoopRunner):
         except Exception as ex:
             logger.exception(f"{ex}")
         # set weights on chain
-        set_weights(final_rewards, step=self.step, subtensor=self.subtensor, metagraph=self.metagraph)
+        set_weights(final_rewards, step=self.step, subtensor=shared_settings.SUBTENSOR, metagraph=shared_settings.METAGRAPH)
         self.reward_events = []  # empty reward events queue
+        shared_settings.refresh_metagraph()
         await asyncio.sleep(0.01)
         return final_rewards
 

@@ -248,6 +248,12 @@ class SharedSettings(BaseSettings):
         logger.info(f"Instantiating metagraph with NETUID: {self.NETUID}")
         return self.SUBTENSOR.metagraph(netuid=self.NETUID)
 
+    def refresh_metagraph(self) -> bt.metagraph:
+        # Drop the cached property so it will be recomputed
+        if "METAGRAPH" in self.__dict__:
+            del self.__dict__["METAGRAPH"]
+        return self.METAGRAPH
+    
     @cached_property
     def DENDRITE(self) -> bt.dendrite:
         logger.info(f"Instantiating dendrite with wallet: {self.WALLET}")
