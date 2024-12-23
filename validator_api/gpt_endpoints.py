@@ -14,7 +14,6 @@ router = APIRouter()
 with open("api_keys.json", "r") as f:
     _keys = json.load(f)
 
-
 def validate_api_key(api_key: str = Header(...)):
     if api_key not in _keys:
         raise HTTPException(status_code=403, detail="Invalid API key")
