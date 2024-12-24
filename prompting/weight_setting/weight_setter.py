@@ -122,15 +122,15 @@ def set_weights(
         netuid=shared_settings.NETUID,
         uids=uint_uids,
         weights=uint_weights,
-        wait_for_finalization=False,
-        wait_for_inclusion=False,
+        wait_for_finalization=True,
+        wait_for_inclusion=True,
         version_key=__spec_version__,
     )
 
     if result is True:
         logger.info("set_weights on chain successfully!")
     else:
-        logger.error("set_weights failed")
+        logger.error(f"set_weights failed: {result}")
 
 
 class WeightSetter(AsyncLoopRunner):
