@@ -249,9 +249,10 @@ class SharedSettings(BaseSettings):
         return self.SUBTENSOR.metagraph(netuid=self.NETUID)
 
     def refresh_metagraph(self) -> bt.metagraph:
-        # Drop the cached property so it will be recomputed
+        logger.debug("Refreshing metagraph")
         if "METAGRAPH" in self.__dict__:
             del self.__dict__["METAGRAPH"]
+            logger.debug("Deleting cached metagraph")
         return self.METAGRAPH
 
     @cached_property
