@@ -17,7 +17,6 @@ from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTas
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningRewardConfig, MultiStepReasoningTask
 from prompting.tasks.programming_task import ProgrammingRewardConfig, ProgrammingTask
 from prompting.tasks.qa import QARewardConfig, QuestionAnsweringTask
-from prompting.tasks.summarization import SummarizationRewardConfig, SummarizationTask
 from prompting.tasks.web_retrieval import WebRetrievalRewardConfig, WebRetrievalTask
 from shared.base import BaseDataset
 
@@ -39,9 +38,6 @@ class TaskConfig(BaseModel):
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
         TaskConfig(task=QuestionAnsweringTask, probability=0.15, datasets=[WikiDataset], reward_model=QARewardConfig),
-        TaskConfig(
-            task=SummarizationTask, probability=0.1, datasets=[WikiDataset], reward_model=SummarizationRewardConfig
-        ),
         TaskConfig(
             task=DateQuestionAnsweringTask,
             probability=0.1,
