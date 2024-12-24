@@ -127,7 +127,7 @@ def set_weights(
         version_key=__spec_version__,
     )
 
-    if result is True:
+    if result[0] is True:
         logger.info("set_weights on chain successfully!")
     else:
         logger.error(f"set_weights failed: {result}")
