@@ -6,7 +6,7 @@ from pydantic import ConfigDict
 
 from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.tasks.task_registry import TaskRegistry
-from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
+# from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
 from shared.settings import shared_settings
 
@@ -26,7 +26,7 @@ class TaskLoop(AsyncLoopRunner):
         self.scoring_queue = scoring_queue
         await super().start()
 
-    async def run_step(self) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
+    async def run_step(self):
         if len(self.task_queue) > shared_settings.TASK_QUEUE_LENGTH_THRESHOLD:
             logger.debug("Task queue is full. Skipping task generation.")
             return None

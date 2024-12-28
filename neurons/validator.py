@@ -28,6 +28,8 @@ NEURON_SAMPLE_SIZE = 100
 def create_loop_process(task_queue, scoring_queue, reward_events):
     async def spawn_loops(task_queue, scoring_queue, reward_events):
         # ruff: noqa: E402
+        import wandb 
+        wandb.setup()
         from shared import settings
 
         shared_settings = settings.shared_settings

@@ -12,16 +12,8 @@ from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.logging import RewardLoggingEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
+from prompting.rewards.scoring_config import ScoringConfig
 
-
-@dataclass
-class ScoringConfig:
-    task: BaseTextTask
-    response: DendriteResponseEvent
-    dataset_entry: DatasetEntry
-    block: int
-    step: int
-    task_id: str
 
 
 class TaskScorer(AsyncLoopRunner):
