@@ -18,6 +18,8 @@ from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
+from shared.misc import cached_property_with_expiration
+
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -243,7 +245,7 @@ class SharedSettings(BaseSettings):
         logger.info(f"Instantiating subtensor with network: {subtensor_network}")
         return bt.subtensor(network=subtensor_network)
 
-    @cached_property
+    @cached_property_with_expiration(expiration_seconds=1200)
     def METAGRAPH(self) -> bt.metagraph:
         logger.info(f"Instantiating metagraph with NETUID: {self.NETUID}")
         return self.SUBTENSOR.metagraph(netuid=self.NETUID)
@@ -254,7 +256,7 @@ class SharedSettings(BaseSettings):
             del self.__dict__["METAGRAPH"]
             logger.debug("Deleting cached metagraph")
         return self.METAGRAPH
-    
+
     @cached_property
     def UID(self) -> int:
         return self.METAGRAPH.hotkeys.index(self.WALLET.hotkey.ss58_address)

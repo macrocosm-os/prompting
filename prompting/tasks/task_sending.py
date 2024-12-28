@@ -66,7 +66,9 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
     response_event = DendriteResponseEvent(
         stream_results=stream_results,
         uids=uids,
-        axons=[shared_settings.METAGRAPH.axons[x].ip + ':' + str(shared_settings.METAGRAPH.axons[x].port) for x in uids],
+        axons=[
+            shared_settings.METAGRAPH.axons[x].ip + ":" + str(shared_settings.METAGRAPH.axons[x].port) for x in uids
+        ],
         timeout=(
             shared_settings.INFERENCE_TIMEOUT if isinstance(task, InferenceTask) else shared_settings.NEURON_TIMEOUT
         ),

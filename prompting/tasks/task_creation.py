@@ -6,6 +6,7 @@ from pydantic import ConfigDict
 
 from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.tasks.task_registry import TaskRegistry
+
 # from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
 from shared.settings import shared_settings

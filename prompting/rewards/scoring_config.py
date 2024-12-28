@@ -1,7 +1,9 @@
+from dataclasses import dataclass
+
 from prompting.tasks.base_task import BaseTextTask
 from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
-from dataclasses import dataclass
+
 
 @dataclass
 class ScoringConfig:

@@ -1,10 +1,11 @@
 import asyncio
 import multiprocessing as mp
-import time
 import sys
+import time
 
 import loguru
 import torch
+import wandb
 
 # ruff: noqa: E402
 from shared import settings
@@ -14,7 +15,6 @@ settings.shared_settings = settings.SharedSettings.load(mode="validator")
 
 
 from prompting.llms.utils import GPUInfo
-
 
 # Add a handler to write logs to a file
 loguru.logger.add("logfile.log", rotation="1000 MB", retention="10 days", level="DEBUG")
@@ -28,21 +28,18 @@ NEURON_SAMPLE_SIZE = 100
 def create_loop_process(task_queue, scoring_queue, reward_events):
     async def spawn_loops(task_queue, scoring_queue, reward_events):
         # ruff: noqa: E402
-        import wandb 
         wandb.setup()
         from shared import settings
 
-        shared_settings = settings.shared_settings
-
         settings.shared_settings = settings.SharedSettings.load(mode="validator")
 
+        from prompting.llms.model_manager import model_scheduler
+        from prompting.miner_availability.miner_availability import availability_checking_loop
+        from prompting.rewards.scoring import task_scorer
         from prompting.tasks.task_creation import task_loop
         from prompting.tasks.task_sending import task_sender
         from prompting.weight_setting.weight_setter import weight_setter
         from shared.profiling import profiler
-        from prompting.rewards.scoring import task_scorer
-        from prompting.miner_availability.miner_availability import availability_checking_loop
-        from prompting.llms.model_manager import model_scheduler
 
         logger.info("Starting Profiler...")
         asyncio.create_task(profiler.print_stats(), name="Profiler"),
@@ -166,6 +163,7 @@ async def main():
             logger.error(f"Main loop error: {e}")
             raise
         finally:
+            wandb.teardown()
             # Clean up processes
             for process in processes:
                 if process.is_alive():
