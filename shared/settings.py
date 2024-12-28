@@ -254,6 +254,10 @@ class SharedSettings(BaseSettings):
             del self.__dict__["METAGRAPH"]
             logger.debug("Deleting cached metagraph")
         return self.METAGRAPH
+    
+    @cached_property
+    def UID(self) -> int:
+        return self.METAGRAPH.hotkeys.index(self.WALLET.hotkey.ss58_address)
 
     @cached_property
     def DENDRITE(self) -> bt.dendrite:

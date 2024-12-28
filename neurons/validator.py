@@ -7,6 +7,7 @@ shared_settings = settings.shared_settings
 import asyncio
 import multiprocessing as mp
 import time
+import sys
 
 import loguru
 import torch
@@ -118,9 +119,14 @@ async def main():
             processes.append(task_loop_process)
             GPUInfo.log_gpu_info()
 
+            step = 0
             while True:
-                await asyncio.sleep(10)
-                logger.debug("Running...")
+                await asyncio.sleep(30)
+                if shared_settings.SUBTENSOR.get_current_block() - shared_settings.METAGRAPH.last_update[shared_settings.UID] > 500 and step > 120: 
+                        logger.warning(f"UPDATES HAVE STALED FOR {shared_settings.SUBTENSOR.get_current_block() - shared_settings.METAGRAPH.last_update[shared_settings.UID]} BLOCKS AND {step} STEPS")
+                        logger.warning(f"STALED: {shared_settings.SUBTENSOR.get_current_block()}, {shared_settings.METAGRAPH.block}")
+                        sys.exit(1)
+                step += 1
 
         except Exception as e:
             logger.error(f"Main loop error: {e}")
