@@ -137,7 +137,7 @@ class WeightSetter(AsyncLoopRunner):
     """The weight setter looks at RewardEvents in the reward_events queue and sets the weights of the miners accordingly."""
 
     sync: bool = True
-    interval: int = 60 * 22  # set rewards every 20 minutes
+    interval: int = 60 * 25  # set rewards every 25 minutes
     reward_events: list[list[WeightedRewardEvent]] | None = None
     subtensor: bt.Subtensor | None = None
     metagraph: bt.Metagraph | None = None
@@ -240,10 +240,8 @@ class WeightSetter(AsyncLoopRunner):
         set_weights(
             final_rewards, step=self.step, subtensor=shared_settings.SUBTENSOR, metagraph=shared_settings.METAGRAPH
         )
-        self.reward_events = []  # empty reward events queue
-        logger.debug(f"Pre-Refresh Metagraph Block: {shared_settings.METAGRAPH.block}")
-        shared_settings.refresh_metagraph()
-        logger.debug(f"Post-Refresh Metagraph Block: {shared_settings.METAGRAPH.block}")
+        # TODO: empty rewards queue only on weight setting success
+        self.reward_events[:] = []  # empty reward events queue
         await asyncio.sleep(0.01)
         return final_rewards
 

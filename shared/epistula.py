@@ -124,7 +124,7 @@ async def query_miners(uids, body: dict[str, Any]):
         exceptions = [resp for resp in responses if isinstance(resp, Exception)]
         if exceptions:
             for exc in exceptions:
-                logger.error(f"Error in make_openai_query: {exc}")
+                logger.debug(f"Error in make_openai_query: {exc}")
 
         # 'responses' is a list of SynapseStreamResult objects
         results = []
