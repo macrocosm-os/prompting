@@ -240,7 +240,7 @@ class WeightSetter(AsyncLoopRunner):
         set_weights(
             final_rewards, step=self.step, subtensor=shared_settings.SUBTENSOR, metagraph=shared_settings.METAGRAPH
         )
-        #TODO: empty rewards queue only on weight setting success
+        # TODO: empty rewards queue only on weight setting success
         self.reward_events[:] = []  # empty reward events queue
         await asyncio.sleep(0.01)
         return final_rewards
