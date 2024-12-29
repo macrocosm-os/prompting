@@ -53,7 +53,7 @@ class SharedSettings(BaseSettings):
     NEURON_GPUS: int = Field(1, env="NEURON_GPUS")
 
     # Logging.
-    LOGGING_DONT_SAVE_EVENTS: bool = Field(False, env="LOGGING_DONT_SAVE_EVENTS")
+    LOGGING_DONT_SAVE_EVENTS: bool = Field(True, env="LOGGING_DONT_SAVE_EVENTS")
     LOG_WEIGHTS: bool = Field(False, env="LOG_WEIGHTS")
 
     # Neuron parameters.
@@ -249,13 +249,6 @@ class SharedSettings(BaseSettings):
     def METAGRAPH(self) -> bt.metagraph:
         logger.info(f"Instantiating metagraph with NETUID: {self.NETUID}")
         return self.SUBTENSOR.metagraph(netuid=self.NETUID)
-
-    def refresh_metagraph(self) -> bt.metagraph:
-        logger.debug("Refreshing metagraph")
-        if "METAGRAPH" in self.__dict__:
-            del self.__dict__["METAGRAPH"]
-            logger.debug("Deleting cached metagraph")
-        return self.METAGRAPH
 
     @cached_property
     def UID(self) -> int:
