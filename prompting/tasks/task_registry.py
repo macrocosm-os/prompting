@@ -20,8 +20,6 @@ from prompting.tasks.qa import QARewardConfig, QuestionAnsweringTask
 from prompting.tasks.web_retrieval import WebRetrievalRewardConfig, WebRetrievalTask
 from shared.base import BaseDataset
 
-# from prompting.tasks.
-
 
 class TaskConfig(BaseModel):
     task: type[BaseTextTask]
@@ -64,13 +62,13 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=WebRetrievalTask,
-            probability=0.03,
+            probability=0.08,
             datasets=[DDGDataset],
             reward_model=WebRetrievalRewardConfig,
         ),
         TaskConfig(
             task=MultiStepReasoningTask,
-            probability=0.1,
+            probability=0.15,
             datasets=[WikiDataset],
             reward_model=MultiStepReasoningRewardConfig,
         ),
