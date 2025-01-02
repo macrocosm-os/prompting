@@ -49,13 +49,10 @@ Subnet one utilizes the concept of "Tasks" to control the behavior of miners. Va
 ### 1. **QA (Question Answering)**
 The miner receives a question about a specific section from a Wikipedia page. The miner must then find the original context in the specified section and use it to return an accurate answer. References are generated using the validators privileged knowledge of the context, and miner complestions are scored based on similarity metrics.
 
-### 2. **DateQA**
-The miner receives a question about an event from Wikipedia. The miner must search through Wikipedia for the relevant event and return the correct answer based on the findings. References are again generated with validator's knowledge of the context, and similarity metrics are used to score miner completions.
-
-### 3. **Inference**
+### 2. **Inference**
 A question is given with some pre-seeded information and a random seed. The miner must perform an inference based on this information to provide the correct answer. Completions are scored based on similarity metrics.
 
-### 4. **MultiChoice**
+### 3. **MultiChoice**
 The miner is presented with a question from Wikipedia along with four possible answers (A, B, C, or D). The miner must search Wikipedia and return the correct answer by selecting one of the given options. Miner completions are scored by Regex matching.
 
 ### 5. **Programming**

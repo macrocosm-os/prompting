@@ -11,7 +11,6 @@ from prompting.datasets.sn13 import SN13Dataset
 from prompting.datasets.wiki import WikiDataset, WikiDateDataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
-from prompting.tasks.date_qa import DateQARewardConfig, DateQuestionAnsweringTask
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
 from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTask
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningRewardConfig, MultiStepReasoningTask
@@ -36,12 +35,6 @@ class TaskConfig(BaseModel):
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
         TaskConfig(task=QuestionAnsweringTask, probability=0.15, datasets=[WikiDataset], reward_model=QARewardConfig),
-        TaskConfig(
-            task=DateQuestionAnsweringTask,
-            probability=0.1,
-            datasets=[WikiDateDataset],
-            reward_model=DateQARewardConfig,
-        ),
         TaskConfig(
             task=InferenceTask,
             probability=0.16,
