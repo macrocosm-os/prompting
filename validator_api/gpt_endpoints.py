@@ -1,7 +1,7 @@
 import json
 import random
 
-from fastapi import APIRouter, Request, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from loguru import logger
 from starlette.responses import StreamingResponse
 
@@ -13,6 +13,7 @@ router = APIRouter()
 # load api keys from api_keys.json
 with open("api_keys.json", "r") as f:
     _keys = json.load(f)
+
 
 def validate_api_key(api_key: str = Header(...)):
     if api_key not in _keys:
