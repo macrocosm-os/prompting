@@ -14,7 +14,7 @@ from shared.uids import get_uids
 
 async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
     uid = int(uid)
-    logger.info(f"Forwarding response to scoring with body: {body}")
+    logger.info(f"Forwarding response from uid {uid} to scoring with body: {body} and chunks: {chunks}")
     if not shared_settings.SCORE_ORGANICS:
         return
 
@@ -37,8 +37,8 @@ async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
                     f"Forwarding response uid {uid} failed with status {response.status_code} and payload {payload}"
                 )
     except Exception as e:
-        logger.exception(f"Error while forwarding response to validator for scoring: {e}")
-        logger.error(f"Tried to forward response to validator with {url} for scoring with payload {payload}")
+        logger.error(f"Tried to forward response to {url} with payload {payload}")
+        logger.exception(f"Error while forwarding response: {e}")
 
 
 async def stream_from_first_response(
@@ -80,7 +80,7 @@ async def stream_from_first_response(
 
         # Continue collecting remaining responses in background for scoring
         remaining = asyncio.gather(*pending, return_exceptions=True)
-        asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list[1:], body, uids[1:]))
+        asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list, body, uids))
 
     except asyncio.CancelledError:
         logger.info("Client disconnected, streaming cancelled")
@@ -98,16 +98,17 @@ async def collect_remaining_responses(
     """Collect remaining responses for scoring without blocking the main response."""
     try:
         responses = await remaining
+        logger.debug(f"responses to forward: {responses}")
         for i, response in enumerate(responses):
             if isinstance(response, Exception):
-                logger.error(f"Error collecting response from uid {uids[i]}: {response}")
+                logger.error(f"Error collecting response from uid {uids[i+1]}: {response}")
                 continue
 
             async for chunk in response:
-                collected_chunks_list[i].append(chunk.choices[0].delta.content)
-
+                collected_chunks_list[i + 1].append(chunk.choices[0].delta.content)
+        for uid, chunks in zip(uids, collected_chunks_list):
             # Forward for scoring
-            asyncio.create_task(forward_response(uids[i], body, collected_chunks_list[i]))
+            asyncio.create_task(forward_response(uid, body, chunks))
 
     except Exception as e:
         logger.exception(f"Error collecting remaining responses: {e}")
@@ -119,16 +120,16 @@ async def get_response_from_miner(body: dict[str, any], uid: int) -> tuple:
 
 
 async def chat_completion(
-    body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 3
+    body: dict[str, any], uids: Optional[int] = None, num_miners: int = 3
 ) -> tuple | StreamingResponse:
     """Handle chat completion with multiple miners in parallel."""
     # Get multiple UIDs if none specified
     if uids is None:
-        uids = get_uids(sampling_mode="top_incentive", k=100)
-        if uids is None:
+        uids = list(get_uids(sampling_mode="top_incentive", k=100))
+        if uids is None or len(uids) == 0:  # if not uids throws error, figure out how to fix
             logger.error("No available miners found")
             raise HTTPException(status_code=503, detail="No available miners found")
-        selected_uids = random.sample(list(uids), min(num_miners, len(uids)))
+        selected_uids = random.sample(uids, min(num_miners, len(uids)))
     else:
         selected_uids = uids[:num_miners]  # If UID is specified, only use that one
 
