@@ -34,7 +34,7 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
-        TaskConfig(task=QuestionAnsweringTask, probability=0.15, datasets=[WikiDataset], reward_model=QARewardConfig),
+        TaskConfig(task=QuestionAnsweringTask, probability=0.25, datasets=[WikiDataset], reward_model=QARewardConfig),
         TaskConfig(
             task=InferenceTask,
             probability=0.1,
@@ -61,7 +61,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=MultiStepReasoningTask,
-            probability=0.2,
+            probability=0.1,
             datasets=[WikiDataset],
             reward_model=MultiStepReasoningRewardConfig,
         )
