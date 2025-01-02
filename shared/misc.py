@@ -138,3 +138,34 @@ def serialize_exception_to_string(e):
         return serialized_str
     else:
         return e
+
+
+def cached_property_with_expiration(expiration_seconds=1200):
+    """
+    Decorator that caches the property's value for `expiration_seconds` seconds.
+    After this duration, the cached value is refreshed.
+    """
+
+    def decorator(func):
+        attr_name = f"_cached_{func.__name__}"
+
+        @property
+        def wrapper(self):
+            now = time.time()
+
+            # Check if we have a cached value and if it's still valid
+            if hasattr(self, attr_name):
+                cached_value, timestamp = getattr(self, attr_name)
+
+                # If valid, return cached value
+                if now - timestamp < expiration_seconds:
+                    return cached_value
+
+            # Otherwise, compute the new value and cache it
+            value = func(self)
+            setattr(self, attr_name, (value, now))
+            return value
+
+        return wrapper
+
+    return decorator

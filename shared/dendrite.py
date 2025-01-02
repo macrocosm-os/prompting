@@ -35,6 +35,7 @@ class SynapseStreamResult(BaseModel):
 
 class DendriteResponseEvent(BaseModel):
     uids: np.ndarray | list[float]
+    axons: list[str]
     timeout: float
     stream_results: list[SynapseStreamResult]
     completions: list[str] = []
