@@ -1,27 +1,17 @@
 import asyncio
 import threading
-from dataclasses import dataclass
 
 from loguru import logger
 from pydantic import ConfigDict
 
 from prompting.llms.model_manager import model_manager, model_scheduler
+from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_registry import TaskRegistry
 from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.logging import RewardLoggingEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
-
-
-@dataclass
-class ScoringConfig:
-    task: BaseTextTask
-    response: DendriteResponseEvent
-    dataset_entry: DatasetEntry
-    block: int
-    step: int
-    task_id: str
 
 
 class TaskScorer(AsyncLoopRunner):
