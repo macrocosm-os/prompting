@@ -81,11 +81,12 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
     asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events))
 
 
-def start_api():
+def start_api(scoring_queue, reward_events):
     async def start():
         from prompting.api.api import start_scoring_api  # noqa: F401
 
-        await start_scoring_api()
+        await start_scoring_api(scoring_queue, reward_events)
+
         while True:
             await asyncio.sleep(10)
             logger.debug("Running API...")
@@ -125,7 +126,7 @@ async def main():
 
             if shared_settings.DEPLOY_SCORING_API:
                 # Use multiprocessing to bypass API blocking issue
-                api_process = mp.Process(target=start_api, name="API_Process")
+                api_process = mp.Process(target=start_api, args=(scoring_queue, reward_events), name="API_Process")
                 api_process.start()
                 processes.append(api_process)
 

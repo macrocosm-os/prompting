@@ -100,7 +100,7 @@ def ttl_get_block(subtensor: bt.Subtensor | None = None) -> int:
     efficiently reduces the workload on the blockchain interface.
 
     Example:
-        current_block = ttl_get_block(self)
+        current_block = ttl_get_block(subtensor=subtensor)
 
     Note: self here is the miner or validator instance
     """

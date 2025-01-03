@@ -102,7 +102,7 @@ def set_weights(
                     "weights": processed_weights.flatten(),
                     "raw_weights": str(list(weights.flatten())),
                     "averaged_weights": str(list(averaged_weights.flatten())),
-                    "block": ttl_get_block(),
+                    "block": ttl_get_block(subtensor=subtensor),
                 }
             )
             step_filename = "weights.csv"

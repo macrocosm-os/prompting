@@ -1,7 +1,7 @@
-from prompting import settings
+from shared import settings
 
-settings.settings = settings.Settings.load(mode="validator")
-settings = settings.settings
+settings.shared_settings = settings.SharedSettings.load(mode="validator")
+shared_settings = settings.shared_settings
 
 import asyncio
 import json
@@ -9,7 +9,6 @@ import json
 from loguru import logger
 
 from shared.epistula import query_miners
-from shared.settings import shared_settings
 
 """
 This has assumed you have:

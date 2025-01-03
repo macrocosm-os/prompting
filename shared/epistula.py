@@ -111,7 +111,7 @@ async def merged_stream(responses: list[AsyncGenerator]):
                 logger.error(f"Error while streaming: {e}")
 
 
-async def query_miners(uids, body: dict[str, Any]):
+async def query_miners(uids, body: dict[str, Any]) -> list[SynapseStreamResult]:
     try:
         tasks = []
         for uid in uids:

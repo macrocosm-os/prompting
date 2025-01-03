@@ -114,7 +114,8 @@ def get_top_incentive_uids(k: int, vpermit_tao_limit: int) -> np.ndarray:
     # Extract the top uids.
     top_k_uids = [uid for uid, incentive in uid_incentive_pairs_sorted[:k]]
 
-    return np.array(top_k_uids).astype(int)
+    return list(np.array(top_k_uids).astype(int))
+    # return [int(k) for k in top_k_uids]
 
 
 def get_uids(
