@@ -9,7 +9,7 @@ from loguru import logger
 from prompting.miner_availability.miner_availability import miner_availabilities
 
 # from prompting.rewards.scoring import task_scorer
-from prompting.rewards.scoring import ScoringConfig
+from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceTask
 from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
@@ -66,6 +66,9 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
     response_event = DendriteResponseEvent(
         stream_results=stream_results,
         uids=uids,
+        axons=[
+            shared_settings.METAGRAPH.axons[x].ip + ":" + str(shared_settings.METAGRAPH.axons[x].port) for x in uids
+        ],
         timeout=(
             shared_settings.INFERENCE_TIMEOUT if isinstance(task, InferenceTask) else shared_settings.NEURON_TIMEOUT
         ),
