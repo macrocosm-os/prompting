@@ -27,10 +27,10 @@ class TaskScorer(AsyncLoopRunner):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def start(self, scoring_queue, reward_events):
+    async def start(self, scoring_queue, reward_events, name: str | None = None):
         self.scoring_queue = scoring_queue
         self.reward_events = reward_events
-        return await super().start()
+        return await super().start(name=name)
 
     def add_to_queue(
         self,
