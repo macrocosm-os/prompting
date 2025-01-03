@@ -31,7 +31,6 @@ More tooling will be included in future releases.
 # Tasks
 The validation process supports an ever-growing number of tasks. Tasks drive agent behaviour based on specific goals, such as;
 - Question answering
-- Summarization
 - Code debugging
 - Mathematics
  and more.
