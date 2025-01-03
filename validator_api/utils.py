@@ -1,6 +1,7 @@
-from loguru import logger
-from shared.settings import shared_settings
 import httpx
+from loguru import logger
+
+from shared.settings import shared_settings
 
 
 # TODO: Modify this so that all the forwarded responses are sent in a single request. This is both more efficient but

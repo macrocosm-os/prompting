@@ -1,3 +1,4 @@
+import asyncio
 import json
 import random
 
@@ -6,13 +7,12 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from loguru import logger
 from starlette.responses import StreamingResponse
 
-from validator_api.chat_completion import chat_completion
-from shared.uids import get_uids
-from validator_api.mixture_of_miners import mixture_of_miners
-from shared.epistula import query_miners, SynapseStreamResult
+from shared.epistula import SynapseStreamResult, query_miners
 from shared.settings import shared_settings
+from shared.uids import get_uids
+from validator_api.chat_completion import chat_completion
+from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.utils import forward_response
-import asyncio
 
 router = APIRouter()
 
@@ -76,7 +76,7 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
         try:
             loaded_results.append(json.loads(result))
             logger.info(f"🔍 Result: {result}")
-        except Exception as e:
+        except Exception:
             logger.error(f"🔍 Result: {result}")
     if len(loaded_results) == 0:
         raise HTTPException(status_code=500, detail="No miner responded successfully")

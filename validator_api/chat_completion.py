@@ -3,7 +3,6 @@ import json
 import random
 from typing import AsyncGenerator, List, Optional
 
-import httpx
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger

@@ -4,12 +4,12 @@ from typing import Any
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from loguru import logger
 
+from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.scoring import task_scorer
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.web_retrieval import WebRetrievalTask
 from shared.base import DatasetEntry
-from prompting.datasets.random_website import DDGDatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.epistula import SynapseStreamResult
 from shared.settings import shared_settings
