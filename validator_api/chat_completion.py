@@ -3,7 +3,6 @@ import json
 import random
 from typing import AsyncGenerator, List, Optional
 
-import httpx
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
@@ -11,35 +10,7 @@ from loguru import logger
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
 from shared.uids import get_uids
-
-
-async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
-    uid = int(uid)
-    logger.info(f"Forwarding response from uid {uid} to scoring with body: {body} and chunks: {chunks}")
-    if not shared_settings.SCORE_ORGANICS:
-        return
-
-    if body.get("task") != "InferenceTask":
-        logger.debug(f"Skipping forwarding for non-inference task: {body.get('task')}")
-        return
-
-    url = f"http://{shared_settings.VALIDATOR_API}/scoring"
-    payload = {"body": body, "chunks": chunks, "uid": uid}
-    try:
-        timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(
-                url, json=payload, headers={"api-key": shared_settings.SCORING_KEY, "Content-Type": "application/json"}
-            )
-            if response.status_code == 200:
-                logger.info(f"Forwarding response completed with status {response.status_code}")
-            else:
-                logger.exception(
-                    f"Forwarding response uid {uid} failed with status {response.status_code} and payload {payload}"
-                )
-    except Exception as e:
-        logger.error(f"Tried to forward response to {url} with payload {payload}")
-        logger.exception(f"Error while forwarding response: {e}")
+from validator_api.utils import forward_response
 
 
 async def stream_from_first_response(

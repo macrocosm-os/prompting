@@ -15,8 +15,8 @@ MAX_CHARS = 5000
 
 class DDGDatasetEntry(DatasetEntry):
     search_term: str
-    website_url: str
-    website_content: str
+    website_url: str = None
+    website_content: str = None
 
 
 class DDGDataset(BaseDataset):
