@@ -84,6 +84,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
 def start_api(scoring_queue, reward_events):
     async def start():
         from prompting.api.api import start_scoring_api  # noqa: F401
+
         await start_scoring_api(scoring_queue, reward_events)
 
         while True:

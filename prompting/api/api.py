@@ -4,8 +4,8 @@ from loguru import logger
 
 from prompting.api.miner_availabilities.api import router as miner_availabilities_router
 from prompting.api.scoring.api import router as scoring_router
-from shared.settings import shared_settings
 from prompting.rewards.scoring import task_scorer
+from shared.settings import shared_settings
 
 app = FastAPI()
 app.include_router(miner_availabilities_router, prefix="/miner_availabilities", tags=["miner_availabilities"])

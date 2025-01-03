@@ -1,11 +1,12 @@
 import asyncio
 import json
 import random
-from typing import AsyncGenerator, List, Optional, Tuple
+from typing import AsyncGenerator, List, Optional
+
+import httpx
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
-import httpx
 
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
