@@ -68,6 +68,7 @@ class WikiQuestionAnsweringTask(BaseTextTask):
         self.reference = self.generate_reference(messages=[{"role": "user", "content": reference_prompt}])
         return self.reference
 
+
 class WebQuestionAnsweringTask(BaseTextTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
