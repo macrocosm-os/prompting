@@ -61,6 +61,9 @@ The miner receives a code snippet that is incomplete. The task is to complete th
 ### 6. **Web Retrieval**
 The miner is given a question based on a random web page and must return a scraped website that contains the answer. This requires searching the web to locate the most accurate and reliable source to provide the answer. The miner is scored based on the embedding similarity between the answer it returns and the original website that the validator generated the reference from.
 
+### 7. **Multistep Reasoning**
+The miner is given a complex problem that requires multiple steps to solve. Each step builds upon the previous one, and the miner must provide intermediate results before arriving at the final answer. The validator generates a reference solution using its internal LLM, and the miner is scored based on the accuracy and coherence of the intermediate and final results.
+
 # API Documentation
 
 For detailed information on the available API endpoints, request/response formats, and usage examples, please refer to the [API Documentation](./api/API.md).
