@@ -50,11 +50,12 @@ async def main():
     # Example API key, replace with yours:
     API_KEY = "0566dbe21ee33bba9419549716cd6f1f"
     client = openai.AsyncOpenAI(
-        base_url=f"http://localhost:{PORT}/v1",
+        base_url=f"http://0.0.0.0:{PORT}/v1",
         max_retries=0,
         timeout=Timeout(90, connect=30, read=60),
         api_key=API_KEY,
     )
+    client._client.headers["api-key"] = API_KEY
     response = await make_completion(client=client, prompt="Say 10 random numbers between 1 and 100", stream=True)
     print(response)
 

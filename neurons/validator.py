@@ -46,21 +46,21 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
 
         # -------- Duplicate of create_task_loop ----------
         logger.info("Starting AvailabilityCheckingLoop...")
-        availability_checking_loop.start()
+        await availability_checking_loop.start()
 
         logger.info("Starting TaskSender...")
-        task_sender.start(task_queue, scoring_queue)
+        await task_sender.start(task_queue, scoring_queue)
 
         logger.info("Starting TaskLoop...")
-        task_loop.start(task_queue, scoring_queue)
+        await task_loop.start(task_queue, scoring_queue)
         # -------------------------------------------------
 
         logger.info("Starting ModelScheduler...")
-        model_scheduler.start(scoring_queue, name="ModelScheduler")
+        await model_scheduler.start(scoring_queue, name="ModelScheduler")
         logger.info("Starting TaskScorer...")
-        task_scorer.start(scoring_queue, reward_events, name="TaskScorer")
+        await task_scorer.start(scoring_queue, reward_events, name="TaskScorer")
         logger.info("Starting WeightSetter...")
-        weight_setter.start(reward_events)
+        await weight_setter.start(reward_events)
 
         # Main monitoring loop
         start = time.time()
@@ -78,7 +78,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
             logger.debug(f"Number of tasks in Scoring Queue: {len(scoring_queue)}")
             logger.debug(f"Number of tasks in Reward Events: {len(reward_events)}")
 
-    spawn_loops(task_queue, scoring_queue, reward_events)
+    asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events))
 
 
 def start_api():
