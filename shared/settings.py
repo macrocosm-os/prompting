@@ -57,7 +57,7 @@ class SharedSettings(BaseSettings):
     LOG_WEIGHTS: bool = Field(False, env="LOG_WEIGHTS")
 
     # Neuron parameters.
-    NEURON_TIMEOUT: int = Field(15, env="NEURON_TIMEOUT")
+    NEURON_TIMEOUT: int = Field(20, env="NEURON_TIMEOUT")
     INFERENCE_TIMEOUT: int = Field(60, env="INFERENCE_TIMEOUT")
     NEURON_DISABLE_SET_WEIGHTS: bool = Field(False, env="NEURON_DISABLE_SET_WEIGHTS")
     NEURON_MOVING_AVERAGE_ALPHA: float = Field(0.1, env="NEURON_MOVING_AVERAGE_ALPHA")
@@ -118,7 +118,7 @@ class SharedSettings(BaseSettings):
         "temperature": 0.7,
         "top_p": 0.95,
         "top_k": 50,
-        "max_new_tokens": 256,
+        "max_new_tokens": 512,
         "do_sample": True,
         "seed": None,
     }
