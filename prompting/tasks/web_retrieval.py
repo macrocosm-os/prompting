@@ -44,6 +44,6 @@ class WebRetrievalTask(BaseTextTask):
 
     def make_reference(self, dataset_entry: DDGDatasetEntry) -> str:
         ref_dict = dataset_entry.model_dump_json()
-        ref_dict['query'] = self.query
+        ref_dict["query"] = self.query
         self.reference = json.dumps(ref_dict)
         return self.reference
