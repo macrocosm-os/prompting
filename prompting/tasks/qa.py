@@ -81,11 +81,11 @@ class WebQuestionAnsweringTask(BaseTextTask):
     reference: str | None = None
 
     def make_query(self, dataset_entry: Context):
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.content)
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.website_content)
         self.query = self.generate_query(messages=[query_prompt])
         return self.query
 
     def make_reference(self, dataset_entry: Context):
-        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.content, question=self.query)
+        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.website_content, question=self.query)
         self.reference = self.generate_reference(messages=[{"role": "user", "content": reference_prompt}])
         return self.reference

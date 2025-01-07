@@ -22,7 +22,7 @@ from loguru import logger
 
 torch.multiprocessing.set_start_method("spawn", force=True)
 
-NEURON_SAMPLE_SIZE = 100
+NEURON_SAMPLE_SIZE = 100 #TODO: Should add this to constants.py
 
 
 def create_loop_process(task_queue, scoring_queue, reward_events):
