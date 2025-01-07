@@ -13,6 +13,7 @@ from shared.uids import get_uids
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.utils import forward_response
+from validator_api.test_time_inference import generate_response
 
 router = APIRouter()
 
@@ -88,3 +89,38 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
             )
         )
     return loaded_results
+
+
+@router.post("/test_time_inference")
+async def test_time_inference(messages: list[dict]):
+    async def create_response_stream(user_query):
+        async for steps, total_thinking_time in generate_response(user_query):
+            if total_thinking_time is not None:
+                logger.info(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
+            yield steps, total_thinking_time
+
+    # Create a streaming response that yields each step
+    async def stream_steps():
+        try:
+            query = messages[-1]["content"]
+            logger.info(f"Query: {query}")
+            async for steps, thinking_time in create_response_stream(query):
+                step_data = {
+                    "steps": [{"title": step[0], "content": step[1], "thinking_time": step[2]} for step in steps],
+                    "total_thinking_time": thinking_time,
+                }
+                yield f"data: {json.dumps(step_data)}\n\n"
+        except Exception as e:
+            logger.exception(f"Error during streaming: {e}")
+            yield f'data: {{"error": "Internal Server Error: {str(e)}"}}\n\n'
+        finally:
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        stream_steps(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )

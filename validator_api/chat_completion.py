@@ -97,7 +97,7 @@ async def chat_completion(
     """Handle chat completion with multiple miners in parallel."""
     # Get multiple UIDs if none specified
     if uids is None:
-        uids = list(get_uids(sampling_mode="top_incentive", k=100))
+        uids = list(get_uids(sampling_mode="random", k=100))
         if uids is None or len(uids) == 0:  # if not uids throws error, figure out how to fix
             logger.error("No available miners found")
             raise HTTPException(status_code=503, detail="No available miners found")
