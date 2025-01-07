@@ -26,7 +26,7 @@ class DDGDataset(BaseDataset):
         try:
             ddg = PatchedDDGS(proxy=shared_settings.PROXY_URL, verify=False)
             for _ in range(retries):
-                random_words = " ".join(random.sample(ENGLISH_WORDS, 5))
+                random_words = " ".join(random.sample(ENGLISH_WORDS, 3))
                 results = list(ddg.text(random_words))
                 if results:
                     return random_words, results

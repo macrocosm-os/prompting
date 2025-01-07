@@ -35,10 +35,10 @@ class SN13Dataset(BaseDataset):
         if self.exception is not None:
             raise self.exception
         # Randomly select a sample from the dataset.
-        sample_idx = random.randint(0, len(self.dataset) - 1)
         messages = []
         roles = []
         for _ in range(4):
+            sample_idx = random.randint(0, len(self.dataset) - 1)
             if message := self.dataset[sample_idx]["text"]:
                 roles.append(random.choice(["user", "assistant"]))
                 messages.append(message)
