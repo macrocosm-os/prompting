@@ -46,7 +46,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
 
         # -------- Duplicate of create_task_loop ----------
         logger.info("Starting AvailabilityCheckingLoop...")
-        await availability_checking_loop.start()
+        await availability_checking_loop.start(name="AvailabilityCheckingLoop")
 
         logger.info("Starting TaskSender...")
         await task_sender.start(task_queue, scoring_queue)
@@ -60,7 +60,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         logger.info("Starting TaskScorer...")
         await task_scorer.start(scoring_queue, reward_events, name="TaskScorer")
         logger.info("Starting WeightSetter...")
-        await weight_setter.start(reward_events)
+        await weight_setter.start(reward_events, name="WeightSetter")
 
         # Main monitoring loop
         start = time.time()
@@ -81,11 +81,12 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
     asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events))
 
 
-def start_api():
+def start_api(scoring_queue, reward_events):
     async def start():
         from prompting.api.api import start_scoring_api  # noqa: F401
 
-        await start_scoring_api()
+        await start_scoring_api(scoring_queue, reward_events)
+
         while True:
             await asyncio.sleep(10)
             logger.debug("Running API...")
@@ -121,11 +122,11 @@ async def main():
         processes = []
 
         try:
-            # # Start checking the availability of miners at regular intervals
+            # Start checking the availability of miners at regular intervals
 
             if shared_settings.DEPLOY_SCORING_API:
                 # Use multiprocessing to bypass API blocking issue
-                api_process = mp.Process(target=start_api, name="API_Process")
+                api_process = mp.Process(target=start_api, args=(scoring_queue, reward_events), name="API_Process")
                 api_process.start()
                 processes.append(api_process)
 
