@@ -39,7 +39,7 @@ class OpenAIMiner:
         self.client = httpx.AsyncClient(
             base_url="https://api.openai.com/v1",
             headers={
-                "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+                "Authorization": f"Bearer {shared_settings.OPENAI_API_KEY}",
                 "Content-Type": "application/json",
             },
         )
@@ -107,14 +107,14 @@ class OpenAIMiner:
 
         signed_by = request.headers.get("Epistula-Signed-By")
         signed_for = request.headers.get("Epistula-Signed-For")
-        if signed_for != settings.WALLET.hotkey.ss58_address:
+        if signed_for != shared_settings.WALLET.hotkey.ss58_address:
             raise HTTPException(status_code=400, detail="Bad Request, message is not intended for self")
-        if signed_by not in settings.METAGRAPH.hotkeys:
+        if signed_by not in shared_settings.METAGRAPH.hotkeys:
             raise HTTPException(status_code=401, detail="Signer not in metagraph")
 
-        uid = settings.METAGRAPH.hotkeys.index(signed_by)
-        stake = settings.METAGRAPH.S[uid].item()
-        if not settings.NETUID == 61 and stake < 10000:
+        uid = shared_settings.METAGRAPH.hotkeys.index(signed_by)
+        stake = shared_settings.METAGRAPH.S[uid].item()
+        if not shared_settings.NETUID == 61 and stake < 10000:
             logger.warning(f"Blacklisting request from {signed_by} [uid={uid}], not enough stake -- {stake}")
             raise HTTPException(status_code=401, detail="Stake below minimum: {stake}")
 
@@ -133,7 +133,7 @@ class OpenAIMiner:
             raise HTTPException(status_code=400, detail=err)
 
     def run(self):
-        external_ip = None  # settings.EXTERNAL_IP
+        external_ip = None  # shared_settings.EXTERNAL_IP
         if not external_ip or external_ip == "[::]":
             try:
                 external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
@@ -142,16 +142,16 @@ class OpenAIMiner:
                 logger.error("Failed to get external IP")
 
         logger.info(
-            f"Serving miner endpoint {external_ip}:{settings.AXON_PORT} on network: {settings.SUBTENSOR_NETWORK} with netuid: {settings.NETUID}"
+            f"Serving miner endpoint {external_ip}:{shared_settings.AXON_PORT} on network: {shared_settings.SUBTENSOR_NETWORK} with netuid: {shared_settings.NETUID}"
         )
 
         serve_success = serve_extrinsic(
-            subtensor=settings.SUBTENSOR,
-            wallet=settings.WALLET,
+            subtensor=shared_settings.SUBTENSOR,
+            wallet=shared_settings.WALLET,
             ip=external_ip,
-            port=settings.AXON_PORT,
+            port=shared_settings.AXON_PORT,
             protocol=4,
-            netuid=settings.NETUID,
+            netuid=shared_settings.NETUID,
         )
         if not serve_success:
             logger.error("Failed to serve endpoint")
@@ -174,7 +174,7 @@ class OpenAIMiner:
         fast_config = uvicorn.Config(
             app,
             host="0.0.0.0",
-            port=settings.AXON_PORT,
+            port=shared_settings.AXON_PORT,
             log_level="info",
             loop="asyncio",
             workers=4,
@@ -182,7 +182,7 @@ class OpenAIMiner:
         self.fast_api = FastAPIThreadedServer(config=fast_config)
         self.fast_api.start()
 
-        logger.info(f"Miner starting at block: {settings.SUBTENSOR.block}")
+        logger.info(f"Miner starting at block: {shared_settings.SUBTENSOR.block}")
 
         # Main execution loop.
         try:
