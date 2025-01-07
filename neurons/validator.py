@@ -46,21 +46,21 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
 
         # -------- Duplicate of create_task_loop ----------
         logger.info("Starting AvailabilityCheckingLoop...")
-        await availability_checking_loop.start(name="AvailabilityCheckingLoop")
+        asyncio.create_task(availability_checking_loop.start())
 
         logger.info("Starting TaskSender...")
-        await task_sender.start(task_queue, scoring_queue)
+        asyncio.create_task(task_sender.start(task_queue, scoring_queue))
 
         logger.info("Starting TaskLoop...")
-        await task_loop.start(task_queue, scoring_queue)
+        asyncio.create_task(task_loop.start(task_queue, scoring_queue))
         # -------------------------------------------------
 
         logger.info("Starting ModelScheduler...")
-        await model_scheduler.start(scoring_queue, name="ModelScheduler")
+        asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
         logger.info("Starting TaskScorer...")
-        await task_scorer.start(scoring_queue, reward_events, name="TaskScorer")
+        asyncio.create_task(task_scorer.start(scoring_queue, reward_events), name="TaskScorer"),
         logger.info("Starting WeightSetter...")
-        await weight_setter.start(reward_events, name="WeightSetter")
+        asyncio.create_task(weight_setter.start(reward_events))
 
         # Main monitoring loop
         start = time.time()
@@ -122,7 +122,7 @@ async def main():
         processes = []
 
         try:
-            # Start checking the availability of miners at regular intervals
+            # # Start checking the availability of miners at regular intervals
 
             if shared_settings.DEPLOY_SCORING_API:
                 # Use multiprocessing to bypass API blocking issue
