@@ -15,8 +15,8 @@ MAX_CHARS = 5000
 
 class DDGDatasetEntry(DatasetEntry):
     search_term: str
-    website_url: str
-    website_content: str
+    website_url: str = None
+    website_content: str = None
 
 
 class DDGDataset(BaseDataset):
@@ -25,7 +25,7 @@ class DDGDataset(BaseDataset):
     def search_random_term(self, retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
         ddg = PatchedDDGS(proxy=shared_settings.PROXY_URL, verify=False)
         for _ in range(retries):
-            random_words = " ".join(random.sample(ENGLISH_WORDS, 4))
+            random_words = " ".join(random.sample(ENGLISH_WORDS, 3))
             try:
                 results = list(ddg.text(random_words))
                 if results:
