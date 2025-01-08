@@ -1,7 +1,7 @@
 import asyncio
 import json
-import random
 import math
+import random
 from typing import AsyncGenerator, List, Optional
 
 from fastapi import HTTPException
@@ -112,12 +112,14 @@ async def chat_completion(
     # Initialize chunks collection for each miner
     collected_chunks_list = [[] for _ in selected_uids]
 
-    timeout_seconds = int(math.floor(math.log2(body["sampling_parameters"]["max_new_tokens"] / 256))) * 10 +30
+    timeout_seconds = int(math.floor(math.log2(body["sampling_parameters"]["max_new_tokens"] / 256))) * 10 + 30
     if STREAM:
         # Create tasks for all miners
         response_tasks = [
             asyncio.create_task(
-                make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, timeout_seconds, body, uid, stream=True)
+                make_openai_query(
+                    shared_settings.METAGRAPH, shared_settings.WALLET, timeout_seconds, body, uid, stream=True
+                )
             )
             for uid in selected_uids
         ]
