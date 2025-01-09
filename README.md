@@ -69,7 +69,7 @@ The miner is given a question based on a random web page and must return a scrap
 
 # API Documentation
 
-For detailed information on the available API endpoints, request/response formats, and usage examples, please refer to the [API Documentation](./api/API.md).
+For detailed information on the available API endpoints, request/response formats, and usage examples, please refer to the [API Documentation](./validator_api/API.md).
 
 # Contribute
 <div align="center">
