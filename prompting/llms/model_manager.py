@@ -30,7 +30,6 @@ class ModelManager(BaseModel):
             self.load_model(model_config)
 
     def load_model(self, model_config: ModelConfig, force: bool = True):
-
         if model_config in self.active_models.keys():
             print(f"Model {model_config.llm_model_id} is already loaded.")
             return

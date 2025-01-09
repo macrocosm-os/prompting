@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 from loguru import logger
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 
 from prompting.llms.model_zoo import ModelZoo
 from shared.settings import shared_settings

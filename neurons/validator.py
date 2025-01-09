@@ -34,11 +34,6 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         settings.shared_settings = settings.SharedSettings.load(mode="validator")
 
         from prompting.llms.model_manager import model_scheduler
-        from prompting.miner_availability.miner_availability import availability_checking_loop
-        from prompting.rewards.scoring import task_scorer
-        from prompting.tasks.task_creation import task_loop
-        from prompting.tasks.task_sending import task_sender
-        from prompting.weight_setting.weight_setter import weight_setter
         from shared.profiling import profiler
 
         logger.info("Starting Profiler...")
