@@ -30,7 +30,7 @@ class ReproducibleHF:
             AutoModelForCausalLM.from_pretrained(model_id).generation_config.to_dict().keys()
         )
 
-        self.llm = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer)
+        # self.llm = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer)
 
         self.sampling_params = shared_settings.SAMPLING_PARAMS
         try:
