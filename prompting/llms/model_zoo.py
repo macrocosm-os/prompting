@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import numpy as np
 from loguru import logger
@@ -11,6 +11,7 @@ class ModelConfig(BaseModel):
     llm_model_id: str
     reward: float
     min_ram: float
+    sampling_params: dict[str, Any]
     model_config = ConfigDict(frozen=True)
 
     def __hash__(self):
@@ -24,6 +25,27 @@ class ModelZoo:
             llm_model_id=shared_settings.LLM_MODEL,
             reward=1,
             min_ram=shared_settings.MAX_ALLOWED_VRAM_GB,
+            sampling_params={
+                "temperature": 0.7,
+                "top_p": 0.95,
+                "top_k": 50,
+                "max_new_tokens": 256,
+                "do_sample": True,
+                "seed": None,
+            },
+        ),
+        ModelConfig(
+            llm_model_id="casperhansen/mistral-nemo-instruct-2407-awqs",
+            reward=0.3,
+            min_ram=20,
+            sampling_params={
+                "temperature": 0.7,
+                "top_p": 0.95,
+                "top_k": 50,
+                "max_new_tokens": 256,
+                "do_sample": True,
+                "seed": None,
+            },
         ),
     ]
 

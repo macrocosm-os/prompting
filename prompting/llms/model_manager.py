@@ -31,6 +31,23 @@ class ModelManager(BaseModel):
 
     def load_model(self, model_config: ModelConfig, force: bool = True):
         torch.cuda.empty_cache()
+        if self.total_ram - self.used_ram < GPUInfo.free_memory:
+            logger.warning(
+                (
+                    "There is less ram in the GPU than in the Model Manager.",
+                    " This should not happen and indicates 'dead' models taking up GPU.",
+                    "Removing all models from GPU.",
+                )
+            )
+            # Clear cuda cache
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+            # Run garbage collector
+            gc.collect()
+            for model in list(self.active_models.keys()):
+                self.unload_model(model)
+
         if model_config in self.active_models.keys():
             print(f"Model {model_config.llm_model_id} is already loaded.")
             return

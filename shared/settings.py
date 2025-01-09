@@ -124,7 +124,7 @@ class SharedSettings(BaseSettings):
         "seed": None,
     }
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
-    LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
+    LLM_MODEL_RAM: float = Field(65, env="LLM_MODEL_RAM")
     OPENAI_API_KEY: str | None = Field(None, env="OPENAI_API_KEY")
     SN19_API_KEY: str | None = Field(None, env="SN19_API_KEY")
     SN19_API_URL: str | None = Field(None, env="SN19_API_URL")
