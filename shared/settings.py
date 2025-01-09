@@ -120,7 +120,6 @@ class SharedSettings(BaseSettings):
         "top_k": 50,
         "max_new_tokens": 512,
         "do_sample": True,
-        "seed": None,
     }
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
