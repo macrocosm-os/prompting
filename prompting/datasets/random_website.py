@@ -23,15 +23,15 @@ class DDGDataset(BaseDataset):
     english_words: list[str] = None
 
     def search_random_term(self, retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
-        try:
-            ddg = PatchedDDGS(proxy=shared_settings.PROXY_URL, verify=False)
-            for _ in range(retries):
-                random_words = " ".join(random.sample(ENGLISH_WORDS, 3))
+        ddg = PatchedDDGS(proxy=shared_settings.PROXY_URL, verify=False)
+        for _ in range(retries):
+            random_words = " ".join(random.sample(ENGLISH_WORDS, 3))
+            try:
                 results = list(ddg.text(random_words))
                 if results:
                     return random_words, results
-        except Exception as ex:
-            logger.error(f"Failed to get search results from DuckDuckGo: {ex}")
+            except Exception as ex:
+                logger.error(f"Failed to get search results from DuckDuckGo: {ex}")
         return None, None
 
     @staticmethod
@@ -44,7 +44,7 @@ class DDGDataset(BaseDataset):
             logger.error(f"Failed to extract content from website {url}: {ex}")
 
     def next(self) -> Optional[DDGDatasetEntry]:
-        search_term, results = self.search_random_term(retries=3)
+        search_term, results = self.search_random_term(retries=5)
         if not results:
             return None
         website_url = results[0]["href"]

@@ -60,16 +60,16 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
                 continue
 
             dataset_entry = DDGDatasetEntry.model_validate_json(json.loads(reference))
-            search_term = dataset_entry.search_term
+            query = dataset_entry.query
             reference_content = dataset_entry.website_content
 
             # Similarity between search term and miner's scraped content.
-            search_response_sim = self._cosine_similarity(content1=search_term, content2=response_content)
+            search_response_sim = self._cosine_similarity(content1=query, content2=response_content)
 
             # Similarity between search term and relevant section of content.
             search_relevant_sim = 0
             if response_relevant is not None:
-                search_relevant_sim = self._cosine_similarity(content1=search_term, content2=response_relevant)
+                search_relevant_sim = self._cosine_similarity(content1=query, content2=response_relevant)
 
             # If the URL provided in the completion is valid.
             valid_url_score = 0
@@ -77,7 +77,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
                 valid_url_score = self._cosine_similarity(content1=response_content, content2=response_url_scraped)
 
             # Similarity between search term and reference content.
-            search_reference_sim = self._cosine_similarity(content1=search_term, content2=reference_content)
+            search_reference_sim = self._cosine_similarity(content1=query, content2=reference_content)
             score = (search_response_sim + valid_url_score + search_relevant_sim) / 3
             if abs(search_response_sim - search_reference_sim) > _SEARCH_TERM_THRESH:
                 logger.info(

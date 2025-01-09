@@ -103,7 +103,7 @@ bash run_api.sh
 
 **Parameters:**
 
-- **task** (query, optional): The type of task (e.g., `QuestionAnsweringTask`, `SummarizationTask`, etc.).
+- **task** (query, optional): The type of task (e.g., `QuestionAnsweringTask`, `Programming`, etc.).
 - **model** (query, optional): The specific model (string).
 - **k** (query, optional): The maximum number of results to return (integer, default: 10).
 
