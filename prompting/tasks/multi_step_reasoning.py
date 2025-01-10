@@ -9,7 +9,7 @@ from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
-from prompting.tasks.qa import QuestionAnsweringTask
+from prompting.tasks.qa import WikiQuestionAnsweringTask
 from shared.base import Context
 from shared.timer import Timer
 
@@ -174,7 +174,7 @@ class MultiStepReasoningRewardConfig(BaseRewardConfig):
     ]
 
 
-class MultiStepReasoningTask(QuestionAnsweringTask):
+class MultiStepReasoningTask(WikiQuestionAnsweringTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
 
