@@ -154,12 +154,12 @@ numpy = { version = ">=2.0.1", optional = true }
 rouge = { version = ">=1.0.1", optional = true }
 bs4 = { version = ">=0.0.2", optional = true }
 wikipedia = { version = ">=1.4.0", optional = true }
-duckduckgo-search = { version = ">=6.3.7", optional = true }
+duckduckgo-search = "^7.2.1"
 huggingface-hub = { version = ">=0.25.2", optional = true }
 pandas = { version = ">=2.2.1", optional = true }
 trafilatura = { version = ">=1.12.1", optional = true }
 datasets = { version = ">=3.1.0", optional = true }
-primp = { version = "==0.8.1", optional = true }
+primp = "^0.10.0"
 nltk = { version = ">=3.8.1", optional = true }
 
 [tool.poetry.extras]

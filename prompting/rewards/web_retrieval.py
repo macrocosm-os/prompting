@@ -36,6 +36,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         """Score response website content and URL based on the similarity to the search term and reference content."""
         rewards: list[float] = []
         timings: list[float] = []
+        dataset_entry = DDGDatasetEntry.model_validate_json(json.loads(reference))
         for completion in response_event.completions:
             timer_start = time.perf_counter()
 
@@ -59,7 +60,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
                 rewards.append(0)
                 continue
 
-            dataset_entry = DDGDatasetEntry.model_validate_json(json.loads(reference))
             query = dataset_entry.query
             reference_content = dataset_entry.website_content
 

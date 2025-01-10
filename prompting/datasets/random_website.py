@@ -17,6 +17,7 @@ class DDGDatasetEntry(DatasetEntry):
     search_term: str
     website_url: str = None
     website_content: str = None
+    query: str | None = None
 
 
 class DDGDataset(BaseDataset):
@@ -31,7 +32,8 @@ class DDGDataset(BaseDataset):
                 if results:
                     return random_words, results
             except Exception as ex:
-                logger.error(f"Failed to get search results from DuckDuckGo: {ex}")
+                logger.debug(f"Failed to get search results from DuckDuckGo: {ex}")
+        logger.warning(f"Failed to get search results from DuckDuckGo after {retries} tries")
         return None, None
 
     @staticmethod
@@ -41,7 +43,7 @@ class DDGDataset(BaseDataset):
             extracted = trafilatura.extract(website)
             return extracted[:MAX_CHARS] if extracted else None
         except Exception as ex:
-            logger.error(f"Failed to extract content from website {url}: {ex}")
+            logger.debug(f"Failed to extract content from website {url}: {ex}")
 
     def next(self) -> Optional[DDGDatasetEntry]:
         search_term, results = self.search_random_term(retries=5)
@@ -50,7 +52,7 @@ class DDGDataset(BaseDataset):
         website_url = results[0]["href"]
         website_content = self.extract_website_content(website_url)
         if not website_content or len(website_content) == 0:
-            logger.error(f"Failed to extract content from website {website_url}")
+            logger.debug(f"Failed to extract content from website {website_url}")
             return None
 
         return DDGDatasetEntry(search_term=search_term, website_url=website_url, website_content=website_content)
