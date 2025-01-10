@@ -1,7 +1,7 @@
+from threading import Event
 from typing import cast
 
 import httpx
-from threading import Event
 from duckduckgo_search.duckduckgo_search import DDGS, DuckDuckGoSearchException, RatelimitException, TimeoutException
 
 
