@@ -42,7 +42,6 @@ class SN13Dataset(BaseDataset):
         for _ in range(4):
             sample_idx = random.randint(0, len(self.dataset) - 1)
             if message := self.dataset[sample_idx]["text"]:
-                roles.append(random.choice(["user", "assistant"]))
-                messages.append(message)
+                messages.append({"role": random.choice(["user", "assistant"]), "content": message})
 
-        return ChatEntry(roles=roles, messages=messages, organic=False, source=self._url)
+        return ChatEntry(messages=messages, organic=False, source=self._url)
