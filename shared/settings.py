@@ -28,9 +28,6 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 class SharedSettings(BaseSettings):
     _instance: Optional["SharedSettings"] = None
     _instance_mode: Optional[str] = None
-    # API
-    VALIDATOR_API: str = Field("0.0.0.0:8094", env="VALIDATOR_API")
-    VALIDATOR_SCORING_KEY: str = Field("1234567890", env="VALIDATOR_SCORING_KEY")
 
     mode: Literal["api", "validator", "miner", "mock"] = Field("validator", env="MODE")
     MOCK: bool = False
@@ -87,19 +84,28 @@ class SharedSettings(BaseSettings):
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
 
+    # ==== API =====
+    # API key used to access validator organic scoring mechanism (both .env.validator and .env.api).
+    SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
+
+    # Validator scoring API (.env.validator).
     DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
     SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
     SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
-    API_PORT: int = Field(8005, env="API_PORT")
-    API_HOST: str = Field("0.0.0.0", env="API_HOST")
-
-    # API Management.
-    API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
-    ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
-    SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
     SCORE_ORGANICS: bool = Field(False, env="SCORE_ORGANICS")
 
-    # Additional Fields.
+    # API Management (.env.api).
+    API_PORT: int = Field(8005, env="API_PORT")
+    API_HOST: str = Field("0.0.0.0", env="API_HOST")
+    # Validator scoring API address.
+    VALIDATOR_API: str = Field("0.0.0.0:8094", env="VALIDATOR_API")
+    # File with keys used to access API.
+    API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
+    # Admin key used to generate API keys.
+    ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
+    # ==============
+
+    # Additional Validator Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")
     TEST: bool = False
     OPENAI_API_KEY: Optional[str] = Field(None, env="OPENAI_API_KEY")

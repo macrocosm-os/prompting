@@ -104,14 +104,14 @@ class AsyncLoopRunner(BaseModel, ABC):
             logger.info("Loop has been cleaned up.")
         logger.debug("Exiting run_loop")
 
-    async def start(self):
+    async def start(self, name: str | None = None):
         """Start the loop."""
         if self.running:
             logger.warning("Loop is already running.")
             return
         self.running = True
         logger.debug(f"{self.name}: Starting loop with {'synchronized' if self.sync else 'non-synchronized'} mode")
-        self._task = asyncio.create_task(self.run_loop())
+        self._task = asyncio.create_task(self.run_loop(), name=name)
 
     async def stop(self):
         """Stop the loop."""
