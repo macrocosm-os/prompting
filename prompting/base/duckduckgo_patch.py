@@ -1,6 +1,7 @@
 from typing import cast
 
 import httpx
+from threading import Event
 from duckduckgo_search.duckduckgo_search import DDGS, DuckDuckGoSearchException, RatelimitException, TimeoutException
 
 
@@ -13,6 +14,7 @@ class PatchedDDGS(DDGS):
             timeout=kwargs.get("timeout", 10),
             verify=kwargs.get("verify", True),
         )
+        self._exception_event = Event()
 
     def _get_url(
         self: DDGS,
