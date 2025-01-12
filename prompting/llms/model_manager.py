@@ -136,7 +136,7 @@ class ModelManager(BaseModel):
     def generate(
         self,
         messages: list[str],
-        roles: list[str]| None = None,
+        roles: list[str] | None = None,
         model: ModelConfig | str | None = None,
         seed: int = None,
         sampling_params: Dict[str, float] = None,

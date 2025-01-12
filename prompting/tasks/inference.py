@@ -43,7 +43,7 @@ class InferenceTask(BaseTextTask):
 
     @model_validator(mode="after")
     def random_llm_model_id(self):
-        if self.query: #If we are already defining query, as in the case of organics, we also specify model.
+        if self.query:  # If we are already defining query, as in the case of organics, we also specify model.
             return self
 
         if np.random.rand() < 0.2:

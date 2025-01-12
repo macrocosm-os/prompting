@@ -33,10 +33,10 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
     if model:
         try:
             llm_model = ModelZoo.get_model_by_id(model)
-        except Exception: 
+        except Exception:
             logger.warning(
-            f"Organic request with model {body.get('model')} made but the model cannot be found in model zoo. Skipping scoring."
-        )
+                f"Organic request with model {body.get('model')} made but the model cannot be found in model zoo. Skipping scoring."
+            )
         return
     else:
         llm_model = None
@@ -45,13 +45,13 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
         logger.info(f"Received Organic InferenceTask with body: {body}")
         logger.info(f"With model of type {type(body.get('model'))}")
         organic_task = InferenceTask(
-                messages=body.get("messages"),
-                llm_model=llm_model,
-                llm_model_id=body.get("model"),
-                seed=int(body.get("seed", 0)),
-                sampling_params=body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS),
-                query =  body.get("messages")[0]["content"],
-            )
+            messages=body.get("messages"),
+            llm_model=llm_model,
+            llm_model_id=body.get("model"),
+            seed=int(body.get("seed", 0)),
+            sampling_params=body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS),
+            query=body.get("messages")[0]["content"],
+        )
         logger.info(f"Task created: {organic_task}")
         task_scorer.add_to_queue(
             task=organic_task,
