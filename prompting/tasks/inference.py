@@ -55,7 +55,7 @@ class InferenceTask(BaseTextTask):
     def make_query(self, dataset_entry: ChatEntry) -> str:
         if self.query:
             return self.query
-        self.query = dataset_entry.messages[-1]
+        self.query = dataset_entry.messages
         self.messages = dataset_entry.messages
         return self.query
 
