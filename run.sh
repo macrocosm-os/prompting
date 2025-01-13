@@ -4,7 +4,7 @@
 script="neurons/validator.py"
 autoRunLoc=$(readlink -f "$0")
 proc_name="s1_validator_main_process"
-update_proc_name="check_updates"
+update_proc_name="auto_updater"
 args=()
 version_location="./prompting/__init__.py"
 version="__version__"
@@ -76,11 +76,15 @@ echo "module.exports = {
       args: ['run', 'python', '$script', $joined_args]
     },
     {
-      name: 'check_updates',
-      script: './scripts/check_updates.sh',
+      name: 'auto_updater',
+      script: './scripts/autoupdater.sh',
       interpreter: '/bin/bash',
       min_uptime: '5m',
-      max_restarts: '5'
+      max_restarts: '5',
+      env: {
+        'UPDATE_CHECK_INTERVAL': '300',
+        'GIT_BRANCH': 'main'
+      }
     }
   ]
 };" > app.config.js
