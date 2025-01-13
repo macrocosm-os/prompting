@@ -38,7 +38,6 @@ class SN13Dataset(BaseDataset):
             raise self.exception
         # Randomly select a sample from the dataset.
         messages = []
-        roles = []
         for _ in range(4):
             sample_idx = random.randint(0, len(self.dataset) - 1)
             if message := self.dataset[sample_idx]["text"]:
