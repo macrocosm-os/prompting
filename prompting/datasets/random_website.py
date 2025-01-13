@@ -56,7 +56,9 @@ class DDGDataset(BaseDataset):
             logger.debug(f"Failed to extract content from website {website_url}")
             return None
 
-        return DDGDatasetEntry(search_term=search_term, website_url=website_url, website_content=website_content, source = search_term)
+        return DDGDatasetEntry(
+            search_term=search_term, website_url=website_url, website_content=website_content, source=search_term
+        )
 
     def get(self) -> Optional[DDGDatasetEntry]:
         return self.next()

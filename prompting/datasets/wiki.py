@@ -2,14 +2,13 @@ import random
 import re
 import sys
 from functools import lru_cache
-from queue import Empty, Full, Queue
-from typing import ClassVar, Optional
+from queue import Full, Queue
+from typing import ClassVar
 
 import requests
 import wikipedia
 from bs4 import BeautifulSoup
 from loguru import logger
-from pydantic import ConfigDict, model_validator
 
 from shared.base import BaseDataset, Context
 

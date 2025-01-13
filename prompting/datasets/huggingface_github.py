@@ -49,7 +49,7 @@ class HuggingFaceGithubDataset(BaseDataset):
         file_content = "\n".join(entry["content"].split("\n")[:MAX_LINES])
         url = f"https://github.com/{entry['repo_name']}"
         return HuggingFaceGithubDatasetEntry(
-            github_url= url, file_path=entry["path"], file_content=file_content, source = url
+            github_url=url, file_path=entry["path"], file_content=file_content, source=url
         )
 
     def get(self) -> HuggingFaceGithubDatasetEntry:
