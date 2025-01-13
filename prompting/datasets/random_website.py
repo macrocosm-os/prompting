@@ -57,7 +57,7 @@ class DDGDataset(BaseDataset):
             return None
 
         return DDGDatasetEntry(
-            search_term=search_term, website_url=website_url, website_content=website_content, source=search_term
+            search_term=search_term, website_url=website_url, website_content=website_content, source=website_url
         )
 
     def get(self) -> Optional[DDGDatasetEntry]:

@@ -12,8 +12,6 @@ from loguru import logger
 
 from shared.base import BaseDataset, Context
 
-# Create a queue called CACHED_ARTICLES to store wikipedia articles that have been fetched
-CACHED_ARTICLES: Queue[Context] = Queue(maxsize=300)
 
 
 # speed up page loading
@@ -182,17 +180,13 @@ class WikiDataset(BaseDataset):
             internal_links=list(filter(lambda x: x not in exclude, page.sections)),
             external_links=most_relevant_links(page, num_links=self.max_links),
             tags=filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
-            source=name,
+            source=page.url,
             extra={
                 "url": page.url,
                 "page_length": len(page.content.split()),
                 "section_length": section_length,
             },
         )
-        try:
-            CACHED_ARTICLES.put(context, block=False)
-        except Full:
-            logger.debug("Cache is full. Skipping article until cache is emptied.")
         return context
 
     def search(self, name, results=3) -> Context:
