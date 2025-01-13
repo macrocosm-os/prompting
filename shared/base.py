@@ -18,8 +18,7 @@ class DatasetEntry(BaseModel):
 
 
 class ChatEntry(DatasetEntry):
-    messages: list[str]
-    roles: list[str]
+    messages: list[dict]
     organic: bool
     source: str | None = None
     query: str | None = None

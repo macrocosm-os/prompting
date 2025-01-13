@@ -47,6 +47,7 @@ class BaseTask(BaseModel, ABC):
 
 class BaseTextTask(BaseTask):
     query: str | None = None
+    roles: list[str] | None = None
     messages: list[str] | list[dict] | None = None
     reference: str | None = None
     llm_model: ModelConfig = None
