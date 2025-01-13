@@ -20,6 +20,7 @@ class HuggingFaceGithubDatasetEntry(DatasetEntry):
     github_url: str
     file_path: str
     file_content: str
+    source: str | None = None
 
 
 class HuggingFaceGithubDataset(BaseDataset):
@@ -46,8 +47,9 @@ class HuggingFaceGithubDataset(BaseDataset):
 
     def _process_entry(self, entry: dict) -> HuggingFaceGithubDatasetEntry:
         file_content = "\n".join(entry["content"].split("\n")[:MAX_LINES])
+        url = f"https://github.com/{entry['repo_name']}"
         return HuggingFaceGithubDatasetEntry(
-            github_url=f"https://github.com/{entry['repo_name']}", file_path=entry["path"], file_content=file_content
+            github_url= url, file_path=entry["path"], file_content=file_content, source = url
         )
 
     def get(self) -> HuggingFaceGithubDatasetEntry:
