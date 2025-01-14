@@ -4,22 +4,14 @@
 script="neurons/validator.py"
 autoRunLoc=$(readlink -f "$0")
 proc_name="s1_validator_main_process"
-update_proc_name="check_updates"
+update_proc_name="auto_updater"
 args=()
 version_location="./prompting/__init__.py"
 version="__version__"
 
 old_args=$@
 
-# Check if pm2 is installed
-if ! command -v pm2 &> /dev/null
-then
-    echo "pm2 could not be found. Please run the install.sh script first."
-    exit 1
-fi
-
-# Uninstall uvloop
-poetry run pip uninstall -y uvloop
+bash scripts/install.sh
 
 # Loop through all command line arguments
 while [[ $# -gt 0 ]]; do
@@ -84,11 +76,15 @@ echo "module.exports = {
       args: ['run', 'python', '$script', $joined_args]
     },
     {
-      name: 'check_updates',
-      script: './scripts/check_updates.sh',
+      name: 'auto_updater',
+      script: './scripts/autoupdater.sh',
       interpreter: '/bin/bash',
       min_uptime: '5m',
-      max_restarts: '5'
+      max_restarts: '5',
+      env: {
+        'UPDATE_CHECK_INTERVAL': '300',
+        'GIT_BRANCH': 'main'
+      }
     }
   ]
 };" > app.config.js
