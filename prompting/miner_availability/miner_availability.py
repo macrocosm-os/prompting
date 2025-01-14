@@ -79,7 +79,7 @@ class CheckMinerAvailability(AsyncLoopRunner):
                     llm_model_availabilities=response["llm_model_availabilities"],
                 )
             except Exception:
-                logger.debug("Availability Response Invalid")
+                # logger.debug("Availability Response Invalid")
                 miner_availabilities.miners[uid] = MinerAvailability(
                     task_availabilities={task: True for task in task_config},
                     llm_model_availabilities={model: False for model in model_config},
