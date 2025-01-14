@@ -28,9 +28,6 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 class SharedSettings(BaseSettings):
     _instance: Optional["SharedSettings"] = None
     _instance_mode: Optional[str] = None
-    # API
-    VALIDATOR_API: str = Field("0.0.0.0:8094", env="VALIDATOR_API")
-    VALIDATOR_SCORING_KEY: str = Field("1234567890", env="VALIDATOR_SCORING_KEY")
 
     mode: Literal["api", "validator", "miner", "mock"] = Field("validator", env="MODE")
     MOCK: bool = False
@@ -57,7 +54,7 @@ class SharedSettings(BaseSettings):
     LOG_WEIGHTS: bool = Field(False, env="LOG_WEIGHTS")
 
     # Neuron parameters.
-    NEURON_TIMEOUT: int = Field(15, env="NEURON_TIMEOUT")
+    NEURON_TIMEOUT: int = Field(20, env="NEURON_TIMEOUT")
     INFERENCE_TIMEOUT: int = Field(60, env="INFERENCE_TIMEOUT")
     NEURON_DISABLE_SET_WEIGHTS: bool = Field(False, env="NEURON_DISABLE_SET_WEIGHTS")
     NEURON_MOVING_AVERAGE_ALPHA: float = Field(0.1, env="NEURON_MOVING_AVERAGE_ALPHA")
@@ -87,19 +84,28 @@ class SharedSettings(BaseSettings):
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
 
+    # ==== API =====
+    # API key used to access validator organic scoring mechanism (both .env.validator and .env.api).
+    SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
+
+    # Validator scoring API (.env.validator).
     DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
     SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
     SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
-    API_PORT: int = Field(8005, env="API_PORT")
-    API_HOST: str = Field("0.0.0.0", env="API_HOST")
-
-    # API Management.
-    API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
-    ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
-    SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
     SCORE_ORGANICS: bool = Field(False, env="SCORE_ORGANICS")
 
-    # Additional Fields.
+    # API Management (.env.api).
+    API_PORT: int = Field(8005, env="API_PORT")
+    API_HOST: str = Field("0.0.0.0", env="API_HOST")
+    # Validator scoring API address.
+    VALIDATOR_API: str = Field("0.0.0.0:8094", env="VALIDATOR_API")
+    # File with keys used to access API.
+    API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
+    # Admin key used to generate API keys.
+    ADMIN_KEY: str | None = Field(None, env="ADMIN_KEY")
+    # ==============
+
+    # Additional Validator Fields.
     NETUID: Optional[int] = Field(61, env="NETUID")
     TEST: bool = False
     OPENAI_API_KEY: Optional[str] = Field(None, env="OPENAI_API_KEY")
@@ -113,14 +119,14 @@ class SharedSettings(BaseSettings):
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
     MAX_ALLOWED_VRAM_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
     LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
+    PROXY_URL: Optional[str] = Field(None, env="PROXY_URL")
     LLM_MODEL: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")
     SAMPLING_PARAMS: dict[str, Any] = {
         "temperature": 0.7,
         "top_p": 0.95,
         "top_k": 50,
-        "max_new_tokens": 256,
+        "max_new_tokens": 512,
         "do_sample": True,
-        "seed": None,
     }
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")

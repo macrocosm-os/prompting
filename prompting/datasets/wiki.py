@@ -2,19 +2,14 @@ import random
 import re
 import sys
 from functools import lru_cache
-from queue import Empty, Full, Queue
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 import requests
 import wikipedia
 from bs4 import BeautifulSoup
 from loguru import logger
-from pydantic import ConfigDict, model_validator
 
 from shared.base import BaseDataset, Context
-
-# Create a queue called CACHED_ARTICLES to store wikipedia articles that have been fetched
-CACHED_ARTICLES: Queue[Context] = Queue(maxsize=300)
 
 
 # speed up page loading
@@ -183,17 +178,13 @@ class WikiDataset(BaseDataset):
             internal_links=list(filter(lambda x: x not in exclude, page.sections)),
             external_links=most_relevant_links(page, num_links=self.max_links),
             tags=filter_categories(page.categories, exclude=self.EXCLUDE_CATEGORIES),
-            source="Wikipedia",
+            source=page.url,
             extra={
                 "url": page.url,
                 "page_length": len(page.content.split()),
                 "section_length": section_length,
             },
         )
-        try:
-            CACHED_ARTICLES.put(context, block=False)
-        except Full:
-            logger.debug("Cache is full. Skipping article until cache is emptied.")
         return context
 
     def search(self, name, results=3) -> Context:
@@ -207,111 +198,3 @@ class WikiDataset(BaseDataset):
             if context := self.get(title):
                 return context
         return None
-
-
-class DateContext(Context):
-    date: str = None
-
-    @classmethod
-    def from_context(cls, context: Context, date: str) -> "DateContext":
-        return cls(
-            **context.model_dump(),
-            date=date,
-        )
-
-
-class WikiDateDataset(BaseDataset):
-    name: ClassVar[str] = "wikipedia_date"
-    INCLUDE_HEADERS: tuple = ("Events", "Births", "Deaths")
-    MONTHS: tuple = (
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-    )
-    EXCLUDE_CATEGORIES: tuple = ("articles", "wikipedia", "pages", "cs1")
-    seed: int | None = None
-    rng: Optional[random.Random] = None
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    @model_validator(mode="after")
-    def create_rng(self) -> "WikiDateDataset":
-        self.rng = random.Random(self.seed)
-        return self
-
-    def _extract_dates_and_sentences(self, text: str) -> tuple[str, str]:
-        # Regular expression to find dates in various formats
-        date_pattern = r"\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b|\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,)?\s+\d{4}\b|\b\d{1,2}\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember))\s+\d{4}\b|\b\d{4}\b"
-
-        # Compile the regex pattern
-        date_regex = re.compile(date_pattern)
-
-        # Split text into sentences
-        sentences = re.split(r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s", text)
-
-        # Iterate through sentences and find dates
-        for sentence in sentences:
-            # Find all dates in the sentence
-            dates = date_regex.findall(sentence)
-            # If dates are found, add them to the result dictionary with the corresponding sentence
-            if dates:
-                for date in dates:
-                    # Return the first date found
-                    return (str(date), sentence.replace(str(date), "<date>").strip())
-
-        # If no dates are found, search for dates in the form of "Month DD"
-        secondary_date_pattern = r"\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?\b"
-        secondary_date_regex = re.compile(secondary_date_pattern)
-
-        for sentence in sentences:
-            # Find all dates in the sentence
-            dates = secondary_date_regex.findall(sentence)
-            # If dates are found, add them to the result dictionary with the corresponding sentence
-            if dates:
-                for date in dates:
-                    # Return the first date found
-                    return (str(date), sentence.replace(str(date), "<date>").strip())
-
-        return None
-
-    def _random_date(self) -> DateContext:
-        for i in range(self.max_tries):
-            try:
-                context = CACHED_ARTICLES.get(block=False)
-                if not context:
-                    continue
-
-                date_sentence = self._extract_dates_and_sentences(context.content)
-
-                if date_sentence and all(date_sentence):
-                    content, date = date_sentence
-                    date_context = DateContext.from_context(context, date=date)
-                    date_context.content = content
-                    return date_context
-
-            except Empty:
-                logger.debug(f"Retry {i} Cache is empty. Skipping date until cache is filled.")
-                return None
-
-            except Exception as e:
-                logger.exception(f"Error fetching date: {e}")
-                continue
-
-    def get(
-        self,
-    ) -> dict:
-        raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
-
-    def search(self, name: str, results: int = 5) -> dict:
-        raise NotImplementedError(f"Search is not implemented for {self.__class__.__name__}")
-
-    def random(self) -> DateContext:
-        return self._random_date()

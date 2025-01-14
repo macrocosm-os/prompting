@@ -61,7 +61,9 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
             {"role": "user", "content": search_query},
         ],
     }
-    stream_results = await query_miners(uids, body)
+
+    timeout_seconds = 30
+    stream_results = await query_miners(uids, body, timeout_seconds)
     results = [
         "".join(res.accumulated_chunks)
         for res in stream_results
