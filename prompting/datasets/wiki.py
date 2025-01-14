@@ -2,7 +2,6 @@ import random
 import re
 import sys
 from functools import lru_cache
-from queue import Full, Queue
 from typing import ClassVar
 
 import requests
@@ -11,7 +10,6 @@ from bs4 import BeautifulSoup
 from loguru import logger
 
 from shared.base import BaseDataset, Context
-
 
 
 # speed up page loading
