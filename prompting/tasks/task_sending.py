@@ -47,7 +47,7 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
         logger.warning("No available miners. This should already have been caught earlier.")
         return
 
-    if task.__class__.__name__ == "InferenceTask":
+    if isinstance(task, InferenceTask):
         body = {
             "seed": task.seed,
             "sampling_parameters": task.sampling_params,
