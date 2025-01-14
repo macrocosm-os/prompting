@@ -47,15 +47,25 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
         logger.warning("No available miners. This should already have been caught earlier.")
         return
 
-    body = {
-        "seed": task.seed,
-        "sampling_parameters": task.sampling_params,
-        "task": task.__class__.__name__,
-        "model": task.llm_model_id,
-        "messages": [
-            {"role": "user", "content": task.query},
-        ],
-    }
+    if isinstance(task, InferenceTask):
+        body = {
+            "seed": task.seed,
+            "sampling_parameters": task.sampling_params,
+            "task": task.__class__.__name__,
+            "model": task.llm_model_id,
+            "messages": task.query,
+        }
+    else:
+        body = {
+            "seed": task.seed,
+            "sampling_parameters": task.sampling_params,
+            "task": task.__class__.__name__,
+            "model": task.llm_model_id,
+            "messages": [
+                {"role": "user", "content": task.query},
+            ],
+        }
+
     stream_results = await query_miners(uids, body)
     logger.debug(f"🔍 Collected responses from {len(stream_results)} miners")
 
