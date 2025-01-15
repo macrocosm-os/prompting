@@ -14,24 +14,74 @@ from shared.uids import get_uids
 from validator_api.utils import forward_response
 
 
+async def peek_first_chunk(
+    response: AsyncGenerator,
+) -> tuple[Optional[any], Optional[AsyncGenerator]]:
+    """
+    Pull one chunk from the async generator and return:
+      (the_chunk, a_new_generator_that_includes_this_chunk)
+    If the generator is empty, return (None, None).
+    """
+    try:
+        first_chunk = await anext(response)  # or: await anext(response, default=None) in Python 3.10+
+    except StopAsyncIteration:
+        # Generator is empty
+        return None, None
+
+    # At this point, we have the first chunk. We need to rebuild a generator
+    # that yields this chunk first, then yields the rest of the original response.
+    async def reconstructed_response() -> AsyncGenerator:
+        yield first_chunk
+        async for c in response:
+            yield c
+
+    return first_chunk, reconstructed_response()
+
+async def discard_generator(gen: AsyncGenerator):
+    """
+    Pull all items from 'gen' until it's exhausted,
+    ensuring it doesn't get abruptly closed.
+    """
+    async for _ in gen:
+        pass
+
 async def stream_from_first_response(
     responses: List[asyncio.Task], collected_chunks_list: List[List[str]], body: dict[str, any], uids: List[int]
 ) -> AsyncGenerator[str, None]:
     first_valid_response = None
     try:
-        # Wait for the first valid response
+        # Keep looping until we find a valid response or run out of tasks
         while responses and first_valid_response is None:
             done, pending = await asyncio.wait(responses, return_when=asyncio.FIRST_COMPLETED)
 
             for task in done:
+                responses.remove(task)
                 try:
-                    response = await task
-                    if response and not isinstance(response, Exception):
-                        first_valid_response = response
+                    response = await task  # This is (presumably) an async generator
+
+                    if not response or isinstance(response, Exception):
+                        continue
+                    # Peak at the first chunk
+                    first_chunk, rebuilt_generator = await peek_first_chunk(response)
+
+                    # If first chunk is None continue (no need to close generator)
+                    if first_chunk is None:
+                        continue
+
+                    if (
+                        getattr(first_chunk, "choices", None) 
+                        and len(first_chunk.choices) > 0 
+                        and getattr(first_chunk.choices[0].delta, "content", None)
+                    ):
+                        first_valid_response = rebuilt_generator
                         break
+                    else:
+                        await discard_generator(rebuilt_generator)
+                        continue
+
                 except Exception as e:
                     logger.error(f"Error in miner response: {e}")
-                responses.remove(task)
+                    # just skip and continue to the next task
 
         if first_valid_response is None:
             logger.error("No valid response received from any miner")
