@@ -143,7 +143,7 @@ async def get_response_from_miner(body: dict[str, any], uid: int) -> tuple:
 
 
 async def chat_completion(
-    body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 3
+    body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 10
 ) -> tuple | StreamingResponse:
     """Handle chat completion with multiple miners in parallel."""
     # Get multiple UIDs if none specified
