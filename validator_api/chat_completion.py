@@ -2,7 +2,7 @@ import asyncio
 import json
 import math
 import random
-from typing import AsyncGenerator, List, Optional
+from typing import AsyncGenerator, List, Optional, Any, Callable
 
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
@@ -12,6 +12,52 @@ from shared.epistula import make_openai_query
 from shared.settings import shared_settings
 from shared.uids import get_uids
 from validator_api.utils import forward_response
+
+async def peek_until_valid_chunk(
+    response: AsyncGenerator,
+    is_valid_chunk: Callable[[Any], bool]
+) -> tuple[Optional[Any], Optional[AsyncGenerator]]:
+    """
+    Keep reading chunks until we find a 'valid' one or run out of chunks.
+    Return (first_valid_chunk, a_generator_of_all_chunks_including_this_one).
+    If no chunks or no valid chunks, return (None, None).
+    """
+    consumed = []
+    valid_chunk = None
+
+    try:
+        async for chunk in response:
+            consumed.append(chunk)
+            if is_valid_chunk(chunk):
+                valid_chunk = chunk
+                break  # we found our valid chunk
+    except StopAsyncIteration:
+        # no more chunks
+        pass
+
+    if not consumed or valid_chunk is None:
+        # Either the generator is empty or we never found a valid chunk
+        return None, None
+
+    # Rebuild a generator from the chunks we already consumed
+    # plus any remaining chunks that weren't pulled yet.
+    async def rebuilt_generator() -> AsyncGenerator:
+        # yield everything we consumed
+        for c in consumed:
+            yield c
+        # yield anything else still left in 'response'
+        async for c in response:
+            yield c
+
+    return valid_chunk, rebuilt_generator()
+
+def is_valid_chunk(chunk: Any) -> bool:
+    if chunk:
+        return (
+            hasattr(chunk, "choices")
+            and len(chunk.choices) > 0
+            and getattr(chunk.choices[0].delta, "content", None) is not None
+        )
 
 
 async def peek_first_chunk(
@@ -37,13 +83,6 @@ async def peek_first_chunk(
 
     return first_chunk, reconstructed_response()
 
-async def discard_generator(gen: AsyncGenerator):
-    """
-    Pull all items from 'gen' until it's exhausted,
-    ensuring it doesn't get abruptly closed.
-    """
-    async for _ in gen:
-        pass
 
 async def stream_from_first_response(
     responses: List[asyncio.Task], collected_chunks_list: List[List[str]], body: dict[str, any], uids: List[int]
@@ -62,22 +101,12 @@ async def stream_from_first_response(
                     if not response or isinstance(response, Exception):
                         continue
                     # Peak at the first chunk
-                    first_chunk, rebuilt_generator = await peek_first_chunk(response)
-
-                    # If first chunk is None continue (no need to close generator)
+                    first_chunk, rebuilt_generator = await peek_until_valid_chunk(response, is_valid_chunk)
                     if first_chunk is None:
                         continue
 
-                    if (
-                        getattr(first_chunk, "choices", None) 
-                        and len(first_chunk.choices) > 0 
-                        and getattr(first_chunk.choices[0].delta, "content", None)
-                    ):
-                        first_valid_response = rebuilt_generator
-                        break
-                    else:
-                        await discard_generator(rebuilt_generator)
-                        continue
+                    first_valid_response = rebuilt_generator
+                    break
 
                 except Exception as e:
                     logger.error(f"Error in miner response: {e}")
@@ -91,8 +120,16 @@ async def stream_from_first_response(
         # Stream the first valid response
         chunks_received = False
         async for chunk in first_valid_response:
+            # Safely handle the chunk
+            if not chunk.choices or not chunk.choices[0].delta:
+                continue
+            
+            content = getattr(chunk.choices[0].delta, "content", None)
+            if content is None:
+                continue
+            
             chunks_received = True
-            collected_chunks_list[0].append(chunk.choices[0].delta.content)
+            collected_chunks_list[0].append(content)
             yield f"data: {json.dumps(chunk.model_dump())}\n\n"
 
         if not chunks_received:
@@ -128,7 +165,12 @@ async def collect_remaining_responses(
                 continue
 
             async for chunk in response:
-                collected_chunks_list[i + 1].append(chunk.choices[0].delta.content)
+                if not chunk.choices or not chunk.choices[0].delta:
+                    continue
+                content = getattr(chunk.choices[0].delta, "content", None)
+                if content is None:
+                    continue
+                collected_chunks_list[0].append(content)
         for uid, chunks in zip(uids, collected_chunks_list):
             # Forward for scoring
             asyncio.create_task(forward_response(uid, body, chunks))
@@ -162,7 +204,7 @@ async def chat_completion(
     # Initialize chunks collection for each miner
     collected_chunks_list = [[] for _ in selected_uids]
 
-    timeout_seconds = int(math.floor(math.log2(body["sampling_parameters"]["max_new_tokens"] / 256))) * 10 + 30
+    timeout_seconds = max(30, max(0, math.floor(math.log2(body["sampling_parameters"].get("max_new_tokens", 256) / 256))) * 10 + 30)
     if STREAM:
         # Create tasks for all miners
         response_tasks = [
