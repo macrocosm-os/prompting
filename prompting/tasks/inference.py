@@ -37,6 +37,7 @@ SYSTEM_PROMPTS = [
     "You are a creative helper. Offer engaging, imaginative responses that keep the user interested, while maintaining accuracy and clarity.",
 ]
 
+
 class InferenceTask(BaseTextTask):
     name: ClassVar[str] = "inference"
     # TODO: Once we want to enable the 'actual' inference task with exact models
@@ -57,9 +58,8 @@ class InferenceTask(BaseTextTask):
         self.messages = []
         if self.system_prompt:
             self.messages.append({"role": "system", "content": self.system_prompt})
-        self.sampling_params["temperature"] = random.randint(0,10) / 10
+        self.sampling_params["temperature"] = random.randint(0, 10) / 10
         self.sampling_params["max_new_tokens"] = random.choice([256, 512, 1024, 2048])
-
 
         if np.random.rand() < 0.2:
             self.llm_model_id = None
@@ -72,7 +72,7 @@ class InferenceTask(BaseTextTask):
             return self.query
         self.messages.extend(dataset_entry.messages)
         self.query = self.messages
-        
+
         return self.query
 
     def make_reference(self, dataset_entry: ChatEntry) -> str:
