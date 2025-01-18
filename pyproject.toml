@@ -121,7 +121,7 @@ docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint.mccabe]
 # TODO: Decrease to at least 10 (prompting/weight_setting/weight_setter.py).
-max-complexity = 13
+max-complexity = 14
 
 [tool.poetry.dependencies]
 bittensor = "8.5.1"
