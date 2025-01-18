@@ -2,7 +2,7 @@ import asyncio
 import json
 import math
 import random
-from typing import AsyncGenerator, List, Optional, Any, Callable
+from typing import Any, AsyncGenerator, Callable, List, Optional
 
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
@@ -13,9 +13,9 @@ from shared.settings import shared_settings
 from shared.uids import get_uids
 from validator_api.utils import forward_response
 
+
 async def peek_until_valid_chunk(
-    response: AsyncGenerator,
-    is_valid_chunk: Callable[[Any], bool]
+    response: AsyncGenerator, is_valid_chunk: Callable[[Any], bool]
 ) -> tuple[Optional[Any], Optional[AsyncGenerator]]:
     """
     Keep reading chunks until we find a 'valid' one or run out of chunks.
@@ -50,6 +50,7 @@ async def peek_until_valid_chunk(
             yield c
 
     return valid_chunk, rebuilt_generator()
+
 
 def is_valid_chunk(chunk: Any) -> bool:
     if chunk:
@@ -123,11 +124,11 @@ async def stream_from_first_response(
             # Safely handle the chunk
             if not chunk.choices or not chunk.choices[0].delta:
                 continue
-            
+
             content = getattr(chunk.choices[0].delta, "content", None)
             if content is None:
                 continue
-            
+
             chunks_received = True
             collected_chunks_list[0].append(content)
             yield f"data: {json.dumps(chunk.model_dump())}\n\n"
@@ -204,7 +205,9 @@ async def chat_completion(
     # Initialize chunks collection for each miner
     collected_chunks_list = [[] for _ in selected_uids]
 
-    timeout_seconds = max(30, max(0, math.floor(math.log2(body["sampling_parameters"].get("max_new_tokens", 256) / 256))) * 10 + 30)
+    timeout_seconds = max(
+        30, max(0, math.floor(math.log2(body["sampling_parameters"].get("max_new_tokens", 256) / 256))) * 10 + 30
+    )
     if STREAM:
         # Create tasks for all miners
         response_tasks = [
