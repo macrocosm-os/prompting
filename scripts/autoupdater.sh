@@ -15,7 +15,29 @@ log() {
     shift
     printf '[%s] [%-5s] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$level" "$*" | tee -a "$LOG_FILE"
 }
+compare_semver() {
+    local v1=() v2=()
+    IFS='.' read -r -a v1 <<< "$1"
+    IFS='.' read -r -a v2 <<< "$2"
 
+    # Normalize length (e.g., handle "1.2" as "1.2.0")
+    for i in 0 1 2; do
+        v1[i]=${v1[i]:-0}
+        v2[i]=${v2[i]:-0}
+    done
+
+    # Compare each section of MAJOR, MINOR, PATCH
+    for i in 0 1 2; do
+        if (( v1[i] > v2[i] )); then
+            return 1  # v1 is greater
+        elif (( v1[i] < v2[i] )); then
+            return 2  # v2 is greater
+        fi
+        # if equal, continue to next
+    done
+
+    return 0  # versions are the same
+}
 # Extract version from pyproject.toml
 get_version() {
     local file=$1
