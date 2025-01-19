@@ -40,7 +40,7 @@ def test_autoupdater_script():
         while process.poll() is None:
             if time.time() - start_time > timeout:
                 process.kill()
-                pytest.fail("Script timed out after 60 seconds")
+                pytest.fail("Autoupdater testing script timed out after 60 seconds")
             time.sleep(1)
 
         # Capture the output
