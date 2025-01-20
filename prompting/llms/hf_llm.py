@@ -5,7 +5,6 @@ import torch
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, pipeline
 
-from prompting.llms.model_zoo import ModelZoo
 from shared.settings import shared_settings
 from shared.timer import Timer
 
@@ -33,10 +32,6 @@ class ReproducibleHF:
         self.llm = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer)
 
         self.sampling_params = shared_settings.SAMPLING_PARAMS
-        try:
-            self.sampling_params = ModelZoo.get_model_by_id(model_id=model_id).sampling_params
-        except Exception:
-            pass
 
     @torch.inference_mode()
     def generate(self, messages: list[str] | list[dict], sampling_params=None, seed=None):
