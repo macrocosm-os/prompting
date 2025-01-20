@@ -34,33 +34,28 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         settings.shared_settings = settings.SharedSettings.load(mode="validator")
 
         from prompting.llms.model_manager import model_scheduler
-        from prompting.miner_availability.miner_availability import availability_checking_loop
-        from prompting.rewards.scoring import task_scorer
-        from prompting.tasks.task_creation import task_loop
-        from prompting.tasks.task_sending import task_sender
-        from prompting.weight_setting.weight_setter import weight_setter
         from shared.profiling import profiler
 
         logger.info("Starting Profiler...")
         asyncio.create_task(profiler.print_stats(), name="Profiler"),
 
         # -------- Duplicate of create_task_loop ----------
-        logger.info("Starting AvailabilityCheckingLoop...")
-        asyncio.create_task(availability_checking_loop.start())
+        # logger.info("Starting AvailabilityCheckingLoop...")
+        # asyncio.create_task(availability_checking_loop.start())
 
-        logger.info("Starting TaskSender...")
-        asyncio.create_task(task_sender.start(task_queue, scoring_queue))
+        # logger.info("Starting TaskSender...")
+        # asyncio.create_task(task_sender.start(task_queue, scoring_queue))
 
-        logger.info("Starting TaskLoop...")
-        asyncio.create_task(task_loop.start(task_queue, scoring_queue))
+        # logger.info("Starting TaskLoop...")
+        # asyncio.create_task(task_loop.start(task_queue, scoring_queue))
         # -------------------------------------------------
 
         logger.info("Starting ModelScheduler...")
         asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
-        logger.info("Starting TaskScorer...")
-        asyncio.create_task(task_scorer.start(scoring_queue, reward_events), name="TaskScorer"),
-        logger.info("Starting WeightSetter...")
-        asyncio.create_task(weight_setter.start(reward_events))
+        # logger.info("Starting TaskScorer...")
+        # asyncio.create_task(task_scorer.start(scoring_queue, reward_events), name="TaskScorer"),
+        # logger.info("Starting WeightSetter...")
+        # asyncio.create_task(weight_setter.start(reward_events))
 
         # Main monitoring loop
         start = time.time()

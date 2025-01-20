@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 from loguru import logger
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 
 from shared.settings import shared_settings
 from shared.timer import Timer
@@ -29,7 +29,7 @@ class ReproducibleHF:
             AutoModelForCausalLM.from_pretrained(model_id).generation_config.to_dict().keys()
         )
 
-        self.llm = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer)
+        # self.llm = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer)
 
         self.sampling_params = shared_settings.SAMPLING_PARAMS
 
