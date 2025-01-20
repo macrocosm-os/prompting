@@ -38,7 +38,6 @@ compare_semver() {
 
     return 0  # versions are the same
 }
-# Extract version from pyproject.toml
 get_version() {
     local file=$1
     local version
@@ -153,7 +152,6 @@ validate_environment() {
     fi
 }
 
-# Main loop
 main() {
     validate_environment
     log INFO "Starting auto-updater (interval: ${INTERVAL}s, branch: $REMOTE_BRANCH)"

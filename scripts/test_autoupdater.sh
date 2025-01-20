@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Test environment setup
 TEST_DIR="updater_test"
-INTERVAL=5  # Shorter interval for testing
+INTERVAL=5
 
 # Create test environment
 setup_test_environment() {
@@ -11,7 +11,6 @@ setup_test_environment() {
     rm -rf "$TEST_DIR"
     mkdir -p "$TEST_DIR"
 
-    # Copy autoupdater.sh if it's not already in the test directory
     if [[ ! -f "$TEST_DIR/autoupdater.sh" ]]; then
         cp "scripts/autoupdater.sh" "$TEST_DIR/" || cp "autoupdater.sh" "$TEST_DIR/"
     fi
