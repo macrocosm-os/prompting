@@ -89,8 +89,9 @@ async def stream_from_first_response(
     responses: List[asyncio.Task], collected_chunks_list: List[List[str]], body: dict[str, any], uids: List[int]
 ) -> AsyncGenerator[str, None]:
     first_valid_response = None
+    first_valid_task = None
+    done_but_not_chosen = []
     try:
-        # Keep looping until we find a valid response or run out of tasks
         while responses and first_valid_response is None:
             done, pending = await asyncio.wait(responses, return_when=asyncio.FIRST_COMPLETED)
 
@@ -100,17 +101,20 @@ async def stream_from_first_response(
                     response = await task  # This is (presumably) an async generator
 
                     if not response or isinstance(response, Exception):
+                        done_but_not_chosen.append(task)
                         continue
-                    # Peak at the first chunk
                     first_chunk, rebuilt_generator = await peek_until_valid_chunk(response, is_valid_chunk)
                     if first_chunk is None:
+                        done_but_not_chosen.append(task)
                         continue
 
                     first_valid_response = rebuilt_generator
+                    first_valid_task = task
                     break
 
                 except Exception as e:
                     logger.error(f"Error in miner response: {e}")
+                    done_but_not_chosen.append(task)
                     # just skip and continue to the next task
 
         if first_valid_response is None:
@@ -138,9 +142,16 @@ async def stream_from_first_response(
             yield 'data: {"error": "502 - Response is empty"}\n\n'
 
         yield "data: [DONE]\n\n"
+        all_remaining_tasks = []
+        all_remaining_tasks.extend(done_but_not_chosen)
+        all_remaining_tasks.extend(responses)
+        all_remaining_tasks.extend(pending)
 
-        # Continue collecting remaining responses in background for scoring
-        remaining = asyncio.gather(*pending, return_exceptions=True)
+        # Double check that our chosen response not in list
+        if first_valid_task in all_remaining_tasks:
+            all_remaining_tasks.remove(first_valid_task)
+
+        remaining = asyncio.gather(*all_remaining_tasks, return_exceptions=True)
         asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list, body, uids))
 
     except asyncio.CancelledError:
@@ -171,7 +182,8 @@ async def collect_remaining_responses(
                 content = getattr(chunk.choices[0].delta, "content", None)
                 if content is None:
                     continue
-                collected_chunks_list[0].append(content)
+                logger.info(f"Adding chunk {content} to index {i+1}")
+                collected_chunks_list[i+1].append(content)
         for uid, chunks in zip(uids, collected_chunks_list):
             # Forward for scoring
             asyncio.create_task(forward_response(uid, body, chunks))
