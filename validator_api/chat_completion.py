@@ -115,7 +115,6 @@ async def stream_from_first_response(
                 except Exception as e:
                     logger.error(f"Error in miner response: {e}")
                     done_but_not_chosen.append(task)
-                    # just skip and continue to the next task
 
         if first_valid_response is None:
             logger.error("No valid response received from any miner")
