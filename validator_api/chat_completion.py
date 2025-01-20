@@ -182,7 +182,6 @@ async def collect_remaining_responses(
                 content = getattr(chunk.choices[0].delta, "content", None)
                 if content is None:
                     continue
-                logger.info(f"Adding chunk {content} to index {i+1}")
                 collected_chunks_list[i+1].append(content)
         for uid, chunks in zip(uids, collected_chunks_list):
             # Forward for scoring

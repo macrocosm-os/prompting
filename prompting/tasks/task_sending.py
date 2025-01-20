@@ -1,5 +1,6 @@
 # ruff: noqa: E402
 import asyncio
+from prompting.tasks.web_retrieval import WebRetrievalTask
 import time
 from typing import List
 
@@ -65,6 +66,8 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
                 {"role": "user", "content": task.query},
             ],
         }
+    if isinstance(task, WebRetrievalTask):
+        body["target_results"] = task.target_results
 
     stream_results = await query_miners(uids, body)
     logger.debug(f"🔍 Collected responses from {len(stream_results)} miners")
