@@ -181,7 +181,5 @@ core
 app.config.js
 wandb
 .vscode
-api_keys.json
-*api_keys*
-prompting/api/api_keys.json
+**/api_keys.json
 weights.csv
