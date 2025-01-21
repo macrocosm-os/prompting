@@ -1,9 +1,9 @@
 import asyncio
 import json
+import math
 import random
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator, Callable, List, Optional
 
-import httpx
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
@@ -11,83 +11,224 @@ from loguru import logger
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
 from shared.uids import get_uids
+from validator_api.utils import forward_response
 
 
-async def forward_response(uid: int, body: dict[str, any], chunks: list[str]):
-    uid = int(uid)  # sometimes uid is type np.uint64
-    logger.info(f"Forwarding response to scoring with body: {body}")
-    if not shared_settings.SCORE_ORGANICS:  # Allow disabling of scoring by default
-        return
+async def peek_until_valid_chunk(
+    response: AsyncGenerator, is_valid_chunk: Callable[[Any], bool]
+) -> tuple[Optional[Any], Optional[AsyncGenerator]]:
+    """
+    Keep reading chunks until we find a 'valid' one or run out of chunks.
+    Return (first_valid_chunk, a_generator_of_all_chunks_including_this_one).
+    If no chunks or no valid chunks, return (None, None).
+    """
+    consumed = []
+    valid_chunk = None
 
-    if body.get("task") != "InferenceTask":
-        logger.debug(f"Skipping forwarding for non-inference task: {body.get('task')}")
-        return
-    url = f"http://{shared_settings.VALIDATOR_API}/scoring"
-    payload = {"body": body, "chunks": chunks, "uid": uid}
-    try:
-        timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(
-                url, json=payload, headers={"api-key": shared_settings.SCORING_KEY, "Content-Type": "application/json"}
-            )
-            if response.status_code == 200:
-                logger.info(f"Forwarding response completed with status {response.status_code}")
-
-            else:
-                logger.exception(
-                    f"Forwarding response uid {uid} failed with status {response.status_code} and payload {payload}"
-                )
-
-    except Exception as e:
-        logger.error(f"Tried to forward response to {url} with payload {payload}")
-        logger.exception(f"Error while forwarding response: {e}")
-
-
-async def stream_response(
-    response, collected_chunks: list[str], body: dict[str, any], uid: int
-) -> AsyncGenerator[str, None]:
-    chunks_received = False
     try:
         async for chunk in response:
+            consumed.append(chunk)
+            if is_valid_chunk(chunk):
+                valid_chunk = chunk
+                break  # we found our valid chunk
+    except StopAsyncIteration:
+        # no more chunks
+        pass
+
+    if not consumed or valid_chunk is None:
+        # Either the generator is empty or we never found a valid chunk
+        return None, None
+
+    # Rebuild a generator from the chunks we already consumed
+    # plus any remaining chunks that weren't pulled yet.
+    async def rebuilt_generator() -> AsyncGenerator:
+        # yield everything we consumed
+        for c in consumed:
+            yield c
+        # yield anything else still left in 'response'
+        async for c in response:
+            yield c
+
+    return valid_chunk, rebuilt_generator()
+
+
+def is_valid_chunk(chunk: Any) -> bool:
+    if chunk:
+        return (
+            hasattr(chunk, "choices")
+            and len(chunk.choices) > 0
+            and getattr(chunk.choices[0].delta, "content", None) is not None
+        )
+
+
+async def peek_first_chunk(
+    response: AsyncGenerator,
+) -> tuple[Optional[any], Optional[AsyncGenerator]]:
+    """
+    Pull one chunk from the async generator and return:
+      (the_chunk, a_new_generator_that_includes_this_chunk)
+    If the generator is empty, return (None, None).
+    """
+    try:
+        first_chunk = await anext(response)  # or: await anext(response, default=None) in Python 3.10+
+    except StopAsyncIteration:
+        # Generator is empty
+        return None, None
+
+    # At this point, we have the first chunk. We need to rebuild a generator
+    # that yields this chunk first, then yields the rest of the original response.
+    async def reconstructed_response() -> AsyncGenerator:
+        yield first_chunk
+        async for c in response:
+            yield c
+
+    return first_chunk, reconstructed_response()
+
+
+async def stream_from_first_response(
+    responses: List[asyncio.Task], collected_chunks_list: List[List[str]], body: dict[str, any], uids: List[int]
+) -> AsyncGenerator[str, None]:
+    first_valid_response = None
+    try:
+        # Keep looping until we find a valid response or run out of tasks
+        while responses and first_valid_response is None:
+            done, pending = await asyncio.wait(responses, return_when=asyncio.FIRST_COMPLETED)
+
+            for task in done:
+                responses.remove(task)
+                try:
+                    response = await task  # This is (presumably) an async generator
+
+                    if not response or isinstance(response, Exception):
+                        continue
+                    # Peak at the first chunk
+                    first_chunk, rebuilt_generator = await peek_until_valid_chunk(response, is_valid_chunk)
+                    if first_chunk is None:
+                        continue
+
+                    first_valid_response = rebuilt_generator
+                    break
+
+                except Exception as e:
+                    logger.error(f"Error in miner response: {e}")
+                    # just skip and continue to the next task
+
+        if first_valid_response is None:
+            logger.error("No valid response received from any miner")
+            yield 'data: {"error": "502 - No valid response received"}\n\n'
+            return
+
+        # Stream the first valid response
+        chunks_received = False
+        async for chunk in first_valid_response:
+            # Safely handle the chunk
+            if not chunk.choices or not chunk.choices[0].delta:
+                continue
+
+            content = getattr(chunk.choices[0].delta, "content", None)
+            if content is None:
+                continue
+
             chunks_received = True
-            collected_chunks.append(chunk.choices[0].delta.content)
+            collected_chunks_list[0].append(content)
             yield f"data: {json.dumps(chunk.model_dump())}\n\n"
 
         if not chunks_received:
             logger.error("Stream is empty: No chunks were received")
             yield 'data: {"error": "502 - Response is empty"}\n\n'
+
         yield "data: [DONE]\n\n"
 
-        # Forward the collected chunks after streaming is complete
-        asyncio.create_task(forward_response(uid=uid, body=body, chunks=collected_chunks))
+        # Continue collecting remaining responses in background for scoring
+        remaining = asyncio.gather(*pending, return_exceptions=True)
+        asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list, body, uids))
+
     except asyncio.CancelledError:
         logger.info("Client disconnected, streaming cancelled")
+        for task in responses:
+            task.cancel()
         raise
     except Exception as e:
         logger.exception(f"Error during streaming: {e}")
         yield 'data: {"error": "Internal server Error"}\n\n'
 
 
-async def chat_completion(body: dict[str, any], uid: int | None = None) -> tuple | StreamingResponse:
-    """Handle regular chat completion without mixture of miners."""
-    if uid is None:
-        uid = random.choice(get_uids(sampling_mode="top_incentive", k=100))
+async def collect_remaining_responses(
+    remaining: asyncio.Task, collected_chunks_list: List[List[str]], body: dict[str, any], uids: List[int]
+):
+    """Collect remaining responses for scoring without blocking the main response."""
+    try:
+        responses = await remaining
+        logger.debug(f"responses to forward: {responses}")
+        for i, response in enumerate(responses):
+            if isinstance(response, Exception):
+                logger.error(f"Error collecting response from uid {uids[i+1]}: {response}")
+                continue
 
-    if uid is None:
-        logger.error("No available miner found")
-        raise HTTPException(status_code=503, detail="No available miner found")
+            async for chunk in response:
+                if not chunk.choices or not chunk.choices[0].delta:
+                    continue
+                content = getattr(chunk.choices[0].delta, "content", None)
+                if content is None:
+                    continue
+                collected_chunks_list[0].append(content)
+        for uid, chunks in zip(uids, collected_chunks_list):
+            # Forward for scoring
+            asyncio.create_task(forward_response(uid, body, chunks))
 
-    logger.debug(f"Querying uid {uid}")
+    except Exception as e:
+        logger.exception(f"Error collecting remaining responses: {e}")
+
+
+async def get_response_from_miner(body: dict[str, any], uid: int, timeout_seconds: int) -> tuple:
+    """Get response from a single miner."""
+    return await make_openai_query(
+        metagraph=shared_settings.METAGRAPH,
+        wallet=shared_settings.WALLET,
+        body=body,
+        uid=uid,
+        stream=False,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+async def chat_completion(
+    body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 10
+) -> tuple | StreamingResponse:
+    """Handle chat completion with multiple miners in parallel."""
+    logger.debug(f"REQUEST_BODY: {body}")
+    # Get multiple UIDs if none specified
+    if uids is None:
+        uids = list(get_uids(sampling_mode="top_incentive", k=100))
+        if uids is None or len(uids) == 0:  # if not uids throws error, figure out how to fix
+            logger.error("No available miners found")
+            raise HTTPException(status_code=503, detail="No available miners found")
+        selected_uids = random.sample(uids, min(num_miners, len(uids)))
+    else:
+        selected_uids = uids[:num_miners]  # If UID is specified, only use that one
+
+    logger.debug(f"Querying uids {selected_uids}")
     STREAM = body.get("stream", False)
 
-    collected_chunks: list[str] = []
+    # Initialize chunks collection for each miner
+    collected_chunks_list = [[] for _ in selected_uids]
 
-    logger.info(f"Making {'streaming' if STREAM else 'non-streaming'} openai query with body: {body}")
-    response = await make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid, stream=STREAM)
-
+    timeout_seconds = max(
+        30, max(0, math.floor(math.log2(body["sampling_parameters"].get("max_new_tokens", 256) / 256))) * 10 + 30
+    )
     if STREAM:
+        # Create tasks for all miners
+        response_tasks = [
+            asyncio.create_task(
+                make_openai_query(
+                    shared_settings.METAGRAPH, shared_settings.WALLET, timeout_seconds, body, uid, stream=True
+                )
+            )
+            for uid in selected_uids
+        ]
+
         return StreamingResponse(
-            stream_response(response, collected_chunks, body, uid),
+            stream_from_first_response(response_tasks, collected_chunks_list, body, selected_uids),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -95,10 +236,35 @@ async def chat_completion(body: dict[str, any], uid: int | None = None) -> tuple
             },
         )
     else:
-        asyncio.create_task(forward_response(uid=uid, body=body, chunks=response[1]))
-        return response[0]
+        # For non-streaming requests, wait for first valid response
+        response_tasks = [
+            asyncio.create_task(get_response_from_miner(body=body, uid=uid, timeout_seconds=timeout_seconds))
+            for uid in selected_uids
+        ]
 
+        first_valid_response = None
+        collected_responses = []
 
-async def get_response_from_miner(body: dict[str, any], uid: int) -> tuple:
-    """Get response from a single miner."""
-    return await make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid, stream=False)
+        while response_tasks and first_valid_response is None:
+            done, pending = await asyncio.wait(response_tasks, return_when=asyncio.FIRST_COMPLETED)
+
+            for task in done:
+                try:
+                    response = await task
+                    if response and isinstance(response, tuple):
+                        if first_valid_response is None:
+                            first_valid_response = response
+                        collected_responses.append(response)
+                except Exception as e:
+                    logger.error(f"Error in miner response: {e}")
+                response_tasks.remove(task)
+
+        if first_valid_response is None:
+            raise HTTPException(status_code=502, detail="No valid response received")
+
+        # Forward all collected responses for scoring in the background
+        for i, response in enumerate(collected_responses):
+            if response and isinstance(response, tuple):
+                asyncio.create_task(forward_response(uid=selected_uids[i], body=body, chunks=response[1]))
+
+        return first_valid_response[0]  # Return only the response object, not the chunks

@@ -111,12 +111,16 @@ async def merged_stream(responses: list[AsyncGenerator]):
                 logger.error(f"Error while streaming: {e}")
 
 
-async def query_miners(uids, body: dict[str, Any]):
+async def query_miners(
+    uids, body: dict[str, Any], timeout_seconds: int = shared_settings.NEURON_TIMEOUT
+) -> list[SynapseStreamResult]:
     try:
         tasks = []
         for uid in uids:
             tasks.append(
-                asyncio.create_task(make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid))
+                asyncio.create_task(
+                    make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, timeout_seconds, body, uid)
+                )
             )
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -197,6 +201,7 @@ async def handle_availability(
 async def make_openai_query(
     metagraph: "bt.NonTorchMetagraph",
     wallet: "bt.wallet",
+    timeout_seconds: int,
     body: dict[str, Any],
     uid: int,
     stream: bool = False,
@@ -206,7 +211,7 @@ async def make_openai_query(
         base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
         api_key="Apex",
         max_retries=0,
-        timeout=Timeout(30, connect=5, read=10),
+        timeout=Timeout(timeout_seconds, connect=5, read=timeout_seconds - 5),
         http_client=openai.DefaultAsyncHttpxClient(
             event_hooks={"request": [create_header_hook(wallet.hotkey, axon_info.hotkey)]}
         ),
@@ -217,7 +222,6 @@ async def make_openai_query(
         messages=body["messages"],
         stream=True,
         extra_body=extra_body,
-        timeout=20,
     )
     if stream:
         return chat

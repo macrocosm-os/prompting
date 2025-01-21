@@ -136,12 +136,15 @@ class ModelManager(BaseModel):
     def generate(
         self,
         messages: list[str],
-        roles: list[str],
+        roles: list[str] | None = None,
         model: ModelConfig | str | None = None,
         seed: int = None,
         sampling_params: Dict[str, float] = None,
     ) -> str:
-        dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
+        if messages and isinstance(messages[0], dict):
+            dict_messages = messages
+        else:
+            dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
 
         if isinstance(model, str):
             model = ModelZoo.get_model_by_id(model)
@@ -159,9 +162,9 @@ class AsyncModelScheduler(AsyncLoopRunner):
     interval: int = 14400
     scoring_queue: list | None = None
 
-    async def start(self, scoring_queue: list):
+    async def start(self, scoring_queue: list, name: str | None = None):
         self.scoring_queue = scoring_queue
-        return await super().start()
+        return await super().start(name=name)
 
     async def initialise_loop(self):
         model_manager.load_always_active_models()
