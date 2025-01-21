@@ -9,7 +9,6 @@ import json
 from loguru import logger
 
 from shared.epistula import query_miners
-from shared.settings import shared_settings
 
 """
 This has assumed you have:
