@@ -48,6 +48,8 @@ def create_api_key(rate_limit: int, admin_key: str = Depends(validate_admin_key)
     new_api_key = secrets.token_hex(16)
     _keys[new_api_key] = {"rate_limit": rate_limit, "usage": 0}
     save_api_keys(_keys)
+    global _keys
+    _keys = load_api_keys()
     return {"message": "API key created", "api_key": new_api_key}
 
 
