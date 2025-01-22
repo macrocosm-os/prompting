@@ -5,7 +5,6 @@ import time
 
 import pytest
 
-
 def test_autoupdater_script():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(os.path.dirname(current_dir))
@@ -19,6 +18,13 @@ def test_autoupdater_script():
     os.makedirs(test_dir, exist_ok=True)
 
     try:
+        subprocess.run(["git", "config", "--global", "user.name", "AutoUpdater"], check=True)
+        subprocess.run(["git", "config", "--global", "user.email", "autoupdater@example.com"], check=True)
+
+        remote_dir = os.path.join(project_root, "updater_test_remote")
+        if os.path.exists(remote_dir):
+            shutil.rmtree(remote_dir)
+
         shutil.copy2(autoupdater_path, os.path.join(test_dir, "autoupdater.sh"))
         process = subprocess.Popen(
             [test_script_path],
@@ -38,7 +44,6 @@ def test_autoupdater_script():
 
         stdout, stderr = process.communicate()
 
-        # Assert that the script ran successfully
         assert process.returncode == 0, f"Script failed with error: {stderr}"
         assert "✅ Test passed!" in stdout, "The test did not pass as expected."
 
