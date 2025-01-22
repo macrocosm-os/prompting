@@ -32,6 +32,7 @@ NEURON_STOP_ON_FORWARD_EXCEPTION: bool = False
 SHOULD_SERVE_LLM: bool = False
 LOCAL_MODEL_ID = "casperhansen/llama-3-8b-instruct-awq"
 
+
 class OpenAIMiner:
     def __init__(self):
         self.should_exit = False
