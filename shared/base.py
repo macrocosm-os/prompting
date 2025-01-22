@@ -18,8 +18,7 @@ class DatasetEntry(BaseModel):
 
 
 class ChatEntry(DatasetEntry):
-    messages: list[str]
-    roles: list[str]
+    messages: list[dict]
     organic: bool
     source: str | None = None
     query: str | None = None
@@ -80,7 +79,6 @@ class BaseDataset(ABC, BaseModel):
                 logger.error(f"Failed to fetch context after {RETRIES} tries.")
                 return None
 
-        context.source = self.__class__.__name__
         context.stats = {
             "fetch_time": timer.final_time,
             "num_tries": tries,

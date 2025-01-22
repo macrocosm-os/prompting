@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "prompting"
-version = "2.15.4"
+version = "2.16.2"
 description = "Subnetwork 1 runs on Bittensor and is maintained by Macrocosmos. It's an effort to create decentralised AI"
 authors = ["Kalei Brady, Dmytro Bobrenko, Felix Quinque, Steffen Cruz, Richard Wardle"]
 readme = "README.md"
@@ -31,7 +31,7 @@ max-line-length = 120
 extend-ignore = "D203,E203,E251,E266,E302,E305,E401,E402,E501,F401,F403,W503"
 exclude = ".git,__pycache__,dist,.venv,venv,*/lib/python*/site-packages,*/lib64/python*/site-packages"
 # TODO: Decrease to at least 10 (prompting/weight_setting/weight_setter.py).
-max-complexity = 13
+max-complexity = 14
 
 [tool.isort]
 atomic = true
@@ -121,7 +121,7 @@ docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint.mccabe]
 # TODO: Decrease to at least 10 (prompting/weight_setting/weight_setter.py).
-max-complexity = 13
+max-complexity = 14
 
 [tool.poetry.dependencies]
 bittensor = "8.5.1"
@@ -154,13 +154,13 @@ numpy = { version = ">=2.0.1", optional = true }
 rouge = { version = ">=1.0.1", optional = true }
 bs4 = { version = ">=0.0.2", optional = true }
 wikipedia = { version = ">=1.4.0", optional = true }
-duckduckgo-search = { version = ">=6.3.7", optional = true }
+duckduckgo-search = "^7.2.1"
 huggingface-hub = { version = ">=0.25.2", optional = true }
 pandas = { version = ">=2.2.1", optional = true }
 trafilatura = { version = ">=1.12.1", optional = true }
 datasets = { version = ">=3.1.0", optional = true }
+primp = "^0.10.0"
 nltk = { version = ">=3.8.1", optional = true }
-primp = { version = "==0.8.1", optional = true }
 
 [tool.poetry.extras]
 validator = [

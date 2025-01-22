@@ -103,25 +103,13 @@ bash run_api.sh
 
 **Parameters:**
 
-- **task** (query, optional): The type of task (e.g., `QuestionAnsweringTask`, `SummarizationTask`, etc.).
+- **task** (query, optional): The type of task (e.g., `QuestionAnsweringTask`, `Programming`, etc.).
 - **model** (query, optional): The specific model (string).
 - **k** (query, optional): The maximum number of results to return (integer, default: 10).
 
 ---
 
 ## Chat Endpoints
-
-### Mixture of Agents
-
-**Endpoint:** `POST /mixture_of_agents`
-
-**Description:** Combines multiple agents for a task.
-
-**Parameters:**
-
-- **api-key** (header, required): API key for authorization (string).
-
----
 
 ### Proxy Chat Completions
 
@@ -132,6 +120,62 @@ bash run_api.sh
 **Parameters:**
 
 - **api-key** (header, required): API key for authorization (string).
+
+Example call using the OpenAI client:
+
+```python
+def make_header(api_key: str):
+    return {
+        "api-key": f"{api_key}",
+        "Content-Type": "application/json",
+    }
+
+client = openai.AsyncOpenAI(
+        base_url=f"http://213.173.105.104:11198/v1",
+        max_retries=0,
+        timeout=Timeout(30, connect=10, read=20),
+        http_client=openai.DefaultAsyncHttpxClient(
+            headers=make_header(API_KEY)  # Pass the headers here
+        ),
+        api_key=API_KEY
+)
+
+result = await client.chat.completions.create(
+    model="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
+    messages=[
+            {"role": "user", "content": """How are you?"""},
+        ],
+    stream=True,
+    temperature=0.7,
+    extra_body={
+        "task": "InferenceTask",
+        "sampling_parameters": {
+            "mixture": False,
+            "max_new_tokens": 256,
+            "do_sample": True,
+        },
+    },
+    seed=42,
+    extra_headers=make_header(API_KEY),
+)
+
+```
+
+You can pass `"mixture": True` in the extra_body to use SN1's mixture of miners mode.
+
+---
+
+Web Retrieval
+
+**Endpoint:** `GET /web_retrieval`
+
+**Description:** Retrieves a list websites about a search query
+
+**Parameters:**
+
+- **search_query** (str): The search term you'd like to look up
+- **n_miners** (int, optional): How many miners to query
+- **uids**: (list[int], optional): which specific uids to query (Deprecated)
 
 ---
 

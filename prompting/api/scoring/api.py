@@ -27,29 +27,34 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
     model = None
     payload: dict[str, Any] = await request.json()
     body = payload.get("body")
-
-    try:
-        if body.get("model") is not None:
-            model = ModelZoo.get_model_by_id(body.get("model"))
-    except Exception:
-        logger.warning(
-            f"Organic request with model {body.get('model')} made but the model cannot be found in model zoo. Skipping scoring."
-        )
-        return
     uid = int(payload.get("uid"))
     chunks = payload.get("chunks")
-    llm_model = ModelZoo.get_model_by_id(model) if (model := body.get("model")) else None
+    model = body.get("model")
+    if model:
+        try:
+            llm_model = ModelZoo.get_model_by_id(model)
+        except Exception:
+            logger.warning(
+                f"Organic request with model {body.get('model')} made but the model cannot be found in model zoo. Skipping scoring."
+            )
+        return
+    else:
+        llm_model = None
     task = body.get("task")
     if task == "InferenceTask":
         logger.info(f"Received Organic InferenceTask with body: {body}")
+        logger.info(f"With model of type {type(body.get('model'))}")
+        organic_task = InferenceTask(
+            messages=body.get("messages"),
+            llm_model=llm_model,
+            llm_model_id=body.get("model"),
+            seed=int(body.get("seed", 0)),
+            sampling_params=body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS),
+            query=body.get("messages")[0]["content"],
+        )
+        logger.info(f"Task created: {organic_task}")
         task_scorer.add_to_queue(
-            task=InferenceTask(
-                messages=[msg["content"] for msg in body.get("messages")],
-                llm_model=llm_model,
-                llm_model_id=body.get("model"),
-                seed=int(body.get("seed", 0)),
-                sampling_params=body.get("sampling_params", {}),
-            ),
+            task=organic_task,
             response=DendriteResponseEvent(
                 uids=[uid],
                 stream_results=[
