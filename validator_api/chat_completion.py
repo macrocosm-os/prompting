@@ -171,7 +171,7 @@ async def collect_remaining_responses(
                 content = getattr(chunk.choices[0].delta, "content", None)
                 if content is None:
                     continue
-                collected_chunks_list[i+1].append(content)
+                collected_chunks_list[i + 1].append(content)
         for uid, chunks in zip(uids, collected_chunks_list):
             # Forward for scoring
             asyncio.create_task(forward_response(uid, body, chunks))

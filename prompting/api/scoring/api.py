@@ -62,9 +62,7 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
             task=organic_task,
             response=DendriteResponseEvent(
                 uids=uids,
-                stream_results=[
-                    SynapseStreamResult(accumulated_chunks=chunks.get(str(uid), None)) for uid in uids
-                ],
+                stream_results=[SynapseStreamResult(accumulated_chunks=chunks.get(str(uid), None)) for uid in uids],
                 timeout=timeout,
             ),
             dataset_entry=DatasetEntry(),
