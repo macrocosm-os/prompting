@@ -1,4 +1,4 @@
-import asyncio
+import argparse
 
 import uvicorn
 from fastapi import FastAPI
@@ -15,25 +15,33 @@ app = FastAPI()
 app.include_router(gpt_router, tags=["GPT Endpoints"])
 app.include_router(api_management_router, tags=["API Management"])
 
-# TODO: This api requests miner availabilities from validator
-# TODO: Forward the results from miners to the validator
-
 
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
 
-async def main():
-    # asyncio.create_task(availability_updater.start())
+def main():
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description="Run the validator_api FastAPI server.")
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="Number of worker processes to run (default: 4)."
+    )
+    args = parser.parse_args()
+
     uvicorn.run(
-        app,
+        "validator_api.api:app",
         host=shared_settings.API_HOST,
         port=shared_settings.API_PORT,
         log_level="debug",
         timeout_keep_alive=60,
+        workers=args.workers,
+        reload=False,
     )
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
