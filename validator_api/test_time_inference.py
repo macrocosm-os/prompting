@@ -42,27 +42,31 @@ def parse_multiple_json(api_response):
 
 async def make_api_call(messages, max_tokens, model=None, is_final_answer=False):
     logger.info(f"Making API call with messages: {messages}")
+    response = None
+    response_dict = None
     for attempt in range(3):
         try:
             response = await chat_completion(
                 body={
-                    # "messages": messages,
-                    "messages": [
-                        {"role": "user", "content": "Remember the number 49"},
-                        {"role": "user", "content": "Remember the number 32"},
-                        {"role": "user", "content": "Recite back all numbers previously given to you."},
-                    ],
+                    "messages": messages,
                     "max_tokens": max_tokens,
                     "model": model,
                     "stream": False,
                     "task": "InferenceTask",
+                    "sampling_parameters": {
+                        "temperature": 0.5,
+                        "max_new_tokens": 1000,
+                        "top_p": 1,
+                    },
                 }
             )
             # return response.choices[0].message.content
-            response_dict = parse_multiple_json(response)[0]
+            response_dict = parse_multiple_json(response.choices[0].message.content)[0]
             return response_dict
         except Exception as e:
+            logger.error(f"Failed to get valid step back from miner: {e}")
             if attempt == 2:
+                logger.exception(f"Error generating answer: {e}, RESPONSE DICT: {response_dict}")
                 if is_final_answer:
                     return {
                         "title": "Error",
@@ -153,7 +157,7 @@ Example of a valid JSON response:
     )
 
     start_time = time.time()
-    final_data = make_api_call(messages, 200, is_final_answer=True)
+    final_data = await make_api_call(messages, 200, is_final_answer=True)
     end_time = time.time()
     thinking_time = end_time - start_time
     total_thinking_time += thinking_time

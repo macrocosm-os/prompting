@@ -57,6 +57,7 @@ def make_api_call(messages, max_tokens, is_final_answer=False):
             return response_dict
         except Exception as e:
             if attempt == 2:
+                logger.debug(f"ERROR GENERATING ANSWER. RESPONSE DICT: {response_dict}")
                 if is_final_answer:
                     return {
                         "title": "Error",

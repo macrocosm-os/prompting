@@ -36,6 +36,8 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
 
         # Choose between regular completion and mixture of miners.
+        # if body.get("test_time_inference", False):
+        #     return await test_time_inference(body)
         if body.get("mixture", False):
             return await mixture_of_miners(body)
         else:
@@ -108,7 +110,7 @@ async def test_time_inference(messages: list[dict]):
             logger.info(f"Query: {query}")
             async for steps, thinking_time in create_response_stream(query):
                 step_data = {
-                    "steps": [{"title": step[0], "content": step[1], "thinking_time": step[2]} for step in steps],
+                    "steps": [{"title": step[0], "content": step[1], "thinking_time": step[2]} for step in steps][-1],
                     "total_thinking_time": thinking_time,
                 }
                 yield f"data: {json.dumps(step_data)}\n\n"
