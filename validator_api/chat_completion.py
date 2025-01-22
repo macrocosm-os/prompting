@@ -180,15 +180,23 @@ async def collect_remaining_responses(
         logger.exception(f"Error collecting remaining responses: {e}")
 
 
-async def get_response_from_miner(body: dict[str, any], uid: int) -> tuple:
+async def get_response_from_miner(body: dict[str, any], uid: int, timeout_seconds: int) -> tuple:
     """Get response from a single miner."""
-    return await make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid, stream=False)
+    return await make_openai_query(
+        metagraph=shared_settings.METAGRAPH,
+        wallet=shared_settings.WALLET,
+        body=body,
+        uid=uid,
+        stream=False,
+        timeout_seconds=timeout_seconds,
+    )
 
 
 async def chat_completion(
     body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 10
 ) -> tuple | StreamingResponse:
     """Handle chat completion with multiple miners in parallel."""
+    logger.debug(f"REQUEST_BODY: {body}")
     # Get multiple UIDs if none specified
     if uids is None:
         uids = list(get_uids(sampling_mode="top_incentive", k=100))
@@ -229,7 +237,10 @@ async def chat_completion(
         )
     else:
         # For non-streaming requests, wait for first valid response
-        response_tasks = [asyncio.create_task(get_response_from_miner(body, uid)) for uid in selected_uids]
+        response_tasks = [
+            asyncio.create_task(get_response_from_miner(body=body, uid=uid, timeout_seconds=timeout_seconds))
+            for uid in selected_uids
+        ]
 
         first_valid_response = None
         collected_responses = []
