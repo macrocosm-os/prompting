@@ -41,7 +41,7 @@ SYSTEM_PROMPTS = [
 class InferenceTask(BaseTextTask):
     name: ClassVar[str] = "inference"
     # TODO: Once we want to enable the 'actual' inference task with exact models
-    query: str | None = None
+    query: str | list = []
     reference: str | None = None
     system_prompt: str | None = None
     llm_model: ModelConfig | None = None
@@ -77,7 +77,7 @@ class InferenceTask(BaseTextTask):
 
     def make_reference(self, dataset_entry: ChatEntry) -> str:
         self.reference = model_manager.generate(
-            messages=dataset_entry.messages,
+            messages=self.messages,
             model=self.llm_model,
             seed=self.seed,
             sampling_params=self.sampling_params,
