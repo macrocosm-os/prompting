@@ -87,7 +87,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         if not dataset_entry.query:
             # if the dataset doesn't have a query, we can't score the completions
             return BatchRewardOutput(
-                rewards=np.array([0] * len(response_event.comletions)),
+                rewards=np.array([0] * len(response_event.completions)),
                 timings=np.array([0] * len(response_event.completions)),
             )
 
