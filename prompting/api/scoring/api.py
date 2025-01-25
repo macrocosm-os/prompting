@@ -86,11 +86,11 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
                 query=search_term,
             ),
             response=DendriteResponseEvent(
-                uids=[uid],
+                uids=[uids],
                 stream_results=[
                     SynapseStreamResult(accumulated_chunks=[chunk for chunk in chunks if chunk is not None])
                 ],
-                timeout=shared_settings.NEURON_TIMEOUT,
+                timeout=shared_settings.NEURON_TIMEOUT,  # TODO: Change this to read from the body
             ),
             dataset_entry=DDGDatasetEntry(search_term=search_term),
             block=shared_settings.METAGRAPH.block,
