@@ -141,7 +141,9 @@ async def stream_from_first_response(
 
         # Continue collecting remaining responses in background for scoring
         remaining = asyncio.gather(*pending, return_exceptions=True)
-        asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list, body, uids))
+        remaining_tasks = asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list, body, uids))
+        await remaining_tasks
+        asyncio.create_task(forward_response(uids, body, collected_chunks_list))
 
     except asyncio.CancelledError:
         logger.info("Client disconnected, streaming cancelled")
@@ -171,10 +173,7 @@ async def collect_remaining_responses(
                 content = getattr(chunk.choices[0].delta, "content", None)
                 if content is None:
                     continue
-                collected_chunks_list[0].append(content)
-        for uid, chunks in zip(uids, collected_chunks_list):
-            # Forward for scoring
-            asyncio.create_task(forward_response(uid, body, chunks))
+                collected_chunks_list[i + 1].append(content)
 
     except Exception as e:
         logger.exception(f"Error collecting remaining responses: {e}")
@@ -261,10 +260,5 @@ async def chat_completion(
 
         if first_valid_response is None:
             raise HTTPException(status_code=502, detail="No valid response received")
-
-        # Forward all collected responses for scoring in the background
-        for i, response in enumerate(collected_responses):
-            if response and isinstance(response, tuple):
-                asyncio.create_task(forward_response(uid=selected_uids[i], body=body, chunks=response[1]))
 
         return first_valid_response[0]  # Return only the response object, not the chunks

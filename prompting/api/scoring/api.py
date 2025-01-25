@@ -27,8 +27,13 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
     model = None
     payload: dict[str, Any] = await request.json()
     body = payload.get("body")
-    uid = int(payload.get("uid"))
-    chunks = payload.get("chunks")
+    timeout = payload.get("timeout", shared_settings.NEURON_TIMEOUT)
+    uids = payload.get("uid", [])
+    chunks = payload.get("chunks", {})
+    if not uids or not chunks:
+        logger.error(f"Either uids: {uids} or chunks: {chunks} is not valid, skipping scoring")
+        return
+    uids = [int(uid) for uid in uids]
     model = body.get("model")
     if model:
         try:
@@ -50,17 +55,15 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
             llm_model_id=body.get("model"),
             seed=int(body.get("seed", 0)),
             sampling_params=body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS),
-            query=body.get("messages")[0]["content"],
+            query=body.get("messages"),
         )
         logger.info(f"Task created: {organic_task}")
         task_scorer.add_to_queue(
             task=organic_task,
             response=DendriteResponseEvent(
-                uids=[uid],
-                stream_results=[
-                    SynapseStreamResult(accumulated_chunks=[chunk for chunk in chunks if chunk is not None])
-                ],
-                timeout=shared_settings.NEURON_TIMEOUT,
+                uids=uids,
+                stream_results=[SynapseStreamResult(accumulated_chunks=chunks.get(str(uid), None)) for uid in uids],
+                timeout=timeout,
             ),
             dataset_entry=DatasetEntry(),
             block=shared_settings.METAGRAPH.block,
@@ -83,11 +86,11 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
                 query=search_term,
             ),
             response=DendriteResponseEvent(
-                uids=[uid],
+                uids=[uids],
                 stream_results=[
                     SynapseStreamResult(accumulated_chunks=[chunk for chunk in chunks if chunk is not None])
                 ],
-                timeout=shared_settings.NEURON_TIMEOUT,
+                timeout=shared_settings.NEURON_TIMEOUT,  # TODO: Change this to read from the body
             ),
             dataset_entry=DDGDatasetEntry(search_term=search_term),
             block=shared_settings.METAGRAPH.block,
