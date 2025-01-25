@@ -92,6 +92,7 @@ async def stream_from_first_response(
     first_valid_task = None
     done_but_not_chosen = []
     try:
+        # Keep looping until we find a valid response or run out of tasks
         while responses and first_valid_response is None:
             done, pending = await asyncio.wait(responses, return_when=asyncio.FIRST_COMPLETED)
 
@@ -101,20 +102,17 @@ async def stream_from_first_response(
                     response = await task  # This is (presumably) an async generator
 
                     if not response or isinstance(response, Exception):
-                        done_but_not_chosen.append(task)
                         continue
+                    # Peak at the first chunk
                     first_chunk, rebuilt_generator = await peek_until_valid_chunk(response, is_valid_chunk)
                     if first_chunk is None:
-                        done_but_not_chosen.append(task)
                         continue
 
                     first_valid_response = rebuilt_generator
-                    first_valid_task = task
                     break
 
                 except Exception as e:
                     logger.error(f"Error in miner response: {e}")
-                    done_but_not_chosen.append(task)
                     # just skip and continue to the next task
 
         if first_valid_response is None:
@@ -182,7 +180,7 @@ async def collect_remaining_responses(
                 content = getattr(chunk.choices[0].delta, "content", None)
                 if content is None:
                     continue
-                collected_chunks_list[i+1].append(content)
+                collected_chunks_list[0].append(content)
         for uid, chunks in zip(uids, collected_chunks_list):
             # Forward for scoring
             asyncio.create_task(forward_response(uid, body, chunks))
@@ -191,15 +189,23 @@ async def collect_remaining_responses(
         logger.exception(f"Error collecting remaining responses: {e}")
 
 
-async def get_response_from_miner(body: dict[str, any], uid: int) -> tuple:
+async def get_response_from_miner(body: dict[str, any], uid: int, timeout_seconds: int) -> tuple:
     """Get response from a single miner."""
-    return await make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid, stream=False)
+    return await make_openai_query(
+        metagraph=shared_settings.METAGRAPH,
+        wallet=shared_settings.WALLET,
+        body=body,
+        uid=uid,
+        stream=False,
+        timeout_seconds=timeout_seconds,
+    )
 
 
 async def chat_completion(
     body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 10
 ) -> tuple | StreamingResponse:
     """Handle chat completion with multiple miners in parallel."""
+    logger.debug(f"REQUEST_BODY: {body}")
     # Get multiple UIDs if none specified
     if uids is None:
         uids = list(get_uids(sampling_mode="top_incentive", k=100))
@@ -240,7 +246,10 @@ async def chat_completion(
         )
     else:
         # For non-streaming requests, wait for first valid response
-        response_tasks = [asyncio.create_task(get_response_from_miner(body, uid)) for uid in selected_uids]
+        response_tasks = [
+            asyncio.create_task(get_response_from_miner(body=body, uid=uid, timeout_seconds=timeout_seconds))
+            for uid in selected_uids
+        ]
 
         first_valid_response = None
         collected_responses = []
