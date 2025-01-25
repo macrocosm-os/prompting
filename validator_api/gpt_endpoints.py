@@ -1,4 +1,7 @@
 import asyncio
+import time
+import uuid
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 import json
 import random
 
@@ -36,8 +39,8 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
 
         # Choose between regular completion and mixture of miners.
-        # if body.get("test_time_inference", False):
-        #     return await test_time_inference(body)
+        if body.get("test_time_inference", False):
+            return await test_time_inference(body["messages"], body.get("model"))
         if body.get("mixture", False):
             return await mixture_of_miners(body)
         else:
@@ -96,7 +99,7 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
 
 
 @router.post("/test_time_inference")
-async def test_time_inference(messages: list[dict]):
+async def test_time_inference(messages: list[dict], model: str = None):
     async def create_response_stream(user_query):
         async for steps, total_thinking_time in generate_response(user_query):
             if total_thinking_time is not None:
@@ -108,12 +111,23 @@ async def test_time_inference(messages: list[dict]):
         try:
             query = messages[-1]["content"]
             logger.info(f"Query: {query}")
+            i = 0
             async for steps, thinking_time in create_response_stream(query):
+                i += 1
                 step_data = {
                     "steps": [{"title": step[0], "content": step[1], "thinking_time": step[2]} for step in steps][-1],
                     "total_thinking_time": thinking_time,
                 }
-                yield f"data: {json.dumps(step_data)}\n\n"
+                # yield f"data: {json.dumps(step_data)}\n\n"
+                yield f"data: " + ChatCompletionChunk(
+                    id=str(uuid.uuid4()),
+                    created=int(time.time()),
+                    model=model or "None",
+                    object="chat.completion.chunk",
+                    choices=[
+                        Choice(index=i, delta=ChoiceDelta(content=f"## {steps[-1][0]}\n\n{steps[-1][1]}" + "\n\n"))
+                    ],
+                ).model_dump_json() + "\n\n"
         except Exception as e:
             logger.exception(f"Error during streaming: {e}")
             yield f'data: {{"error": "Internal Server Error: {str(e)}"}}\n\n'
