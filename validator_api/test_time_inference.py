@@ -1,9 +1,11 @@
-import re
 import json
+import re
 import time
+
 from loguru import logger
-from validator_api.chat_completion import chat_completion
+
 from shared.timer import Timer
+from validator_api.chat_completion import chat_completion
 
 MAX_THINKING_STEPS = 10
 

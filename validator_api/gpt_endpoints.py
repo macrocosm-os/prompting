@@ -1,13 +1,13 @@
 import asyncio
-import time
-import uuid
-from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 import json
 import random
+import time
+import uuid
 
 import numpy as np
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from loguru import logger
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
 
 from shared.epistula import SynapseStreamResult, query_miners
@@ -15,8 +15,8 @@ from shared.settings import shared_settings
 from shared.uids import get_uids
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
-from validator_api.utils import forward_response
 from validator_api.test_time_inference import generate_response
+from validator_api.utils import forward_response
 
 router = APIRouter()
 
@@ -114,12 +114,7 @@ async def test_time_inference(messages: list[dict], model: str = None):
             i = 0
             async for steps, thinking_time in create_response_stream(query):
                 i += 1
-                step_data = {
-                    "steps": [{"title": step[0], "content": step[1], "thinking_time": step[2]} for step in steps][-1],
-                    "total_thinking_time": thinking_time,
-                }
-                # yield f"data: {json.dumps(step_data)}\n\n"
-                yield f"data: " + ChatCompletionChunk(
+                yield "data: " + ChatCompletionChunk(
                     id=str(uuid.uuid4()),
                     created=int(time.time()),
                     model=model or "None",
