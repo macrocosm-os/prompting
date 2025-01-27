@@ -24,12 +24,7 @@ async def health():
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Run the validator_api FastAPI server.")
-    parser.add_argument(
-        "--workers",
-        type=int,
-        default=4,
-        help="Number of worker processes to run (default: 4)."
-    )
+    parser.add_argument("--workers", type=int, default=4, help="Number of worker processes to run (default: 4).")
     args = parser.parse_args()
 
     uvicorn.run(

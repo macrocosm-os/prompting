@@ -1,14 +1,15 @@
 import asyncio
-import time
 import csv
-import pandas as pd
-import plotly.express as px
-import openai
-from httpx import Timeout, HTTPStatusError
-import nltk
-from nltk.corpus import words
 import random
 import sys
+import time
+
+import nltk
+import openai
+import pandas as pd
+import plotly.express as px
+from httpx import HTTPStatusError, Timeout
+from nltk.corpus import words
 
 nltk.download("words")
 word_list = words.words()
@@ -170,17 +171,14 @@ async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
     client._client.headers["api-key"] = api_key
     word = random.choice(word_list)
     prompt = f"Write a short story about {word}."
-    #concurrency_levels = [2**i for i in range(0, 11)]
+    # concurrency_levels = [2**i for i in range(0, 11)]
     concurrency_levels = [2**i for i in range(0, 8)]
 
     results = []
     for concurrency in concurrency_levels:
         print(f"\n=== Testing concurrency: {concurrency} ===")
 
-        tasks = [
-            make_completion(client, prompt=prompt, stream=True) 
-            for _ in range(concurrency)
-        ]
+        tasks = [make_completion(client, prompt=prompt, stream=True) for _ in range(concurrency)]
         responses = await asyncio.gather(*tasks)
 
         success_count = sum(r["success"] for r in responses)
@@ -295,11 +293,13 @@ async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
     status_data = []
     for _, row in df.iterrows():
         for code in all_status_codes:
-            status_data.append({
-                "concurrency": row["concurrency"],
-                "status_code": code,
-                "count": row[f"status_{code}"],
-            })
+            status_data.append(
+                {
+                    "concurrency": row["concurrency"],
+                    "status_code": code,
+                    "count": row[f"status_{code}"],
+                }
+            )
     status_df = pd.DataFrame(status_data)
 
     # Build a color map: 200 = green, others = red-like.
@@ -328,7 +328,7 @@ async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
         y="empty_response_count",
         title="Empty Responses vs. Concurrency",
         markers=True,
-        line_shape='linear',
+        line_shape="linear",
     )
     fig5.update_xaxes(title_text="Concurrent Queries")
     fig5.update_yaxes(title_text="Count of Empty Responses")
