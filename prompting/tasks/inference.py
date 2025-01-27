@@ -43,6 +43,9 @@ class InferenceTask(BaseTextTask):
 
     @model_validator(mode="after")
     def random_llm_model_id(self):
+        if self.query:  # If we are already defining query, as in the case of organics, we also specify model.
+            return self
+
         if np.random.rand() < 0.2:
             self.llm_model_id = None
         else:
@@ -52,14 +55,13 @@ class InferenceTask(BaseTextTask):
     def make_query(self, dataset_entry: ChatEntry) -> str:
         if self.query:
             return self.query
-        self.query = dataset_entry.messages[-1]
+        self.query = dataset_entry.messages
         self.messages = dataset_entry.messages
         return self.query
 
     def make_reference(self, dataset_entry: ChatEntry) -> str:
         self.reference = model_manager.generate(
             messages=dataset_entry.messages,
-            roles=dataset_entry.roles,
             model=self.llm_model,
             seed=self.seed,
             sampling_params=self.sampling_params,

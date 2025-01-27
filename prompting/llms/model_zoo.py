@@ -20,11 +20,7 @@ class ModelConfig(BaseModel):
 class ModelZoo:
     # Currently, we are only using one single model - the one the validator is running
     models_configs: ClassVar[list[ModelConfig]] = [
-        ModelConfig(
-            llm_model_id=shared_settings.LLM_MODEL,
-            reward=1,
-            min_ram=shared_settings.MAX_ALLOWED_VRAM_GB,
-        ),
+        ModelConfig(llm_model_id=shared_settings.LLM_MODEL, reward=1, min_ram=shared_settings.MAX_ALLOWED_VRAM_GB),
     ]
 
     # Code below can be uncommended for testing purposes and demonstrates how we rotate multiple LLMs in the future
@@ -46,6 +42,9 @@ class ModelZoo:
 
     @classmethod
     def get_model_by_id(cls, model_id: str) -> ModelConfig:
+        if not model_id:
+            logger.error("model_id cannot be None or empty. Returning None...")
+            return None
         try:
             return [model for model in cls.models_configs if model.llm_model_id == model_id][0]
         except Exception as ex:

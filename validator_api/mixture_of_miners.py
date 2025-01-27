@@ -22,7 +22,7 @@ TASK_SYSTEM_PROMPT = {
     # Add more task-specific system prompts here.
 }
 
-NUM_MIXTURE_MINERS = 5
+NUM_MIXTURE_MINERS = 8
 TOP_INCENTIVE_POOL = 100
 
 
@@ -67,7 +67,7 @@ async def mixture_of_miners(body: dict[str, any]) -> tuple | StreamingResponse:
         raise HTTPException(status_code=503, detail="Failed to get responses from miners")
 
     # Extract completions from the responses.
-    completions = [response[1][0] for response in valid_responses if response and len(response) > 1]
+    completions = ["".join(response[1]) for response in valid_responses if response and len(response) > 1]
 
     task_name = body.get("task")
     system_prompt = TASK_SYSTEM_PROMPT.get(task_name, DEFAULT_SYSTEM_PROMPT)
@@ -85,4 +85,4 @@ async def mixture_of_miners(body: dict[str, any]) -> tuple | StreamingResponse:
 
     # Get final response using a random top miner.
     final_uid = random.choice(get_uids(sampling_mode="top_incentive", k=TOP_INCENTIVE_POOL))
-    return await chat_completion(final_body, final_uid)
+    return await chat_completion(final_body, uids=[int(final_uid)])

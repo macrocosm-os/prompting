@@ -178,9 +178,10 @@ class RewardLoggingEvent(BaseEvent):
     reward_events: list[WeightedRewardEvent]
     task_id: str
     reference: str
-    challenge: str
+    challenge: str | list[dict]
     task: str
     task_dict: dict
+    source: str | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

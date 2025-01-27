@@ -1,5 +1,6 @@
 import asyncio
 import json
+import math
 import random
 from typing import AsyncGenerator, List, Optional
 
@@ -92,7 +93,7 @@ async def get_response_from_miner(body: dict[str, any], uid: int) -> tuple:
 
 
 async def chat_completion(
-    body: dict[str, any], uids: Optional[int] = None, num_miners: int = 3
+    body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 3
 ) -> tuple | StreamingResponse:
     """Handle chat completion with multiple miners in parallel."""
     # Get multiple UIDs if none specified
@@ -111,11 +112,14 @@ async def chat_completion(
     # Initialize chunks collection for each miner
     collected_chunks_list = [[] for _ in selected_uids]
 
+    timeout_seconds = int(math.floor(math.log2(body["sampling_parameters"]["max_new_tokens"] / 256))) * 10 + 30
     if STREAM:
         # Create tasks for all miners
         response_tasks = [
             asyncio.create_task(
-                make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid, stream=True)
+                make_openai_query(
+                    shared_settings.METAGRAPH, shared_settings.WALLET, timeout_seconds, body, uid, stream=True
+                )
             )
             for uid in selected_uids
         ]
