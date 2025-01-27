@@ -93,6 +93,7 @@ class SharedSettings(BaseSettings):
     SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
     SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
     SCORE_ORGANICS: bool = Field(False, env="SCORE_ORGANICS")
+    WORKERS: int = Field(False, env="WORKERS")
 
     # API Management (.env.api).
     API_PORT: int = Field(8005, env="API_PORT")
