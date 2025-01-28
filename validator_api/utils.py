@@ -2,8 +2,10 @@ import httpx
 from loguru import logger
 
 from shared.settings import shared_settings
+from validator_api.validator_forwarding import ValidatorForwarding
 
-
+# make class w/ getter that yields validator_axon (creates from shared_settings) based on criterea (stake*x*Y)
+ 
 # TODO: Modify this so that all the forwarded responses are sent in a single request. This is both more efficient but
 # also means that on the validator side all responses are scored at once, speeding up the scoring process.
 async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
@@ -17,7 +19,10 @@ async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
         logger.debug(f"Skipping forwarding for non- inference/web retrieval task: {body.get('task')}")
         return
 
-    url = f"http://{shared_settings.VALIDATOR_API}/scoring"
+    # call - class w/ getter that yields validator_axon based on criterea (stake*x*Y)
+    # validator_axon = class(shared_settings.METAGRAPH)
+
+    url = ValidatorForwarding.get_validator_axons()[0]
     payload = {"body": body, "chunks": chunk_dict, "uid": uids}
     try:
         timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
@@ -34,3 +39,5 @@ async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
     except Exception as e:
         logger.error(f"Tried to forward response to {url} with payload {payload}")
         logger.exception(f"Error while forwarding response: {e}")
+
+
