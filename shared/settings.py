@@ -99,6 +99,8 @@ class SharedSettings(BaseSettings):
     API_HOST: str = Field("0.0.0.0", env="API_HOST")
     # Validator scoring API address.
     VALIDATOR_API: str = Field("0.0.0.0:8094", env="VALIDATOR_API")
+    # Default SN1 API address
+    DEFAULT_SN1_API: str = Field("http://sn1.api.macrocosmos.ai:11198/v1", env="DEFAULT_SN1_API")
     # File with keys used to access API.
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
     # Admin key used to generate API keys.
