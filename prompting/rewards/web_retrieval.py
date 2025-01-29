@@ -19,6 +19,7 @@ from thefuzz import fuzz
 from prompting.datasets.random_website import DDGDataset, DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BatchRewardOutput
+from prompting.tasks.base_task import BaseTextTask
 from shared.dendrite import DendriteResponseEvent
 
 MIN_RELEVANT_CHARS = 300
@@ -67,10 +68,13 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             print(score)
         return score
 
-    def score_miner_response(self, dataset_entry: DDGDatasetEntry, completion: str) -> list[float]:
+    def score_miner_response(
+        self, dataset_entry: DDGDatasetEntry, completion: str, task: BaseTextTask | None = None
+    ) -> list[float]:
         scores = []
         miner_websites: list[WebsiteResult] = self._parse_response(completion)
-        if np.unique([website.url for website in miner_websites]).size != len(miner_websites):
+        unique_websites = np.unique([website.url for website in miner_websites])
+        if unique_websites.size != len(miner_websites) and unique_websites.size != task.target_results:
             logger.warning("Miner returned multiple websites with the same URL")
             return 0
 
@@ -79,7 +83,9 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         return np.mean(scores)
 
     # TODO: Change base class reference type to Reference pydantic model, in order to store additional data.
-    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
+    def reward(
+        self, reference: str, response_event: DendriteResponseEvent, task: BaseTextTask | None = None, **kwargs
+    ) -> BatchRewardOutput:
         """Score response website content and URL based on the similarity to the search term and reference content."""
         rewards: list[float] = []
         timings: list[float] = []
@@ -92,14 +98,10 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             )
 
         for completion in response_event.completions:
-            rewards.append(self.score_miner_response(dataset_entry, completion))
+            rewards.append(self.score_miner_response(dataset_entry, completion, task=task))
             timings.append(0)
 
-        print(rewards, timings, flush = True)
-        import sys 
-        sys.exit(1)
-
-
+        print(rewards, timings, flush=True)
         return BatchRewardOutput(rewards=np.array(rewards), timings=np.array(timings))
 
     @staticmethod
