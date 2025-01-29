@@ -1,7 +1,8 @@
 import httpx
-from loguru import logger
-from shared.loop_runner import AsyncLoopRunner
 import requests
+from loguru import logger
+
+from shared.loop_runner import AsyncLoopRunner
 from shared.settings import shared_settings
 from shared.uids import get_uids
 

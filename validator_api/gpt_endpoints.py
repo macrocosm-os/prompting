@@ -9,12 +9,10 @@ from starlette.responses import StreamingResponse
 
 from shared.epistula import SynapseStreamResult, query_miners
 from shared.settings import shared_settings
-from shared.uids import get_uids
 from validator_api.api_management import _keys
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
-from validator_api.utils import forward_response
-from validator_api.utils import filter_available_uids
+from validator_api.utils import filter_available_uids, forward_response
 
 router = APIRouter()
 N_MINERS = 5
