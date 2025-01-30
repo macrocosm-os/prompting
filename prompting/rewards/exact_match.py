@@ -24,23 +24,12 @@ class ExactMatchRewardModel(BaseRewardModel):
         Returns:
             BatchRewardOutput: An object containing the computed rewards and timing details. Rewards are in the range [-3, 1].
         """
-        rewards = []
-        timing_outputs = []
         all_chunks: list[list[str]] = response_event.stream_results_all_chunks
         all_timings: list[list[float]] = response_event.stream_results_all_chunks_timings
         timeout = response_event.timeout
-
-        debug_output = {
-            "reference": reference,
-            "all_chunks": all_chunks,
-            "all_timings": all_timings,
-            "timeout": timeout,
-        }
-
-        logger.error(str(debug_output) + "ADD_TIME_PENALTY")
+        timing_outputs, rewards = [], []
 
         for chunks, timings in zip(all_chunks, all_timings):
-            # Add check for None or empty chunks
             if not chunks:
                 rewards.append(-PENALTY_FACTOR)
                 timing_outputs.append(0)
@@ -56,14 +45,12 @@ class ExactMatchRewardModel(BaseRewardModel):
             average_timing = []
             for chunk, timing in zip(chunks, timings):
                 if chunk:
-                    normalized_timing = min(1, max(0, (timeout-timing / timeout)))
+                    normalized_timing = min(1, max(0, ((timeout - timing) / timeout)))
                     average_timing.append(normalized_timing)
                     miner_reward += normalized_timing
 
             rewards.append(miner_reward / len(chunks))
             timing_outputs.append(np.array(average_timing).mean())
-
-        logger.error(str(rewards) + "FINAL_REWARDS")
 
         output = BatchRewardOutput(
             rewards=np.array(rewards),
