@@ -8,7 +8,7 @@ from shared.uids import get_uids
 
 
 class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
-    miner_availabilities: dict[int, dict] = None
+    miner_availabilities: dict[int, dict] = {}
 
     async def run_step(self):
         try:
