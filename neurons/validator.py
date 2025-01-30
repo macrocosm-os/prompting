@@ -5,8 +5,7 @@ import time
 
 import loguru
 import torch
-import wandb  
-
+import wandb
 
 # ruff: noqa: E402
 from shared import settings
