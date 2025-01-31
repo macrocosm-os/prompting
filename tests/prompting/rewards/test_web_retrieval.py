@@ -10,7 +10,6 @@ settings.shared_settings = settings.SharedSettings(mode="mock")
 from prompting.rewards.web_retrieval import WebRetrievalRewardModel
 
 
-
 @pytest.mark.parametrize(
     "completion, expected_url, expected_content, expected_relevant",
     [
@@ -37,6 +36,7 @@ def test_parse_response(completion, expected_url, expected_content, expected_rel
         assert response[0].url == expected_url
         assert response[0].content == expected_content
         assert response[0].relevant == expected_relevant
+
 
 def test_cosine_similarity_identical_embeddings():
     # Mock identical embeddings.
