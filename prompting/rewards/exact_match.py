@@ -26,16 +26,16 @@ class ExactMatchRewardModel(BaseRewardModel):
         """
         all_chunks: list[list[str]] = response_event.stream_results_all_chunks
         all_timings: list[list[float]] = response_event.stream_results_all_chunks_timings
+        completions: list[str] = response_event.completions
         timeout = response_event.timeout
         timing_outputs, rewards = [], []
 
-        for chunks, timings in zip(all_chunks, all_timings):
+        for chunks, timings, completion in zip(all_chunks, all_timings, completions):
             if not chunks:
                 rewards.append(-PENALTY_FACTOR)
                 timing_outputs.append(0)
                 continue
-                
-            completion = "".join(chunks)
+
             if reference != completion:
                 rewards.append(-PENALTY_FACTOR)
                 timing_outputs.append(0)
