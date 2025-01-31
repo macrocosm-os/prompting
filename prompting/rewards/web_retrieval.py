@@ -78,7 +78,8 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             scores.append(self.score_website_result(dataset_entry, website.url, website.content, website.relevant))
 
         if scores:
-            return np.mean(scores)
+            weights = np.arange(len(scores), 0, -1)
+            return np.average(scores, weights=weights)
         return 0
 
     # TODO: Change base class reference type to Reference pydantic model, in order to store additional data.
