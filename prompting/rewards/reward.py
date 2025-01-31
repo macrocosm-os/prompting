@@ -49,7 +49,7 @@ class BatchRewardOutput(BaseModel):
     threshold: float | None = None
     extra_info: dict = {}
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    
+
     @model_validator(mode="after")
     def validate_rewards_and_timings(cls, v):
         if v.rewards.shape != v.timings.shape:

@@ -1,5 +1,4 @@
 import numpy as np
-from loguru import logger
 
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from shared.dendrite import DendriteResponseEvent

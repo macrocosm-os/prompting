@@ -58,7 +58,7 @@ class InferenceTask(BaseTextTask):
         self.messages = []
         if self.system_prompt:
             self.messages.append({"role": "system", "content": self.system_prompt})
-            
+
         self.sampling_params["temperature"] = random.randint(1, 10) / 10
         self.sampling_params["max_new_tokens"] = random.choice([256, 512, 1024, 2048])
 
