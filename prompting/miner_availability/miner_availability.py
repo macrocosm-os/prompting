@@ -91,6 +91,12 @@ class CheckMinerAvailability(AsyncLoopRunner):
         if self.current_index >= len(self.uids):
             self.current_index = 0
 
+        tracked_miners = [m for m in miner_availabilities.miners.values() if m is not None]
+        logger.debug(
+            f"TRACKED MINERS: {len(tracked_miners)} --- UNTRACKED MINERS: {len(self.uids) - len(tracked_miners)}"
+        )
+        if tracked_miners:
+            logger.debug(f"SAMPLE MINER: {tracked_miners[0]}")
         await asyncio.sleep(0.1)
 
 
