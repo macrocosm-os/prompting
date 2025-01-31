@@ -70,17 +70,20 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
 
     def score_miner_response(
         self, dataset_entry: DDGDatasetEntry, completion: str, task: BaseTextTask | None = None
-    ) -> list[float]:
+    ) -> float:
         scores = []
         miner_websites: list[WebsiteResult] = self._parse_response(completion)
         unique_websites = np.unique([website.url for website in miner_websites])
         if unique_websites.size != len(miner_websites) and unique_websites.size != task.target_results:
-            logger.warning("Miner returned multiple websites with the same URL")
+            #logger.warning("Miner returned multiple websites with the same URL")
             return 0
 
         for website in miner_websites:
             scores.append(self.score_website_result(dataset_entry, website.url, website.content, website.relevant))
-        return np.mean(scores)
+
+        if scores:
+            return np.mean(scores)
+        return 0
 
     # TODO: Change base class reference type to Reference pydantic model, in order to store additional data.
     def reward(
