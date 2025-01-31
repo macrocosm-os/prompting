@@ -65,7 +65,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         # Similarity between search term and relevant section of content.
         if response_relevant is not None:
             score = self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant)
-            print(score)
         return score
 
     def score_miner_response(
@@ -104,7 +103,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             rewards.append(self.score_miner_response(dataset_entry, completion, task=task))
             timings.append(0)
 
-        print(rewards, timings, flush=True)
         return BatchRewardOutput(rewards=np.array(rewards), timings=np.array(timings))
 
     @staticmethod
