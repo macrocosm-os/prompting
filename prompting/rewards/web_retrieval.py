@@ -62,10 +62,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             )
             return 0
 
-        # Similarity between search term and relevant section of content.
-        if response_relevant is not None:
-            score = self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant)
-        return score
+        return self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant)
 
     def score_miner_response(
         self, dataset_entry: DDGDatasetEntry, completion: str, task: BaseTextTask | None = None
