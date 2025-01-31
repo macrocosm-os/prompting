@@ -31,7 +31,7 @@ async def make_completion(client: openai.AsyncOpenAI, prompt: str, stream: bool 
                 "seed": None,
             },
             "task": "InferenceTask",
-            "mixture": False,
+            "mixture": True,
         },
     )
 

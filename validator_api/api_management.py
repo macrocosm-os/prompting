@@ -26,7 +26,7 @@ def save_api_keys(api_keys):
 # Use lifespan to initialize API keys
 _keys = load_api_keys()
 logger.info(f"Loaded API keys: {_keys}")
-save_api_keys(_keys)
+# save_api_keys(_keys)
 
 
 # Dependency to validate the admin key
