@@ -9,10 +9,10 @@ Example response:
 """
 
 import json
-from pydantic import BaseModel
 
 import numpy as np
 from loguru import logger
+from pydantic import BaseModel
 from scipy import spatial
 from thefuzz import fuzz
 
@@ -71,7 +71,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         miner_websites: list[WebsiteResult] = self._parse_response(completion)
         unique_websites = np.unique([website.url for website in miner_websites])
         if unique_websites.size != len(miner_websites) and unique_websites.size != task.target_results:
-            #logger.warning("Miner returned multiple websites with the same URL")
+            # logger.warning("Miner returned multiple websites with the same URL")
             return 0
 
         for website in miner_websites:

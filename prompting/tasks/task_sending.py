@@ -1,6 +1,5 @@
 # ruff: noqa: E402
 import asyncio
-from prompting.tasks.web_retrieval import WebRetrievalTask
 import time
 from typing import List
 
@@ -13,6 +12,7 @@ from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceTask
+from prompting.tasks.web_retrieval import WebRetrievalTask
 from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
 from shared.epistula import query_miners
 from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
