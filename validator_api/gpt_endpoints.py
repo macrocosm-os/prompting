@@ -12,14 +12,14 @@ from starlette.responses import StreamingResponse
 
 from shared.epistula import SynapseStreamResult, query_miners
 from shared.settings import shared_settings
-from shared.uids import get_uids
 from validator_api.api_management import _keys
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.test_time_inference import generate_response
-from validator_api.utils import forward_response
+from validator_api.utils import filter_available_uids, forward_response
 
 router = APIRouter()
+N_MINERS = 5
 
 
 def validate_api_key(api_key: str = Header(...)):
@@ -34,14 +34,18 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
     try:
         body = await request.json()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
+        uids = body.get("uids") or filter_available_uids(task=body.get("task"), model=body.get("model"))
+        if not uids:
+            raise HTTPException(status_code=500, detail="No available miners")
+        uids = random.sample(uids, min(len(uids), N_MINERS))
 
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
             return await test_time_inference(body["messages"], body.get("model"))
         if body.get("mixture", False):
-            return await mixture_of_miners(body)
+            return await mixture_of_miners(body, uids=uids)
         else:
-            return await chat_completion(body)
+            return await chat_completion(body, uids=uids)
 
     except Exception as e:
         logger.exception(f"Error in chat completion: {e}")
@@ -50,7 +54,11 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 
 @router.post("/web_retrieval")
 async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] = None):
-    uids = list(get_uids(sampling_mode="random", k=n_miners))
+    if not uids:
+        uids = filter_available_uids(task="WebRetrievalTask")
+    if not uids:
+        raise HTTPException(status_code=500, detail="No available miners")
+    uids = random.sample(uids, min(len(uids), n_miners))
     logger.debug(f"🔍 Querying uids: {uids}")
     if len(uids) == 0:
         logger.warning("No available miners. This should already have been caught earlier.")
@@ -86,12 +94,8 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
     if len(loaded_results) == 0:
         raise HTTPException(status_code=500, detail="No miner responded successfully")
 
-    for uid, res in zip(uids, stream_results):
-        asyncio.create_task(
-            forward_response(
-                uid=uid, body=body, chunks=res.accumulated_chunks if res and res.accumulated_chunks else []
-            )
-        )
+    chunks = [res.accumulated_chunks if res and res.accumulated_chunks else [] for res in stream_results]
+    asyncio.create_task(forward_response(uids=uids, body=body, chunks=chunks))
     return loaded_results
 
 
