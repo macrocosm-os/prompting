@@ -89,8 +89,6 @@ async def stream_from_first_response(
     responses: List[asyncio.Task], collected_chunks_list: List[List[str]], body: dict[str, any], uids: List[int]
 ) -> AsyncGenerator[str, None]:
     first_valid_response = None
-    first_valid_task = None
-    done_but_not_chosen = []
     try:
         # Keep looping until we find a valid response or run out of tasks
         while responses and first_valid_response is None:
@@ -140,10 +138,6 @@ async def stream_from_first_response(
             yield 'data: {"error": "502 - Response is empty"}\n\n'
 
         yield "data: [DONE]\n\n"
-        all_remaining_tasks = []
-        all_remaining_tasks.extend(done_but_not_chosen)
-        all_remaining_tasks.extend(responses)
-        all_remaining_tasks.extend(pending)
 
         # Continue collecting remaining responses in background for scoring
         remaining = asyncio.gather(*pending, return_exceptions=True)
