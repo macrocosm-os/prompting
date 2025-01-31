@@ -31,10 +31,10 @@ from prompting.rewards.web_retrieval import WebRetrievalRewardModel
     ],
 )
 def test_parse_response(completion, expected_url, expected_content, expected_relevant):
-    response_url, response_content, response_relevant = WebRetrievalRewardModel._parse_response(completion)
-    assert response_url == expected_url
-    assert response_content == expected_content
-    assert response_relevant == expected_relevant
+    response = WebRetrievalRewardModel._parse_response(completion)
+    assert response[0].url == expected_url
+    assert response[0].content == expected_content
+    assert response[0].relevant == expected_relevant
 
 
 def test_cosine_similarity_identical_embeddings():
