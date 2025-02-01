@@ -31,8 +31,7 @@ def approximate_tokens(text: str) -> int:
 
     Approach:
       - Split by whitespace to get a word count.
-      - Multiply by ~1.3 to guess how GPT might break words into tokens.
-      - This is a naive heuristic. For accuracy, consider tiktoken.
+      - Multiply by ~1.3 to get approximate amount of tokens.
     """
     words_in_text = text.split()
     return int(len(words_in_text) * 1.3)
@@ -47,10 +46,10 @@ async def make_completion(
     """Make a completion request to the API.
 
     Measures:
-      - Time to first token
-      - Time to full response
-      - Approximate tokens received
-      - Status code
+      - Time to first token.
+      - Time to full response.
+      - Approximate tokens received.
+      - Status code.
 
     Returns a dictionary with measurements.
     """
@@ -80,7 +79,8 @@ async def make_completion(
         )
 
         if not stream:
-            # Non-streaming part is not tested.
+            # TODO: Non-streaming part is not tested.
+            raise NotImplementedError("Implement non-streaming mode")
             text = result
             total_latency = time.perf_counter() - start_time
             total_approx_tokens = approximate_tokens(text)
@@ -153,9 +153,9 @@ async def run_stress_test(
         url (str): API endpoint URL.
 
     Measures:
-        - Total successes and failures
-        - Success rate
-        - Cumulative failures over query execution time
+        - Total successes and failures.
+        - Success rate.
+        - Cumulative failures over query execution time.
     Saves to result.csv and generates a Plotly fail rate chart.
 
     Additionally, prints the total number of empty or errored queries to the console.
