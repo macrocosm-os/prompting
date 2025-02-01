@@ -1,47 +1,69 @@
 from shared.settings import shared_settings
 from pydantic import BaseModel, model_validator
+from typing import ClassVar
 from shared.misc import cached_property_with_expiration
+
+class Validator(BaseModel):
+    uid: int
+    stake: float
+    axon: str
+    failures: int = 0
+
+    # Define a constant for the maximum number of allowed failures.
+    MAX_FAILURES: ClassVar[int] = 9
+
+    def update_failure(self, status_code: int) -> None:
+        """
+        Update the validator's failure count based on the success status.
+
+        - If the operation was successful, decrease the failure count (ensuring it doesn't go below 0).
+        - If the operation failed, increase the failure count.
+        - If the failure count exceeds MAX_FAILURES, mark the validator as inactive.
+        """
+        if status_code == 200:
+            self.failures = max(0, self.failures - 1)
+        else:
+            self.failures += 1
+            if self.failures > self.MAX_FAILURES:
+                return 1
+        return 0
 
 class ValidatorRegistry(BaseModel):
     """
-    This is a class to store the success of forwards to validator axons.
-    If a validator is routinely failing to respond to scoring requests we should stop sending them to them. 
+    Class to store the success of forwards to validator axons.
+    If a validator is routinely failing to respond to scoring requests,
+    we should stop sending them requests.
     """
-
-    availability_registry: dict | None = None
-
     
+    # Using a default factory ensures validators is always a dict.
+    validators: Dict[int, Validator] = Field(default_factory=dict)
+    spot_checking_rate: ClassVar[float] = 0.3
 
-    @cached_property_with_expiration(expiration_seconds=12000)
-    def AXON_STAKE_DICT(self, metagraph = shared_settings.METAGRAPH) -> dict:
-        validator_uids = [uid for uid in metagraph.validator_permit if metagraph.validator_permit[uid]]
-        validator_axons = [metagraph.axons[uid].ip_str().split("/") for uid in validator_uids]
+    @model_validator(mode='after')
+    def create_validator_list(cls, v: "ValidatorRegistry", metagraph = shared_settings.METAGRAPH) -> "ValidatorRegistry":
+        validator_uids = [
+            uid for uid in metagraph.validator_permit if metagraph.validator_permit[uid]
+        ]
+        validator_axons = [
+            metagraph.axons[uid].ip_str().split("/") for uid in validator_uids
+        ]
         validator_stakes = [metagraph.stake[uid] for uid in validator_uids]
-        axon_stake_dict: dict = {axon: stake for axon, stake in zip(validator_axons, validator_stakes)}
+        v.validators = {
+            uid: Validator(uid, stake, axon)
+            for uid, stake, axon in zip(validator_uids, validator_stakes, validator_axons)
+        }
+        return v
 
+    def get_available_axon(self) -> Optional[Tuple[int, list]]:
+        if random.random() > self.spot_checking_rate or not self.validators:
+            return None, None
+        validator_list = list(self.validators.values())
+        weights = [v.stake for v in validator_list]
+        chosen = random.choices(validator_list, weights=weights, k=1)[0]
+        return chosen.uid, chosen.axon
 
-    def get_availabilities(self):
-
-
-
-class ValidatorForwarding:
-    """
-    Class to yield validator axon based on shared settings.
-    """
-    def __call__(self):
-        return self.get_validator_criterion(shared_settings.METAGRAPH)
-
-    def get_validator_axons(self, metagraph):
-        # Get all validator axons where validator_permit[uid] is True
-        validator_axons = [uid for uid in metagraph.validator_permit if metagraph.validator_permit[uid]]
-
-        # First sort validators by stake
-        stakes = {uid: metagraph.stake[uid] for uid in validator_axons}
-        sorted_validators = sorted(stakes.items(), key=lambda x: x[1], reverse=True)
-
-        # Get IP addresses
-        validator_axons = [metagraph.axons[uid].ip_str().split("/") for uid, _ in sorted_validators]
-        
-        #add: random.choice by stake
-
-        return validator_axons
+    def update_validators(self, uid: int, response_code: int) -> None:
+        if uid in self.validators:
+            max_failures_reached = self.validators[uid].update_failure(success)
+            if max_failures_reached:
+                del self.validators[uid]

@@ -2,7 +2,9 @@ import httpx
 from loguru import logger
 
 from shared.settings import shared_settings
-from validator_api.validator_forwarding import ValidatorForwarding
+from validator_api.validator_forwarding import ValidatorRegistry
+
+validator_registry = ValidatorRegistry()
 
 # make class w/ getter that yields validator_axon (creates from shared_settings) based on criterea (stake*x*Y)
  
@@ -21,8 +23,16 @@ async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
 
     # call - class w/ getter that yields validator_axon based on criterea (stake*x*Y)
     # validator_axon = class(shared_settings.METAGRAPH)
+    try:
+        vali_uid, vali_axon = validator_registry.get_available_axon()
+    except Exception as e:
+        logger.warning(e)
+        vali_uid, vali_axon = None, None
+    if not vali_uid:
+        logger.warning("Unable to get an available validator, either through spot-checking restrictions or errors, skipping scoring")
+        return
 
-    url = ValidatorForwarding.get_validator_axons()[0]
+    url =  f"http://{vali_axon}/scoring"
     payload = {"body": body, "chunks": chunk_dict, "uid": uids}
     try:
         timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
@@ -36,8 +46,11 @@ async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
                 logger.exception(
                     f"Forwarding response uid {uids} failed with status {response.status_code} and payload {payload}"
                 )
+            validator_registry.update_validators(uid = vali_uid, response_code = response.status_code)
+            
     except Exception as e:
         logger.error(f"Tried to forward response to {url} with payload {payload}")
         logger.exception(f"Error while forwarding response: {e}")
+
 
 
