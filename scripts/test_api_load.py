@@ -10,10 +10,10 @@ pip install plotly kaleido
 import argparse
 import asyncio
 import csv
-from pathlib import Path
 import random
 import sys
 import time
+from pathlib import Path
 
 import nltk
 import openai
@@ -41,11 +41,11 @@ def approximate_tokens(text: str) -> int:
 def get_color_for_code(code: int) -> str:
     """Return a color string for a given status code.
 
-      - 200 -> green
-      - 4xx -> crimson
-      - 5xx -> darkred
-      - 0  -> firebrick (means unknown error in this script)
-      - else -> red
+    - 200 -> green
+    - 4xx -> crimson
+    - 5xx -> darkred
+    - 0  -> firebrick (means unknown error in this script)
+    - else -> red
     """
     if code == 200:
         return "green"
@@ -66,7 +66,7 @@ async def make_completion(
     seed: str = "1759348",
 ) -> dict:
     """Make a completion request to the API.
-    
+
     Measures:
       - Time to first token
       - Time to full response
@@ -150,7 +150,7 @@ async def make_completion(
             "total_approx_tokens": 0,
         }
     except Exception as e:
-        print(f"Unexpected error: {e}", file=sys.stderr) 
+        print(f"Unexpected error: {e}", file=sys.stderr)
         return {
             "time_to_first_token": None,
             "total_latency": None,
@@ -352,44 +352,38 @@ async def run_stress_test(api_key: str, output_dir: str, levels: int = 10, url: 
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(
-        description="Run a stress test against the specified API endpoint."
-    )
-    
+    parser = argparse.ArgumentParser(description="Run a stress test against the specified API endpoint.")
+
     parser.add_argument(
         "--key",
         type=str,
         # Specify your API key, current is left here just for local testings.
         default="0566dbe21ee33bba9419549716cd6f1f",
-        help="API key for authentication."
+        help="API key for authentication.",
     )
-    
+
     parser.add_argument(
         "--url",
         type=str,
         default="http://0.0.0.0:8005/v1",
-        help="URL of the API endpoint to test (default: http://0.0.0.0:8005/v1)."
+        help="URL of the API endpoint to test (default: http://0.0.0.0:8005/v1).",
     )
-    
+
     parser.add_argument(
         "--out",
         type=str,
         default="stress_test",
-        help="Output directory for storing test results (default: stress_test)."
+        help="Output directory for storing test results (default: stress_test).",
     )
-    
-    parser.add_argument(
-        "--levels",
-        type=int,
-        default=10,
-        help="Number of stress test levels to execute (default: 10)."
-    )
-    
+
+    parser.add_argument("--levels", type=int, default=10, help="Number of stress test levels to execute (default: 10).")
+
     return parser.parse_args()
+
 
 if __name__ == "__main__":
     args = parse_arguments()
-    
+
     asyncio.run(
         run_stress_test(
             api_key=args.key,

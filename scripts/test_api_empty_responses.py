@@ -10,10 +10,10 @@ pip install plotly kaleido
 import argparse
 import asyncio
 import csv
-from pathlib import Path
 import random
 import sys
 import time
+from pathlib import Path
 
 import nltk
 import openai
@@ -45,7 +45,7 @@ async def make_completion(
     seed: str = "1759348",
 ) -> dict:
     """Make a completion request to the API.
-    
+
     Measures:
       - Time to first token
       - Time to full response
@@ -140,7 +140,9 @@ async def make_completion(
         }
 
 
-async def run_stress_test(api_key: str, output_dir: str, concurrent: int = 4, queries: int = 1000, url: str = "http://0.0.0.0:8005/v1"):
+async def run_stress_test(
+    api_key: str, output_dir: str, concurrent: int = 4, queries: int = 1000, url: str = "http://0.0.0.0:8005/v1"
+):
     """Run a stress test by sending concurrent API requests.
 
     Args:
@@ -173,7 +175,9 @@ async def run_stress_test(api_key: str, output_dir: str, concurrent: int = 4, qu
     fail_count = 0
     fail_list = []
 
-    print(f"\nStarting stress test with {concurrent} concurrent workers, each performing {queries} queries (Total: {total_queries} queries).")
+    print(
+        f"\nStarting stress test with {concurrent} concurrent workers, each performing {queries} queries (Total: {total_queries} queries)."
+    )
 
     semaphore = asyncio.Semaphore(concurrent)
 
@@ -216,7 +220,7 @@ async def run_stress_test(api_key: str, output_dir: str, concurrent: int = 4, qu
         writer.writeheader()
         writer.writerow(result_data)
 
-    print(f"\nSaved result.csv with the following data:")
+    print("\nSaved result.csv with the following data:")
     print(result_data)
 
     print(f"Total number of empty or errored queries: {fail_count}")
@@ -233,10 +237,10 @@ async def run_stress_test(api_key: str, output_dir: str, concurrent: int = 4, qu
         go.Scatter(
             x=fail_df["query_number"],
             y=fail_df["cumulative_fail"],
-            mode='lines',
-            name='Cumulative Failed/Empty Queries',
-            line=dict(color='red'),
-            hoverinfo='x+y',
+            mode="lines",
+            name="Cumulative Failed/Empty Queries",
+            line=dict(color="red"),
+            hoverinfo="x+y",
         )
     )
 
@@ -263,45 +267,33 @@ async def run_stress_test(api_key: str, output_dir: str, concurrent: int = 4, qu
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(
-        description="Run a stress test against the specified API endpoint."
-    )
+    parser = argparse.ArgumentParser(description="Run a stress test against the specified API endpoint.")
 
     parser.add_argument(
         "--key",
         type=str,
         # Specify your API key, current is left here just for local testings.
         default="0566dbe21ee33bba9419549716cd6f1f",
-        help="API key for authentication (default: 0566dbe21ee33bba9419549716cd6f1f)."
+        help="API key for authentication (default: 0566dbe21ee33bba9419549716cd6f1f).",
     )
 
     parser.add_argument(
         "--url",
         type=str,
         default="http://0.0.0.0:8005/v1",
-        help="URL of the API endpoint to test (default: http://0.0.0.0:8005/v1)."
+        help="URL of the API endpoint to test (default: http://0.0.0.0:8005/v1).",
     )
 
     parser.add_argument(
         "--out",
         type=str,
         default="stress_test",
-        help="Output directory for storing test results (default: stress_test)."
+        help="Output directory for storing test results (default: stress_test).",
     )
 
-    parser.add_argument(
-        "--concurrent",
-        type=int,
-        default=4,
-        help="Number of concurrent workers to query (default: 4)."
-    )
+    parser.add_argument("--concurrent", type=int, default=4, help="Number of concurrent workers to query (default: 4).")
 
-    parser.add_argument(
-        "--queries",
-        type=int,
-        default=1000,
-        help="Number of queries per worker (default: 1000)."
-    )
+    parser.add_argument("--queries", type=int, default=1000, help="Number of queries per worker (default: 1000).")
 
     return parser.parse_args()
 
