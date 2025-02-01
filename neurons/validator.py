@@ -84,7 +84,23 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
 def start_api(scoring_queue, reward_events):
     async def start():
         from prompting.api.api import start_scoring_api  # noqa: F401
+        import bittensor as bt
 
+        try:
+            external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
+            netaddr.IPAddress(external_ip)
+                
+            serve_success = serve_extrinsic(
+                subtensor=shared_settings.SUBTENSOR,
+                wallet=shared_settings.WALLET,
+                ip=external_ip,
+                port=shared_settings.SCORING_API_PORT,
+                protocol=4,
+                netuid=shared_settings.NETUID,
+            )
+
+        except Exception as e: 
+            logger.warning(f"Failed to serve scoring api to chain: {e}")
         await start_scoring_api(scoring_queue, reward_events)
 
         while True:
