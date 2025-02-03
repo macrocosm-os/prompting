@@ -73,7 +73,7 @@ class ExactMatchRewardModel(BaseRewardModel):
                 final_score = np.mean(valid_chunks)  # This will be between 0 and 1.
             else:
                 final_score = -5
-            rewards.append(final_score)
+            rewards.append(float(final_score))
             timing_outputs.append(np.array(valid_chunks).mean())
 
         output = BatchRewardOutput(
