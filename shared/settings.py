@@ -85,8 +85,8 @@ class SharedSettings(BaseSettings):
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
 
     # ==== API =====
-    # API key used to access validator organic scoring mechanism (both .env.validator and .env.api).
-    SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
+    # Hotkey used to run api, defaults to Macrocosmos
+    API_HOTKEY: str = Field("5Cg5QgjMfRqBC6bh8X4PDbQi7UzVRn9eyWXsB8gkyfppFPPy", env = "API_HOTKEY")
 
     # Validator scoring API (.env.validator).
     DEPLOY_SCORING_API: bool = Field(True, env="DEPLOY_SCORING_API")

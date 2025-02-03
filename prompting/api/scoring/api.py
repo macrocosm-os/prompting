@@ -17,6 +17,36 @@ from shared.settings import shared_settings
 
 router = APIRouter()
 
+def verify_scoring_signature(
+    signature: str,
+    body: bytes,
+    signed_by: str,
+) -> Optional[Annotated[str, "Error Message"]]:
+    # Basic type checks
+    if not isinstance(signature, str):
+        return "Invalid signature type"
+    if not isinstance(body, bytes):
+        return "Body is not of type bytes"
+    if not isinstance(signed_by, str):
+        return "Invalid 'signed_by' address"
+
+    # Check that the 'signed_by' matches the expected SS58 address
+    if signed_by != shared_settings.API_HOTKEY:
+        return "Message not from the expected SS58 address"
+
+    # Build the message to verify
+    message = f"{sha256(body).hexdigest()}.{uuid}.{timestamp}.{signed_for}"
+
+    # Create a keypair using the 'signed_by' address
+    keypair = Keypair(ss58_address=signed_by)
+
+    # Verify the signature
+    verified = keypair.verify(message, signature)
+    if not verified:
+        return "Signature mismatch"
+
+    return None
+
 
 @router.post("/scoring")
 async def score_response(request: Request, api_key_data: dict = Depends(verify_signature)):
