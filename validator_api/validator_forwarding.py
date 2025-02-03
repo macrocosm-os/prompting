@@ -7,6 +7,7 @@ class Validator(BaseModel):
     uid: int
     stake: float
     axon: str
+    hotkey: str
     failures: int = 0
 
     # Define a constant for the maximum number of allowed failures.
@@ -48,9 +49,10 @@ class ValidatorRegistry(BaseModel):
             metagraph.axons[uid].ip_str().split("/") for uid in validator_uids
         ]
         validator_stakes = [metagraph.stake[uid] for uid in validator_uids]
+        validator_hotkeys = [metagraph.hotkeys[uid] for uid in validator_uids]
         v.validators = {
             uid: Validator(uid, stake, axon)
-            for uid, stake, axon in zip(validator_uids, validator_stakes, validator_axons)
+            for uid, stake, axon, hotkey in zip(validator_uids, validator_stakes, validator_axons, validator_hotkeys)
         }
         return v
 
@@ -60,7 +62,7 @@ class ValidatorRegistry(BaseModel):
         validator_list = list(self.validators.values())
         weights = [v.stake for v in validator_list]
         chosen = random.choices(validator_list, weights=weights, k=1)[0]
-        return chosen.uid, chosen.axon
+        return chosen.uid, chosen.axon, chosen.hotkey
 
     def update_validators(self, uid: int, response_code: int) -> None:
         if uid in self.validators:

@@ -22,7 +22,7 @@ async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
     # call - class w/ getter that yields validator_axon based on criterea (stake*x*Y)
     # validator_axon = class(shared_settings.METAGRAPH)
     try:
-        vali_uid, vali_axon = validator_registry.get_available_axon()
+        vali_uid, vali_axon, vali_hotkey = validator_registry.get_available_axon()
     except Exception as e:
         logger.warning(e)
         vali_uid, vali_axon = None, None
@@ -32,11 +32,24 @@ async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
 
     url =  f"http://{vali_axon}/scoring"
     payload = {"body": body, "chunks": chunk_dict, "uid": uids}
-    try:
-        timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
-        async with httpx.AsyncClient(timeout=timeout) as client:
+    # Create an AsyncClient that attaches the header hook.
+    # The header hook is created by passing the wallet’s hotkey and the axon’s hotkey.
+    # Adjust the attribute access as needed depending on how your axon object is defined.
+    async with httpx.AsyncClient(
+        timeout=timeout,
+        event_hooks={
+            "request": [
+                create_header_hook(shared_settings.WALLET.hotkey, vali_hotkey)
+            ]
+        },
+    ) as client:
+        try:
             response = await client.post(
-                url, json=payload, headers={"api-key": shared_settings.SCORING_KEY, "Content-Type": "application/json"}
+                url,
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                },
             )
             if response.status_code == 200:
                 logger.info(f"Forwarding response completed with status {response.status_code}")
@@ -44,11 +57,10 @@ async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
                 logger.exception(
                     f"Forwarding response uid {uids} failed with status {response.status_code} and payload {payload}"
                 )
-            validator_registry.update_validators(uid = vali_uid, response_code = response.status_code)
-            
-    except Exception as e:
-        logger.error(f"Tried to forward response to {url} with payload {payload}")
-        logger.exception(f"Error while forwarding response: {e}")
+            # Update the validator registry with the response status code.
+            validator_registry.update_validators(uid=vali_uid, response_code=response.status_code)
+        except Exception as e:
+            logger.exception(f"Exception during forwarding response: {e}")
 
 
 
