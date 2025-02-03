@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from loguru import logger
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
+from web_retrival import get_websites_with_similarity
 
 from prompting.llms.hf_llm import ReproducibleHF
 from shared.epistula import verify_signature
@@ -60,9 +61,30 @@ class OpenAIMiner:
 
         return openai_request
 
+
+    async def stream_web_retrieval(self, request: Request):
+        async def word_stream():
+            data = await request.json()
+            websites = await get_websites_with_similarity(data['messages'][0]['content'], 10, request.headers["target_results"])
+            words = str(websites).split()
+            for word in words:
+                # Simulate the OpenAI streaming response format
+                data = {"choices": [{"delta": {"content": word + " "}, "index": 0, "finish_reason": None}]}
+                yield f"data: {json.dumps(data)}\n\n"
+                await asyncio.sleep(0.1)  # Simulate a delay between words
+            # Indicate the end of the stream
+            data = {"choices": [{"delta": {}, "index": 0, "finish_reason": "stop"}]}
+            yield f"data: {json.dumps(data)}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(word_stream(), media_type="text/event-stream")
+
+
     async def create_chat_completion(self, request: Request):
         if self.llm and request.headers.get("task", None) == "inference":
             return await self.create_inference_completion(request)
+        if request.headers.get("task", None) == "web_retrieval":
+            return await
         req = self.client.build_request("POST", "chat/completions", json=await self.format_openai_query(request))
         r = await self.client.send(req, stream=True)
         return StreamingResponse(r.aiter_raw(), background=BackgroundTask(r.aclose), headers=r.headers)
