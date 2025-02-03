@@ -1,5 +1,6 @@
 import numpy as np
 from loguru import logger
+
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from shared.dendrite import DendriteResponseEvent
 
@@ -80,7 +81,7 @@ class ExactMatchRewardModel(BaseRewardModel):
             rewards=np.array(rewards),
             timings=np.array(timing_outputs),
         )
-        
+
         logger.debug("=== Reference ===")
         logger.debug(reference)
         logger.debug("=== Completions ===")
