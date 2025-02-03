@@ -89,10 +89,9 @@ class SharedSettings(BaseSettings):
     SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
 
     # Validator scoring API (.env.validator).
-    DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
+    DEPLOY_SCORING_API: bool = Field(True, env="DEPLOY_SCORING_API")
     SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
     SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
-    SCORE_ORGANICS: bool = Field(False, env="SCORE_ORGANICS")
 
     # API Management (.env.api).
     API_PORT: int = Field(8005, env="API_PORT")
@@ -172,8 +171,6 @@ class SharedSettings(BaseSettings):
                 logger.warning(
                     "No SCORING_KEY found in .env.api file. You must add a scoring key that will allow us to forward miner responses to the validator for scoring."
                 )
-            if not os.getenv("SCORE_ORGANICS"):
-                logger.warning("Not scoring organics. This means that miners may not respond as consistently.")
         elif v["mode"] == "miner":
             if not dotenv.load_dotenv(".env.miner"):
                 logger.warning("No .env.miner file found. Please create one.")

@@ -14,8 +14,6 @@ async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
     uids = [int(u) for u in uids]
     chunk_dict = {u: c for u, c in zip(uids, chunks)}
     logger.info(f"Forwarding response from uid {uids} to scoring with body: {body} and chunks: {chunks}")
-    if not shared_settings.SCORE_ORGANICS:
-        return
 
     if body.get("task") != "InferenceTask" and body.get("task") != "WebRetrievalTask":
         logger.debug(f"Skipping forwarding for non- inference/web retrieval task: {body.get('task')}")
