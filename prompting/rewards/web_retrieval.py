@@ -23,7 +23,7 @@ from prompting.tasks.base_task import BaseTextTask
 from shared.dendrite import DendriteResponseEvent
 
 MIN_RELEVANT_CHARS = 300
-MIN_MATCH_THRESHOLD = 98
+MIN_MATCH_THRESHOLD = 90
 
 
 class WebsiteResult(BaseModel):
