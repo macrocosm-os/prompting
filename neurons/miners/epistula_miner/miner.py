@@ -165,17 +165,17 @@ class OpenAIMiner:
             f"Serving miner endpoint {external_ip}:{shared_settings.AXON_PORT} on network: {shared_settings.SUBTENSOR_NETWORK} with netuid: {shared_settings.NETUID}"
         )
 
-        # serve_success = serve_extrinsic(
-        #     subtensor=shared_settings.SUBTENSOR,
-        #     wallet=shared_settings.WALLET,
-        #     ip=external_ip,
-        #     port=shared_settings.AXON_PORT,
-        #     protocol=4,
-        #     netuid=shared_settings.NETUID,
-        # )
-        # if not serve_success:
-        #     logger.error("Failed to serve endpoint")
-        #     return
+        serve_success = serve_extrinsic(
+            subtensor=shared_settings.SUBTENSOR,
+            wallet=shared_settings.WALLET,
+            ip=external_ip,
+            port=shared_settings.AXON_PORT,
+            protocol=4,
+            netuid=shared_settings.NETUID,
+        )
+        if not serve_success:
+            logger.error("Failed to serve endpoint")
+            return
 
         app = FastAPI()
         router = APIRouter()
