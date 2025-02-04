@@ -10,6 +10,18 @@ from prompting.base.duckduckgo_patch import PatchedDDGS
 import numpy as np
 from typing import Dict, List, Tuple
 
+from openai import OpenAI
+import asyncio
+import trafilatura
+import os, dotenv
+from loguru import logger
+from shared.settings import shared_settings
+from prompting.base.duckduckgo_patch import PatchedDDGS
+# Import the patched DDGS and use that
+
+import numpy as np
+from typing import Dict, List, Tuple
+
 async def fetch_url(url: str) -> str:
     return trafilatura.fetch_url(url)
 
@@ -17,7 +29,7 @@ async def extract_content(content: str) -> str:
     return trafilatura.extract(content)
 
 
-def create_chunks(text: str, chunk_size: int = 500) -> List[str]:
+def create_chunks(text: str, chunk_size: int = 500, min_length: int = 301) -> List[str]:
     """Split text into chunks of approximately chunk_size characters."""
     chunks = []
     current_chunk = ""
@@ -29,10 +41,10 @@ def create_chunks(text: str, chunk_size: int = 500) -> List[str]:
             chunks.append(current_chunk.strip())
             current_chunk = sentence + '. '
     
-    if current_chunk:
+    if current_chunk and current_chunk.strip():
         chunks.append(current_chunk.strip())
     
-    return chunks
+    return [chunk for chunk in chunks if chunk and len(chunk) > min_length]
 
 async def get_websites_with_similarity(
     query: str = "What are the 5 best phones I can buy this year?",
@@ -50,8 +62,10 @@ async def get_websites_with_similarity(
     Returns:
         List of dictionaries containing website URLs and their best matching chunks
     """
-    ddgs = PatchedDDGS()
+    logger.debug("Getting results")
+    ddgs = PatchedDDGS(proxy=shared_settings.PROXY_URL, verify=False)
     results = list(ddgs.text(query))
+    logger.debug(f"Got {len(results)} results")
     urls = [r["href"] for r in results][:n_results]
     
     # Fetch and extract content
@@ -70,6 +84,7 @@ async def get_websites_with_similarity(
         if not text:  # Skip if extraction failed
             continue
             
+        #logger.debug(f"TEXTS: {text}")
         chunks = create_chunks(text)
         chunk_embeddings = client.embeddings.create(
             model="text-embedding-ada-002",
@@ -96,13 +111,13 @@ async def get_websites_with_similarity(
         results_with_similarity,
         key=lambda x: x["similarity_score"],
         reverse=True
-    )[:k]
+    )[:int(k)]
     
     return [{
         "url": result["website"],
-        "content": result["best_chunk"],
+        "content": result["text"],
         # "html": result["html"],
-        "relevant": result["text"]
+        "relevant": result["best_chunk"]
     } for result in top_k]
 
 
