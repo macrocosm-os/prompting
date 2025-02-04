@@ -55,11 +55,14 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             logger.info("Miner returned text that doesn't match the website, scoring 0")
             return 0
 
-        if len(response_relevant) > len(response_content) or len(response_relevant) < MIN_RELEVANT_CHARS:
-            logger.info(
-                f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars) or longer than the whole website content "
-                f"{len(response_relevant)} > {len(response_content)}"
-            )
+        # if len(response_relevant) > len(response_content) or len(response_relevant) < MIN_RELEVANT_CHARS:
+        #     logger.info(
+        #         f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars) or longer than the whole website content "
+        #         f"{len(response_relevant)} > {len(response_content)}"
+        #     )
+        #     return 0
+        if len(response_relevant) < MIN_RELEVANT_CHARS:
+            logger.info(f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars)")
             return 0
 
         return self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant)
@@ -79,7 +82,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
 
         if scores:
             weights = np.arange(len(scores), 0, -1)
-            return np.average(scores, weights=weights)
+            return float(np.average(scores, weights=weights))
         return 0
 
     # TODO: Change base class reference type to Reference pydantic model, in order to store additional data.
