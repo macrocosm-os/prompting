@@ -13,7 +13,8 @@ import netaddr
 import requests
 import uvicorn
 from bittensor.core.axon import FastAPIThreadedServer
-from fastapi import APIRouter, FastAPI, HTTPException, Request
+from bittensor.core.extrinsics.serving import serve_extrinsic
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from loguru import logger
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
@@ -182,7 +183,7 @@ class OpenAIMiner:
         router.add_api_route(
             "/v1/chat/completions",
             self.create_chat_completion,
-            # dependencies=[Depends(self.verify_request)],
+            dependencies=[Depends(self.verify_request)],
             methods=["POST"],
         )
         router.add_api_route(
