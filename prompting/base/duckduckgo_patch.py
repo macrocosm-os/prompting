@@ -12,7 +12,7 @@ class PatchedDDGS(DDGS):
             headers=kwargs.get("headers", {}),
             proxy=kwargs.get("proxy", None),
             timeout=kwargs.get("timeout", 10),
-            verify=kwargs.get("verify", True),
+            verify=kwargs.get("verify", False),
         )
         self._exception_event = Event()
 
