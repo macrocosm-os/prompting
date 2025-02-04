@@ -5,7 +5,6 @@ import time
 
 import loguru
 import torch
-
 import wandb
 
 # ruff: noqa: E402
