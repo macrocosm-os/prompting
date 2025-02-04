@@ -45,7 +45,6 @@ class ExactMatchRewardModel(BaseRewardModel):
         Returns:
             BatchRewardOutput: Contains the computed rewards and average timings.
         """
-
         all_chunks: list[list[str]] = response_event.stream_results_all_chunks
         all_timings: list[list[float]] = response_event.stream_results_all_chunks_timings
         completions: list[str] = response_event.completions
@@ -92,24 +91,6 @@ class ExactMatchRewardModel(BaseRewardModel):
 
             rewards.append(float(final_score))
             timing_outputs.append(np.array(valid_chunks).mean())
-
-        logger.debug(
-            "ExactMatchRewardModel: reference='{}', completions={}, rewards={}, timings={}",
-            reference,
-            completions,
-            rewards,
-            timing_outputs,
-        )
-        i = random.randint(0, len(rewards) - 1)
-        logger.debug(
-            f"""EXAMPLE TIMING AND SCORE: 
-                     TIMINGS: {timing_outputs[i]} 
-                     REWARD: {rewards[i]}
-                     CHUNKS: {all_chunks[i]}
-                     ORIGINAL TIMINGS: {all_timings[i]}
-                     LAST CHUNK: {np.max(all_timings[i])}
-                     TIMEOUT: {timeout}"""
-        )
 
         return BatchRewardOutput(
             rewards=np.array(rewards),
