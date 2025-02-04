@@ -13,13 +13,11 @@ import netaddr
 import requests
 import uvicorn
 from bittensor.core.axon import FastAPIThreadedServer
-from bittensor.core.extrinsics.serving import serve_extrinsic
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from loguru import logger
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
 from web_retrieval import get_websites_with_similarity
-from starlette.requests import ClientDisconnect
 
 from prompting.llms.hf_llm import ReproducibleHF
 from shared.epistula import verify_signature
@@ -62,11 +60,9 @@ class OpenAIMiner:
 
         return openai_request
 
-
     async def stream_web_retrieval(self, body, headers):
         async def word_stream(body, headers):
-
-            websites = await get_websites_with_similarity(body['messages'][0]['content'], 10, headers["target_results"])
+            websites = await get_websites_with_similarity(body["messages"][0]["content"], 10, headers["target_results"])
 
             # Simulate the OpenAI streaming response format
             data = {"choices": [{"delta": {"content": json.dumps(websites)}, "index": 0, "finish_reason": None}]}
@@ -78,7 +74,6 @@ class OpenAIMiner:
             yield "data: [DONE]\n\n"
 
         return StreamingResponse(word_stream(body, headers), media_type="text/event-stream")
-
 
     async def create_chat_completion(self, request: Request):
         data = await request.json()
@@ -187,7 +182,7 @@ class OpenAIMiner:
         router.add_api_route(
             "/v1/chat/completions",
             self.create_chat_completion,
-            #dependencies=[Depends(self.verify_request)],
+            # dependencies=[Depends(self.verify_request)],
             methods=["POST"],
         )
         router.add_api_route(
