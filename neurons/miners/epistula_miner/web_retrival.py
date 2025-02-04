@@ -1,10 +1,11 @@
 from openai import OpenAI
+import asyncio
+import trafilatura
 import os, dotenv
 from loguru import logger
+from shared.settings import shared_settings
 from prompting.base.duckduckgo_patch import PatchedDDGS
 # Import the patched DDGS and use that
-if not dotenv.load_dotenv("../.env.validator"):
-    logger.error("Failed to load .env.validator file")
 
 import numpy as np
 from typing import Dict, List, Tuple
@@ -58,12 +59,11 @@ async def get_websites_with_similarity(
     extracted = await asyncio.gather(*[extract_content(c) for c in content])
     
     # Create embeddings
-    client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+    client = OpenAI(api_key=shared_settings.OPENAI_API_KEY)
     query_embedding = client.embeddings.create(
-        model="text-embedding-3-small",
+        model="text-embedding-ada-002",
         input=query
     ).data[0].embedding
-    
     # Process each website
     results_with_similarity = []
     for url, html, text in zip(urls, content, extracted):
@@ -72,7 +72,7 @@ async def get_websites_with_similarity(
             
         chunks = create_chunks(text)
         chunk_embeddings = client.embeddings.create(
-            model="text-embedding-3-small",
+            model="text-embedding-ada-002",
             input=chunks
         ).data
         
@@ -99,15 +99,15 @@ async def get_websites_with_similarity(
     )[:k]
     
     return [{
-        "website": result["website"],
-        "best_chunk": result["best_chunk"],
+        "url": result["website"],
+        "content": result["best_chunk"],
         # "html": result["html"],
-        "text": result["text"]
+        "relevant": result["text"]
     } for result in top_k]
 
 
-await get_websites_with_similarity(
-    "What are the 5 best phones I can buy this year?",
-    n_results=5, # number of initial websites to get
-    k=3 # number of top similar results to return
-)
+# await get_websites_with_similarity(
+#     "What are the 5 best phones I can buy this year?",
+#     n_results=5, # number of initial websites to get
+#     k=3 # number of top similar results to return
+# )
