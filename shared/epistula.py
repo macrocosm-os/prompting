@@ -220,6 +220,7 @@ async def make_openai_query(
         ),
     )
     extra_body = {k: v for k, v in body.items() if k not in ["messages", "model"]}
+    start_time = time.perf_counter()
     chat = await miner.chat.completions.create(
         model=None,
         messages=body["messages"],
@@ -232,7 +233,6 @@ async def make_openai_query(
         choices = []
         chunks = []
         chunk_timings = []
-        start_time = time.time()
         async for chunk in chat:
             if not chunk.choices:
                 continue
@@ -243,7 +243,7 @@ async def make_openai_query(
                     choices[i] += choice.delta.content
             if chunk.choices[0].delta.content:
                 chunks.append(chunk.choices[0].delta.content)
-                chunk_timings.append(time.time() - start_time)
+                chunk_timings.append(time.perf_counter() - start_time)
         choices = [
             Choice(index=i, message=ChatCompletionMessage(content=choice, role="assistant"), finish_reason="stop")
             for i, choice in enumerate(choices)
