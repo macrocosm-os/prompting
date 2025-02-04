@@ -45,8 +45,8 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
         return
     else:
         llm_model = None
-    task = body.get("task")
-    if task == "InferenceTask":
+    task_name = body.get("task")
+    if task_name == "InferenceTask":
         logger.info(f"Received Organic InferenceTask with body: {body}")
         logger.info(f"With model of type {type(body.get('model'))}")
         organic_task = InferenceTask(
@@ -70,7 +70,7 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
             step=-1,
             task_id=str(uuid.uuid4()),
         )
-    elif task == "WebRetrievalTask":
+    elif task_name == "WebRetrievalTask":
         logger.info(f"Received Organic WebRetrievalTask with body: {body}")
         try:
             search_term = body.get("messages")[0].get("content")
@@ -90,7 +90,7 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
                 stream_results=[
                     SynapseStreamResult(accumulated_chunks=[chunk for chunk in chunks if chunk is not None])
                 ],
-                timeout=shared_settings.NEURON_TIMEOUT,  # TODO: Change this to read from the body
+                timeout=body.get("timeout", shared_settings.NEURON_TIMEOUT),
             ),
             dataset_entry=DDGDatasetEntry(search_term=search_term),
             block=shared_settings.METAGRAPH.block,

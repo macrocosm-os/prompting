@@ -74,11 +74,12 @@ def generate_header(
     return headers
 
 
-def create_header_hook(hotkey, axon_hotkey):
+def create_header_hook(hotkey, axon_hotkey, timeout_seconds=20):
     async def add_headers(request: httpx.Request):
         for key, header in generate_header(hotkey, request.read(), axon_hotkey).items():
             if key not in ["messages", "model", "stream"]:
                 request.headers[key] = str(header)
+        request.headers["X-Client-Timeout"] = str(timeout_seconds)
         return request
 
     return add_headers
@@ -213,7 +214,9 @@ async def make_openai_query(
         max_retries=0,
         timeout=Timeout(timeout_seconds, connect=5, read=timeout_seconds - 5),
         http_client=openai.DefaultAsyncHttpxClient(
-            event_hooks={"request": [create_header_hook(wallet.hotkey, axon_info.hotkey)]}
+            event_hooks={
+                "request": [create_header_hook(wallet.hotkey, axon_info.hotkey, timeout_seconds=timeout_seconds)]
+            }
         ),
     )
     extra_body = {k: v for k, v in body.items() if k not in ["messages", "model"]}
@@ -268,6 +271,7 @@ async def handle_inference(
     body: Dict[str, Any],
     uid: int,
     stream: bool = False,
+    timeout_seconds: int = shared_settings.NEURON_TIMEOUT,
 ) -> SynapseStreamResult:
     exception = None
     chunks = []
@@ -279,9 +283,11 @@ async def handle_inference(
             base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
             api_key="Apex",
             max_retries=0,
-            timeout=Timeout(shared_settings.NEURON_TIMEOUT, connect=5, read=10),
+            timeout=Timeout(timeout_seconds, connect=5, read=10),
             http_client=openai.DefaultAsyncHttpxClient(
-                event_hooks={"request": [create_header_hook(wallet.hotkey, axon_info.hotkey)]}
+                event_hooks={
+                    "request": [create_header_hook(wallet.hotkey, axon_info.hotkey, timeout_seconds=timeout_seconds)]
+                }
             ),
         )
         payload = json.loads(body)
