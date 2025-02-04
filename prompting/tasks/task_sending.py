@@ -66,6 +66,7 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
             ],
         }
 
+    logger.info(f"🔍 SENDING TASK {task.task_id} WITH BODY: {body}")
     stream_results = await query_miners(uids, body)
     logger.debug(f"🔍 Collected responses from {len(stream_results)} miners")
 
@@ -79,6 +80,7 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
         axons=[
             shared_settings.METAGRAPH.axons[x].ip + ":" + str(shared_settings.METAGRAPH.axons[x].port) for x in uids
         ],
+        # TODO: I think we calculate the timeout dynamically, so this is likely wrong
         timeout=(
             shared_settings.INFERENCE_TIMEOUT if isinstance(task, InferenceTask) else shared_settings.NEURON_TIMEOUT
         ),
