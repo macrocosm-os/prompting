@@ -1,10 +1,9 @@
 import numpy as np
-import random
 from loguru import logger
-from shared.settings import shared_settings
 
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from shared.dendrite import DendriteResponseEvent
+from shared.settings import shared_settings
 
 INCORRECT_PENALTY = 3
 INCOMPLETE_PENALTY = 1
