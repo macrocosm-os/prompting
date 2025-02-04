@@ -141,7 +141,9 @@ async def stream_from_first_response(
 
         # Continue collecting remaining responses in background for scoring
         remaining = asyncio.gather(*pending, return_exceptions=True)
-        asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list, body, uids))
+        remaining_tasks = asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list, body, uids))
+        await remaining_tasks
+        asyncio.create_task(forward_response(uids, body, collected_chunks_list))
 
     except asyncio.CancelledError:
         logger.info("Client disconnected, streaming cancelled")
@@ -171,27 +173,32 @@ async def collect_remaining_responses(
                 content = getattr(chunk.choices[0].delta, "content", None)
                 if content is None:
                     continue
-                collected_chunks_list[0].append(content)
-        for uid, chunks in zip(uids, collected_chunks_list):
-            # Forward for scoring
-            asyncio.create_task(forward_response(uid, body, chunks))
+                collected_chunks_list[i + 1].append(content)
 
     except Exception as e:
         logger.exception(f"Error collecting remaining responses: {e}")
 
 
-async def get_response_from_miner(body: dict[str, any], uid: int) -> tuple:
+async def get_response_from_miner(body: dict[str, any], uid: int, timeout_seconds: int) -> tuple:
     """Get response from a single miner."""
-    return await make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, body, uid, stream=False)
+    return await make_openai_query(
+        metagraph=shared_settings.METAGRAPH,
+        wallet=shared_settings.WALLET,
+        body=body,
+        uid=uid,
+        stream=False,
+        timeout_seconds=timeout_seconds,
+    )
 
 
 async def chat_completion(
     body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 10
 ) -> tuple | StreamingResponse:
     """Handle chat completion with multiple miners in parallel."""
+    logger.debug(f"REQUEST_BODY: {body}")
     # Get multiple UIDs if none specified
     if uids is None:
-        uids = list(get_uids(sampling_mode="top_incentive", k=100))
+        uids = list(get_uids(sampling_mode="random", k=100))
         if uids is None or len(uids) == 0:  # if not uids throws error, figure out how to fix
             logger.error("No available miners found")
             raise HTTPException(status_code=503, detail="No available miners found")
@@ -229,7 +236,10 @@ async def chat_completion(
         )
     else:
         # For non-streaming requests, wait for first valid response
-        response_tasks = [asyncio.create_task(get_response_from_miner(body, uid)) for uid in selected_uids]
+        response_tasks = [
+            asyncio.create_task(get_response_from_miner(body=body, uid=uid, timeout_seconds=timeout_seconds))
+            for uid in selected_uids
+        ]
 
         first_valid_response = None
         collected_responses = []
@@ -250,10 +260,5 @@ async def chat_completion(
 
         if first_valid_response is None:
             raise HTTPException(status_code=502, detail="No valid response received")
-
-        # Forward all collected responses for scoring in the background
-        for i, response in enumerate(collected_responses):
-            if response and isinstance(response, tuple):
-                asyncio.create_task(forward_response(uid=selected_uids[i], body=body, chunks=response[1]))
 
         return first_valid_response[0]  # Return only the response object, not the chunks

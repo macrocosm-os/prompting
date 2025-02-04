@@ -42,7 +42,7 @@ SYSTEM_PROMPTS = [
 class InferenceTask(BaseTextTask):
     name: ClassVar[str] = "inference"
     # TODO: Once we want to enable the 'actual' inference task with exact models
-    query: str | None = None
+    query: str | list = []
     reference: str | None = None
     system_prompt: str | None = None
     llm_model: ModelConfig | None = None
