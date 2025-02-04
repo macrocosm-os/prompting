@@ -1,5 +1,6 @@
 import numpy as np
 from loguru import logger
+
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from shared.dendrite import DendriteResponseEvent
 
@@ -35,6 +36,12 @@ class ExactMatchRewardModel(BaseRewardModel):
                 timing_outputs.append(0)
                 continue
 
+            # If the completion is a prefix of the reference, give a less severe penalty
+            if len(completion) < len(reference) and reference.startswith(completion):
+                rewards.append(-PENALTY_FACTOR * 0.33)
+                timing_outputs.append(0)
+                continue
+
             if reference != completion:
                 rewards.append(-PENALTY_FACTOR)
                 timing_outputs.append(0)
@@ -45,19 +52,19 @@ class ExactMatchRewardModel(BaseRewardModel):
             for chunk, timing in zip(chunks, timings):
                 if chunk != []:
                     normalized_timing = min(1, max(0, ((timeout - timing) / timeout)))
-                    valid_chunks.append(normalized_timing)
+                    valid_chunks.append(normalized_timing)                    
             if valid_chunks:
                 final_score = np.mean(valid_chunks)  # This will be between 0 and 1.
             else:
                 final_score = -PENALTY_FACTOR
-            rewards.append(final_score)
+            rewards.append(float(final_score))
             timing_outputs.append(np.array(valid_chunks).mean())
 
         output = BatchRewardOutput(
             rewards=np.array(rewards),
             timings=np.array(timing_outputs),
         )
-        
+
         logger.debug("=== Reference ===")
         logger.debug(reference)
         logger.debug("=== Completions ===")
