@@ -1,4 +1,5 @@
 import json
+import random
 import textwrap
 from typing import ClassVar, Optional
 
@@ -35,6 +36,8 @@ class WebRetrievalTask(BaseTextTask):
     name: ClassVar[str] = "web_retrieval"
     augmentation_system_prompt: ClassVar[str] = ""
     query_system_prompt: ClassVar[Optional[str]] = QUERY_SYSTEM_PROMPT
+    target_results: int = random.randint(1, 10)
+    timeout: int = random.randint(3, 20)
 
     def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
         self.query = self.generate_query(

@@ -1,17 +1,11 @@
 import json
 import re
 import time
-from typing import ClassVar
 
 from loguru import logger
 
-from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
-from prompting.llms.apis.llm_wrapper import LLMWrapper
-from prompting.rewards.relevance import RelevanceRewardModel
-from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
-from prompting.tasks.qa import WikiQuestionAnsweringTask
-from shared.base import Context
 from shared.timer import Timer
+from validator_api.chat_completion import chat_completion
 
 MAX_THINKING_STEPS = 10
 
@@ -48,16 +42,33 @@ def parse_multiple_json(api_response):
     return parsed_objects
 
 
-def make_api_call(messages, max_tokens, is_final_answer=False):
-    # TOOD: Make this use local model to prevent relay mining
+async def make_api_call(messages, max_tokens, model=None, is_final_answer=False):
+    logger.info(f"Making API call with messages: {messages}")
+    response = None
+    response_dict = None
     for attempt in range(3):
         try:
-            response = LLMWrapper.chat_complete(messages=LLMMessages(*messages))
-            response_dict = parse_multiple_json(response)[0]
+            response = await chat_completion(
+                body={
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "model": model,
+                    "stream": False,
+                    "task": "InferenceTask",
+                    "sampling_parameters": {
+                        "temperature": 0.5,
+                        "max_new_tokens": 1000,
+                        "top_p": 1,
+                    },
+                }
+            )
+            # return response.choices[0].message.content
+            response_dict = parse_multiple_json(response.choices[0].message.content)[0]
             return response_dict
         except Exception as e:
+            logger.error(f"Failed to get valid step back from miner: {e}")
             if attempt == 2:
-                logger.debug(f"ERROR GENERATING ANSWER. RESPONSE DICT: {response_dict}")
+                logger.exception(f"Error generating answer: {e}, RESPONSE DICT: {response_dict}")
                 if is_final_answer:
                     return {
                         "title": "Error",
@@ -72,11 +83,11 @@ def make_api_call(messages, max_tokens, is_final_answer=False):
             time.sleep(1)  # Wait for 1 second before retrying
 
 
-def generate_response(prompt):
+async def generate_response(prompt):
     messages = [
-        LLMMessage(
-            role="system",
-            content="""You are an expert AI assistant with advanced reasoning capabilities. Your task is to provide detailed, step-by-step explanations of your thought process. For each step:
+        {
+            "role": "system",
+            "content": """You are an expert AI assistant with advanced reasoning capabilities. Your task is to provide detailed, step-by-step explanations of your thought process. For each step:
 
 1. Provide a clear, concise title describing the current reasoning phase.
 2. Elaborate on your thought process in the content section.
@@ -107,14 +118,14 @@ Example of a valid JSON response:
     "next_action": "continue"
 }```
 """,
-        )
+        }
     ]
-    messages += [LLMMessage(role="user", content=prompt)]
+    messages += [{"role": "user", "content": prompt}]
     messages += [
-        LLMMessage(
-            role="assistant",
-            content="Thank you! I will now think step by step following my instructions, starting at the beginning after decomposing the problem.",
-        )
+        {
+            "role": "assistant",
+            "content": "Thank you! I will now think step by step following my instructions, starting at the beginning after decomposing the problem.",
+        }
     ]
 
     steps = []
@@ -123,13 +134,13 @@ Example of a valid JSON response:
 
     for _ in range(MAX_THINKING_STEPS):
         with Timer() as timer:
-            step_data = make_api_call(messages, 300)
+            step_data = await make_api_call(messages, 300)
         thinking_time = timer.final_time
         total_thinking_time += thinking_time
 
         steps.append((f"Step {step_count}: {step_data['title']}", step_data["content"], thinking_time))
 
-        messages.append(LLMMessage(role="assistant", content=json.dumps(step_data)))
+        messages.append({"role": "assistant", "content": json.dumps(step_data)})
 
         if step_data["next_action"] == "final_answer" or not step_data.get("next_action"):
             break
@@ -141,14 +152,14 @@ Example of a valid JSON response:
 
     # Generate final answer
     messages.append(
-        LLMMessage(
-            role="user",
-            content="Please provide the final answer based on your reasoning above. You must return your answer in a valid json.",
-        )
+        {
+            "role": "user",
+            "content": "Please provide the final answer based on your reasoning above. You must return your answer in a valid json.",
+        }
     )
 
     start_time = time.time()
-    final_data = make_api_call(messages, 200, is_final_answer=True)
+    final_data = await make_api_call(messages, 200, is_final_answer=True)
     end_time = time.time()
     thinking_time = end_time - start_time
     total_thinking_time += thinking_time
@@ -160,36 +171,3 @@ Example of a valid JSON response:
     steps.append(("Final Answer", final_data["content"], thinking_time))
 
     yield steps, total_thinking_time
-
-
-def execute_multi_step_reasoning(user_query):
-    for steps, total_thinking_time in generate_response(user_query):
-        if total_thinking_time is not None:
-            logger.info(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
-    return steps, total_thinking_time
-
-
-class MultiStepReasoningRewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[BaseRewardModel]] = [
-        RelevanceRewardModel(weight=1),
-    ]
-
-
-class MultiStepReasoningTask(WikiQuestionAnsweringTask):
-    """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
-    context from a dataset to base the query on"""
-
-    name: ClassVar[str] = "multi_step_reasoning"
-    augmentation_system_prompt: ClassVar[str] = ""
-    query: str | None = None
-    reference: str | None = None
-
-    def make_reference(self, dataset_entry: Context):
-        logger.info(f"Generating reference for Multi Step Reasoning task with query: {self.query}")
-        steps, total_thinking_time = execute_multi_step_reasoning(user_query=self.query)
-        logger.info(
-            f"**Steps: {steps}**, **Total thinking time for multi step reasoning: {total_thinking_time} seconds**"
-        )
-        logger.info(f"**Total thinking time for multi step reasoning: {total_thinking_time} seconds**")
-        self.reference = steps[-1][1]
-        return self.reference

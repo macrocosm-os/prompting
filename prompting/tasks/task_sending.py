@@ -12,6 +12,7 @@ from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceTask
+from prompting.tasks.web_retrieval import WebRetrievalTask
 from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
 from shared.epistula import query_miners
 from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
@@ -65,7 +66,11 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
                 {"role": "user", "content": task.query},
             ],
         }
+    if isinstance(task, WebRetrievalTask):
+        body["target_results"] = task.target_results
+    body["timeout"] = task.timeout
 
+    logger.info(f"🔍 SENDING TASK {task.task_id} WITH BODY: {body}")
     stream_results = await query_miners(uids, body)
     logger.debug(f"🔍 Collected responses from {len(stream_results)} miners")
 
@@ -79,6 +84,7 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
         axons=[
             shared_settings.METAGRAPH.axons[x].ip + ":" + str(shared_settings.METAGRAPH.axons[x].port) for x in uids
         ],
+        # TODO: I think we calculate the timeout dynamically, so this is likely wrong
         timeout=(
             shared_settings.INFERENCE_TIMEOUT if isinstance(task, InferenceTask) else shared_settings.NEURON_TIMEOUT
         ),

@@ -1,5 +1,6 @@
 import asyncio
 import copy
+import math
 import random
 
 from fastapi import HTTPException
@@ -26,16 +27,16 @@ NUM_MIXTURE_MINERS = 8
 TOP_INCENTIVE_POOL = 100
 
 
-async def get_miner_response(body: dict, uid: str) -> tuple | None:
+async def get_miner_response(body: dict, uid: str, timeout_seconds: int) -> tuple | None:
     """Get response from a single miner with error handling."""
     try:
-        return await get_response_from_miner(body, uid)
+        return await get_response_from_miner(body, uid, timeout_seconds=timeout_seconds)
     except Exception as e:
         logger.error(f"Error getting response from miner {uid}: {e}")
         return None
 
 
-async def mixture_of_miners(body: dict[str, any]) -> tuple | StreamingResponse:
+async def mixture_of_miners(body: dict[str, any], uids: list[int]) -> tuple | StreamingResponse:
     """Handle chat completion with mixture of miners approach.
 
     Based on Mixture-of-Agents Enhances Large Language Model Capabilities, 2024, Wang et al.:
@@ -52,12 +53,16 @@ async def mixture_of_miners(body: dict[str, any]) -> tuple | StreamingResponse:
     body_first_step["stream"] = False
 
     # Get multiple miners
-    miner_uids = get_uids(sampling_mode="top_incentive", k=NUM_MIXTURE_MINERS)
-    if len(miner_uids) == 0:
+    if not uids:
+        uids = get_uids(sampling_mode="top_incentive", k=NUM_MIXTURE_MINERS)
+    if len(uids) == 0:
         raise HTTPException(status_code=503, detail="No available miners found")
 
     # Concurrently collect responses from all miners.
-    miner_tasks = [get_miner_response(body_first_step, uid) for uid in miner_uids]
+    timeout_seconds = max(
+        30, max(0, math.floor(math.log2(body["sampling_parameters"].get("max_new_tokens", 256) / 256))) * 10 + 30
+    )
+    miner_tasks = [get_miner_response(body_first_step, uid, timeout_seconds=timeout_seconds) for uid in uids]
     responses = await asyncio.gather(*miner_tasks)
 
     # Filter out None responses (failed requests).
