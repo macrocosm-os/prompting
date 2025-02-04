@@ -84,7 +84,7 @@ class OpenAIMiner:
         if self.llm and request.headers.get("task", None) == "inference":
             return await self.create_inference_completion(request)
         if request.headers.get("task", None) == "web_retrieval":
-            return await
+            return await self.stream_web_retrieval(request)
         req = self.client.build_request("POST", "chat/completions", json=await self.format_openai_query(request))
         r = await self.client.send(req, stream=True)
         return StreamingResponse(r.aiter_raw(), background=BackgroundTask(r.aclose), headers=r.headers)
