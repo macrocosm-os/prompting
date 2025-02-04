@@ -5,29 +5,6 @@ from shared.dendrite import DendriteResponseEvent
 
 PENALTY_FACTOR = 3
 
-"""
-for chunk, timing in zip(chunks, timings):
-    if chunk:
-        normalized_timing = min(1, max(0, ((timeout - timing) / timeout)))
-        average_timing.append(normalized_timing)
-        miner_reward += normalized_timing
-
-v1
-valid_chunks = []
-for chunk, timing in zip(chunks, timings):
-    # If you consider a chunk valid even if it is whitespace, adjust this check.
-    if chunk.strip():
-        normalized_timing = min(1, max(0, ((timeout - timing) / timeout)))
-        valid_chunks.append(normalized_timing)
-if valid_chunks:
-    avg_reward = sum(valid_chunks) / len(valid_chunks)
-    rewards.append(avg_reward)
-    timing_outputs.append(np.mean(valid_chunks))
-else:
-    rewards.append(-PENALTY_FACTOR)
-    timing_outputs.append(0)
-"""
-
 
 class ExactMatchRewardModel(BaseRewardModel):
     def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
@@ -72,7 +49,7 @@ class ExactMatchRewardModel(BaseRewardModel):
             if valid_chunks:
                 final_score = np.mean(valid_chunks)  # This will be between 0 and 1.
             else:
-                final_score = -5
+                final_score = -PENALTY_FACTOR
             rewards.append(final_score)
             timing_outputs.append(np.array(valid_chunks).mean())
 
