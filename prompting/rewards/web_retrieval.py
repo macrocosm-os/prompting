@@ -55,15 +55,15 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             logger.info("Miner returned text that doesn't match the website, scoring 0")
             return 0
 
-        # if len(response_relevant) > len(response_content) or len(response_relevant) < MIN_RELEVANT_CHARS:
-        #     logger.info(
-        #         f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars) or longer than the whole website content "
-        #         f"{len(response_relevant)} > {len(response_content)}"
-        #     )
-        #     return 0
-        if len(response_relevant) < MIN_RELEVANT_CHARS:
-            logger.info(f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars)")
+        if len(response_relevant) > len(response_content) or len(response_relevant) < MIN_RELEVANT_CHARS:
+            logger.info(
+                f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars) or longer than the whole website content "
+                f"{len(response_relevant)} > {len(response_content)}"
+            )
             return 0
+        # if len(response_relevant) < MIN_RELEVANT_CHARS:
+        #     logger.info(f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars)")
+        #     return 0
 
         return self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant)
 
@@ -104,6 +104,8 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             rewards.append(self.score_miner_response(dataset_entry, completion, task=task))
             timings.append(0)
 
+        logger.debug(f"REWARDWEBRETRIEVAL: {rewards}")
+        logger.debug(f"COMPLETIONS: {response_event.completions}")
         return BatchRewardOutput(rewards=np.array(rewards), timings=np.array(timings))
 
     @staticmethod
