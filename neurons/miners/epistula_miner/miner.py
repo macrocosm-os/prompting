@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from loguru import logger
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
+from web_retrieval import get_websites_with_similarity
 
 from prompting.llms.hf_llm import ReproducibleHF
 from shared.epistula import verify_signature
@@ -60,9 +61,28 @@ class OpenAIMiner:
 
         return openai_request
 
+    async def stream_web_retrieval(self, body, headers):
+        async def word_stream(body, headers):
+            websites = await get_websites_with_similarity(body["messages"][0]["content"], 10, headers["target_results"])
+
+            # Simulate the OpenAI streaming response format
+            data = {"choices": [{"delta": {"content": json.dumps(websites)}, "index": 0, "finish_reason": None}]}
+            yield f"data: {json.dumps(data)}\n\n"
+            await asyncio.sleep(0.1)
+            # Indicate the end of the stream
+            data = {"choices": [{"delta": {}, "index": 0, "finish_reason": "stop"}]}
+            yield f"data: {json.dumps(data)}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(word_stream(body, headers), media_type="text/event-stream")
+
     async def create_chat_completion(self, request: Request):
+        data = await request.json()
+        headers = request.headers
         if self.llm and request.headers.get("task", None) == "inference":
             return await self.create_inference_completion(request)
+        if request.headers.get("task", None) == "WebRetrievalTask":
+            return await self.stream_web_retrieval(data, headers)
         req = self.client.build_request("POST", "chat/completions", json=await self.format_openai_query(request))
         r = await self.client.send(req, stream=True)
         return StreamingResponse(r.aiter_raw(), background=BackgroundTask(r.aclose), headers=r.headers)
@@ -71,6 +91,7 @@ class OpenAIMiner:
         async def word_stream():
             inference = await self.run_inference(request)
             words = inference.split()
+            print(words)
             for word in words:
                 # Simulate the OpenAI streaming response format
                 data = {"choices": [{"delta": {"content": word + " "}, "index": 0, "finish_reason": None}]}

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import ClassVar, Literal
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from prompting.tasks.base_task import BaseTextTask
 from shared.dendrite import DendriteResponseEvent
@@ -50,12 +50,16 @@ class BatchRewardOutput(BaseModel):
     extra_info: dict = {}
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    @model_validator(mode="after")
+    def validate_rewards_and_timings(cls, v):
+        if v.rewards.shape != v.timings.shape:
+            raise ValueError(f"rewards.shape {v.rewards.shape} != timings.shape {v.timings.shape}")
+        return v
+
     @property
     def rewards_normalized(self) -> np.ndarray:
         if self.rewards.size == 0:
             return np.array([])
-        if self.rewards.shape != self.timings.shape:
-            raise ValueError(f"rewards.shape {self.rewards.shape} != timings.shape {self.timings.shape}")
         if self.rewards.min() == self.rewards.max():
             return np.array([1 / len(self.rewards)] * len(self.rewards))
         return (self.rewards - self.rewards.min()) / (self.rewards.max() - self.rewards.min())
@@ -79,7 +83,7 @@ class BaseRewardModel(ABC, BaseModel):
     ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
-        batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event, **kwargs)
+        batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event, task=task, **kwargs)
         batch_rewards_time = time.time() - t0
 
         return WeightedRewardEvent(

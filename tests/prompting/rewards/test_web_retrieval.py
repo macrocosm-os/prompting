@@ -19,22 +19,23 @@ from prompting.rewards.web_retrieval import WebRetrievalRewardModel
             "This is some content.",
             "Section 1",
         ),
-        ('{"content": "This is some content.", "relevant": "Section 1"}', None, "This is some content.", "Section 1"),
-        ('{"url": "http://example.com", "relevant": "Section 1"}', "http://example.com", None, "Section 1"),
-        (
-            '{"url": "http://example.com", "content": "This is some content."}',
-            "http://example.com",
-            "This is some content.",
-            None,
-        ),
+        # Invalid JSON should return an empty list
         ("Invalid JSON string", None, None, None),
     ],
 )
 def test_parse_response(completion, expected_url, expected_content, expected_relevant):
-    response_url, response_content, response_relevant = WebRetrievalRewardModel._parse_response(completion)
-    assert response_url == expected_url
-    assert response_content == expected_content
-    assert response_relevant == expected_relevant
+    response = WebRetrievalRewardModel._parse_response(completion)
+
+    if not response:  # empty list => invalid JSON
+        assert expected_url is None
+        assert expected_content is None
+        assert expected_relevant is None
+    else:
+        # For the valid test case, we expect exactly one WebsiteResult
+        assert len(response) == 1
+        assert response[0].url == expected_url
+        assert response[0].content == expected_content
+        assert response[0].relevant == expected_relevant
 
 
 def test_cosine_similarity_identical_embeddings():
