@@ -1,3 +1,6 @@
+import asyncio
+from collections import deque
+import datetime
 import httpx
 import requests
 from loguru import logger
@@ -7,12 +10,18 @@ from shared.settings import shared_settings
 from shared.uids import get_uids
 
 
+_scoring_lock = asyncio.Lock()
+_scoring_last_query_time = datetime.datetime.fromtimestamp(0)
+_scoring_queue: deque[dict[str, any]] = deque()
+
+
 class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
     miner_availabilities: dict[int, dict] = {}
 
     async def run_step(self):
         try:
             response = requests.post(
+                # TODO check if settings changes are working.
                 f"http://{shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities",
                 headers={"accept": "application/json", "Content-Type": "application/json"},
                 json=get_uids(sampling_mode="all"),
@@ -82,6 +91,9 @@ async def forward_response(uids: list[int], body: dict[str, any], chunks: list[l
 
     url = f"http://{shared_settings.VALIDATOR_API}/scoring"
     payload = {"body": body, "chunks": chunk_dict, "uid": uids}
+
+    _scoring_queue.append(payload)
+    _scoring_lock.popleft()
     try:
         timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
         async with httpx.AsyncClient(timeout=timeout) as client:
