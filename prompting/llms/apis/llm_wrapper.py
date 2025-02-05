@@ -9,12 +9,12 @@ from shared.settings import shared_settings
 class LLMWrapper:
     def chat_complete(
         messages: LLMMessages,
-        model: str = "chat-llama-3-1-70b",
-        temperature: float = 0.5,
-        max_tokens: int = 500,
-        top_p: float = 1,
-        stream: bool = False,
-        logprobs: bool = True,
+        model="chat-llama-3-1-70b",
+        temperature=0.5,
+        max_tokens=500,
+        top_p=1,
+        stream=False,
+        logprobs=True,
     ) -> str:
         response: str | None = None
         if "gpt" not in model.lower() and shared_settings.SN19_API_KEY and shared_settings.SN19_API_URL:
@@ -28,13 +28,16 @@ class LLMWrapper:
                     stream=stream,
                     logprobs=logprobs,
                 )
-                logger.debug(f"Generated {len(response)} characters using {model}")
-                return response
 
             except Exception as ex:
-                logger.error(
-                    "Failed to use SN19 API, falling back to GPT-3.5. "
-                    f"Make sure to setup 'SN19_API_KEY' and 'SN19_API_URL' in .env.validator"
+                logger.exception(ex)
+                logger.warning("Failed to use SN19 API, falling back to GPT-3.5")
+            else:
+                if response is not None:
+                    logger.debug(f"Generated {len(response)} characters using {model}")
+                    return response
+                logger.warning(
+                    "Failed to use SN19 API (check the SN19_API_KEY and/or SN19_API_URL), " "falling back to GPT-3.5"
                 )
 
         model = "gpt-3.5-turbo"
