@@ -15,12 +15,11 @@ from shared.settings import shared_settings
 
 class ScoringPayload(BaseModel):
     payload: dict[str, Any]
-    query_retries: int = 0
+    retries: int = 0
 
 
 class ScoringQueue(AsyncLoopRunner):
     """Performs organic scoring every `interval` seconds."""
-
     interval: float = shared_settings.SCORING_RATE_LIMIT_SEC
     scoring_queue_threshold: int = shared_settings.SCORING_QUEUE_API_THRESHOLD
     max_scoring_retries: int = 3
@@ -30,10 +29,11 @@ class ScoringQueue(AsyncLoopRunner):
     async def wait_for_next_execution(self, last_run_time) -> datetime.datetime:
         """If scoring queue is small, execute immediately, otherwise wait until the next execution time."""
         async with self._scoring_lock:
-            if self.size < self.scoring_queue_threshold:
+            if self.scoring_queue_threshold < self.size > 0:
+                # If scoring queue is small and non-empty, score immediately.
                 return datetime.datetime.now()
 
-        return super().wait_for_next_execution(last_run_time)
+        return await super().wait_for_next_execution(last_run_time)
 
     async def run_step(self):
         """Perform organic scoring: pop queued payload, forward to the validator API."""
@@ -41,11 +41,12 @@ class ScoringQueue(AsyncLoopRunner):
             if not self._scoring_queue:
                 return
             scoring_payload = self._scoring_queue.popleft()
+            uids = payload["uids"]
+            logger.info(f"Received new organic for scoring, uids: {uids}")
 
         url = f"http://{shared_settings.VALIDATOR_API}/scoring"
         payload = scoring_payload.payload
         try:
-            uids = payload["uids"]
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
@@ -67,9 +68,6 @@ class ScoringQueue(AsyncLoopRunner):
                 logger.exception(f"Error while forwarding response after {scoring_payload.retries} retries: {e}")
 
     async def append_response(self, uids: list[int], body: dict[str, any], chunks: list[list[str]]):
-        uids = [int(u) for u in uids]
-        chunk_dict = {u: c for u, c in zip(uids, chunks)}
-        logger.info(f"Forwarding response from uid {uids} to scoring with body: {body} and chunks: {chunks}")
         if not shared_settings.SCORE_ORGANICS:
             return
 
@@ -77,11 +75,16 @@ class ScoringQueue(AsyncLoopRunner):
             logger.debug(f"Skipping forwarding for non-inference/web retrieval task: {body.get('task')}")
             return
 
+        uids = [int(u) for u in uids]
+        chunk_dict = {u: c for u, c in zip(uids, chunks)}
         payload = {"body": body, "chunks": chunk_dict, "uid": uids}
         scoring_item = ScoringPayload(payload=payload)
 
         async with self._scoring_lock:
             self._scoring_queue.append(scoring_item)
+
+        logger.info(f"Appended responses from uids {uids} into scoring queue with size: {self.size}")
+        logger.debug(f"Queued responses body: {body}, chunks: {chunks}")
 
     @property
     def size(self) -> int:
