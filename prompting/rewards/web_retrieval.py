@@ -9,7 +9,6 @@ Example response:
 """
 
 import json
-from typing import Optional
 
 import numpy as np
 from loguru import logger
