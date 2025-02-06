@@ -12,7 +12,6 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
     async def run_step(self):
         try:
             response = requests.post(
-                # TODO check if settings changes are working.
                 f"http://{shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities",
                 headers={"accept": "application/json", "Content-Type": "application/json"},
                 json=get_uids(sampling_mode="all"),

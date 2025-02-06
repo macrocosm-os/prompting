@@ -143,7 +143,6 @@ async def stream_from_first_response(
         remaining = asyncio.gather(*pending, return_exceptions=True)
         remaining_tasks = asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list, body, uids))
         await remaining_tasks
-        # asyncio.create_task(forward_response(uids, body, collected_chunks_list))
         asyncio.create_task(
             scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=collected_chunks_list)
         )
