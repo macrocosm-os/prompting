@@ -25,8 +25,13 @@ async def health():
     return {"status": "ok"}
 
 
-def main():
+@app.on_event("startup")
+async def startup_event():
+    # Start background tasks here.
     asyncio.create_task(update_miner_availabilities_for_api.start())
+
+
+async def main():
     uvicorn.run(
         "validator_api.api:app",
         host=shared_settings.API_HOST,
@@ -39,4 +44,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
