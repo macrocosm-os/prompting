@@ -97,11 +97,7 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
 
     chunks = [res.accumulated_chunks if res and res.accumulated_chunks else [] for res in stream_results]
     # asyncio.create_task(forward_response(uids=uids, body=body, chunks=chunks))
-    asyncio.create_task(
-        scoring_queue.scoring_queue.append_response(
-            uids=uids, body=body, chunks=chunks
-        )
-    )
+    asyncio.create_task(scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=chunks))
     return loaded_results
 
 

@@ -145,9 +145,7 @@ async def stream_from_first_response(
         await remaining_tasks
         # asyncio.create_task(forward_response(uids, body, collected_chunks_list))
         asyncio.create_task(
-            scoring_queue.scoring_queue.append_response(
-                uids=uids, body=body, chunks=collected_chunks_list
-            )
+            scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=collected_chunks_list)
         )
 
     except asyncio.CancelledError:

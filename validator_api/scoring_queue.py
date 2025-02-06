@@ -1,6 +1,6 @@
 import asyncio
-from collections import deque
 import datetime
+from collections import deque
 from typing import Any
 
 import httpx
@@ -18,6 +18,7 @@ class ScoringPayload(BaseModel):
 
 class ScoringQueue(AsyncLoopRunner):
     """Performs organic scoring every `interval` seconds."""
+
     interval: float = shared_settings.SCORING_RATE_LIMIT_SEC
     scoring_queue_threshold: int = shared_settings.SCORING_QUEUE_API_THRESHOLD
     max_scoring_retries: int = 3
@@ -48,7 +49,7 @@ class ScoringQueue(AsyncLoopRunner):
                 response = await client.post(
                     url=url,
                     json=payload,
-                    headers={"api-key": shared_settings.SCORING_KEY, "Content-Type": "application/json"}
+                    headers={"api-key": shared_settings.SCORING_KEY, "Content-Type": "application/json"},
                 )
                 if response.status_code != 200:
                     # Raise an exception so that the retry logic in the except block handles it.
@@ -83,7 +84,7 @@ class ScoringQueue(AsyncLoopRunner):
     @property
     def size(self) -> int:
         return len(self._scoring_queue)
-    
+
     def __len__(self) -> int:
         return self.size
 
