@@ -9,6 +9,7 @@ Example response:
 """
 
 import json
+from typing import Optional
 
 import numpy as np
 from loguru import logger
@@ -27,9 +28,9 @@ MIN_MATCH_THRESHOLD = 90
 
 
 class WebsiteResult(BaseModel):
-    url: str
-    content: str
-    relevant: str
+    url: Optional[str]
+    content: Optional[str]
+    relevant: Optional[str]
 
 
 class WebRetrievalRewardModel(RelevanceRewardModel):
