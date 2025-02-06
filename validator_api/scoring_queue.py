@@ -7,6 +7,8 @@ import httpx
 from loguru import logger
 from pydantic import BaseModel
 
+from prompting.tasks.inference import InferenceTask
+from prompting.tasks.web_retrieval import WebRetrievalTask
 from shared.loop_runner import AsyncLoopRunner
 from shared.settings import shared_settings
 
@@ -62,7 +64,7 @@ class ScoringQueue(AsyncLoopRunner):
                     self._scoring_queue.appendleft(scoring_payload)
                 logger.error(f"Tried to forward response to {url} with payload {payload}. Queued for retry")
             else:
-                logger.exception(f"Error while forwarding response: {e}")
+                logger.exception(f"Error while forwarding response after {scoring_payload.retries} retries: {e}")
 
     async def append_response(self, uids: list[int], body: dict[str, any], chunks: list[list[str]]):
         uids = [int(u) for u in uids]
@@ -71,8 +73,8 @@ class ScoringQueue(AsyncLoopRunner):
         if not shared_settings.SCORE_ORGANICS:
             return
 
-        if body.get("task") != "InferenceTask" and body.get("task") != "WebRetrievalTask":
-            logger.debug(f"Skipping forwarding for non- inference/web retrieval task: {body.get('task')}")
+        if body.get("task") != InferenceTask.__name__ and body.get("task") != WebRetrievalTask.__name__:
+            logger.debug(f"Skipping forwarding for non-inference/web retrieval task: {body.get('task')}")
             return
 
         payload = {"body": body, "chunks": chunk_dict, "uid": uids}
