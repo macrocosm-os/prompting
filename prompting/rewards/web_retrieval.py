@@ -27,9 +27,9 @@ MIN_MATCH_THRESHOLD = 90
 
 
 class WebsiteResult(BaseModel):
-    url: str
-    content: str
-    relevant: str
+    url: str | None
+    content: str | None
+    relevant: str | None
 
 
 class WebRetrievalRewardModel(RelevanceRewardModel):
