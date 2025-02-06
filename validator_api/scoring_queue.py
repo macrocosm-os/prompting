@@ -21,7 +21,6 @@ class ScoringQueue(AsyncLoopRunner):
     interval: float = shared_settings.SCORING_RATE_LIMIT_SEC
     scoring_queue_threshold: int = shared_settings.SCORING_QUEUE_API_THRESHOLD
     max_scoring_retries: int = 3
-    name = __name__
     _scoring_lock = asyncio.Lock()
     _scoring_queue: deque[ScoringPayload] = deque()
 
