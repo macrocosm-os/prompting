@@ -42,7 +42,7 @@ class ScoringQueue(AsyncLoopRunner):
 
             scoring_payload = self._scoring_queue.popleft()
             payload = scoring_payload.payload
-            uids = payload["uids"]
+            uids = payload["uid"]
             logger.info(f"Received new organic for scoring, uids: {uids}")
 
         url = f"http://{shared_settings.VALIDATOR_API}/scoring"
