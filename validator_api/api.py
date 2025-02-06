@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+
 import uvicorn
 from fastapi import FastAPI
 
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
         await background_task
     except asyncio.CancelledError:
         pass
+
 
 # Create the FastAPI app with the lifespan handler.
 app = FastAPI(lifespan=lifespan)
