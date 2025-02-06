@@ -1,13 +1,4 @@
-"""Expected miner's response is a JSON object with the following keys: url, content, relevant.
-
-Example response:
-{
-    "url": "https://www.example.com",
-    "content": "This is the content of the website. This is the section we are interested in.",
-    "relevant": "This is the section we are interested in.",
-}
-"""
-
+"""Expected miner's response is a JSON object with the following keys: url, content, relevant for each website."""
 import json
 
 import numpy as np
@@ -15,7 +6,6 @@ from loguru import logger
 from pydantic import BaseModel
 from scipy import spatial
 from thefuzz import fuzz
-from functools import lru_cache
 
 from prompting.datasets.random_website import DDGDataset, DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
@@ -33,11 +23,6 @@ class WebsiteResult(BaseModel):
     relevant: str | None
 
 
-@lru_cache(maxsize=1000)
-def extract_content_with_cache(url: str):
-    return DDGDataset.extract_website_content(url)
-
-
 class WebRetrievalRewardModel(RelevanceRewardModel):
     def _cosine_similarity(self, content1: str, content2: str) -> float:
         """Calculate the cosine similarity between sentence embeddings of the reference and completions."""
@@ -52,7 +37,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             return 0
 
         # Content scraped from the URL provided in the completion.
-        reference_website_content = extract_content_with_cache(response_url)
+        reference_website_content = DDGDataset.extract_website_content(response_url)
         if not reference_website_content or len(reference_website_content) == 0:
             logger.debug(f"Failed to extract miner's content from website: {response_url}")
             return 0

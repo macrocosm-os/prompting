@@ -1,3 +1,4 @@
+from functools import lru_cache
 import random
 from typing import Optional
 
@@ -37,6 +38,8 @@ class DDGDataset(BaseDataset):
         logger.warning(f"Failed to get search results from DuckDuckGo after {retries} tries")
         return None, None
 
+
+    @lru_cache(maxsize=1000)
     @staticmethod
     def extract_website_content(url: str) -> Optional[str]:
         try:
