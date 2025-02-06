@@ -207,6 +207,7 @@ async def make_openai_query(
     uid: int,
     stream: bool = False,
 ) -> tuple[ChatCompletion, list, list] | AsyncGenerator:
+    body["seed"] = body.get("seed", random.randint(0, 1000000))
     axon_info = metagraph.axons[uid]
     miner = openai.AsyncOpenAI(
         base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
