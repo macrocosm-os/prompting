@@ -1,5 +1,5 @@
-from functools import lru_cache
 import random
+from functools import lru_cache
 from typing import Optional
 
 import trafilatura
