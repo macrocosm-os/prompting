@@ -20,6 +20,7 @@ class ScoringPayload(BaseModel):
 
 class ScoringQueue(AsyncLoopRunner):
     """Performs organic scoring every `interval` seconds."""
+
     interval: float = shared_settings.SCORING_RATE_LIMIT_SEC
     scoring_queue_threshold: int = shared_settings.SCORING_QUEUE_API_THRESHOLD
     max_scoring_retries: int = 3
@@ -40,12 +41,13 @@ class ScoringQueue(AsyncLoopRunner):
         async with self._scoring_lock:
             if not self._scoring_queue:
                 return
+
             scoring_payload = self._scoring_queue.popleft()
+            payload = scoring_payload.payload
             uids = payload["uids"]
             logger.info(f"Received new organic for scoring, uids: {uids}")
 
         url = f"http://{shared_settings.VALIDATOR_API}/scoring"
-        payload = scoring_payload.payload
         try:
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
             async with httpx.AsyncClient(timeout=timeout) as client:
@@ -67,7 +69,7 @@ class ScoringQueue(AsyncLoopRunner):
             else:
                 logger.exception(f"Error while forwarding response after {scoring_payload.retries} retries: {e}")
 
-    async def append_response(self, uids: list[int], body: dict[str, any], chunks: list[list[str]]):
+    async def append_response(self, uids: list[int], body: dict[str, Any], chunks: list[list[str]]):
         if not shared_settings.SCORE_ORGANICS:
             return
 
