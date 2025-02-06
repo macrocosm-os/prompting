@@ -73,7 +73,7 @@ class ScoringQueue(AsyncLoopRunner):
         if not shared_settings.SCORE_ORGANICS:
             return
 
-        if body.get("task") != InferenceTask.__name__ and body.get("task") != WebRetrievalTask.__name__:
+        if body.get("task") != "InferenceTask" and body.get("task") != "WebRetrievalTask":
             logger.debug(f"Skipping forwarding for non-inference/web retrieval task: {body.get('task')}")
             return
 
