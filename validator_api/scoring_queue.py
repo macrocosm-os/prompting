@@ -7,8 +7,6 @@ import httpx
 from loguru import logger
 from pydantic import BaseModel
 
-from prompting.tasks.inference import InferenceTask
-from prompting.tasks.web_retrieval import WebRetrievalTask
 from shared.loop_runner import AsyncLoopRunner
 from shared.settings import shared_settings
 
