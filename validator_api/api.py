@@ -1,5 +1,3 @@
-import asyncio
-
 import uvicorn
 from fastapi import FastAPI
 
@@ -25,16 +23,18 @@ async def health():
     return {"status": "ok"}
 
 
-async def main():
+def main():
     asyncio.create_task(update_miner_availabilities_for_api.start())
     uvicorn.run(
-        app,
+        "validator_api.api:app",
         host=shared_settings.API_HOST,
         port=shared_settings.API_PORT,
         log_level="debug",
         timeout_keep_alive=60,
+        workers=shared_settings.WORKERS,
+        reload=False,
     )
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
