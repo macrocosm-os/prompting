@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 
 import uvicorn
 from fastapi import FastAPI
@@ -13,7 +14,21 @@ from validator_api.api_management import router as api_management_router
 from validator_api.gpt_endpoints import router as gpt_router
 from validator_api.utils import update_miner_availabilities_for_api
 
-app = FastAPI()
+
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: start the background tasks.
+    background_task = asyncio.create_task(update_miner_availabilities_for_api.start())
+    yield
+    background_task.cancel()
+    try:
+        await background_task
+    except asyncio.CancelledError:
+        pass
+
+
+# Create the FastAPI app with the lifespan handler.
+app = FastAPI(lifespan=lifespan)
 app.include_router(gpt_router, tags=["GPT Endpoints"])
 app.include_router(api_management_router, tags=["API Management"])
 
@@ -27,11 +42,13 @@ async def main():
     asyncio.create_task(update_miner_availabilities_for_api.start())
     asyncio.create_task(scoring_queue.scoring_queue.start())
     uvicorn.run(
-        app,
+        "validator_api.api:app",
         host=shared_settings.API_HOST,
         port=shared_settings.API_PORT,
         log_level="debug",
         timeout_keep_alive=60,
+        workers=shared_settings.WORKERS,
+        reload=False,
     )
 
 
