@@ -76,6 +76,7 @@ async def mixture_of_miners(body: dict[str, any], uids: list[int]) -> tuple | St
 
     task_name = body.get("task")
     system_prompt = TASK_SYSTEM_PROMPT.get(task_name, DEFAULT_SYSTEM_PROMPT)
+    logger.debug(f"Using Mixture of Miners with {len(completions)} miners")
 
     new_messages = body["messages"] + [
         {
