@@ -35,7 +35,7 @@ Validators and miners are based on large language models (LLM). The validation p
 
 <div align="center">
 
-**[For Validators](./assets/validator.md)** · **[For Miners](./assets/miner.md)** · **[API Documentation]((./docs/API_docs.md))**
+**[For Validators](./docs/validator.md)** · **[For Miners](./docs/epistula_miner.md)** · **[API Documentation]((./docs/API_docs.md))**
 
 
 </div>
