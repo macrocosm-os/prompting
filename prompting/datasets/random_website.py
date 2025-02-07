@@ -1,10 +1,10 @@
 import random
-from functools import lru_cache
 from typing import Optional
 
 import trafilatura
 from loguru import logger
 
+# from duckduckgo_search import DDGS
 from prompting.base.duckduckgo_patch import PatchedDDGS
 from prompting.datasets.utils import ENGLISH_WORDS
 from shared.base import BaseDataset, Context, DatasetEntry
@@ -38,7 +38,6 @@ class DDGDataset(BaseDataset):
         return None, None
 
     @staticmethod
-    @lru_cache(maxsize=1000)
     def extract_website_content(url: str) -> Optional[str]:
         try:
             website = trafilatura.fetch_url(url)
