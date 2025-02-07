@@ -77,12 +77,14 @@ async def mixture_of_miners(body: dict[str, any], uids: list[int]) -> tuple | St
     task_name = body.get("task")
     system_prompt = TASK_SYSTEM_PROMPT.get(task_name, DEFAULT_SYSTEM_PROMPT)
 
-    # Aggregate responses into one system prompt.
-    agg_system_prompt = system_prompt + "\n" + "\n".join([f"{i+1}. {comp}" for i, comp in enumerate(completions)])
-
-    # Prepare new messages with the aggregated system prompt.
-    new_messages = [{"role": "system", "content": agg_system_prompt}]
-    new_messages.extend([msg for msg in body["messages"] if msg["role"] != "system"])
+    new_messages = body["messages"] + [
+        {
+            "role": "assistant",
+            "content": "I have received the following responses from various models:\n"
+            + "\n".join([f"{i+1}. {comp}" for i, comp in enumerate(completions)])
+            + "Now I will synthesize them into a single, high-quality and concise response to the user's query.",
+        },
+    ]
 
     # Update the body with the new messages.
     final_body = copy.deepcopy(body)
