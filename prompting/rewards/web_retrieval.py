@@ -61,9 +61,9 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
                 f"{len(response_relevant)} > {len(response_content)}"
             )
             return 0
-        # if len(response_relevant) < MIN_RELEVANT_CHARS:
-        #     logger.info(f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars)")
-        #     return 0
+
+        if response_relevant not in response_content:
+            return 0
 
         return self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant)
 
