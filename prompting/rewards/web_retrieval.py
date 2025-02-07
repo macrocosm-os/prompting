@@ -61,7 +61,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
                 f"{len(response_relevant)} > {len(response_content)}"
             )
             return 0
-        
+
         if response_relevant not in response_content:
             return 0
 
