@@ -1,13 +1,4 @@
-"""Expected miner's response is a JSON object with the following keys: url, content, relevant.
-
-Example response:
-{
-    "url": "https://www.example.com",
-    "content": "This is the content of the website. This is the section we are interested in.",
-    "relevant": "This is the section we are interested in.",
-}
-"""
-
+"""Expected miner's response is a JSON object with the following keys: url, content, relevant for each website."""
 import json
 
 import numpy as np
@@ -27,9 +18,9 @@ MIN_MATCH_THRESHOLD = 90
 
 
 class WebsiteResult(BaseModel):
-    url: str
-    content: str
-    relevant: str
+    url: str | None
+    content: str | None
+    relevant: str | None
 
 
 class WebRetrievalRewardModel(RelevanceRewardModel):
