@@ -9,6 +9,7 @@ from shared import settings
 settings.shared_settings = settings.SharedSettings.load(mode="api")
 shared_settings = settings.shared_settings
 
+from validator_api import scoring_queue
 from validator_api.api_management import router as api_management_router
 from validator_api.gpt_endpoints import router as gpt_router
 from validator_api.utils import update_miner_availabilities_for_api
@@ -38,6 +39,8 @@ async def health():
 
 
 async def main():
+    asyncio.create_task(update_miner_availabilities_for_api.start())
+    asyncio.create_task(scoring_queue.scoring_queue.start())
     uvicorn.run(
         "validator_api.api:app",
         host=shared_settings.API_HOST,

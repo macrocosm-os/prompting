@@ -86,6 +86,10 @@ class SharedSettings(BaseSettings):
     # ==== API =====
     # API key used to access validator organic scoring mechanism (both .env.validator and .env.api).
     SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
+    # Scoring request rate limit in seconds.
+    SCORING_RATE_LIMIT_SEC: float = Field(0.5, env="SCORING_RATE_LIMIT_SEC")
+    # Scoring queue threshold when rate-limit start to kick in, used to query validator API with scoring requests.
+    SCORING_QUEUE_API_THRESHOLD: int = Field(5, env="SCORING_QUEUE_API_THRESHOLD")
 
     # Validator scoring API (.env.validator).
     DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
