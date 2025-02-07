@@ -40,7 +40,7 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
             raise HTTPException(status_code=500, detail="No available miners")
         uids = random.sample(uids, min(len(uids), N_MINERS))
 
-        # Choose between reeular completion and mixture of miners.
+        # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
             return await test_time_inference(body["messages"], body.get("model"))
         if body.get("mixture", False):
