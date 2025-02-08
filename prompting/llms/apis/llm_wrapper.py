@@ -33,7 +33,7 @@ class LLMWrapper:
             except Exception:
                 logger.error(
                     "Failed to use SN19 API, falling back to GPT-3.5. "
-                    f"Make sure to specify 'SN19_API_KEY' and 'SN19_API_URL' in .env.validator"
+                    "Make sure to specify 'SN19_API_KEY' and 'SN19_API_URL' in .env.validator"
                 )
 
         if response is None:
