@@ -230,14 +230,13 @@ class WeightSetter(AsyncLoopRunner):
             final_rewards /= np.sum(final_rewards) + 1e-10
         except Exception as ex:
             logger.exception(f"{ex}")
-        
+
         mean_value = final_rewards.mean()
         min_value = final_rewards.min()
         max_value = final_rewards.max()
         length = len(final_rewards)
         logger.debug(
-            f"Reward stats. Mean: {mean_value:.2f}; "
-            f"Min: {min_value:.4f}; Max: {max_value:.4f}; Count: {length}"
+            f"Reward stats. Mean: {mean_value:.2f}; " f"Min: {min_value:.4f}; Max: {max_value:.4f}; Count: {length}"
         )
         # set weights on chain
         set_weights(
