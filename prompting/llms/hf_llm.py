@@ -65,12 +65,12 @@ class ReproducibleHF:
             )[0]
 
         logger.debug(
-            f"""REPRODUCIBLEHF WAS QUERIED:
-            PROMPT: {messages}\n\n
-            RESPONSES: {results}\n\n
-            SAMPLING PARAMS: {params}\n\n
-            SEED: {seed}\n\n
-            TIME FOR RESPONSE: {timer.elapsed_time}"""
+            f"""{self.__name__} queried:
+            prompt: {messages}\n
+            responses: {results}\n
+            sampling params: {params}\n
+            seed: {seed}
+            """
         )
 
         return results if len(results) > 1 else results[0]
