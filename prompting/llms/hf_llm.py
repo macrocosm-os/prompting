@@ -65,7 +65,7 @@ class ReproducibleHF:
             )[0]
 
         logger.debug(
-            f"""{self.__name__} queried:
+            f"""{self.__class__.__name__} queried:
             prompt: {messages}\n
             responses: {results}\n
             sampling params: {params}\n
