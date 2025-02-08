@@ -153,7 +153,7 @@ class WeightSetter(AsyncLoopRunner):
         try:
             with np.load(FILENAME) as data:
                 PAST_WEIGHTS = [data[key] for key in data.files]
-            logger.debug(f"Loaded persistant weights of length: {len(PAST_WEIGHTS)}")
+            logger.debug(f"Loaded persistent weights of length: {len(PAST_WEIGHTS)}")
         except FileNotFoundError:
             logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
             PAST_WEIGHTS = []
