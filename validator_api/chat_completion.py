@@ -11,7 +11,7 @@ from loguru import logger
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
 from shared.uids import get_uids
-from validator_api.utils import forward_response
+from validator_api import scoring_queue
 
 
 async def peek_until_valid_chunk(
@@ -143,7 +143,9 @@ async def stream_from_first_response(
         remaining = asyncio.gather(*pending, return_exceptions=True)
         remaining_tasks = asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list, body, uids))
         await remaining_tasks
-        asyncio.create_task(forward_response(uids, body, collected_chunks_list))
+        asyncio.create_task(
+            scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=collected_chunks_list)
+        )
 
     except asyncio.CancelledError:
         logger.info("Client disconnected, streaming cancelled")
@@ -198,7 +200,7 @@ async def chat_completion(
     logger.debug(f"REQUEST_BODY: {body}")
     # Get multiple UIDs if none specified
     if uids is None:
-        uids = list(get_uids(sampling_mode="top_incentive", k=100))
+        uids = list(get_uids(sampling_mode="random", k=100))
         if uids is None or len(uids) == 0:  # if not uids throws error, figure out how to fix
             logger.error("No available miners found")
             raise HTTPException(status_code=503, detail="No available miners found")

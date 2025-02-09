@@ -14,7 +14,7 @@ class PenaltyModel(BaseRewardModel):
         return "penalty"
 
     def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
-        """Compute difference scores given a completion and reference pair."""
+        """Penalises miner if they do not respond."""
         rewards = []
         timings = []
         completions: list[str] = response_event.completions

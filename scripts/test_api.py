@@ -28,7 +28,6 @@ async def make_completion(client: openai.AsyncOpenAI, prompt: str, stream: bool 
                 "top_k": 50,
                 "max_new_tokens": 256,
                 "do_sample": True,
-                "seed": None,
             },
             "task": "InferenceTask",
             "mixture": False,

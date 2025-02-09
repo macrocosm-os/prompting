@@ -159,16 +159,17 @@ class ValidatorLoggingEvent(BaseEvent):
 
     def __str__(self):
         sample_completions = [completion for completion in self.response_event.completions if len(completion) > 0]
+        forward_time = round(self.forward_time, 4) if self.forward_time else self.forward_time
         return f"""ValidatorLoggingEvent:
             Block: {self.block}
             Step: {self.step}
-            Step Time: {self.step_time}
-            forward_time: {self.forward_time}
-            task_id: {self.task_id}
+            Step time: {self.step_time:.4f}
+            Forward time: {forward_time}
+            Task id: {self.task_id}
             Number of total completions: {len(self.response_event.completions)}
             Number of non-empty completions: {len(sample_completions)}
-            Sample Completions: {sample_completions[:5]}...
-            """
+            Sample 1 completion: {sample_completions[:1]}
+        """
 
 
 class RewardLoggingEvent(BaseEvent):
@@ -224,7 +225,6 @@ def log_event(event: BaseEvent):
             reinit_wandb()
         unpacked_event = unpack_events(event)
         unpacked_event = convert_arrays_to_lists(unpacked_event)
-        logger.debug(f"""LOGGING WANDB EVENT: {unpacked_event}""")
         wandb.log(unpacked_event)
 
 

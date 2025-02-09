@@ -153,7 +153,7 @@ class WeightSetter(AsyncLoopRunner):
         try:
             with np.load(FILENAME) as data:
                 PAST_WEIGHTS = [data[key] for key in data.files]
-            logger.debug(f"Loaded Past Weights: {PAST_WEIGHTS}")
+            logger.debug(f"Loaded persistent weights of length: {len(PAST_WEIGHTS)}")
         except FileNotFoundError:
             logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
             PAST_WEIGHTS = []
@@ -164,7 +164,6 @@ class WeightSetter(AsyncLoopRunner):
     async def run_step(self):
         await asyncio.sleep(0.01)
         try:
-            logger.info("Reward setting loop running")
             if len(self.reward_events) == 0:
                 logger.warning("No reward events in queue, skipping weight setting...")
                 return
@@ -182,8 +181,6 @@ class WeightSetter(AsyncLoopRunner):
             miner_rewards: dict[TaskConfig, dict[int, float]] = {
                 config: {uid: {"reward": 0, "count": 0} for uid in range(1024)} for config in TaskRegistry.task_configs
             }
-
-            logger.debug(f"Miner rewards before processing: {miner_rewards}")
 
             inference_events: list[WeightedRewardEvent] = []
             for reward_events in self.reward_events:
@@ -206,8 +203,6 @@ class WeightSetter(AsyncLoopRunner):
                         miner_rewards[task_config][uid]["count"] += (
                             1 * reward_event.weight
                         )  # TODO: Double check I actually average at the end
-
-            logger.debug(f"Miner rewards after processing: {miner_rewards}")
 
             for inference_event in inference_events:
                 for uid, reward in zip(inference_event.uids, inference_event.rewards):
@@ -233,9 +228,16 @@ class WeightSetter(AsyncLoopRunner):
             final_rewards = np.array(list(reward_dict.values())).astype(float)
             final_rewards[final_rewards < 0] = 0
             final_rewards /= np.sum(final_rewards) + 1e-10
-            logger.debug(f"Final reward dict: {final_rewards}")
         except Exception as ex:
             logger.exception(f"{ex}")
+
+        mean_value = final_rewards.mean()
+        min_value = final_rewards.min()
+        max_value = final_rewards.max()
+        length = len(final_rewards)
+        logger.debug(
+            f"Reward stats. Mean: {mean_value:.2f}; Min: {min_value:.4f}; Max: {max_value:.4f}; Count: {length}"
+        )
         # set weights on chain
         set_weights(
             final_rewards, step=self.step, subtensor=shared_settings.SUBTENSOR, metagraph=shared_settings.METAGRAPH

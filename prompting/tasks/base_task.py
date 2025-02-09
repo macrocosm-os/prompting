@@ -57,8 +57,8 @@ class BaseTextTask(BaseTask):
     reference_system_prompt: ClassVar[str | None] = None
     augmentation_system_prompt: ClassVar[str | None] = None
     dataset_entry: DatasetEntry | None = None
-    task_id: str = str(uuid4())
     sampling_params: dict[str, float] = shared_settings.SAMPLING_PARAMS
+    timeout: int = shared_settings.NEURON_TIMEOUT
 
     @model_validator(mode="after")
     def get_model_id_and_seed(self) -> "BaseTextTask":

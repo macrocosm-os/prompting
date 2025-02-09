@@ -5367,6 +5367,20 @@ files = [
 tests = ["pytest", "pytest-cov"]
 
 [[package]]
+name = "thefuzz"
+version = "0.22.1"
+description = "Fuzzy string matching in python"
+optional = true
+python-versions = ">=3.8"
+files = [
+    {file = "thefuzz-0.22.1-py3-none-any.whl", hash = "sha256:59729b33556850b90e1093c4cf9e618af6f2e4c985df193fdf3c5b5cf02ca481"},
+    {file = "thefuzz-0.22.1.tar.gz", hash = "sha256:7138039a7ecf540da323792d8592ef9902b1d79eb78c147d4f20664de79f3680"},
+]
+
+[package.dependencies]
+rapidfuzz = ">=3.0.0,<4.0.0"
+
+[[package]]
 name = "tiktoken"
 version = "0.8.0"
 description = "tiktoken is a fast BPE tokeniser for use with OpenAI's models"
@@ -6511,9 +6525,9 @@ cffi = {version = ">=1.11", markers = "platform_python_implementation == \"PyPy\
 cffi = ["cffi (>=1.11)"]
 
 [extras]
-validator = ["accelerate", "angle-emb", "autoawq", "bs4", "datasets", "duckduckgo-search", "huggingface-hub", "nltk", "numpy", "pandas", "pillow", "rouge", "tiktoken", "tiktoken", "torch", "torchvision", "trafilatura", "transformers", "wandb", "wikipedia"]
+validator = ["accelerate", "angle-emb", "autoawq", "bs4", "datasets", "duckduckgo-search", "huggingface-hub", "nltk", "numpy", "pandas", "pillow", "rouge", "thefuzz", "tiktoken", "tiktoken", "torch", "torchvision", "trafilatura", "transformers", "wandb", "wikipedia"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10 <3.11"
-content-hash = "c8c8792393f2c855bc5e090456bcebd07e249a27712ef2900778e167f601abc7"
+content-hash = "fab6ac48abb10a86530acc8695bdae77ccf876c6ea252f544983c919a7f34359"

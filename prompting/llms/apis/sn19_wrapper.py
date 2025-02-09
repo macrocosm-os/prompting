@@ -1,7 +1,6 @@
 import json
 
 import requests
-from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from prompting.llms.apis.llm_messages import LLMMessages
@@ -37,11 +36,8 @@ def chat_complete(
         "logprobs": logprobs,
     }
     response = requests.post(url, headers=headers, data=json.dumps(data), timeout=30)
+    response_json = response.json()
     try:
-        response_json = response.json()
-        try:
-            return response_json["choices"][0]["message"].get("content")
-        except KeyError:
-            return response_json["choices"][0]["delta"].get("content")
-    except Exception as e:
-        logger.exception(f"Error in chat_complete: {e}")
+        return response_json["choices"][0]["message"].get("content")
+    except KeyError:
+        return response_json["choices"][0]["delta"].get("content")

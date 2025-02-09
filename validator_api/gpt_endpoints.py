@@ -1,21 +1,26 @@
 import asyncio
 import json
 import random
+import time
+import uuid
 
 import numpy as np
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from loguru import logger
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
 
 from shared.epistula import SynapseStreamResult, query_miners
 from shared.settings import shared_settings
-from shared.uids import get_uids
+from validator_api import scoring_queue
 from validator_api.api_management import _keys
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
-from validator_api.utils import forward_response
+from validator_api.test_time_inference import generate_response
+from validator_api.utils import filter_available_uids
 
 router = APIRouter()
+N_MINERS = 5
 
 
 def validate_api_key(api_key: str = Header(...)):
@@ -30,12 +35,18 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
     try:
         body = await request.json()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
+        uids = body.get("uids") or filter_available_uids(task=body.get("task"), model=body.get("model"))
+        if not uids:
+            raise HTTPException(status_code=500, detail="No available miners")
+        uids = random.sample(uids, min(len(uids), N_MINERS))
 
         # Choose between regular completion and mixture of miners.
+        if body.get("test_time_inference", False):
+            return await test_time_inference(body["messages"], body.get("model"))
         if body.get("mixture", False):
-            return await mixture_of_miners(body)
+            return await mixture_of_miners(body, uids=uids)
         else:
-            return await chat_completion(body)
+            return await chat_completion(body, uids=uids)
 
     except Exception as e:
         logger.exception(f"Error in chat completion: {e}")
@@ -44,7 +55,11 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 
 @router.post("/web_retrieval")
 async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] = None):
-    uids = list(get_uids(sampling_mode="random", k=n_miners))
+    if not uids:
+        uids = filter_available_uids(task="WebRetrievalTask")
+    if not uids:
+        raise HTTPException(status_code=500, detail="No available miners")
+    uids = random.sample(uids, min(len(uids), n_miners))
     logger.debug(f"🔍 Querying uids: {uids}")
     if len(uids) == 0:
         logger.warning("No available miners. This should already have been caught earlier.")
@@ -83,4 +98,46 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
 
     collected_chunks_list = [res.accumulated_chunks if res and res.accumulated_chunks else [] for res in stream_results]
     asyncio.create_task(forward_response(uids, body, collected_chunks_list))
+    asyncio.create_task(scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=chunks))
     return loaded_results
+
+
+@router.post("/test_time_inference")
+async def test_time_inference(messages: list[dict], model: str = None):
+    async def create_response_stream(user_query):
+        async for steps, total_thinking_time in generate_response(user_query):
+            if total_thinking_time is not None:
+                logger.info(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
+            yield steps, total_thinking_time
+
+    # Create a streaming response that yields each step
+    async def stream_steps():
+        try:
+            query = messages[-1]["content"]
+            logger.info(f"Query: {query}")
+            i = 0
+            async for steps, thinking_time in create_response_stream(query):
+                i += 1
+                yield "data: " + ChatCompletionChunk(
+                    id=str(uuid.uuid4()),
+                    created=int(time.time()),
+                    model=model or "None",
+                    object="chat.completion.chunk",
+                    choices=[
+                        Choice(index=i, delta=ChoiceDelta(content=f"## {steps[-1][0]}\n\n{steps[-1][1]}" + "\n\n"))
+                    ],
+                ).model_dump_json() + "\n\n"
+        except Exception as e:
+            logger.exception(f"Error during streaming: {e}")
+            yield f'data: {{"error": "Internal Server Error: {str(e)}"}}\n\n'
+        finally:
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        stream_steps(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
+    )

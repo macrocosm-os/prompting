@@ -81,9 +81,8 @@ retry() {
 # Backup local changes if any exist
 backup_changes() {
     if ! git diff --quiet; then
-        local backup_branch="backup/$(date -u '+%Y%m%d_%H%M%S')"
-        log WARN "Creating backup branch: $backup_branch"
-        git stash && git stash branch "$backup_branch"
+        log WARN "Stashing local changes"
+        git stash
     fi
 }
 
