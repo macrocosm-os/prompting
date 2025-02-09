@@ -4,6 +4,7 @@ from loguru import logger
 from shared.loop_runner import AsyncLoopRunner
 from shared.settings import shared_settings
 from validator_api.validator_forwarding import ValidatorRegistry
+from pydantic import BaseModel, Field
 
 validator_registry = ValidatorRegistry()
 
