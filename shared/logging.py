@@ -14,7 +14,7 @@ import prompting
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.task_registry import TaskRegistry
 from shared.dendrite import DendriteResponseEvent
-from shared.settings import shared_settings
+from shared import settings
 
 # TODO: Get rid of global variables.
 WANDB: Run
@@ -72,7 +72,7 @@ def should_reinit_wandb():
         current_time = datetime.now()
         elapsed_time = current_time - wandb_start_time
         # Check if more than 24 hours have passed
-        if elapsed_time > timedelta(hours=shared_settings.MAX_WANDB_DURATION):
+        if elapsed_time > timedelta(hours=settings.shared_settings.MAX_WANDB_DURATION):
             return True
     return False
 
@@ -81,14 +81,14 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner", "api"] = "val
     """Starts a new wandb run."""
     global WANDB
     tags = [
-        f"Wallet: {shared_settings.WALLET.hotkey.ss58_address}",
+        f"Wallet: {settings.shared_settings.WALLET.hotkey.ss58_address}",
         f"Version: {prompting.__version__}",
-        f"Netuid: {shared_settings.NETUID}",
+        f"Netuid: {settings.shared_settings.NETUID}",
     ]
 
-    if shared_settings.MOCK:
-        tags.append("Mock")
-    if shared_settings.NEURON_DISABLE_SET_WEIGHTS:
+    # if settings.shared_settings.MOCK:
+    #     tags.append("Mock")
+    if settings.shared_settings.NEURON_DISABLE_SET_WEIGHTS:
         tags.append("Disable weights set")
 
     tags += custom_tags
@@ -98,30 +98,31 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner", "api"] = "val
         task_list.append(task_config.task.__name__)
 
     wandb_config = {
-        "HOTKEY_SS58": shared_settings.WALLET.hotkey.ss58_address,
-        "NETUID": shared_settings.NETUID,
+        "HOTKEY_SS58": settings.shared_settings.WALLET.hotkey.ss58_address,
+        "NETUID": settings.shared_settings.NETUID,
         "wandb_start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "TASKS": task_list,
     }
-    wandb.login(anonymous="allow", key=shared_settings.WANDB_API_KEY, verify=True)
+    wandb.login(anonymous="allow", key=settings.shared_settings.WANDB_API_KEY, verify=True)
     logger.info(
-        f"Logging in to wandb on entity: {shared_settings.WANDB_ENTITY} and project: {shared_settings.WANDB_PROJECT_NAME}"
+        f"Logging in to wandb on entity: {settings.shared_settings.WANDB_ENTITY} and project: "
+        f"{settings.shared_settings.WANDB_PROJECT_NAME}"
     )
-    wandb_run_name = f"{neuron}{shared_settings.UID}-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    wandb_run_name = f"{neuron}{settings.shared_settings.UID}-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     # Initialize the wandb run with the custom name.
     WANDB = wandb.init(
         reinit=reinit,
         name=wandb_run_name,
-        project=shared_settings.WANDB_PROJECT_NAME,
-        entity=shared_settings.WANDB_ENTITY,
-        mode="offline" if shared_settings.WANDB_OFFLINE else "online",
-        dir=shared_settings.SAVE_PATH,
+        project=settings.shared_settings.WANDB_PROJECT_NAME,
+        entity=settings.shared_settings.WANDB_ENTITY,
+        mode="offline" if settings.shared_settings.WANDB_OFFLINE else "online",
+        dir=settings.shared_settings.SAVE_PATH,
         tags=tags,
-        notes=shared_settings.WANDB_NOTES,
+        notes=settings.shared_settings.WANDB_NOTES,
         config=wandb_config,
     )
-    signature = shared_settings.WALLET.hotkey.sign(WANDB.id.encode()).hex()
+    signature = settings.shared_settings.WALLET.hotkey.sign(WANDB.id.encode()).hex()
     wandb_config["SIGNATURE"] = signature
     WANDB.config.update(wandb_config)
     logger.success(f"Started a new wandb run <blue> {WANDB.name} </blue>")
@@ -217,10 +218,10 @@ class MinerLoggingEvent(BaseEvent):
 
 
 def log_event(event: BaseEvent):
-    if not shared_settings.LOGGING_DONT_SAVE_EVENTS:
+    if not settings.shared_settings.LOGGING_DONT_SAVE_EVENTS:
         logger.info(f"{event}")
 
-    if shared_settings.WANDB_ON:
+    if settings.shared_settings.WANDB_ON:
         if should_reinit_wandb():
             reinit_wandb()
         unpacked_event = unpack_events(event)
