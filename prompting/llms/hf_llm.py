@@ -6,7 +6,6 @@ from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, pipeline
 
 from shared.settings import shared_settings
-from shared.timer import Timer
 
 
 class ReproducibleHF:
@@ -51,18 +50,17 @@ class ReproducibleHF:
         params = sampling_params if sampling_params else self.sampling_params
         filtered_params = {k: v for k, v in params.items() if k in self.valid_generation_params}
 
-        with Timer() as timer:
-            # Generate with optimized settings
-            outputs = self.model.generate(
-                **inputs.to(shared_settings.NEURON_DEVICE),
-                **filtered_params,
-                eos_token_id=self.tokenizer.eos_token_id,
-            )
+        # Generate with optimized settings
+        outputs = self.model.generate(
+            **inputs.to(shared_settings.NEURON_DEVICE),
+            **filtered_params,
+            eos_token_id=self.tokenizer.eos_token_id,
+        )
 
-            results = self.tokenizer.batch_decode(
-                outputs[:, inputs["input_ids"].shape[1] :],
-                skip_special_tokens=True,
-            )[0]
+        results = self.tokenizer.batch_decode(
+            outputs[:, inputs["input_ids"].shape[1] :],
+            skip_special_tokens=True,
+        )[0]
 
         logger.debug(
             f"""{self.__class__.__name__} queried:

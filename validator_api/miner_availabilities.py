@@ -61,7 +61,9 @@ class MinerAvailabilitiesUpdater(AsyncLoopRunner):
     interval: int = 40
 
     async def run_step(self):
-        uids = get_uids(sampling_mode="random", k=100) # TODO: We should probably not just randomly sample uids, there's likely a better way to do this.
+        uids = get_uids(
+            sampling_mode="random", k=100
+        )  # TODO: We should probably not just randomly sample uids, there's likely a better way to do this.
         # TODO: Default to highest stake validator's availability api
         url = f"{shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities"
 

@@ -1,15 +1,17 @@
+import httpx
 import requests
 from loguru import logger
 
+from shared.epistula import create_header_hook
 from shared.loop_runner import AsyncLoopRunner
 from shared.settings import shared_settings
 from validator_api.validator_forwarding import ValidatorRegistry
-from pydantic import BaseModel, Field
 
 validator_registry = ValidatorRegistry()
 
 # make class w/ getter that yields validator_axon (creates from shared_settings) based on criterea (stake*x*Y)
- 
+
+
 # TODO: Modify this so that all the forwarded responses are sent in a single request. This is both more efficient but
 # also means that on the validator side all responses are scored at once, speeding up the scoring process.
 async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
@@ -29,21 +31,19 @@ async def forward_response(uids: int, body: dict[str, any], chunks: list[str]):
         logger.warning(e)
         vali_uid, vali_axon = None, None
     if not vali_uid:
-        logger.warning("Unable to get an available validator, either through spot-checking restrictions or errors, skipping scoring")
+        logger.warning(
+            "Unable to get an available validator, either through spot-checking restrictions or errors, skipping scoring"
+        )
         return
 
-    url =  f"http://{vali_axon}/scoring"
+    url = f"http://{vali_axon}/scoring"
     payload = {"body": body, "chunks": chunk_dict, "uid": uids}
     # Create an AsyncClient that attaches the header hook.
     # The header hook is created by passing the wallet’s hotkey and the axon’s hotkey.
     # Adjust the attribute access as needed depending on how your axon object is defined.
     async with httpx.AsyncClient(
-        timeout=timeout,
-        event_hooks={
-            "request": [
-                create_header_hook(shared_settings.WALLET.hotkey, vali_hotkey)
-            ]
-        },
+        timeout=httpx.Timeout(connect=5, read=5, write=5),
+        event_hooks={"request": [create_header_hook(shared_settings.WALLET.hotkey, vali_hotkey)]},
     ) as client:
         try:
             response = await client.post(

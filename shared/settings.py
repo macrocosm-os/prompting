@@ -86,16 +86,13 @@ class SharedSettings(BaseSettings):
 
     # ==== API =====
     # Hotkey used to run api, defaults to Macrocosmos
-    API_HOTKEY: str = Field("5Cg5QgjMfRqBC6bh8X4PDbQi7UzVRn9eyWXsB8gkyfppFPPy", env = "API_HOTKEY")
+    API_HOTKEY: str = Field("5Cg5QgjMfRqBC6bh8X4PDbQi7UzVRn9eyWXsB8gkyfppFPPy", env="API_HOTKEY")
     # Scoring request rate limit in seconds.
     SCORING_RATE_LIMIT_SEC: float = Field(0.5, env="SCORING_RATE_LIMIT_SEC")
     # Scoring queue threshold when rate-limit start to kick in, used to query validator API with scoring requests.
     SCORING_QUEUE_API_THRESHOLD: int = Field(5, env="SCORING_QUEUE_API_THRESHOLD")
 
     # Validator scoring API (.env.validator).
-    DEPLOY_SCORING_API: bool = Field(True, env="DEPLOY_SCORING_API")
-    SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
-    SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
     SCORE_ORGANICS: bool = Field(False, env="SCORE_ORGANICS")
     WORKERS: int = Field(2, env="WORKERS")
 
@@ -103,7 +100,8 @@ class SharedSettings(BaseSettings):
     API_PORT: int = Field(8005, env="API_PORT")
     API_HOST: str = Field("0.0.0.0", env="API_HOST")
     # Validator scoring API address.
-    VALIDATOR_API: str = Field("0.0.0.0:8094", env="VALIDATOR_API")
+    # TODO: Choose this dynamically from the network
+    VALIDATOR_API: str = Field("184.105.5.17:8094", env="VALIDATOR_API")  # Used for availability
     # Default SN1 API address
     DEFAULT_SN1_API: str = Field("http://sn1.api.macrocosmos.ai:11198/v1", env="DEFAULT_SN1_API")
     # File with keys used to access API.

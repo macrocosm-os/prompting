@@ -1,7 +1,8 @@
 import uuid
 from typing import Any
+import time
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from loguru import logger
 
 from prompting.datasets.random_website import DDGDatasetEntry
@@ -9,47 +10,40 @@ from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.scoring import task_scorer
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.web_retrieval import WebRetrievalTask
-from shared.epistula import verify_signature
 from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
-from shared.epistula import SynapseStreamResult
+from shared.epistula import SynapseStreamResult, verify_signature
 from shared.settings import shared_settings
 
 router = APIRouter()
 
-def verify_scoring_signature(
-    signature: str,
-    body: bytes,
-    signed_by: str,
-) -> Optional[Annotated[str, "Error Message"]]:
-    # Basic type checks
-    if not isinstance(signature, str):
-        return "Invalid signature type"
-    if not isinstance(body, bytes):
-        return "Body is not of type bytes"
-    if not isinstance(signed_by, str):
-        return "Invalid 'signed_by' address"
 
-    # Check that the 'signed_by' matches the expected SS58 address
+def verify_scoring_signature(self, request: Request):
+    signed_by = request.headers.get("Epistula-Signed-By")
+    signed_for = request.headers.get("Epistula-Signed-For")
+    if signed_for != shared_settings.WALLET.hotkey.ss58_address:
+        raise HTTPException(status_code=400, detail="Bad Request, message is not intended for self")
     if signed_by != shared_settings.API_HOTKEY:
-        return "Message not from the expected SS58 address"
+        raise HTTPException(status_code=401, detail="Signer not the expected ss58 address")
 
-    # Build the message to verify
-    message = f"{sha256(body).hexdigest()}.{uuid}.{timestamp}.{signed_for}"
-
-    # Create a keypair using the 'signed_by' address
-    keypair = Keypair(ss58_address=signed_by)
-
-    # Verify the signature
-    verified = keypair.verify(message, signature)
-    if not verified:
-        return "Signature mismatch"
-
-    return None
+    body = await request.body()
+    now = time.time()
+    err = verify_signature(
+        request.headers.get("Epistula-Request-Signature"),
+        body,
+        request.headers.get("Epistula-Timestamp"),
+        request.headers.get("Epistula-Uuid"),
+        signed_for,
+        signed_by,
+        now,
+    )
+    if err:
+        logger.error(err)
+        raise HTTPException(status_code=400, detail=err)
 
 
 @router.post("/scoring")
-async def score_response(request: Request, api_key_data: dict = Depends(verify_signature)):
+async def score_response(request: Request, api_key_data: dict = Depends(verify_scoring_signature)):
     model = None
     payload: dict[str, Any] = await request.json()
     body = payload.get("body")

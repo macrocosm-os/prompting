@@ -4,8 +4,11 @@ import sys
 import time
 
 import loguru
+import netaddr
+import requests
 import torch
 import wandb
+from bittensor.core.extrinsics.serving import serve_extrinsic
 
 # ruff: noqa: E402
 from shared import settings
@@ -90,12 +93,11 @@ def start_api(scoring_queue, reward_events):
         from prompting.miner_availability.miner_availability import availability_checking_loop
 
         asyncio.create_task(availability_checking_loop.start())
-        import bittensor as bt
 
         try:
             external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
             netaddr.IPAddress(external_ip)
-                
+
             serve_success = serve_extrinsic(
                 subtensor=shared_settings.SUBTENSOR,
                 wallet=shared_settings.WALLET,
@@ -105,7 +107,8 @@ def start_api(scoring_queue, reward_events):
                 netuid=shared_settings.NETUID,
             )
 
-        except Exception as e: 
+            logger.debug(f"Serve success: {serve_success}")
+        except Exception as e:
             logger.warning(f"Failed to serve scoring api to chain: {e}")
         await start_scoring_api(scoring_queue, reward_events)
 
