@@ -86,8 +86,8 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner", "api"] = "val
         f"Netuid: {settings.shared_settings.NETUID}",
     ]
 
-    # if settings.shared_settings.MOCK:
-    #     tags.append("Mock")
+    if settings.shared_settings.MOCK:
+        tags.append("Mock")
     if settings.shared_settings.NEURON_DISABLE_SET_WEIGHTS:
         tags.append("Disable weights set")
 
