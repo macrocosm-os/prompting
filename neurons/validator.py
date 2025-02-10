@@ -44,6 +44,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         from prompting.tasks.task_sending import task_sender
         from prompting.weight_setting.weight_setter import weight_setter
         from shared.profiling import profiler
+
         wandb.log({"test2": 123})
 
         logger.info("Starting Profiler...")
@@ -171,9 +172,7 @@ async def main():
                     logger.warning(
                         f"UPDATES HAVE STALED FOR {current_block - last_update_block} BLOCKS AND {step} STEPS"
                     )
-                    logger.warning(
-                        f"STALED: {current_block}, {settings.shared_settings.METAGRAPH.block}"
-                    )
+                    logger.warning(f"STALED: {current_block}, {settings.shared_settings.METAGRAPH.block}")
                     sys.exit(1)
                 step += 1
 
