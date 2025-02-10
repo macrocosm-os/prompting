@@ -70,13 +70,11 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
         body["target_results"] = task.target_results
     body["timeout"] = task.timeout
 
-    logger.info(f"🔍 SENDING TASK {task.task_id} WITH BODY: {body}")
+    logger.info(f"🔍 Sending task {task.task_id} with body: {body}")
     stream_results = await query_miners(uids, body)
     logger.debug(f"🔍 Collected responses from {len(stream_results)} miners")
 
     log_stream_results(stream_results)
-
-    logger.debug("🔍 Creating response event")
 
     response_event = DendriteResponseEvent(
         stream_results=stream_results,

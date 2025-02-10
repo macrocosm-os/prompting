@@ -51,7 +51,7 @@ class TaskScorer(AsyncLoopRunner):
                 task_id=task_id,
             )
         )
-        logger.debug(f"SCORING: Added to queue: {task.__class__.__name__}. Queue size: {len(self.scoring_queue)}")
+        logger.debug(f"Added to queue: {task.__class__.__name__}. Queue size: {len(self.scoring_queue)}")
 
     async def run_step(self) -> RewardLoggingEvent:
         await asyncio.sleep(0.1)
@@ -79,7 +79,8 @@ class TaskScorer(AsyncLoopRunner):
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
         logger.debug(
-            f"""{len(scoring_config.response.completions)} completions to score for task {scoring_config.task}"""
+            f"{len(scoring_config.response.completions)} completions to score for task "
+            f"{scoring_config.task.__class__.__name__}"
         )
         reward_events = reward_pipeline.apply(
             response_event=scoring_config.response,
@@ -89,11 +90,9 @@ class TaskScorer(AsyncLoopRunner):
             task=scoring_config.task,
         )
         self.reward_events.append(reward_events)
-        # logger.debug(
-        #     f"REFERENCE: {scoring_config.task.reference}\n\n||||RESPONSES: {scoring_config.response.completions}"
-        # )
         logger.debug(
-            f"SCORING: Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with model {scoring_config.task.llm_model_id} with reward"
+            f"Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with model "
+            f"{scoring_config.task.llm_model_id}"
         )
         log_event(
             RewardLoggingEvent(
@@ -109,7 +108,6 @@ class TaskScorer(AsyncLoopRunner):
                 source=scoring_config.dataset_entry.source,
             )
         )
-        logger.info("Adding scores to rewards_and_uids")
         await asyncio.sleep(0.01)
 
 

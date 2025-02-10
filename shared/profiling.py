@@ -23,7 +23,7 @@ class LoopProfiler:
                 "thread_ids": set(),
             }
         )
-        self.start_time = time.time()
+        self.start_time = time.perf_counter()
         self._active_measurements = set()
         self.process = psutil.Process()
         # Initialize process CPU times
@@ -59,8 +59,8 @@ class LoopProfiler:
 
     async def print_stats(self):
         while True:
-            await asyncio.sleep(60)  # Report every minute
-            total_runtime = time.time() - self.start_time
+            await asyncio.sleep(5 * 60)  # Report every 5 minutes
+            total_runtime = time.perf_counter() - self.start_time
 
             logging.info("\n=== Loop Profiling Stats ===")
             logging.info(f"Total wall clock time: {total_runtime:.2f}s")
