@@ -4,7 +4,9 @@ from typing import Literal
 import numpy as np
 from loguru import logger
 
-from shared.settings import shared_settings
+from shared import settings
+
+shared_settings = settings.shared_settings
 
 
 def check_uid_availability(

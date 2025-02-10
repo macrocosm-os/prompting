@@ -5,7 +5,7 @@ import torch
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, pipeline
 
-from shared.settings import shared_settings
+from shared import settings
 from shared.timer import Timer
 
 
@@ -31,7 +31,7 @@ class ReproducibleHF:
 
         self.llm = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer)
 
-        self.sampling_params = shared_settings.SAMPLING_PARAMS
+        self.sampling_params = settings.shared_settings.SAMPLING_PARAMS
 
     @torch.inference_mode()
     def generate(self, messages: list[str] | list[dict], sampling_params=None, seed=None):
@@ -46,7 +46,7 @@ class ReproducibleHF:
             add_generation_prompt=True,
             return_tensors="pt",
             return_dict=True,
-        ).to(shared_settings.NEURON_DEVICE)
+        ).to(settings.shared_settings.NEURON_DEVICE)
 
         params = sampling_params if sampling_params else self.sampling_params
         filtered_params = {k: v for k, v in params.items() if k in self.valid_generation_params}
@@ -54,7 +54,7 @@ class ReproducibleHF:
         with Timer() as timer:
             # Generate with optimized settings
             outputs = self.model.generate(
-                **inputs.to(shared_settings.NEURON_DEVICE),
+                **inputs.to(settings.shared_settings.NEURON_DEVICE),
                 **filtered_params,
                 eos_token_id=self.tokenizer.eos_token_id,
             )

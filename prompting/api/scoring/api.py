@@ -9,16 +9,16 @@ from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.scoring import task_scorer
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.web_retrieval import WebRetrievalTask
+from shared import settings
 from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.epistula import SynapseStreamResult
-from shared.settings import shared_settings
 
 router = APIRouter()
 
 
 def validate_scoring_key(api_key: str = Header(...)):
-    if api_key != shared_settings.SCORING_KEY:
+    if api_key != settings.shared_settings.SCORING_KEY:
         raise HTTPException(status_code=403, detail="Invalid API key")
 
 
@@ -27,7 +27,7 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
     model = None
     payload: dict[str, Any] = await request.json()
     body = payload.get("body")
-    timeout = payload.get("timeout", shared_settings.NEURON_TIMEOUT)
+    timeout = payload.get("timeout", settings.shared_settings.NEURON_TIMEOUT)
     uids = payload.get("uid", [])
     chunks = payload.get("chunks", {})
     if not uids or not chunks:
@@ -54,7 +54,7 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
             llm_model=llm_model,
             llm_model_id=body.get("model"),
             seed=int(body.get("seed", 0)),
-            sampling_params=body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS),
+            sampling_params=body.get("sampling_parameters", settings.shared_settings.SAMPLING_PARAMS),
             query=body.get("messages"),
         )
         logger.info(f"Task created: {organic_task}")
@@ -66,7 +66,7 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
                 timeout=timeout,
             ),
             dataset_entry=DatasetEntry(),
-            block=shared_settings.METAGRAPH.block,
+            block=settings.shared_settings.METAGRAPH.block,
             step=-1,
             task_id=str(uuid.uuid4()),
         )
@@ -90,10 +90,10 @@ async def score_response(request: Request, api_key_data: dict = Depends(validate
                 stream_results=[
                     SynapseStreamResult(accumulated_chunks=[chunk for chunk in chunks if chunk is not None])
                 ],
-                timeout=body.get("timeout", shared_settings.NEURON_TIMEOUT),
+                timeout=body.get("timeout", settings.shared_settings.NEURON_TIMEOUT),
             ),
             dataset_entry=DDGDatasetEntry(search_term=search_term),
-            block=shared_settings.METAGRAPH.block,
+            block=settings.shared_settings.METAGRAPH.block,
             step=-1,
             task_id=str(uuid.uuid4()),
         )

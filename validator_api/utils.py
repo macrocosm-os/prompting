@@ -1,9 +1,11 @@
 import requests
 from loguru import logger
 
+from shared import settings
 from shared.loop_runner import AsyncLoopRunner
-from shared.settings import shared_settings
 from shared.uids import get_uids
+
+shared_settings = settings.shared_settings
 
 
 class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):

@@ -13,8 +13,8 @@ from wandb.wandb_run import Run
 import prompting
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.task_registry import TaskRegistry
-from shared.dendrite import DendriteResponseEvent
 from shared import settings
+from shared.dendrite import DendriteResponseEvent
 
 # TODO: Get rid of global variables.
 WANDB: Run

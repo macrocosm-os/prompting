@@ -13,12 +13,14 @@ from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.web_retrieval import WebRetrievalTask
+from shared import settings
 from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
 from shared.epistula import query_miners
 from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
-from shared.settings import shared_settings
 from shared.timer import Timer
+
+shared_settings = settings.shared_settings
 
 NEURON_SAMPLE_SIZE = 100
 

@@ -11,10 +11,12 @@ from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.task_registry import TaskConfig, TaskRegistry
+from shared import settings
 from shared.logging import WeightSetEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
 from shared.misc import ttl_get_block
-from shared.settings import shared_settings
+
+shared_settings = settings.shared_settings
 
 FILENAME = "validator_weights.npz"
 WEIGHTS_HISTORY_LENGTH = 24
