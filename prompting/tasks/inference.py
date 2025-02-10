@@ -2,7 +2,6 @@ import random
 from typing import ClassVar
 
 import numpy as np
-from loguru import logger
 from pydantic import Field, model_validator
 
 from prompting.datasets.sn13 import ChatEntry
