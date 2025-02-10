@@ -16,7 +16,9 @@ from prompting.tasks.task_registry import TaskRegistry
 from shared.dendrite import DendriteResponseEvent
 from shared.settings import shared_settings
 
+# TODO: Get rid of global variable.
 WANDB: Run
+# WANDB_API: Run
 
 
 @dataclass
@@ -76,7 +78,7 @@ def should_reinit_wandb():
     return False
 
 
-def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator", custom_tags: list = []):
+def init_wandb(reinit=False, neuron: Literal["validator", "miner", "api"] = "validator", custom_tags: list = []):
     """Starts a new wandb run."""
     global WANDB
     tags = [
@@ -89,11 +91,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
     if shared_settings.MOCK:
         tags.append("Mock")
     if shared_settings.NEURON_DISABLE_SET_WEIGHTS:
-        tags.append("disable_set_weights")
-        tags += [
-            f"Neuron UID: {shared_settings.METAGRAPH.hotkeys.index(shared_settings.WALLET.hotkey.ss58_address)}",
-            f"Time: {datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}",
-        ]
+        tags.append("Disable weights set")
 
     tags += custom_tags
 
@@ -111,8 +109,13 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner"] = "validator"
     logger.info(
         f"Logging in to wandb on entity: {shared_settings.WANDB_ENTITY} and project: {shared_settings.WANDB_PROJECT_NAME}"
     )
+    # If no name is provided, generate one based on the neuron type and the current timestamp.
+    wandb_run_name = f"{neuron}{shared_settings.UID}-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+    # Initialize the wandb run with the custom name.
     WANDB = wandb.init(
         reinit=reinit,
+        name=wandb_run_name,
         project=shared_settings.WANDB_PROJECT_NAME,
         entity=shared_settings.WANDB_ENTITY,
         mode="offline" if shared_settings.WANDB_OFFLINE else "online",
@@ -241,7 +244,3 @@ def unpack_events(event: BaseEvent) -> dict[str, Any]:
 
 def convert_arrays_to_lists(data: dict) -> dict:
     return {key: value.tolist() if hasattr(value, "tolist") else value for key, value in data.items()}
-
-
-if shared_settings.WANDB_ON and not shared_settings.MOCK:
-    init_wandb()

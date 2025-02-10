@@ -36,7 +36,8 @@ class TaskLoop(AsyncLoopRunner):
             return None
         await asyncio.sleep(0.1)
         try:
-            # Getting task & Dataset
+            task = None
+            # Getting task and dataset
             for i in range(RETRIES):
                 try:
                     logger.debug(f"Retry: {i}")

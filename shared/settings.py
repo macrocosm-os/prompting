@@ -275,7 +275,7 @@ class SharedSettings(BaseSettings):
 
 shared_settings: Optional[SharedSettings] = None
 try:
-    shared_settings = SharedSettings.load(mode="mock")
+    shared_settings = SharedSettings.load(mode="validator")
     pass
 except Exception as e:
     logger.exception(f"Error loading settings: {e}")
