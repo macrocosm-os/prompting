@@ -111,8 +111,6 @@ async def test_time_inference(messages: list[dict], model: str = None):
     # Create a streaming response that yields each step
     async def stream_steps():
         try:
-            # query = messages[-1]["content"]
-            # logger.info(f"Query: {query}")
             i = 0
             async for steps, thinking_time in create_response_stream(messages):
                 i += 1
