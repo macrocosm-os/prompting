@@ -83,7 +83,7 @@ async def mixture_of_miners(body: dict[str, any], uids: list[int]) -> tuple | St
             "role": "assistant",
             "content": "I have received the following responses from various models:\n"
             + "\n".join([f"{i+1}. {comp}" for i, comp in enumerate(completions)])
-            + "Now I will synthesize them into a single, high-quality and concise response to the user's query.",
+            + "\nNow I will synthesize them into a single, high-quality and concise response to the user's query.",
         },
     ]
 
