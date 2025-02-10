@@ -32,7 +32,6 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
 
     async def spawn_loops(task_queue, scoring_queue, reward_events):
         # ruff: noqa: E402
-        # wandb.setup()
         from shared import settings
 
         settings.shared_settings = settings.SharedSettings.load(mode="validator")
