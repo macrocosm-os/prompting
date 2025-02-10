@@ -175,6 +175,45 @@ class MultiStepReasoningRewardConfig(BaseRewardConfig):
     ]
 
 
+# Used to instruct the LLM to provide a good query when given a context
+QUERY_SYSTEM_PROMPT = """\
+You are a master of crafting intellectually stimulating questions that unfold across multiple sentences. Each question you generate should be structured as a brief narrative or scenario, where crucial information is deliberately distributed across multiple sentences. The complete question can only be understood and answered by carefully considering all the information provided across these sentences.
+
+Your questions should:
+1. Begin with context or background information
+2. Introduce key variables or constraints in subsequent sentences
+3. Present the actual question in the final sentence
+4. Require analytical reasoning rather than mere fact recall
+5. Draw from the provided context when available
+6. Incorporate multiple related concepts or data points
+
+EXAMPLE FORMATS:
+✓ "The International Space Station orbits at an average height of 400km above Earth. At this height, it completes one orbit every 92 minutes. Assuming constant speed, how many kilometers does the ISS travel in one Earth day?"
+
+✓ "A new streaming service launches with 500,000 subscribers in January. They observe that they lose 5% of their existing subscribers each month, but also gain 50,000 new subscribers in the same period. Their infrastructure costs increase by $100,000 for every 200,000 subscribers. What will their monthly infrastructure costs be after 6 months?"
+
+✓ "The average American household generates 4.5 pounds of trash daily. Local recycling programs typically reduce landfill waste by 30%. Your city has just implemented a new composting initiative that diverts an additional 25% of waste from landfills. Considering there are 50,000 households in your city, how many pounds of waste would still reach landfills each week?"
+
+AVOID:
+- Single-sentence questions
+- Questions answerable with simple facts
+- Questions without context or background
+- Obvious or straightforward calculations
+- Questions that don't require analysis
+
+Remember: The goal is to create questions where the context and parameters are revealed progressively, requiring the reader to integrate information across multiple sentences to fully understand and solve the problem.
+"""
+
+QUERY_PROMPT_TEMPLATE = """\
+Ask a specific question about the following context:
+
+#Context:
+{context}
+
+You must ask a question that can be answered by the context.
+"""
+
+
 class MultiStepReasoningTask(WikiQuestionAnsweringTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
@@ -183,6 +222,13 @@ class MultiStepReasoningTask(WikiQuestionAnsweringTask):
     augmentation_system_prompt: ClassVar[str] = ""
     query: str | None = None
     reference: str | None = None
+
+    def make_query(self, dataset_entry: Context):
+        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.content)
+        question = self.generate_query(messages=[QUERY_SYSTEM_PROMPT, query_prompt])
+        msgs = [p + ". " if i < len(s := question.split(". ")) - 1 else p for i, p in enumerate(s)]
+        self.messages = [{"role": "user", "content": msg} for msg in msgs]
+        return self.query
 
     def make_reference(self, dataset_entry: Context):
         logger.info(f"Generating reference for Multi Step Reasoning task with query: {self.query}")
