@@ -83,7 +83,7 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer=False)
             time.sleep(1)  # Wait for 1 second before retrying
 
 
-async def generate_response(original_messages):
+async def generate_response(original_messages: list[dict[str, str]]):
     messages = [
         {
             "role": "system",
