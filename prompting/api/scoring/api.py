@@ -1,8 +1,8 @@
+import time
 import uuid
 from typing import Any
-import time
 
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 
 from prompting.datasets.random_website import DDGDatasetEntry
@@ -18,7 +18,7 @@ from shared.settings import shared_settings
 router = APIRouter()
 
 
-def verify_scoring_signature(self, request: Request):
+async def verify_scoring_signature(self, request: Request):
     signed_by = request.headers.get("Epistula-Signed-By")
     signed_for = request.headers.get("Epistula-Signed-For")
     if signed_for != shared_settings.WALLET.hotkey.ss58_address:
