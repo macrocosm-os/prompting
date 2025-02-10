@@ -81,43 +81,23 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
 
 
 def start_api(scoring_queue, reward_events):
-    settings.shared_settings = settings.SharedSettings.load(mode="api")
-    if settings.shared_settings.WANDB_ON:
-        init_wandb(neuron="api")
 
     async def start():
         from prompting.api.api import start_scoring_api  # noqa: F401
-
+        from prompting.rewards.scoring import task_scorer
         # TODO: We should not use 2 availability loops for each process, in reality
         # we should only be sharing the miner availability data between processes.
         from prompting.miner_availability.miner_availability import availability_checking_loop
 
         asyncio.create_task(availability_checking_loop.start())
 
-        await start_scoring_api(scoring_queue, reward_events)
+        await start_scoring_api(task_scorer, scoring_queue, reward_events)
 
         while True:
             await asyncio.sleep(10)
             logger.debug("Running API...")
 
     asyncio.run(start())
-
-
-# def create_task_loop(task_queue, scoring_queue):
-#     async def start(task_queue, scoring_queue):
-#         logger.info("Starting AvailabilityCheckingLoop...")
-#         asyncio.create_task(availability_checking_loop.start())
-
-#         logger.info("Starting TaskSender...")
-#         asyncio.create_task(task_sender.start(task_queue, scoring_queue))
-
-#         logger.info("Starting TaskLoop...")
-#         asyncio.create_task(task_loop.start(task_queue, scoring_queue))
-#         while True:
-#             await asyncio.sleep(10)
-#             logger.debug("Running task loop...")
-
-#     asyncio.run(start(task_queue, scoring_queue))
 
 
 async def main():
