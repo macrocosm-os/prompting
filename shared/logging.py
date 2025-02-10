@@ -16,9 +16,8 @@ from prompting.tasks.task_registry import TaskRegistry
 from shared.dendrite import DendriteResponseEvent
 from shared.settings import shared_settings
 
-# TODO: Get rid of global variable.
+# TODO: Get rid of global variables.
 WANDB: Run
-# WANDB_API: Run
 
 
 @dataclass
@@ -84,7 +83,6 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner", "api"] = "val
     tags = [
         f"Wallet: {shared_settings.WALLET.hotkey.ss58_address}",
         f"Version: {prompting.__version__}",
-        # str(prompting.__spec_version__),
         f"Netuid: {shared_settings.NETUID}",
     ]
 
@@ -109,7 +107,6 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner", "api"] = "val
     logger.info(
         f"Logging in to wandb on entity: {shared_settings.WANDB_ENTITY} and project: {shared_settings.WANDB_PROJECT_NAME}"
     )
-    # If no name is provided, generate one based on the neuron type and the current timestamp.
     wandb_run_name = f"{neuron}{shared_settings.UID}-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     # Initialize the wandb run with the custom name.
