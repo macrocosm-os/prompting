@@ -50,24 +50,13 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
         logger.warning("No available miners. This should already have been caught earlier.")
         return
 
-    if isinstance(task, InferenceTask):
-        body = {
-            "seed": task.seed,
-            "sampling_parameters": task.sampling_params,
-            "task": task.__class__.__name__,
-            "model": task.llm_model_id,
-            "messages": task.query,
-        }
-    else:
-        body = {
-            "seed": task.seed,
-            "sampling_parameters": task.sampling_params,
-            "task": task.__class__.__name__,
-            "model": task.llm_model_id,
-            "messages": [
-                {"role": "user", "content": task.query},
-            ],
-        }
+    body = {
+        "seed": task.seed,
+        "sampling_parameters": task.sampling_params,
+        "task": task.__class__.__name__,
+        "model": task.llm_model_id,
+        "messages": task.task_messages,
+    }
     if isinstance(task, WebRetrievalTask):
         body["target_results"] = task.target_results
     body["timeout"] = task.timeout

@@ -61,6 +61,10 @@ class BaseTextTask(BaseTask):
     timeout: int = settings.shared_settings.NEURON_TIMEOUT
     max_tokens: int = settings.shared_settings.NEURON_MAX_TOKENS
 
+    @property
+    def task_messages(self) -> list[str] | list[dict]:
+        return self.messages if self.messages else [{"role": "user", "content": self.query}]
+
     @model_validator(mode="after")
     def get_model_id_and_seed(self) -> "BaseTextTask":
         if self.llm_model:
