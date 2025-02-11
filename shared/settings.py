@@ -93,7 +93,6 @@ class SharedSettings(BaseSettings):
     SCORING_QUEUE_API_THRESHOLD: int = Field(5, env="SCORING_QUEUE_API_THRESHOLD")
     API_TEST_MODE: bool = Field(False, env="API_TEST_MODE")
 
-
     # Validator scoring API (.env.validator).
     DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
     SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")

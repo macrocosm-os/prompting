@@ -46,9 +46,9 @@ def filter_available_uids(task: str | None = None, model: str | None = None, tes
     Returns:
         List of UIDs that can serve the requested task/model combination
     """
-    if test: 
+    if test:
         return get_uids(sampling_mode="all")
-        
+
     filtered_uids = []
 
     for uid in get_uids(sampling_mode="all"):
