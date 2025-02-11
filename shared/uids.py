@@ -30,12 +30,6 @@ def check_uid_availability(
 
     # Filter validator permit > 1024 stake.
     if metagraph.validator_permit[uid] and metagraph.S[uid] > shared_settings.NEURON_VPERMIT_TAO_LIMIT:
-        # logger.debug(
-        #     f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {shared_settings.NEURON_VPERMIT_TAO_LIMIT}"
-        # )
-        # logger.debug(
-        #     f"uid: {uid} has vpermit and stake ({metagraph.S[uid]}) > {shared_settings.NEURON_VPERMIT_TAO_LIMIT}"
-        # )
         return False
 
     if coldkeys and metagraph.axons[uid].coldkey in coldkeys:
