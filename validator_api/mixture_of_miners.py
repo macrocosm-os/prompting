@@ -61,7 +61,6 @@ async def mixture_of_miners(body: dict[str, any], uids: list[int]) -> tuple | St
     # Extract completions from the responses.
     completions = ["".join(response[1]) for response in valid_responses if response and len(response) > 1]
 
-    task_name = body.get("task")
     logger.debug(f"Using Mixture of Miners with {len(completions)} miners")
 
     new_messages = body["messages"] + [

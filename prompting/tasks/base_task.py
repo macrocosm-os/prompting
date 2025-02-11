@@ -59,6 +59,7 @@ class BaseTextTask(BaseTask):
     dataset_entry: DatasetEntry | None = None
     sampling_params: dict[str, float] = settings.shared_settings.SAMPLING_PARAMS
     timeout: int = settings.shared_settings.NEURON_TIMEOUT
+    max_tokens: int = settings.shared_settings.NEURON_MAX_TOKENS
 
     @model_validator(mode="after")
     def get_model_id_and_seed(self) -> "BaseTextTask":
@@ -110,7 +111,7 @@ class BaseTextTask(BaseTask):
                 LLMMessage(role="system", content=self.augmentation_system_prompt),
                 LLMMessage(role="user", content=query),
             ),
-            max_tokens=shared_settings.NEURON_MAX_TOKENS,
+            max_tokens=self.max_tokens,
         )
         self.query = challenge
         return challenge

@@ -51,7 +51,7 @@ class ReproducibleHF:
         params = sampling_params if sampling_params else self.sampling_params
         filtered_params = {k: v for k, v in params.items() if k in self.valid_generation_params}
 
-        with Timer() as timer:
+        with Timer():
             # Generate with optimized settings
             outputs = self.model.generate(
                 **inputs.to(settings.shared_settings.NEURON_DEVICE),

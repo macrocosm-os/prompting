@@ -20,11 +20,15 @@ def validate_scoring_key(api_key: str = Header(...)):
     if api_key != settings.shared_settings.SCORING_KEY:
         raise HTTPException(status_code=403, detail="Invalid API key")
 
+
 def get_task_scorer(request: Request):
     return request.app.state.task_scorer
 
+
 @router.post("/scoring")
-async def score_response(request: Request, api_key_data: dict = Depends(validate_scoring_key), task_scorer = Depends(get_task_scorer)):
+async def score_response(
+    request: Request, api_key_data: dict = Depends(validate_scoring_key), task_scorer=Depends(get_task_scorer)
+):
     model = None
     payload: dict[str, Any] = await request.json()
     body = payload.get("body")

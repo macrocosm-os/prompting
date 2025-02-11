@@ -4,7 +4,6 @@ from loguru import logger
 
 from prompting.api.miner_availabilities.api import router as miner_availabilities_router
 from prompting.api.scoring.api import router as scoring_router
-
 from shared import settings
 
 app = FastAPI()
@@ -16,7 +15,6 @@ app.include_router(scoring_router, tags=["scoring"])
 def health():
     logger.info("Health endpoint accessed.")
     return {"status": "healthy"}
-
 
 
 async def start_scoring_api(task_scorer, scoring_queue, reward_events):
