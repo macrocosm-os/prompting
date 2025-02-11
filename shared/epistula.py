@@ -17,8 +17,10 @@ from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from substrateinterface import Keypair
 
+from shared import settings
 from shared.dendrite import SynapseStreamResult
-from shared.settings import shared_settings
+
+shared_settings = settings.shared_settings
 
 # from openai.types import Com
 

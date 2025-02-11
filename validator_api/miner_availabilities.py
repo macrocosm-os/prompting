@@ -6,10 +6,11 @@ from fastapi import APIRouter
 from loguru import logger
 from pydantic import BaseModel
 
+from shared import settings
 from shared.loop_runner import AsyncLoopRunner
-from shared.settings import shared_settings
 from shared.uids import get_uids
 
+shared_settings = settings.shared_settings
 router = APIRouter()
 
 

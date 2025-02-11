@@ -9,8 +9,8 @@ import wandb
 
 # ruff: noqa: E402
 from shared import settings
+from shared.logging import init_wandb
 
-shared_settings = settings.shared_settings
 settings.shared_settings = settings.SharedSettings.load(mode="validator")
 
 
@@ -26,13 +26,12 @@ NEURON_SAMPLE_SIZE = 100  # TODO: Should add this to constants.py
 
 
 def create_loop_process(task_queue, scoring_queue, reward_events):
+    settings.shared_settings = settings.SharedSettings.load(mode="validator")
+    if settings.shared_settings.WANDB_ON:
+        init_wandb(neuron="validator")
+
     async def spawn_loops(task_queue, scoring_queue, reward_events):
         # ruff: noqa: E402
-        wandb.setup()
-        from shared import settings
-
-        settings.shared_settings = settings.SharedSettings.load(mode="validator")
-
         from prompting.llms.model_manager import model_scheduler
         from prompting.miner_availability.miner_availability import availability_checking_loop
         from prompting.rewards.scoring import task_scorer
@@ -88,33 +87,17 @@ def start_api(scoring_queue, reward_events):
         # TODO: We should not use 2 availability loops for each process, in reality
         # we should only be sharing the miner availability data between processes.
         from prompting.miner_availability.miner_availability import availability_checking_loop
+        from prompting.rewards.scoring import task_scorer
 
         asyncio.create_task(availability_checking_loop.start())
 
-        await start_scoring_api(scoring_queue, reward_events)
+        await start_scoring_api(task_scorer, scoring_queue, reward_events)
 
         while True:
             await asyncio.sleep(10)
             logger.debug("Running API...")
 
     asyncio.run(start())
-
-
-# def create_task_loop(task_queue, scoring_queue):
-#     async def start(task_queue, scoring_queue):
-#         logger.info("Starting AvailabilityCheckingLoop...")
-#         asyncio.create_task(availability_checking_loop.start())
-
-#         logger.info("Starting TaskSender...")
-#         asyncio.create_task(task_sender.start(task_queue, scoring_queue))
-
-#         logger.info("Starting TaskLoop...")
-#         asyncio.create_task(task_loop.start(task_queue, scoring_queue))
-#         while True:
-#             await asyncio.sleep(10)
-#             logger.debug("Running task loop...")
-
-#     asyncio.run(start(task_queue, scoring_queue))
 
 
 async def main():
@@ -130,7 +113,7 @@ async def main():
         try:
             # # Start checking the availability of miners at regular intervals
 
-            if shared_settings.DEPLOY_SCORING_API:
+            if settings.shared_settings.DEPLOY_SCORING_API:
                 # Use multiprocessing to bypass API blocking issue
                 api_process = mp.Process(target=start_api, args=(scoring_queue, reward_events), name="API_Process")
                 api_process.start()
@@ -152,17 +135,17 @@ async def main():
             while True:
                 await asyncio.sleep(30)
                 if (
-                    shared_settings.SUBTENSOR.get_current_block()
-                    - shared_settings.METAGRAPH.last_update[shared_settings.UID]
+                    settings.shared_settings.SUBTENSOR.get_current_block()
+                    - settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID]
                     > 500
                     and step > 120
                 ):
+                    current_block = settings.shared_settings.SUBTENSOR.get_current_block()
+                    last_update_block = settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID]
                     logger.warning(
-                        f"UPDATES HAVE STALED FOR {shared_settings.SUBTENSOR.get_current_block() - shared_settings.METAGRAPH.last_update[shared_settings.UID]} BLOCKS AND {step} STEPS"
+                        f"UPDATES HAVE STALED FOR {current_block - last_update_block} BLOCKS AND {step} STEPS"
                     )
-                    logger.warning(
-                        f"STALED: {shared_settings.SUBTENSOR.get_current_block()}, {shared_settings.METAGRAPH.block}"
-                    )
+                    logger.warning(f"STALED: {current_block}, {settings.shared_settings.METAGRAPH.block}")
                     sys.exit(1)
                 step += 1
 
