@@ -7,8 +7,10 @@ import httpx
 from loguru import logger
 from pydantic import BaseModel
 
+from shared import settings
 from shared.loop_runner import AsyncLoopRunner
-from shared.settings import shared_settings
+
+shared_settings = settings.shared_settings
 
 
 class ScoringPayload(BaseModel):

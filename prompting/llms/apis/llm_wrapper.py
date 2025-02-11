@@ -3,7 +3,9 @@ from loguru import logger
 from prompting.llms.apis.gpt_wrapper import openai_client
 from prompting.llms.apis.llm_messages import LLMMessages
 from prompting.llms.apis.sn19_wrapper import chat_complete
-from shared.settings import shared_settings
+from shared import settings
+
+shared_settings = settings.shared_settings
 
 
 class LLMWrapper:

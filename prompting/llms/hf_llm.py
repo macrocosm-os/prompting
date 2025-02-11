@@ -30,7 +30,7 @@ class ReproducibleHF:
 
         self.llm = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer)
 
-        self.sampling_params = shared_settings.SAMPLING_PARAMS
+        self.sampling_params = settings.shared_settings.SAMPLING_PARAMS
 
     @torch.inference_mode()
     def generate(self, messages: list[str] | list[dict], sampling_params=None, seed=None):
@@ -45,7 +45,7 @@ class ReproducibleHF:
             add_generation_prompt=True,
             return_tensors="pt",
             return_dict=True,
-        ).to(shared_settings.NEURON_DEVICE)
+        ).to(settings.shared_settings.NEURON_DEVICE)
 
         params = sampling_params if sampling_params else self.sampling_params
         filtered_params = {k: v for k, v in params.items() if k in self.valid_generation_params}

@@ -4,7 +4,9 @@ import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from prompting.llms.apis.llm_messages import LLMMessages
-from shared.settings import shared_settings
+from shared import settings
+
+shared_settings = settings.shared_settings
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))

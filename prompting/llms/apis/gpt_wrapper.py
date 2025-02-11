@@ -5,7 +5,9 @@ from openai.types.chat import ChatCompletion
 from pydantic import BaseModel
 
 from prompting.llms.apis.llm_messages import LLMMessage, LLMMessages
-from shared.settings import shared_settings
+from shared import settings
+
+shared_settings = settings.shared_settings
 
 
 class GPT(BaseModel):

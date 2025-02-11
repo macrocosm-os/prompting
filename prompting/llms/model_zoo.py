@@ -4,7 +4,7 @@ import numpy as np
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
 
-from shared.settings import shared_settings
+from shared import settings
 
 
 class ModelConfig(BaseModel):
@@ -20,7 +20,11 @@ class ModelConfig(BaseModel):
 class ModelZoo:
     # Currently, we are only using one single model - the one the validator is running
     models_configs: ClassVar[list[ModelConfig]] = [
-        ModelConfig(llm_model_id=shared_settings.LLM_MODEL, reward=1, min_ram=shared_settings.MAX_ALLOWED_VRAM_GB),
+        ModelConfig(
+            llm_model_id=settings.shared_settings.LLM_MODEL,
+            reward=1,
+            min_ram=settings.shared_settings.MAX_ALLOWED_VRAM_GB,
+        ),
     ]
 
     # Code below can be uncommended for testing purposes and demonstrates how we rotate multiple LLMs in the future

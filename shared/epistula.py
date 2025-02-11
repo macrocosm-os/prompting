@@ -1,5 +1,6 @@
 import asyncio
 import json
+import random
 import time
 from hashlib import sha256
 from math import ceil
@@ -16,8 +17,10 @@ from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from substrateinterface import Keypair
 
+from shared import settings
 from shared.dendrite import SynapseStreamResult
-from shared.settings import shared_settings
+
+shared_settings = settings.shared_settings
 
 # from openai.types import Com
 
@@ -207,6 +210,7 @@ async def make_openai_query(
     uid: int,
     stream: bool = False,
 ) -> tuple[ChatCompletion, list, list] | AsyncGenerator:
+    body["seed"] = body.get("seed", random.randint(0, 1000000))
     axon_info = metagraph.axons[uid]
     miner = openai.AsyncOpenAI(
         base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",

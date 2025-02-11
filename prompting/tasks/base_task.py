@@ -11,8 +11,8 @@ from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
 from prompting.llms.model_manager import model_manager
 from prompting.llms.model_zoo import ModelConfig
+from shared import settings
 from shared.base import DatasetEntry
-from shared.settings import shared_settings
 
 
 def CHATTENSOR_SYSTEM_PROMPT():
@@ -57,8 +57,9 @@ class BaseTextTask(BaseTask):
     reference_system_prompt: ClassVar[str | None] = None
     augmentation_system_prompt: ClassVar[str | None] = None
     dataset_entry: DatasetEntry | None = None
-    sampling_params: dict[str, float] = shared_settings.SAMPLING_PARAMS
-    timeout: int = shared_settings.NEURON_TIMEOUT
+    sampling_params: dict[str, float] = settings.shared_settings.SAMPLING_PARAMS
+    timeout: int = settings.shared_settings.NEURON_TIMEOUT
+    max_tokens: int = settings.shared_settings.NEURON_MAX_TOKENS
 
     @model_validator(mode="after")
     def get_model_id_and_seed(self) -> "BaseTextTask":
@@ -75,7 +76,7 @@ class BaseTextTask(BaseTask):
     def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
         logger.info("🤖 Generating reference...")
-        self.reference = model_manager.get_model(shared_settings.LLM_MODEL).generate(
+        self.reference = model_manager.get_model(settings.shared_settings.LLM_MODEL).generate(
             messages=messages
         )  # This should be a list of dict
         if self.reference is None:
@@ -110,7 +111,7 @@ class BaseTextTask(BaseTask):
                 LLMMessage(role="system", content=self.augmentation_system_prompt),
                 LLMMessage(role="user", content=query),
             ),
-            max_tokens=shared_settings.NEURON_MAX_TOKENS,
+            max_tokens=self.max_tokens,
         )
         self.query = challenge
         return challenge

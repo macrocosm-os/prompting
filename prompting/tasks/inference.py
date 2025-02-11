@@ -2,7 +2,6 @@ import random
 from typing import ClassVar
 
 import numpy as np
-from loguru import logger
 from pydantic import Field, model_validator
 
 from prompting.datasets.sn13 import ChatEntry
@@ -12,7 +11,9 @@ from prompting.rewards.inference_reward_model import InferenceRewardModel
 from prompting.rewards.penalty import PenaltyModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.tasks.base_task import BaseTextTask
-from shared.settings import shared_settings
+from shared import settings
+
+shared_settings = settings.shared_settings
 
 
 class InferenceRewardConfig(BaseRewardConfig):
@@ -75,10 +76,6 @@ class InferenceTask(BaseTextTask):
         return self.query
 
     def make_reference(self, dataset_entry: ChatEntry) -> str:
-        logger.info(f"GENERATING REFERENCE FOR TASK {self.task_id}")
-        logger.info(f"MODEL: {self.llm_model}")
-        logger.info(f"SAMPLING PARAMS: {self.sampling_params}")
-        logger.info(f"MESSAGES: {dataset_entry.messages}")
         self.reference = model_manager.generate(
             messages=self.messages,
             model=self.llm_model,
