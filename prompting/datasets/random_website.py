@@ -1,14 +1,14 @@
 import random
+from functools import lru_cache
 from typing import Optional
 
 import trafilatura
 from loguru import logger
 
-# from duckduckgo_search import DDGS
 from prompting.base.duckduckgo_patch import PatchedDDGS
 from prompting.datasets.utils import ENGLISH_WORDS
+from shared import settings
 from shared.base import BaseDataset, Context, DatasetEntry
-from shared.settings import shared_settings
 
 MAX_CHARS = 5000
 
@@ -25,7 +25,7 @@ class DDGDataset(BaseDataset):
     english_words: list[str] = None
 
     def search_random_term(self, retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
-        ddg = PatchedDDGS(proxy=shared_settings.PROXY_URL, verify=False)
+        ddg = PatchedDDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
         for _ in range(retries):
             random_words = " ".join(random.sample(ENGLISH_WORDS, 3))
             try:
@@ -38,6 +38,7 @@ class DDGDataset(BaseDataset):
         return None, None
 
     @staticmethod
+    @lru_cache(maxsize=1000)
     def extract_website_content(url: str) -> Optional[str]:
         try:
             website = trafilatura.fetch_url(url)

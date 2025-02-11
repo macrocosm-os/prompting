@@ -1,8 +1,19 @@
+"""
+Example usage:
+python scripts/test_api_load.py --levels 4 --out stress_test --key API_KEY
+
+Results will be stored in stress_test/
+
+Additional requirements:
+pip install plotly kaleido
+"""
+import argparse
 import asyncio
 import csv
 import random
 import sys
 import time
+from pathlib import Path
 
 import nltk
 import openai
@@ -16,8 +27,7 @@ word_list = words.words()
 
 
 def approximate_tokens(text: str) -> int:
-    """
-    Approximate the number of tokens from a given string.
+    """Approximate the number of tokens from a given string.
 
     Approach:
       - Split by whitespace to get a word count.
@@ -29,13 +39,13 @@ def approximate_tokens(text: str) -> int:
 
 
 def get_color_for_code(code: int) -> str:
-    """
-    Return a color string for a given status code.
-      - 200 -> green
-      - 4xx -> crimson
-      - 5xx -> darkred
-      - 0  -> firebrick (means unknown error in this script)
-      - else -> red
+    """Return a color string for a given status code.
+
+    - 200 -> green
+    - 4xx -> crimson
+    - 5xx -> darkred
+    - 0  -> firebrick (means unknown error in this script)
+    - else -> red
     """
     if code == 200:
         return "green"
@@ -55,14 +65,15 @@ async def make_completion(
     stream: bool = True,
     seed: str = "1759348",
 ) -> dict:
-    """
-    Make a completion request to the API, measuring:
+    """Make a completion request to the API.
+
+    Measures:
       - Time to first token
       - Time to full response
       - Approximate tokens received
       - Status code
 
-    Returns a dictionary with these measurements.
+    Returns a dictionary with measurements.
     """
     start_time = time.perf_counter()
     time_to_first_token = None
@@ -126,7 +137,7 @@ async def make_completion(
             "tokens_per_second": tokens_per_second,
             "status_code": status_code,
             "success": True,
-            "total_approx_tokens": total_approx_tokens,  # Added for empty response tracking
+            "total_approx_tokens": total_approx_tokens,
         }
 
     except HTTPStatusError as e:
@@ -136,23 +147,22 @@ async def make_completion(
             "tokens_per_second": 0,
             "status_code": e.response.status_code,
             "success": False,
-            "total_approx_tokens": 0,  # Assuming zero tokens on failure
+            "total_approx_tokens": 0,
         }
     except Exception as e:
-        # For other errors, we record status_code=0
-        print(f"Unexpected error: {e}", file=sys.stderr)  # Optional: Better error logging
+        print(f"Unexpected error: {e}", file=sys.stderr)
         return {
             "time_to_first_token": None,
             "total_latency": None,
             "tokens_per_second": 0,
             "status_code": 0,
             "success": False,
-            "total_approx_tokens": 0,  # Assuming zero tokens on failure
+            "total_approx_tokens": 0,
         }
 
 
-async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
-    """Run a stress test by sending concurrent requests at levels 1, 2, 4, 8, etc.
+async def run_stress_test(api_key: str, output_dir: str, levels: int = 10, url: str = "http://0.0.0.0:8005/v1"):
+    """Run a stress test by sending exponentially increasing amount of concurrent requests till `2**levels`.
 
     Measures:
       - Time to first token
@@ -171,8 +181,7 @@ async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
     client._client.headers["api-key"] = api_key
     word = random.choice(word_list)
     prompt = f"Write a short story about {word}."
-    # concurrency_levels = [2**i for i in range(0, 11)]
-    concurrency_levels = [2**i for i in range(0, 8)]
+    concurrency_levels = [2**i for i in range(0, levels)]
 
     results = []
     for concurrency in concurrency_levels:
@@ -238,7 +247,11 @@ async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
 
     field_names = list(csv_rows[0].keys())
 
-    with open("stress_test.csv", "w", newline="", encoding="utf-8") as f:
+    output_dir = Path(output_dir)
+    if not output_dir.exists():
+        output_dir.mkdir(exist_ok=True, parents=True)
+
+    with open(output_dir / "stress_test.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=field_names)
         writer.writeheader()
         writer.writerows(csv_rows)
@@ -259,7 +272,7 @@ async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
     )
     fig1.update_xaxes(title_text="Concurrent Queries")
     fig1.update_yaxes(title_text="Avg. Tokens/Second (Approx.)")
-    fig1.write_image("stress_test_tokens_per_second.png")
+    fig1.write_image(output_dir / "stress_test_tokens_per_second.png")
     fig1.show()
 
     # 2. First-Token Latency vs. Concurrency.
@@ -272,7 +285,7 @@ async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
     )
     fig2.update_xaxes(title_text="Concurrent Queries")
     fig2.update_yaxes(title_text="Avg. Latency to First Token (s)")
-    fig2.write_image("stress_test_first_token_latency.png")
+    fig2.write_image(output_dir / "stress_test_first_token_latency.png")
     fig2.show()
 
     # 3. Full Response Latency vs. Concurrency.
@@ -285,7 +298,7 @@ async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
     )
     fig3.update_xaxes(title_text="Concurrent Queries")
     fig3.update_yaxes(title_text="Avg. Total Latency (s)")
-    fig3.write_image("stress_test_full_response_latency.png")
+    fig3.write_image(output_dir / "stress_test_full_response_latency.png")
     fig3.show()
 
     # 4. Status Code Counts vs. Concurrency.
@@ -318,7 +331,7 @@ async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
     )
     fig4.update_xaxes(title_text="Concurrent Queries")
     fig4.update_yaxes(title_text="Count of Responses")
-    fig4.write_image("stress_test_status_codes.png")
+    fig4.write_image(output_dir / "stress_test_status_codes.png")
     fig4.show()
 
     # 5. Empty Responses vs. Concurrency.
@@ -332,12 +345,50 @@ async def run_stress_test(api_key: str, url: str = "http://0.0.0.0:8005/v1"):
     )
     fig5.update_xaxes(title_text="Concurrent Queries")
     fig5.update_yaxes(title_text="Count of Empty Responses")
-    fig5.write_image("stress_test_empty_responses.png")
+    fig5.write_image(output_dir / "stress_test_empty_responses.png")
     fig5.show()
 
     print("All plots saved to .png files and displayed.")
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Run a stress test against the specified API endpoint.")
+
+    parser.add_argument(
+        "--key",
+        type=str,
+        # Specify your API key, current is left here just for local testings.
+        default="0566dbe21ee33bba9419549716cd6f1f",
+        help="API key for authentication.",
+    )
+
+    parser.add_argument(
+        "--url",
+        type=str,
+        default="http://0.0.0.0:8005/v1",
+        help="URL of the API endpoint to test (default: http://0.0.0.0:8005/v1).",
+    )
+
+    parser.add_argument(
+        "--out",
+        type=str,
+        default="stress_test",
+        help="Output directory for storing test results (default: stress_test).",
+    )
+
+    parser.add_argument("--levels", type=int, default=10, help="Number of stress test levels to execute (default: 10).")
+
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    # Replace api_key and url with appropriate values.
-    asyncio.run(run_stress_test(api_key="0566dbe21ee33bba9419549716cd6f1f", url="http://0.0.0.0:8005/v1"))
+    args = parse_arguments()
+
+    asyncio.run(
+        run_stress_test(
+            api_key=args.key,
+            url=args.url,
+            output_dir=args.out,
+            levels=args.levels,
+        )
+    )

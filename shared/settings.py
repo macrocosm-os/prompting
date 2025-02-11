@@ -55,6 +55,7 @@ class SharedSettings(BaseSettings):
 
     # Neuron parameters.
     NEURON_TIMEOUT: int = Field(20, env="NEURON_TIMEOUT")
+    INFERENCE_TIMEOUT: int = Field(60, env="INFERENCE_TIMEOUT")
     NEURON_DISABLE_SET_WEIGHTS: bool = Field(False, env="NEURON_DISABLE_SET_WEIGHTS")
     NEURON_MOVING_AVERAGE_ALPHA: float = Field(0.1, env="NEURON_MOVING_AVERAGE_ALPHA")
     NEURON_DECAY_ALPHA: float = Field(0.001, env="NEURON_DECAY_ALPHA")
@@ -86,13 +87,17 @@ class SharedSettings(BaseSettings):
     # ==== API =====
     # API key used to access validator organic scoring mechanism (both .env.validator and .env.api).
     SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
+    # Scoring request rate limit in seconds.
+    SCORING_RATE_LIMIT_SEC: float = Field(0.5, env="SCORING_RATE_LIMIT_SEC")
+    # Scoring queue threshold when rate-limit start to kick in, used to query validator API with scoring requests.
+    SCORING_QUEUE_API_THRESHOLD: int = Field(5, env="SCORING_QUEUE_API_THRESHOLD")
 
     # Validator scoring API (.env.validator).
     DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
     SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
     SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
     SCORE_ORGANICS: bool = Field(False, env="SCORE_ORGANICS")
-    WORKERS: int = Field(4, env="WORKERS")
+    WORKERS: int = Field(2, env="WORKERS")
 
     # API Management (.env.api).
     API_PORT: int = Field(8005, env="API_PORT")

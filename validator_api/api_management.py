@@ -4,7 +4,9 @@ import secrets
 from fastapi import APIRouter, Depends, Header, HTTPException
 from loguru import logger
 
-from shared.settings import shared_settings
+from shared import settings
+
+shared_settings = settings.shared_settings
 
 router = APIRouter()
 
@@ -26,7 +28,6 @@ def save_api_keys(api_keys):
 # Use lifespan to initialize API keys
 _keys = load_api_keys()
 logger.info(f"Loaded API keys: {_keys}")
-save_api_keys(_keys)
 
 
 # Dependency to validate the admin key

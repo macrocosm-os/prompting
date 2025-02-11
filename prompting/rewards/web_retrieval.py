@@ -1,13 +1,4 @@
-"""Expected miner's response is a JSON object with the following keys: url, content, relevant.
-
-Example response:
-{
-    "url": "https://www.example.com",
-    "content": "This is the content of the website. This is the section we are interested in.",
-    "relevant": "This is the section we are interested in.",
-}
-"""
-
+"""Expected miner's response is a JSON object with the following keys: url, content, relevant for each website."""
 import json
 
 import numpy as np
@@ -23,13 +14,13 @@ from prompting.tasks.base_task import BaseTextTask
 from shared.dendrite import DendriteResponseEvent
 
 MIN_RELEVANT_CHARS = 300
-MIN_MATCH_THRESHOLD = 90
+MIN_MATCH_THRESHOLD = 98
 
 
 class WebsiteResult(BaseModel):
-    url: str
-    content: str
-    relevant: str
+    url: str | None
+    content: str | None
+    relevant: str | None
 
 
 class WebRetrievalRewardModel(RelevanceRewardModel):
@@ -51,7 +42,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             logger.debug(f"Failed to extract miner's content from website: {response_url}")
             return 0
 
-        if fuzz.token_set_ratio(response_content, reference_website_content) < MIN_MATCH_THRESHOLD:
+        if fuzz.ratio(response_content, reference_website_content) < MIN_MATCH_THRESHOLD:
             logger.info("Miner returned text that doesn't match the website, scoring 0")
             return 0
 
@@ -61,9 +52,9 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
                 f"{len(response_relevant)} > {len(response_content)}"
             )
             return 0
-        # if len(response_relevant) < MIN_RELEVANT_CHARS:
-        #     logger.info(f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars)")
-        #     return 0
+
+        if response_relevant not in response_content:
+            return 0
 
         return self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant)
 

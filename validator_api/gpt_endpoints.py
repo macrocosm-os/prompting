@@ -10,13 +10,16 @@ from loguru import logger
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
 
+from shared import settings
 from shared.epistula import SynapseStreamResult, query_miners
-from shared.settings import shared_settings
+from validator_api import scoring_queue
 from validator_api.api_management import _keys
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.test_time_inference import generate_response
-from validator_api.utils import filter_available_uids, forward_response
+from validator_api.utils import filter_available_uids
+
+shared_settings = settings.shared_settings
 
 router = APIRouter()
 N_MINERS = 5
@@ -95,14 +98,14 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
         raise HTTPException(status_code=500, detail="No miner responded successfully")
 
     chunks = [res.accumulated_chunks if res and res.accumulated_chunks else [] for res in stream_results]
-    asyncio.create_task(forward_response(uids=uids, body=body, chunks=chunks))
+    asyncio.create_task(scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=chunks))
     return loaded_results
 
 
 @router.post("/test_time_inference")
 async def test_time_inference(messages: list[dict], model: str = None):
-    async def create_response_stream(user_query):
-        async for steps, total_thinking_time in generate_response(user_query):
+    async def create_response_stream(messages):
+        async for steps, total_thinking_time in generate_response(messages):
             if total_thinking_time is not None:
                 logger.info(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
             yield steps, total_thinking_time
@@ -110,10 +113,8 @@ async def test_time_inference(messages: list[dict], model: str = None):
     # Create a streaming response that yields each step
     async def stream_steps():
         try:
-            query = messages[-1]["content"]
-            logger.info(f"Query: {query}")
             i = 0
-            async for steps, thinking_time in create_response_stream(query):
+            async for steps, thinking_time in create_response_stream(messages):
                 i += 1
                 yield "data: " + ChatCompletionChunk(
                     id=str(uuid.uuid4()),

@@ -7,7 +7,7 @@ from loguru import logger
 from openai import OpenAI
 
 from prompting.base.duckduckgo_patch import PatchedDDGS
-from shared.settings import shared_settings
+from shared import settings
 
 # Import the patched DDGS and use that
 
@@ -56,7 +56,7 @@ async def get_websites_with_similarity(
         List of dictionaries containing website URLs and their best matching chunks
     """
     logger.debug("Getting results")
-    ddgs = PatchedDDGS(proxy=shared_settings.PROXY_URL, verify=False)
+    ddgs = PatchedDDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
     results = list(ddgs.text(query))
     logger.debug(f"Got {len(results)} results")
     urls = [r["href"] for r in results][:n_results]
@@ -66,7 +66,7 @@ async def get_websites_with_similarity(
     extracted = await asyncio.gather(*[extract_content(c) for c in content])
 
     # Create embeddings
-    client = OpenAI(api_key=shared_settings.OPENAI_API_KEY)
+    client = OpenAI(api_key=settings.shared_settings.OPENAI_API_KEY)
     query_embedding = client.embeddings.create(model="text-embedding-ada-002", input=query).data[0].embedding
     # Process each website
     results_with_similarity = []
