@@ -1,4 +1,3 @@
-import httpx
 import requests
 from loguru import logger
 
