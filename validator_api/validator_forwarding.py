@@ -92,6 +92,5 @@ class ValidatorRegistry(BaseModel):
         the validator is removed from the registry.
         """
         if uid in self.validators:
-            max_failures_reached = self.validators[uid].update_failure(response_code)
-            if max_failures_reached:
-                del self.validators[uid]
+            self.validators[uid].update_failure(response_code)
+

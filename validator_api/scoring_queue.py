@@ -9,6 +9,8 @@ from pydantic import BaseModel
 
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
+from validator_api.validator_forwarding import ValidatorRegistry 
+validator_registry = ValidatorRegistry()
 
 shared_settings = settings.shared_settings
 
@@ -46,8 +48,8 @@ class ScoringQueue(AsyncLoopRunner):
             payload = scoring_payload.payload
             uids = payload["uid"]
             logger.info(f"Received new organic for scoring, uids: {uids}")
-
-        url = f"http://{shared_settings.VALIDATOR_API}/scoring"
+        vali_uid, vali_axon, vali_hotkey = validator_registry.get_available_axon()
+        url = f"http://{vali_axon}/scoring"
         try:
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
             async with httpx.AsyncClient(timeout=timeout) as client:
@@ -56,6 +58,7 @@ class ScoringQueue(AsyncLoopRunner):
                     json=payload,
                     headers={"api-key": shared_settings.SCORING_KEY, "Content-Type": "application/json"},
                 )
+                validator_registry.update_validators(uid=vali_uid, response_code=response.status_code)
                 if response.status_code != 200:
                     # Raise an exception so that the retry logic in the except block handles it.
                     raise Exception(f"Non-200 response: {response.status_code} for uids {uids}")

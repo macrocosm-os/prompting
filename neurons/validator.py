@@ -99,12 +99,12 @@ def start_api(scoring_queue, reward_events):
             netaddr.IPAddress(external_ip)
 
             serve_success = serve_extrinsic(
-                subtensor=shared_settings.SUBTENSOR,
-                wallet=shared_settings.WALLET,
+                subtensor=settings.shared_settings.SUBTENSOR,
+                wallet=settings.shared_settings.WALLET,
                 ip=external_ip,
-                port=shared_settings.SCORING_API_PORT,
+                port=settings.shared_settings.SCORING_API_PORT,
                 protocol=4,
-                netuid=shared_settings.NETUID,
+                netuid=settings.shared_settings.NETUID,
             )
 
             logger.debug(f"Serve success: {serve_success}")

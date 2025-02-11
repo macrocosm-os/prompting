@@ -17,8 +17,8 @@ from shared.epistula import SynapseStreamResult
 router = APIRouter()
 
 
-def validate_scoring_key(api_key: str = Header(...)):
-    if api_key != settings.shared_settings.SCORING_KEY:
+def validate_scoring_key(request: Request):
+    if request.headers.api_key != settings.shared_settings.SCORING_KEY:
         raise HTTPException(status_code=403, detail="Invalid API key")
 
 

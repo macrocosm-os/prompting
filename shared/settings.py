@@ -84,6 +84,7 @@ class SharedSettings(BaseSettings):
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
     DEPLOY_SCORING_API: bool = Field(True, env="DEPLOY_SCORING_API")
+    SCORING_API_PORT: int = Field(8095, env = "SCORING_API_PORT")
 
     # ==== API =====
     # Hotkey used to run api, defaults to Macrocosmos
