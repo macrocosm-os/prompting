@@ -23,7 +23,6 @@ shared_settings = settings.shared_settings
 
 router = APIRouter()
 N_MINERS = 5
-# TODO: Make env variable
 
 
 def validate_api_key(api_key: str = Header(...)):
