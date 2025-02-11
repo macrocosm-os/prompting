@@ -44,7 +44,7 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
-            return await test_time_inference(body["messages"], body.get("model"))
+            return await test_time_inference(body["messages"], body.get("model", None))
         if body.get("mixture", False):
             return await mixture_of_miners(body, uids=uids)
         else:
@@ -105,7 +105,7 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
 @router.post("/test_time_inference")
 async def test_time_inference(messages: list[dict], model: str = None):
     async def create_response_stream(messages):
-        async for steps, total_thinking_time in generate_response(messages):
+        async for steps, total_thinking_time in generate_response(messages, model=model):
             if total_thinking_time is not None:
                 logger.info(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
             yield steps, total_thinking_time
