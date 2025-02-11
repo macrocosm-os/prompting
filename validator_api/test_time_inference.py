@@ -45,6 +45,7 @@ def parse_multiple_json(api_response):
         logger.error(
             f"No valid JSON objects found in the response - couldn't parse json. The miner response was: {api_response}"
         )
+        return None
     if (
         not parsed_objects[0].get("title")
         or not parsed_objects[0].get("content")
@@ -53,6 +54,7 @@ def parse_multiple_json(api_response):
         logger.error(
             f"Invalid JSON object found in the response - field missing. The miner response was: {api_response}"
         )
+        return None
     return parsed_objects
 
 
