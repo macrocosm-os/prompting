@@ -23,6 +23,7 @@ shared_settings = settings.shared_settings
 
 router = APIRouter()
 N_MINERS = 5
+# TODO: Make env variable
 
 
 def validate_api_key(api_key: str = Header(...)):
@@ -37,7 +38,7 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
     try:
         body = await request.json()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
-        uids = body.get("uids") or filter_available_uids(task=body.get("task"), model=body.get("model"))
+        uids = body.get("uids") or filter_available_uids(task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE)
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
         uids = random.sample(uids, min(len(uids), N_MINERS))
@@ -56,9 +57,9 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 
 
 @router.post("/web_retrieval")
-async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] = None):
+async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] = None, n_results: int = 5):
     if not uids:
-        uids = filter_available_uids(task="WebRetrievalTask")
+        uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE)
     if not uids:
         raise HTTPException(status_code=500, detail="No available miners")
     uids = random.sample(uids, min(len(uids), n_miners))
@@ -71,6 +72,7 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
         "seed": random.randint(0, 1_000_000),
         "sampling_parameters": shared_settings.SAMPLING_PARAMS,
         "task": "WebRetrievalTask",
+        "target_results": n_results,
         "messages": [
             {"role": "user", "content": search_query},
         ],
