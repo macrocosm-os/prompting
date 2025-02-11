@@ -56,7 +56,7 @@ class ScoringQueue(AsyncLoopRunner):
                 response = await client.post(
                     url=url,
                     json=payload,
-                    headers={"api-key": shared_settings.SCORING_KEY, "Content-Type": "application/json"},
+                    headers={"Content-Type": "application/json"},
                 )
                 validator_registry.update_validators(uid=vali_uid, response_code=response.status_code)
                 if response.status_code != 200:

@@ -33,7 +33,7 @@ class AsyncLoopRunner(BaseModel, ABC):
         """Get the current time from the time server with a timeout."""
         if not self.sync:
             time = datetime.datetime.now(datetime.timezone.utc)
-            logger.debug(f"Time: {time}")
+            # logger.debug(f"Time: {time}")
             return time
         try:
             async with aiohttp.ClientSession() as session:
@@ -64,13 +64,13 @@ class AsyncLoopRunner(BaseModel, ABC):
             next_run = self.next_sync_point(current_time)
         else:
             next_run = last_run_time + timedelta(seconds=self.interval)
-        logger.debug(f"Next run: {next_run}")
+        # logger.debug(f"Next run: {next_run}")
 
         wait_time = (next_run - current_time).total_seconds()
         if wait_time > 0:
-            logger.debug(
-                f"{self.name}: Waiting for {wait_time:.2f} seconds until next {'sync point' if self.sync else 'execution'}"
-            )
+            # logger.debug(
+            #     f"{self.name}: Waiting for {wait_time:.2f} seconds until next {'sync point' if self.sync else 'execution'}"
+            # )
             await asyncio.sleep(wait_time)
         return next_run
 
@@ -83,14 +83,14 @@ class AsyncLoopRunner(BaseModel, ABC):
         try:
             while self.running:
                 with profiler.measure(self.name):
-                    logger.debug("Waiting...")
+                    # logger.debug("Waiting...")
                     next_run = await self.wait_for_next_execution(last_run_time)
-                    logger.debug("Wait ended")
+                    # logger.debug("Wait ended")
                     try:
-                        run_results = await self.run_step()
-                        logger.debug(f"Run_results: {run_results}")
+                        await self.run_step() # run_results = await self.run_step()
+                        #logger.debug(f"Run_results: {run_results}")
                         self.step += 1
-                        logger.debug(f"{self.name}: Step {self.step} completed at {next_run}")
+                        # logger.debug(f"{self.name}: Step {self.step} completed at {next_run}")
                     except Exception as ex:
                         logger.exception(f"Error in loop iteration: {ex}")
                     last_run_time = next_run

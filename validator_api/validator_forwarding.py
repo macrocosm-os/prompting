@@ -11,7 +11,7 @@ from shared.settings import shared_settings
 class Validator(BaseModel):
     uid: int
     stake: float
-    axon: List[str]  # Changed to List[str] since we split the string
+    axon: str
     hotkey: str
     timeout: int = 2  # starting cooldown in seconds; doubles on failure (capped at 86400)
     available_at: float = 0.0  # Unix timestamp indicating when the validator is next available
@@ -53,12 +53,13 @@ class ValidatorRegistry(BaseModel):
 
     # Using a default factory ensures validators is always a dict.
     validators: dict[int, Validator] = Field(default_factory=dict)
-    spot_checking_rate: ClassVar[float] = 0.3
+    spot_checking_rate: ClassVar[float] = 0.0
 
     @model_validator(mode="after")
     def create_validator_list(cls, v: "ValidatorRegistry", metagraph=shared_settings.METAGRAPH) -> "ValidatorRegistry":
-        validator_uids = np.where(metagraph.validator_permit)[0].tolist()
-        validator_axons = [metagraph.axons[uid].ip_str().split("/") for uid in validator_uids]
+        validator_uids = np.where(metagraph.stake >= 100000)[0].tolist()
+        print(f"uids: {validator_uids}")
+        validator_axons = [metagraph.axons[uid].ip_str().split("/")[2] for uid in validator_uids]
         validator_stakes = [metagraph.stake[uid] for uid in validator_uids]
         validator_hotkeys = [metagraph.hotkeys[uid] for uid in validator_uids]
         v.validators = {
@@ -71,18 +72,18 @@ class ValidatorRegistry(BaseModel):
         """
         Given a list of validators, return only those that are not in their cooldown period.
         """
-        return [v for v in self.validators if v.is_available()]
+        return [uid for uid, validator in self.validators.items() if validator.is_available()]
 
     def get_available_axon(self) -> Optional[Tuple[int, List[str], str]]:
         """
         Returns a tuple (uid, axon, hotkey) for a randomly selected validator based on stake weighting,
         if spot checking conditions are met. Otherwise, returns None.
         """
-        if random.random() > self.spot_checking_rate or not self.validators:
+        if random.random() < self.spot_checking_rate or not self.validators:
             return None
         validator_list = self.get_available_validators()
-        weights = [v.stake for v in validator_list]
-        chosen = random.choices(validator_list, weights=weights, k=1)[0]
+        weights = [self.validators[uid].stake for uid in validator_list]
+        chosen = self.validators[random.choices(validator_list, weights=weights, k=1)[0]]
         return chosen.uid, chosen.axon, chosen.hotkey
 
     def update_validators(self, uid: int, response_code: int) -> None:
