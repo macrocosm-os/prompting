@@ -13,6 +13,7 @@ from bittensor.core.extrinsics.serving import serve_extrinsic
 # ruff: noqa: E402
 from shared import settings
 from shared.logging import init_wandb
+from prompting.rewards.scoring import task_scorer
 
 settings.shared_settings = settings.SharedSettings.load(mode="validator")
 
@@ -37,7 +38,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         # ruff: noqa: E402
         from prompting.llms.model_manager import model_scheduler
         from prompting.miner_availability.miner_availability import availability_checking_loop
-        from prompting.rewards.scoring import task_scorer
+
         from prompting.tasks.task_creation import task_loop
         from prompting.tasks.task_sending import task_sender
         from prompting.weight_setting.weight_setter import weight_setter
@@ -90,7 +91,6 @@ def start_api(scoring_queue, reward_events):
         # TODO: We should not use 2 availability loops for each process, in reality
         # we should only be sharing the miner availability data between processes.
         from prompting.miner_availability.miner_availability import availability_checking_loop
-        from prompting.rewards.scoring import task_scorer
 
         asyncio.create_task(availability_checking_loop.start())
 

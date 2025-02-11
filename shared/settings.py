@@ -83,6 +83,7 @@ class SharedSettings(BaseSettings):
     SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
+    DEPLOY_SCORING_API: bool = Field(True, env="DEPLOY_SCORING_API")
 
     # ==== API =====
     # Hotkey used to run api, defaults to Macrocosmos
