@@ -14,7 +14,7 @@ from prompting.tasks.base_task import BaseTextTask
 from shared.dendrite import DendriteResponseEvent
 
 MIN_RELEVANT_CHARS = 300
-MIN_MATCH_THRESHOLD = 90
+MIN_MATCH_THRESHOLD = 98
 
 
 class WebsiteResult(BaseModel):
@@ -42,7 +42,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             logger.debug(f"Failed to extract miner's content from website: {response_url}")
             return 0
 
-        if fuzz.token_set_ratio(response_content, reference_website_content) < MIN_MATCH_THRESHOLD:
+        if fuzz.ratio(response_content, reference_website_content) < MIN_MATCH_THRESHOLD:
             logger.info("Miner returned text that doesn't match the website, scoring 0")
             return 0
 
