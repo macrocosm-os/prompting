@@ -226,7 +226,7 @@ class MultiStepReasoningTask(WikiQuestionAnsweringTask):
     def make_query(self, dataset_entry: Context):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.content)
         question = self.generate_query(messages=[QUERY_SYSTEM_PROMPT, query_prompt])
-        msgs = [p + ". " if i < len(s := question.split(". ")) - 1 else p for i, p in enumerate(s)]
+        msgs = [p + ". " if i < len(question.split(". ")) - 1 else p for i, p in enumerate(question.split(". ")) if p]
         self.messages = [{"role": "user", "content": msg} for msg in msgs]
         return self.query
 
