@@ -133,12 +133,13 @@ update_and_restart() {
         log ERROR "Failed to pull changes"
         return 1
     fi
+
     if [[ -x "./run.sh" ]]; then
-        log INFO "Update successful, restarting application..."
+        log INFO "Update successful, restarting validator..."
         pm2 restart s1_validator_main_process
-        log INFO "Application restart initiated via PM2"
-        pm2 restart auto_updater
-        exit 0
+        log INFO "Validator restart initiated via PM2"
+        # Let PM2 handle our own restart if needed
+        return 0
     else
         log ERROR "run.sh not found or not executable"
         return 1
