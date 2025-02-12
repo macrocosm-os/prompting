@@ -48,7 +48,7 @@ class ScoringQueue(AsyncLoopRunner):
 
             scoring_payload = self._scoring_queue.popleft()
             payload = scoring_payload.payload
-            uids = payload["uid"]
+            uids = payload["uids"]
             logger.info(f"Received new organic for scoring, uids: {uids}")
         try:
             vali_uid, vali_axon, vali_hotkey = validator_registry.get_available_axon()
@@ -95,8 +95,8 @@ class ScoringQueue(AsyncLoopRunner):
             return
 
         uids = [int(u) for u in uids]
-        chunk_dict = {u: c for u, c in zip(uids, chunks)}
-        payload = {"body": body, "chunks": chunk_dict, "uid": uids}
+        chunk_dict = {str(u): c for u, c in zip(uids, chunks)}
+        payload = {"body": body, "chunks": chunk_dict, "uids": uids}
         scoring_item = ScoringPayload(payload=payload)
 
         async with self._scoring_lock:

@@ -18,7 +18,7 @@ from shared.settings import shared_settings
 router = APIRouter()
 
 
-async def verify_scoring_signature(self, request: Request):
+async def verify_scoring_signature(request: Request):
     signed_by = request.headers.get("Epistula-Signed-By")
     signed_for = request.headers.get("Epistula-Signed-For")
     if signed_for != shared_settings.WALLET.hotkey.ss58_address:
@@ -55,40 +55,44 @@ def get_task_scorer(request: Request):
 async def score_response(
     request: Request, api_key_data: dict = Depends(verify_scoring_signature), task_scorer=Depends(get_task_scorer)
 ):
+    logger.debug("Scoring Request received!!!!!!!!!!!!!!!!")
     model = None
+    logger.debug("Setted Model to None")
     payload: dict[str, Any] = await request.json()
+    logger.debug(f"Awaited body: {payload}")
     body = payload.get("body")
-    timeout = payload.get("timeout", settings.shared_settings.NEURON_TIMEOUT)
-    uids = payload.get("uid", [])
+    timeout = payload.get("timeout", shared_settings.NEURON_TIMEOUT)
+    uids = payload.get("uids", [])
     chunks = payload.get("chunks", {})
+    logger.debug("About to check chunks and uids")
     if not uids or not chunks:
         logger.error(f"Either uids: {uids} or chunks: {chunks} is not valid, skipping scoring")
         return
     uids = [int(uid) for uid in uids]
     model = body.get("model")
-    if model:
-        try:
-            llm_model = ModelZoo.get_model_by_id(model)
-        except Exception:
-            logger.warning(
-                f"Organic request with model {body.get('model')} made but the model cannot be found in model zoo. Skipping scoring."
-            )
+    logger.debug("About to check model")
+    if model and model != shared_settings.LLM_MODEL:
+        logger.error(f"Model {model} not available for scoring on this validator.")
         return
-    else:
-        llm_model = None
+    logger.debug("Model has been checked")
+    llm_model = ModelZoo.get_model_by_id(model)
+    logger.debug("Got LLM Model from ModelZoo")
     task_name = body.get("task")
+    logger.debug(f"Task name set: {task_name}")
+    logger.debug(f"Length pre-insertion: {len(task_scorer.scoring_queue)}")
     if task_name == "InferenceTask":
         logger.info(f"Received Organic InferenceTask with body: {body}")
         logger.info(f"With model of type {type(body.get('model'))}")
         organic_task = InferenceTask(
             messages=body.get("messages"),
             llm_model=llm_model,
-            llm_model_id=body.get("model"),
+            llm_model_id=llm_model,
             seed=int(body.get("seed", 0)),
-            sampling_params=body.get("sampling_parameters", settings.shared_settings.SAMPLING_PARAMS),
+            sampling_params=body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS),
             query=body.get("messages"),
         )
         logger.info(f"Task created: {organic_task}")
+
         task_scorer.add_to_queue(
             task=organic_task,
             response=DendriteResponseEvent(
@@ -97,10 +101,11 @@ async def score_response(
                 timeout=timeout,
             ),
             dataset_entry=DatasetEntry(),
-            block=settings.shared_settings.METAGRAPH.block,
+            block=shared_settings.METAGRAPH.block,
             step=-1,
             task_id=str(uuid.uuid4()),
         )
+        
     elif task_name == "WebRetrievalTask":
         logger.info(f"Received Organic WebRetrievalTask with body: {body}")
         try:
@@ -119,11 +124,12 @@ async def score_response(
             response=DendriteResponseEvent(
                 uids=uids,
                 stream_results=[SynapseStreamResult(accumulated_chunks=chunks.get(str(uid), [])) for uid in uids],
-                timeout=body.get("timeout", settings.shared_settings.NEURON_TIMEOUT),
+                timeout=body.get("timeout", shared_settings.NEURON_TIMEOUT),
             ),
             dataset_entry=DDGDatasetEntry(search_term=search_term),
-            block=settings.shared_settings.METAGRAPH.block,
+            block=shared_settings.METAGRAPH.block,
             step=-1,
             task_id=str(uuid.uuid4()),
         )
+    logger.debug(f"Length post-insertion: {len(task_scorer.scoring_queue)}")
     logger.info("Organic task appended to scoring queue")
