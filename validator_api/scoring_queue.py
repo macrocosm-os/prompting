@@ -2,14 +2,18 @@ import asyncio
 import datetime
 from collections import deque
 from typing import Any
+import time
+import uuid
 
+from shared.epistula import create_header_hook
 import httpx
 from loguru import logger
 from pydantic import BaseModel
 
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
-from validator_api.validator_forwarding import ValidatorRegistry 
+from validator_api.validator_forwarding import ValidatorRegistry
+
 validator_registry = ValidatorRegistry()
 
 shared_settings = settings.shared_settings
@@ -56,23 +60,33 @@ class ScoringQueue(AsyncLoopRunner):
             logger.exception(f"Could not find available validator scoring endpoint: {e}")
         try:
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
+            # Add required headers for signature verification
+
+            logger.debug(f"Forwarding payload to {url}.\n\nPAYLOAD: {payload}")
             async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     url=url,
                     json=payload,
-                    headers={"Content-Type": "application/json"},
+                    # headers=headers,
+                    event_hooks={
+                        "request": [
+                            create_header_hook(shared_settings.WALLET.hotkey, vali_hotkey)
+                        ]
+                    },
                 )
                 validator_registry.update_validators(uid=vali_uid, response_code=response.status_code)
                 if response.status_code != 200:
                     # Raise an exception so that the retry logic in the except block handles it.
-                    raise Exception(f"Non-200 response: {response.status_code} for uids {uids}")
+                    raise Exception(f"Non-200 response: {response.status_code} for validator {vali_uid}")
                 logger.info(f"Forwarding response completed with status {response.status_code}")
         except Exception as e:
             if scoring_payload.retries < self.max_scoring_retries:
                 scoring_payload.retries += 1
                 async with self._scoring_lock:
                     self._scoring_queue.appendleft(scoring_payload)
-                logger.error(f"Tried to forward response to {url} with payload {payload}. Queued for retry")
+                logger.error(
+                    f"Tried to forward response to {url} with payload {payload}. Exception: {e}. Queued for retry"
+                )
             else:
                 logger.exception(f"Error while forwarding response after {scoring_payload.retries} retries: {e}")
 

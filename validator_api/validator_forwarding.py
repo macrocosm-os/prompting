@@ -1,9 +1,9 @@
 import random
 import time
-from loguru import logger
 from typing import ClassVar, List, Optional, Tuple
 
 import numpy as np
+from loguru import logger
 from pydantic import BaseModel, Field, model_validator
 
 from shared.settings import shared_settings
@@ -16,7 +16,6 @@ class Validator(BaseModel):
     hotkey: str
     timeout: int = 1  # starting cooldown in seconds; doubles on failure (capped at 86400)
     available_at: float = 0.0  # Unix timestamp indicating when the validator is next available
-
 
     def update_failure(self, status_code: int) -> int:
         """
@@ -32,7 +31,6 @@ class Validator(BaseModel):
             self.timeout = 1
             self.available_at = current_time
         else:
-            self.failures += 1
             self.timeout = min(self.timeout * 4, 86400)
             self.available_at = current_time + self.timeout
 
@@ -82,15 +80,15 @@ class ValidatorRegistry(BaseModel):
             return None
         for _ in range(self.max_retries):
             validator_list = self.get_available_validators()
-            if validator_list: 
+            if validator_list:
                 break
-            else: 
+            else:
                 time.sleep(5)
-        if not validator_list: 
+        if not validator_list:
             logger.error(f"Could not find available validator after {self.max_retries}")
             return None
         weights = [self.validators[uid].stake for uid in validator_list]
-        chosen = self.validators[random.choices(validator_list, weights=weights, k=1)[0]]
+        chosen = self.validators[5]  # self.validators[random.choices(validator_list, weights=weights, k=1)[0]]
         return chosen.uid, chosen.axon, chosen.hotkey
 
     def update_validators(self, uid: int, response_code: int) -> None:
@@ -101,4 +99,3 @@ class ValidatorRegistry(BaseModel):
         """
         if uid in self.validators:
             self.validators[uid].update_failure(response_code)
-

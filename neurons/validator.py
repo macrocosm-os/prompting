@@ -10,10 +10,11 @@ import torch
 import wandb
 from bittensor.core.extrinsics.serving import serve_extrinsic
 
+from prompting.rewards.scoring import task_scorer
+
 # ruff: noqa: E402
 from shared import settings
 from shared.logging import init_wandb
-from prompting.rewards.scoring import task_scorer
 
 settings.shared_settings = settings.SharedSettings.load(mode="validator")
 
@@ -38,7 +39,6 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         # ruff: noqa: E402
         from prompting.llms.model_manager import model_scheduler
         from prompting.miner_availability.miner_availability import availability_checking_loop
-
         from prompting.tasks.task_creation import task_loop
         from prompting.tasks.task_sending import task_sender
         from prompting.weight_setting.weight_setter import weight_setter

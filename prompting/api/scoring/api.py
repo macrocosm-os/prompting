@@ -1,9 +1,10 @@
-import time
 import uuid
 from typing import Any
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
+
 
 from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.llms.model_zoo import ModelZoo
@@ -12,9 +13,34 @@ from prompting.tasks.web_retrieval import WebRetrievalTask
 from shared import settings
 from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
-from shared.epistula import SynapseStreamResult
+from shared.epistula import SynapseStreamResult, verify_signature
+from shared.settings import shared_settings
 
 router = APIRouter()
+
+
+async def verify_scoring_signature(self, request: Request):
+    signed_by = request.headers.get("Epistula-Signed-By")
+    signed_for = request.headers.get("Epistula-Signed-For")
+    if signed_for != shared_settings.WALLET.hotkey.ss58_address:
+        raise HTTPException(status_code=400, detail="Bad Request, message is not intended for self")
+    if signed_by != shared_settings.API_HOTKEY:
+        raise HTTPException(status_code=401, detail="Signer not the expected ss58 address")
+
+    body = await request.body()
+    now = time.time()
+    err = verify_signature(
+        request.headers.get("Epistula-Request-Signature"),
+        body,
+        request.headers.get("Epistula-Timestamp"),
+        request.headers.get("Epistula-Uuid"),
+        signed_for,
+        signed_by,
+        now,
+    )
+    if err:
+        logger.error(err)
+        raise HTTPException(status_code=400, detail=err)
 
 
 def validate_scoring_key(request: Request):
@@ -28,7 +54,7 @@ def get_task_scorer(request: Request):
 
 @router.post("/scoring")
 async def score_response(
-    request: Request, api_key_data: dict = Depends(validate_scoring_key), task_scorer=Depends(get_task_scorer)
+    request: Request, api_key_data: dict = Depends(verify_scoring_signature), task_scorer=Depends(get_task_scorer)
 ):
     model = None
     payload: dict[str, Any] = await request.json()
@@ -92,10 +118,8 @@ async def score_response(
                 query=search_term,
             ),
             response=DendriteResponseEvent(
-                uids=[uids],
-                stream_results=[
-                    SynapseStreamResult(accumulated_chunks=[chunk for chunk in chunks if chunk is not None])
-                ],
+                uids=uids,
+                stream_results=[SynapseStreamResult(accumulated_chunks=chunks.get(str(uid), [])) for uid in uids],
                 timeout=body.get("timeout", settings.shared_settings.NEURON_TIMEOUT),
             ),
             dataset_entry=DDGDatasetEntry(search_term=search_term),

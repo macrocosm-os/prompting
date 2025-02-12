@@ -1,13 +1,13 @@
 import requests
 from loguru import logger
 
-from shared.epistula import create_header_hook
+from shared import settings
 from shared.loop_runner import AsyncLoopRunner
 from shared.uids import get_uids
-from shared import settings
 
 
 class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
+    interval: int = 300
     miner_availabilities: dict[int, dict] = {}
 
     async def run_step(self):

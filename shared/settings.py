@@ -84,11 +84,11 @@ class SharedSettings(BaseSettings):
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
     DEPLOY_SCORING_API: bool = Field(True, env="DEPLOY_SCORING_API")
-    SCORING_API_PORT: int = Field(8095, env = "SCORING_API_PORT")
+    SCORING_API_PORT: int = Field(8095, env="SCORING_API_PORT")
 
     # ==== API =====
     # Hotkey used to run api, defaults to Macrocosmos
-    API_HOTKEY: str = Field("5Cg5QgjMfRqBC6bh8X4PDbQi7UzVRn9eyWXsB8gkyfppFPPy", env="API_HOTKEY")
+    API_HOTKEY: str = Field("5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3", env="API_HOTKEY")
     # Scoring request rate limit in seconds.
     SCORING_RATE_LIMIT_SEC: float = Field(1, env="SCORING_RATE_LIMIT_SEC")
     # Scoring queue threshold when rate-limit start to kick in, used to query validator API with scoring requests.
