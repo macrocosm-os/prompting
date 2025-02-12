@@ -37,7 +37,9 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
     try:
         body = await request.json()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
-        uids = body.get("uids") or filter_available_uids(task=body.get("task"), model=body.get("model"))
+        uids = body.get("uids") or filter_available_uids(
+            task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE
+        )
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
         uids = random.sample(uids, min(len(uids), N_MINERS))
@@ -56,9 +58,8 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 
 
 @router.post("/web_retrieval")
-async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] = None):
-    if not uids:
-        uids = filter_available_uids(task="WebRetrievalTask")
+async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 5, max_response_time: int = 10):
+    uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE)
     if not uids:
         raise HTTPException(status_code=500, detail="No available miners")
     uids = random.sample(uids, min(len(uids), n_miners))
@@ -71,6 +72,8 @@ async def web_retrieval(search_query: str, n_miners: int = 10, uids: list[int] =
         "seed": random.randint(0, 1_000_000),
         "sampling_parameters": shared_settings.SAMPLING_PARAMS,
         "task": "WebRetrievalTask",
+        "target_results": n_results,
+        "timeout": max_response_time,
         "messages": [
             {"role": "user", "content": search_query},
         ],
