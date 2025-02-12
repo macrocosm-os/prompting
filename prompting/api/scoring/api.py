@@ -1,10 +1,9 @@
+import time
 import uuid
 from typing import Any
-import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
-
 
 from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.llms.model_zoo import ModelZoo

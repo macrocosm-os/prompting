@@ -2,15 +2,13 @@ import asyncio
 import datetime
 from collections import deque
 from typing import Any
-import time
-import uuid
 
-from shared.epistula import create_header_hook
 import httpx
 from loguru import logger
 from pydantic import BaseModel
 
 from shared import settings
+from shared.epistula import create_header_hook
 from shared.loop_runner import AsyncLoopRunner
 from validator_api.validator_forwarding import ValidatorRegistry
 
@@ -63,16 +61,14 @@ class ScoringQueue(AsyncLoopRunner):
             # Add required headers for signature verification
 
             logger.debug(f"Forwarding payload to {url}.\n\nPAYLOAD: {payload}")
-            async with httpx.AsyncClient(timeout=timeout) as client:
+            async with httpx.AsyncClient(
+                timeout=timeout,
+                event_hooks={"request": [create_header_hook(shared_settings.WALLET.hotkey, vali_hotkey)]},
+            ) as client:
                 response = await client.post(
                     url=url,
                     json=payload,
                     # headers=headers,
-                    event_hooks={
-                        "request": [
-                            create_header_hook(shared_settings.WALLET.hotkey, vali_hotkey)
-                        ]
-                    },
                 )
                 validator_registry.update_validators(uid=vali_uid, response_code=response.status_code)
                 if response.status_code != 200:
