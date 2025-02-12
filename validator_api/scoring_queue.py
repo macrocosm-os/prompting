@@ -48,8 +48,12 @@ class ScoringQueue(AsyncLoopRunner):
             payload = scoring_payload.payload
             uids = payload["uid"]
             logger.info(f"Received new organic for scoring, uids: {uids}")
-        vali_uid, vali_axon, vali_hotkey = validator_registry.get_available_axon()
-        url = f"http://{vali_axon}/scoring"
+        try:
+            vali_uid, vali_axon, vali_hotkey = validator_registry.get_available_axon()
+            # get_available_axon() will return None if it cannot find an available validator, which will fail to unpack
+            url = f"http://{vali_axon}/scoring"
+        except Exception as e:
+            logger.exception(f"Could not find available validator scoring endpoint: {e}")
         try:
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
             async with httpx.AsyncClient(timeout=timeout) as client:
