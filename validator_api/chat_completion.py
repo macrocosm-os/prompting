@@ -163,7 +163,7 @@ async def collect_remaining_responses(
     """Collect remaining responses for scoring without blocking the main response."""
     try:
         responses = await remaining
-        logger.debug(f"responses to forward: {responses}")
+        # logger.debug(f"responses to forward: {responses}")
         for i, response in enumerate(responses):
             if isinstance(response, Exception):
                 logger.error(f"Error collecting response from uid {uids[i+1]}: {response}")
@@ -197,7 +197,6 @@ async def chat_completion(
     body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 10
 ) -> tuple | StreamingResponse:
     """Handle chat completion with multiple miners in parallel."""
-    logger.debug(f"REQUEST_BODY: {body}")
     # Get multiple UIDs if none specified
     if uids is None:
         uids = list(get_uids(sampling_mode="random", k=100))
@@ -208,7 +207,7 @@ async def chat_completion(
     else:
         selected_uids = uids[:num_miners]  # If UID is specified, only use that one
 
-    logger.debug(f"Querying uids {selected_uids}")
+    # logger.debug(f"Querying uids {selected_uids}")
     STREAM = body.get("stream", False)
 
     # Initialize chunks collection for each miner

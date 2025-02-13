@@ -52,8 +52,6 @@ async def score_response(
         llm_model = None
     task_name = body.get("task")
     if task_name == "InferenceTask":
-        logger.info(f"Received Organic InferenceTask with body: {body}")
-        logger.info(f"With model of type {type(body.get('model'))}")
         organic_task = InferenceTask(
             messages=body.get("messages"),
             llm_model=llm_model,
@@ -62,7 +60,6 @@ async def score_response(
             sampling_params=body.get("sampling_parameters", settings.shared_settings.SAMPLING_PARAMS),
             query=body.get("messages"),
         )
-        logger.info(f"Task created: {organic_task}")
         task_scorer.add_to_queue(
             task=organic_task,
             response=DendriteResponseEvent(
@@ -76,7 +73,6 @@ async def score_response(
             task_id=str(uuid.uuid4()),
         )
     elif task_name == "WebRetrievalTask":
-        logger.info(f"Received Organic WebRetrievalTask with body: {body}")
         try:
             search_term = body.get("messages")[0].get("content")
         except Exception as ex:
@@ -102,4 +98,3 @@ async def score_response(
             step=-1,
             task_id=str(uuid.uuid4()),
         )
-    logger.info("Organic task appended to scoring queue")

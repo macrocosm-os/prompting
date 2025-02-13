@@ -2,7 +2,6 @@
 import json
 
 import numpy as np
-from loguru import logger
 from pydantic import BaseModel
 from scipy import spatial
 from thefuzz import fuzz
@@ -39,18 +38,18 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         # Content scraped from the URL provided in the completion.
         reference_website_content = DDGDataset.extract_website_content(response_url)
         if not reference_website_content or len(reference_website_content) == 0:
-            logger.debug(f"Failed to extract miner's content from website: {response_url}")
+            # logger.debug(f"Failed to extract miner's content from website: {response_url}")
             return 0
 
         if fuzz.ratio(response_content, reference_website_content) < MIN_MATCH_THRESHOLD:
-            logger.info("Miner returned text that doesn't match the website, scoring 0")
+            # logger.info("Miner returned text that doesn't match the website, scoring 0")
             return 0
 
         if len(response_relevant) > len(response_content) or len(response_relevant) < MIN_RELEVANT_CHARS:
-            logger.info(
-                f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars) or longer than the whole website content "
-                f"{len(response_relevant)} > {len(response_content)}"
-            )
+            # logger.info(
+            #     f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars) or longer than the whole website content "
+            #     f"{len(response_relevant)} > {len(response_content)}"
+            # )
             return 0
 
         if response_relevant not in response_content:
@@ -95,8 +94,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             rewards.append(self.score_miner_response(dataset_entry, completion, task=task))
             timings.append(0)
 
-        logger.debug(f"REWARDWEBRETRIEVAL: {rewards}")
-        logger.debug(f"COMPLETIONS: {response_event.completions}")
         return BatchRewardOutput(rewards=np.array(rewards), timings=np.array(timings))
 
     @staticmethod

@@ -37,9 +37,9 @@ class ModelManager(BaseModel):
 
         # if force loading is enabled, unload models until there is enough RAM
         if force:
-            logger.debug(f"Forcing model {model_config.llm_model_id} to load.")
+            # logger.debug(f"Forcing model {model_config.llm_model_id} to load.")
             for active_model in list(self.active_models.keys()):
-                logger.debug(f"Checking if model {active_model.llm_model_id} can be unloaded.")
+                # logger.debug(f"Checking if model {active_model.llm_model_id} can be unloaded.")
                 if active_model in self.always_active_models:
                     logger.debug(f"Model {active_model.llm_model_id} is always active. Skipping.")
                     continue
@@ -63,9 +63,9 @@ class ModelManager(BaseModel):
             )
 
         try:
-            logger.debug(
-                f"Loading model... {model_config.llm_model_id} with GPU Utilization: {model_config.min_ram / GPUInfo.free_memory}"
-            )
+            # logger.debug(
+            #     f"Loading model... {model_config.llm_model_id} with GPU Utilization: {model_config.min_ram / GPUInfo.free_memory}"
+            # )
             GPUInfo.log_gpu_info()
 
             model = ReproducibleHF(

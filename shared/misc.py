@@ -1,4 +1,3 @@
-import asyncio
 import time
 import traceback
 from functools import lru_cache, update_wrapper
@@ -6,7 +5,6 @@ from math import floor
 from typing import Any, Callable
 
 import bittensor as bt
-from loguru import logger
 
 from shared.exceptions import BittensorError
 
@@ -112,17 +110,17 @@ def ttl_get_block(subtensor: bt.Subtensor | None = None) -> int:
 
 def async_log(func):
     async def wrapper(*args, **kwargs):
-        start_time = time.time()
-        task_id = id(asyncio.current_task())
-        func_name = func.__name__
-        logger.debug(f"Starting {func_name} on asyncio task {task_id} at {start_time}")
+        # start_time = time.time()
+        # task_id = id(asyncio.current_task())
+        # func_name = func.__name__
+        # logger.debug(f"Starting {func_name} on asyncio task {task_id} at {start_time}")
 
         # Execute the wrapped function
         result = await func(*args, **kwargs)
 
-        end_time = time.time()
-        execution_time = end_time - start_time
-        logger.debug(f"Completed {func_name} on asyncio task {task_id} in {execution_time} seconds")
+        # end_time = time.time()
+        # execution_time = end_time - start_time
+        # logger.debug(f"Completed {func_name} on asyncio task {task_id} in {execution_time} seconds")
 
         return result
 

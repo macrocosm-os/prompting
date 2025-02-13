@@ -3,7 +3,6 @@ import re
 import time
 
 import numpy as np
-from loguru import logger
 from pydantic import Field, model_validator
 
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
@@ -76,5 +75,5 @@ class MultiChoiceRewardModel(BaseRewardModel):
             timings.append(time.perf_counter() - start_time)
             rewards.append(reward)
 
-        logger.debug(f"Rewards: {rewards}")
+        # logger.debug(f"Rewards: {rewards}")
         return BatchRewardOutput(rewards=np.asarray(rewards), timings=np.asarray(timings))

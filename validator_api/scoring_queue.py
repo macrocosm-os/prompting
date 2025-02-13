@@ -45,7 +45,7 @@ class ScoringQueue(AsyncLoopRunner):
             scoring_payload = self._scoring_queue.popleft()
             payload = scoring_payload.payload
             uids = payload["uid"]
-            logger.info(f"Received new organic for scoring, uids: {uids}")
+            # logger.info(f"Received new organic for scoring, uids: {uids}")
 
         url = f"http://{shared_settings.VALIDATOR_API}/scoring"
         try:
@@ -59,7 +59,7 @@ class ScoringQueue(AsyncLoopRunner):
                 if response.status_code != 200:
                     # Raise an exception so that the retry logic in the except block handles it.
                     raise Exception(f"Non-200 response: {response.status_code} for uids {uids}")
-                logger.info(f"Forwarding response completed with status {response.status_code}")
+                # logger.info(f"Forwarding response completed with status {response.status_code}")
         except Exception as e:
             if scoring_payload.retries < self.max_scoring_retries:
                 scoring_payload.retries += 1
@@ -74,7 +74,7 @@ class ScoringQueue(AsyncLoopRunner):
             return
 
         if body.get("task") != "InferenceTask" and body.get("task") != "WebRetrievalTask":
-            logger.debug(f"Skipping forwarding for non-inference/web retrieval task: {body.get('task')}")
+            # logger.debug(f"Skipping forwarding for non-inference/web retrieval task: {body.get('task')}")
             return
 
         uids = [int(u) for u in uids]
@@ -84,9 +84,6 @@ class ScoringQueue(AsyncLoopRunner):
 
         async with self._scoring_lock:
             self._scoring_queue.append(scoring_item)
-
-        logger.info(f"Appended responses from uids {uids} into scoring queue with size: {self.size}")
-        logger.debug(f"Queued responses body: {body}, chunks: {chunks}")
 
     @property
     def size(self) -> int:
