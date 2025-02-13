@@ -12,7 +12,7 @@ poetry install --extras "validator"
 # Build AutoAWQ==0.2.7.post3 from source
 if [ -d AutoAWQ ]; then rm -rf AutoAWQ; fi
 git clone git@github.com:casper-hansen/AutoAWQ.git
-cd AutoAWQ && git checkout cbd6a75b065e94a3e530dfdbb8f3973f0d954ec0 && pip install -U . && cd ..
+cd AutoAWQ && git checkout 16335d087dd4f9cdc8933dd7a5681e4bf88311b6 && pip install -U . && cd ..
 rm -rf AutoAWQ
 
 poetry run pip install flash-attn --no-build-isolation
