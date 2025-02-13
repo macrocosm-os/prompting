@@ -16,10 +16,11 @@ app = FastAPI()
 app.include_router(gpt_router, tags=["GPT Endpoints"])
 app.include_router(api_management_router, tags=["API Management"])
 
-# Using app.state to store the background task.
+
 @app.on_event("startup")
 async def startup_event():
     app.state.background_task = asyncio.create_task(update_miner_availabilities_for_api.start())
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -29,17 +30,19 @@ async def shutdown_event():
     except asyncio.CancelledError:
         pass
 
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
+
 if __name__ == "__main__":
     uvicorn.run(
-        "validator_api.api:app",  # Ensure this module path is correct.
+        "validator_api.api:app",
         host=shared_settings.API_HOST,
         port=shared_settings.API_PORT,
         log_level="debug",
         timeout_keep_alive=60,
-        workers=shared_settings.WORKERS,  # e.g. 8
+        workers=shared_settings.WORKERS,
         reload=False,
     )
