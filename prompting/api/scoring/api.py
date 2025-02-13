@@ -91,6 +91,7 @@ async def score_response(
             seed=int(body.get("seed", 0)),
             sampling_params=body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS),
             query=body.get("messages"),
+            organic = True,
         )
         logger.info(f"Task created: {organic_task}")
 

@@ -150,7 +150,7 @@ async def stream_from_first_response(
         remaining = asyncio.gather(*pending, return_exceptions=True)
         remaining_tasks = asyncio.create_task(
             collect_remaining_responses(
-                remainging=remaining,
+                remaining=remaining,
                 collected_chunks_list=collected_chunks_list,
                 body=body,
                 uids=uids,

@@ -94,20 +94,21 @@ class TaskScorer(AsyncLoopRunner):
             f"Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with model "
             f"{scoring_config.task.llm_model_id}"
         )
-        log_event(
-            RewardLoggingEvent(
-                response_event=scoring_config.response,
-                reward_events=reward_events,
-                reference=scoring_config.task.reference,
-                challenge=scoring_config.task.query,
-                task=scoring_config.task.name,
-                block=scoring_config.block,
-                step=scoring_config.step,
-                task_id=scoring_config.task_id,
-                task_dict=scoring_config.task.model_dump(),
-                source=scoring_config.dataset_entry.source,
+        if not scoring_config.task.organic:
+            log_event(
+                RewardLoggingEvent(
+                    response_event=scoring_config.response,
+                    reward_events=reward_events,
+                    reference=scoring_config.task.reference,
+                    challenge=scoring_config.task.query,
+                    task=scoring_config.task.name,
+                    block=scoring_config.block,
+                    step=scoring_config.step,
+                    task_id=scoring_config.task_id,
+                    task_dict=scoring_config.task.model_dump(),
+                    source=scoring_config.dataset_entry.source,
+                )
             )
-        )
         await asyncio.sleep(0.01)
 
 
