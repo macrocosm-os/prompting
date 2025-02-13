@@ -86,7 +86,9 @@ class ScoringQueue(AsyncLoopRunner):
             else:
                 logger.exception(f"Error while forwarding response after {scoring_payload.retries} retries: {e}")
 
-    async def append_response(self, uids: list[int], body: dict[str, Any], chunks: list[list[str]]):
+    async def append_response(
+        self, uids: list[int], body: dict[str, Any], chunks: list[list[str]], timings: list[list[float]] | None = None
+    ):
         if not shared_settings.SCORE_ORGANICS:
             return
 
@@ -96,7 +98,8 @@ class ScoringQueue(AsyncLoopRunner):
 
         uids = [int(u) for u in uids]
         chunk_dict = {str(u): c for u, c in zip(uids, chunks)}
-        payload = {"body": body, "chunks": chunk_dict, "uids": uids}
+        timing_dict = {str(u): t for u, t in zip(uids, timings)}
+        payload = {"body": body, "chunks": chunk_dict, "uids": uids, "timings": timing_dict}
         scoring_item = ScoringPayload(payload=payload)
 
         async with self._scoring_lock:

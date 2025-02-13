@@ -2,6 +2,7 @@ import asyncio
 import json
 import math
 import random
+import time
 from typing import Any, AsyncGenerator, Callable, List, Optional
 
 from fastapi import HTTPException
@@ -86,9 +87,14 @@ async def peek_first_chunk(
 
 
 async def stream_from_first_response(
-    responses: List[asyncio.Task], collected_chunks_list: List[List[str]], body: dict[str, any], uids: List[int]
+    responses: List[asyncio.Task],
+    collected_chunks_list: List[List[str]],
+    body: dict[str, any],
+    uids: List[int],
+    timings_list: List[List[float]],
 ) -> AsyncGenerator[str, None]:
     first_valid_response = None
+    response_start_time = time.monotonic()
     try:
         # Keep looping until we find a valid response or run out of tasks
         while responses and first_valid_response is None:
@@ -130,6 +136,7 @@ async def stream_from_first_response(
                 continue
 
             chunks_received = True
+            timings_list[0].append(time.monotonic() - response_start_time)
             collected_chunks_list[0].append(content)
             yield f"data: {json.dumps(chunk.model_dump())}\n\n"
 
@@ -141,10 +148,21 @@ async def stream_from_first_response(
 
         # Continue collecting remaining responses in background for scoring
         remaining = asyncio.gather(*pending, return_exceptions=True)
-        remaining_tasks = asyncio.create_task(collect_remaining_responses(remaining, collected_chunks_list, body, uids))
+        remaining_tasks = asyncio.create_task(
+            collect_remaining_responses(
+                remainging=remaining,
+                collected_chunks_list=collected_chunks_list,
+                body=body,
+                uids=uids,
+                timings_list=timings_list,
+                response_start_time=response_start_time,
+            )
+        )
         await remaining_tasks
         asyncio.create_task(
-            scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=collected_chunks_list)
+            scoring_queue.scoring_queue.append_response(
+                uids=uids, body=body, chunks=collected_chunks_list, timings=timings_list
+            )
         )
 
     except asyncio.CancelledError:
@@ -158,7 +176,12 @@ async def stream_from_first_response(
 
 
 async def collect_remaining_responses(
-    remaining: asyncio.Task, collected_chunks_list: List[List[str]], body: dict[str, any], uids: List[int]
+    remaining: asyncio.Task,
+    collected_chunks_list: List[List[str]],
+    body: dict[str, any],
+    uids: List[int],
+    timings_list: List[List[float]],
+    response_start_time: float,
 ):
     """Collect remaining responses for scoring without blocking the main response."""
     try:
@@ -175,6 +198,7 @@ async def collect_remaining_responses(
                 content = getattr(chunk.choices[0].delta, "content", None)
                 if content is None:
                     continue
+                timings_list[i + 1].append(time.monotonic() - response_start_time)
                 collected_chunks_list[i + 1].append(content)
 
     except Exception as e:
@@ -213,6 +237,7 @@ async def chat_completion(
 
     # Initialize chunks collection for each miner
     collected_chunks_list = [[] for _ in selected_uids]
+    timings_list = [[] for _ in selected_uids]
 
     timeout_seconds = max(
         30, max(0, math.floor(math.log2(body["sampling_parameters"].get("max_new_tokens", 256) / 256))) * 10 + 30
@@ -229,7 +254,7 @@ async def chat_completion(
         ]
 
         return StreamingResponse(
-            stream_from_first_response(response_tasks, collected_chunks_list, body, selected_uids),
+            stream_from_first_response(response_tasks, collected_chunks_list, body, selected_uids, timings_list),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",

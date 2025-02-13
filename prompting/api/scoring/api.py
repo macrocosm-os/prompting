@@ -64,6 +64,7 @@ async def score_response(
     timeout = payload.get("timeout", shared_settings.NEURON_TIMEOUT)
     uids = payload.get("uids", [])
     chunks = payload.get("chunks", {})
+    timings = payload.get("timings", {})
     logger.debug("About to check chunks and uids")
     if not uids or not chunks:
         logger.error(f"Either uids: {uids} or chunks: {chunks} is not valid, skipping scoring")
@@ -99,6 +100,7 @@ async def score_response(
                 uids=uids,
                 stream_results=[SynapseStreamResult(accumulated_chunks=chunks.get(str(uid), None)) for uid in uids],
                 timeout=timeout,
+                stream_results_all_chunks_timings=[timings.get(str(uid), None) for uid in uids],
             ),
             dataset_entry=DatasetEntry(),
             block=shared_settings.METAGRAPH.block,
