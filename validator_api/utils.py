@@ -11,7 +11,7 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
     miner_availabilities: dict[int, dict] = {}
 
     async def run_step(self):
-        if shared_settings.API_TEST_MODE:
+        if settings.shared_settings.API_TEST_MODE:
             return
         try:
             response = requests.post(

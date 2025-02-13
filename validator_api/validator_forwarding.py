@@ -88,7 +88,7 @@ class ValidatorRegistry(BaseModel):
             logger.error(f"Could not find available validator after {self.max_retries}")
             return None
         weights = [self.validators[uid].stake for uid in validator_list]
-        chosen = self.validators[5]  # self.validators[random.choices(validator_list, weights=weights, k=1)[0]]
+        chosen = self.validators[random.choices(validator_list, weights=weights, k=1)[0]]
         return chosen.uid, chosen.axon, chosen.hotkey
 
     def update_validators(self, uid: int, response_code: int) -> None:

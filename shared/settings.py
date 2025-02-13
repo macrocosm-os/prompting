@@ -233,7 +233,7 @@ class SharedSettings(BaseSettings):
             values["TEST_MINER_IDS"] = str(values["TEST_MINER_IDS"]).split(",")
         if mode == "mock":
             values["MOCK"] = True
-            values["NEURON_DEVICE"] = "cpu"
+            # values["NEURON_DEVICE"] = "cpu"
             logger.info("Running in mock mode. Bittensor objects will not be initialized.")
             return values
 

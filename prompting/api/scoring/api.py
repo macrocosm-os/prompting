@@ -105,7 +105,7 @@ async def score_response(
             step=-1,
             task_id=str(uuid.uuid4()),
         )
-        
+
     elif task_name == "WebRetrievalTask":
         logger.info(f"Received Organic WebRetrievalTask with body: {body}")
         try:
