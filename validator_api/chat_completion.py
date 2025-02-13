@@ -10,7 +10,6 @@ from loguru import logger
 
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
-from shared.uids import get_uids
 from validator_api import scoring_queue
 from validator_api.utils import filter_available_uids
 
