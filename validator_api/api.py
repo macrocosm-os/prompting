@@ -9,6 +9,7 @@ from shared import settings
 settings.shared_settings = settings.SharedSettings.load(mode="api")
 shared_settings = settings.shared_settings
 
+from validator_api import scoring_queue
 from validator_api.api_management import router as api_management_router
 from validator_api.gpt_endpoints import router as gpt_router
 from validator_api.utils import update_miner_availabilities_for_api
@@ -20,14 +21,17 @@ app.include_router(api_management_router, tags=["API Management"])
 
 @app.on_event("startup")
 async def startup_event():
-    app.state.background_task = asyncio.create_task(update_miner_availabilities_for_api.start())
+    app.state.availabilities = asyncio.create_task(update_miner_availabilities_for_api.start())
+    app.state.scoring = asyncio.create_task(scoring_queue.scoring_queue.start())
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    app.state.background_task.cancel()
+    app.state.availabilities.cancel()
+    app.state.scoring.cancel()
     try:
-        await app.state.background_task
+        await app.state.availabilities
+        await app.state.scoring
     except asyncio.CancelledError:
         pass
 
