@@ -34,7 +34,9 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
 update_miner_availabilities_for_api = UpdateMinerAvailabilitiesForAPI()
 
 
-def filter_available_uids(task: str | None = None, model: str | None = None, test: bool = False) -> list[int]:
+def filter_available_uids(
+    task: str | None = None, model: str | None = None, test: bool = False, n_miners: int = 10
+) -> list[int]:
     """
     Filter UIDs based on task and model availability.
 
@@ -47,11 +49,11 @@ def filter_available_uids(task: str | None = None, model: str | None = None, tes
         List of UIDs that can serve the requested task/model combination
     """
     if test:
-        return get_uids(sampling_mode="all")
+        return get_uids(sampling_mode="top_incentive", k=n_miners)
 
     filtered_uids = []
 
-    for uid in get_uids(sampling_mode="all"):
+    for uid in get_uids(sampling_mode="top_incentive", k=n_miners):
         # Skip if miner data is None/unavailable
         if update_miner_availabilities_for_api.miner_availabilities.get(str(uid)) is None:
             continue

@@ -38,11 +38,10 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         body = await request.json()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         uids = body.get("uids") or filter_available_uids(
-            task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE
+            task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=N_MINERS
         )
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
-        uids = random.sample(uids, min(len(uids), N_MINERS))
 
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):

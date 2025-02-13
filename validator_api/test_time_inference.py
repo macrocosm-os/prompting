@@ -67,17 +67,21 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer=False)
             response = await chat_completion(
                 body={
                     "messages": messages,
-                    "max_tokens": max_tokens,
                     "model": model,
-                    "stream": False,
                     "task": "InferenceTask",
+                    "test_time_inference": True,
+                    "mixture": False,
                     "sampling_parameters": {
-                        "temperature": 0.5,
-                        "max_new_tokens": 1000,
-                        "top_p": 1,
+                        "temperature": 0.7,
+                        "top_p": 0.95,
+                        "do_sample": True,
+                        "max_new_tokens": 2048,
                     },
-                    "seed": random.randint(0, 1000000),
+                    "seed": (seed := random.randint(0, 1000000)),
                 }
+            )
+            logger.debug(
+                f"Making API call with\n\nMESSAGES: {messages}\n\nSEED: {seed}\n\nRESPONSE: {response.choices[0].message.content}"
             )
             response_dict = parse_multiple_json(response.choices[0].message.content)[0]
             return response_dict
@@ -86,35 +90,20 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer=False)
             return None
 
     # Create three concurrent tasks
-    tasks = [asyncio.create_task(single_attempt()) for _ in range(ATTEMPTS_PER_STEP)]
-
-    # As each task completes, check if it was successful
-    for completed_task in asyncio.as_completed(tasks):
-        try:
-            result = await completed_task
-            if result is not None:
-                # Cancel remaining tasks
-                for task in tasks:
-                    task.cancel()
-                return result
-        except Exception as e:
-            logger.error(f"Task failed with error: {e}")
-            continue
-
-    # If all tasks failed, return error response
-    error_msg = "All concurrent API calls failed"
-    logger.error(error_msg)
-    if is_final_answer:
-        return {
-            "title": "Error",
-            "content": f"Failed to generate final answer. Error: {error_msg}",
-        }
-    else:
-        return {
-            "title": "Error",
-            "content": f"Failed to generate step. Error: {error_msg}",
-            "next_action": "final_answer",
-        }
+    try:
+        return await single_attempt()
+    except Exception as e:
+        if is_final_answer:
+            return {
+                "title": "Error",
+                "content": f"Failed to generate final answer. Error: {e}",
+            }
+        else:
+            return {
+                "title": "Error",
+                "content": f"Failed to generate step. Error: {e}",
+                "next_action": "final_answer",
+            }
 
 
 async def generate_response(original_messages: list[dict[str, str]], model: str = None):
