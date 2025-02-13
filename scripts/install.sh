@@ -10,8 +10,10 @@ poetry config virtualenvs.in-project true
 poetry install --extras "validator"
 
 # Build AutoAWQ==0.2.7.post3 from source
-git clone https://github.com/casper-hansen/AutoAWQ.git
-cd AutoAWQ  && poetry run pip install -e . && cd ..
+if [ -d AutoAWQ ]; then rm -rf AutoAWQ; fi
+git clone git@github.com:casper-hansen/AutoAWQ.git
+cd AutoAWQ && git checkout cbd6a75b065e94a3e530dfdbb8f3973f0d954ec0 && pip install -U . && cd ..
+rm -rf AutoAWQ
 
 poetry run pip install flash-attn --no-build-isolation
 
