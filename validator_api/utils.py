@@ -1,4 +1,5 @@
 import requests
+import random
 from loguru import logger
 
 from shared import settings
@@ -29,6 +30,7 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
         logger.debug(
             f"MINER AVAILABILITIES UPDATED, TRACKED: {len(tracked_availabilities)}, UNTRACKED: {len(self.miner_availabilities) - len(tracked_availabilities)}"
         )
+        logger.debug(f"SAMPLE AVAILABILITIES: {random.choice(list(self.miner_availabilities.values()))}")
 
 
 update_miner_availabilities_for_api = UpdateMinerAvailabilitiesForAPI()
@@ -53,7 +55,7 @@ def filter_available_uids(
 
     filtered_uids = []
 
-    for uid in get_uids(sampling_mode="top_incentive", k=n_miners):
+    for uid in get_uids(sampling_mode="top_incentive"):
         # Skip if miner data is None/unavailable
         if update_miner_availabilities_for_api.miner_availabilities.get(str(uid)) is None:
             continue
@@ -71,5 +73,6 @@ def filter_available_uids(
                 continue
 
         filtered_uids.append(uid)
+    filtered_uids = filtered_uids[:n_miners]
 
     return filtered_uids
