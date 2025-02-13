@@ -98,7 +98,10 @@ class ScoringQueue(AsyncLoopRunner):
 
         uids = [int(u) for u in uids]
         chunk_dict = {str(u): c for u, c in zip(uids, chunks)}
-        timing_dict = {str(u): t for u, t in zip(uids, timings)}
+        if timings:
+            timing_dict = {str(u): t for u, t in zip(uids, timings)}
+        else:
+            timing_dict = {}
         payload = {"body": body, "chunks": chunk_dict, "uids": uids, "timings": timing_dict}
         scoring_item = ScoringPayload(payload=payload)
 
