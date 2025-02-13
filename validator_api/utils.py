@@ -37,25 +37,30 @@ update_miner_availabilities_for_api = UpdateMinerAvailabilitiesForAPI()
 
 
 def filter_available_uids(
-    task: str | None = None, model: str | None = None, test: bool = False, n_miners: int = 10
+    task: str | None = None,
+    model: str | None = None,
+    test: bool = False,
+    n_miners: int = 10,
+    n_top_incentive: int = 100,
 ) -> list[int]:
-    """
-    Filter UIDs based on task and model availability.
+    """Filter UIDs based on task and model availability.
 
     Args:
-        uids: List of UIDs to filter
-        task: Task type to check availability for, or None if any task is acceptable
-        model: Model name to check availability for, or None if any model is acceptable
+        task (str | None, optional): The task to filter miners by. Defaults to None.
+        model (str | None, optional): The LLM model to filter miners by. Defaults to None.
+        test (bool, optional): Whether to run in test mode. Defaults to False.
+        n_miners (int, optional): Number of miners to return. Defaults to 10.
+        n_top_incentive (int, optional): Number of top incentivized miners to consider. Defaults to 10.
 
     Returns:
-        List of UIDs that can serve the requested task/model combination
+        list[int]: List of filtered UIDs that match the criteria.
     """
     if test:
         return get_uids(sampling_mode="top_incentive", k=n_miners)
 
     filtered_uids = []
 
-    for uid in get_uids(sampling_mode="top_incentive"):
+    for uid in get_uids(sampling_mode="top_incentive", k=max(n_top_incentive, n_miners)):
         # Skip if miner data is None/unavailable
         if update_miner_availabilities_for_api.miner_availabilities.get(str(uid)) is None:
             continue

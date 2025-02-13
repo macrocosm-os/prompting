@@ -73,8 +73,6 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer=False)
                     "mixture": False,
                     "sampling_parameters": {
                         "temperature": 0.5,
-                        # "top_p": 0.95,
-                        # "do_sample": True,
                         "max_new_tokens": 500,
                     },
                     "seed": (seed := random.randint(0, 1000000)),
