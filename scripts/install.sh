@@ -9,7 +9,7 @@ poetry config virtualenvs.in-project true
 # Install the project dependencies
 poetry install --extras "validator"
 
-# Build AutoAWQ==0.2.7.post3 from source
+# Build AutoAWQ==0.2.8 from source
 if [ -d AutoAWQ ]; then rm -rf AutoAWQ; fi
 git clone git@github.com:casper-hansen/AutoAWQ.git
 cd AutoAWQ && git checkout 16335d087dd4f9cdc8933dd7a5681e4bf88311b6 && pip install -U . && cd ..
