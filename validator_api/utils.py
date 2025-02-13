@@ -1,5 +1,6 @@
-import requests
 import random
+
+import requests
 from loguru import logger
 
 from shared import settings

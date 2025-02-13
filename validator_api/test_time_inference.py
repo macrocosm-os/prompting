@@ -1,4 +1,3 @@
-import asyncio
 import json
 import random
 import re
@@ -59,7 +58,6 @@ def parse_multiple_json(api_response):
 
 
 async def make_api_call(messages, max_tokens, model=None, is_final_answer=False):
-    ATTEMPTS_PER_STEP = 10
     logger.info(f"Making API call with messages: {messages}")
 
     async def single_attempt():
