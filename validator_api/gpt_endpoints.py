@@ -11,6 +11,7 @@ from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice,
 from starlette.responses import StreamingResponse
 
 from shared import settings
+shared_settings = settings.shared_settings
 from shared.epistula import SynapseStreamResult, query_miners
 from validator_api import scoring_queue
 from validator_api.api_management import _keys
@@ -19,7 +20,6 @@ from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.test_time_inference import generate_response
 from validator_api.utils import filter_available_uids
 
-shared_settings = settings.shared_settings
 
 router = APIRouter()
 N_MINERS = 5

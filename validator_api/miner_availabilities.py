@@ -7,10 +7,11 @@ from loguru import logger
 from pydantic import BaseModel
 
 from shared import settings
+shared_settings = settings.shared_settings
+
 from shared.loop_runner import AsyncLoopRunner
 from shared.uids import get_uids
 
-shared_settings = settings.shared_settings
 router = APIRouter()
 
 
