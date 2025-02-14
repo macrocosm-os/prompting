@@ -10,7 +10,7 @@ from prompting import __spec_version__
 from prompting.llms.model_zoo import ModelZoo
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.inference import InferenceTask
-from prompting.tasks.task_registry import TaskConfig, TaskRegistry
+from prompting.tasks.task_registry import TaskRegistry
 from shared import settings
 from shared.logging import WeightSetEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
@@ -129,10 +129,13 @@ def set_weights(
         version_key=__spec_version__,
     )
 
-    if result[0] is True:
+    success = result[0] is True
+    if success:
         logger.info("set_weights on chain successfully!")
     else:
         logger.error(f"set_weights failed: {result}")
+
+    return success
 
 
 class WeightSetter(AsyncLoopRunner):
@@ -143,7 +146,6 @@ class WeightSetter(AsyncLoopRunner):
     reward_events: list[list[WeightedRewardEvent]] | None = None
     subtensor: bt.Subtensor | None = None
     metagraph: bt.Metagraph | None = None
-    # interval: int = 60
 
     class Config:
         arbitrary_types_allowed = True
@@ -163,76 +165,85 @@ class WeightSetter(AsyncLoopRunner):
             logger.error(f"Couldn't load weights from file: {ex}")
         return await super().start(name=name)
 
-    async def run_step(self):
-        await asyncio.sleep(0.01)
-        try:
-            if len(self.reward_events) == 0:
-                logger.warning("No reward events in queue, skipping weight setting...")
-                return
-            logger.debug(f"Found {len(self.reward_events)} reward events in queue")
+    async def _process_standard_reward_events(
+        self, reward_events: list[WeightedRewardEvent], miner_rewards: dict
+    ) -> list[WeightedRewardEvent]:
+        """Process standard (non-inference) reward events and return inference events for separate processing."""
+        inference_events = []
 
-            # reward_events is a list of lists of WeightedRewardEvents - the 'sublists' each contain the multiple reward events for a single task
-            self.reward_events: list[list[WeightedRewardEvent]] = self.reward_events  # to get correct typehinting
+        for reward_event in reward_events:
+            await asyncio.sleep(0.01)
+            if np.sum(reward_event.rewards) > 0:
+                logger.debug("Identified positive reward event")
+            task_config = TaskRegistry.get_task_config(reward_event.task)
 
-            # reward_dict = {uid: 0 for uid in get_uids(sampling_mode="all")}
-            reward_dict = {uid: 0 for uid in range(1024)}
-            # miner_rewards is a dictionary that separates each task config into a dictionary of uids with their rewards
-            # miner_rewards: dict[TaskConfig, dict[int, float]] = {
-            #     config: {uid: 0 for uid in get_uids(sampling_mode="all")} for config in TaskRegistry.task_configs
-            # }
-            miner_rewards: dict[TaskConfig, dict[int, float]] = {
-                config: {uid: {"reward": 0, "count": 0} for uid in range(1024)} for config in TaskRegistry.task_configs
-            }
+            if task_config.task == InferenceTask:
+                inference_events.append(reward_event)
+                continue
 
-            inference_events: list[WeightedRewardEvent] = []
-            for reward_events in self.reward_events:
-                await asyncio.sleep(0.01)
-                for reward_event in reward_events:
-                    if np.sum(reward_event.rewards) > 0:
-                        logger.debug("Identified positive reward event")
-                    task_config = TaskRegistry.get_task_config(reward_event.task)
+            for uid, reward in zip(reward_event.uids, reward_event.rewards):
+                miner_rewards[task_config][uid]["reward"] += reward * reward_event.weight
+                miner_rewards[task_config][uid]["count"] += 1 * reward_event.weight
 
-                    # inference task uses a different reward model
-                    if task_config.task == InferenceTask:
-                        inference_events.append(reward_event)
-                        continue
+        return inference_events
 
-                    # give each uid the reward they received
-                    for uid, reward in zip(reward_event.uids, reward_event.rewards):
-                        miner_rewards[task_config][uid]["reward"] += (
-                            reward * reward_event.weight
-                        )  # TODO: Double check I actually average at the end
-                        miner_rewards[task_config][uid]["count"] += (
-                            1 * reward_event.weight
-                        )  # TODO: Double check I actually average at the end
+    async def _process_inference_events(self, inference_events: list[WeightedRewardEvent], miner_rewards: dict):
+        """Process inference-specific reward events."""
+        for inference_event in inference_events:
+            for uid, reward in zip(inference_event.uids, inference_event.rewards):
+                llm_model = inference_event.task.llm_model_id
+                model_specific_reward = ModelZoo.get_model_by_id(llm_model).reward if llm_model else 1
+                miner_rewards[TaskRegistry.get_task_config(InferenceTask)][uid]["reward"] += (
+                    reward * model_specific_reward
+                )
 
-            for inference_event in inference_events:
-                for uid, reward in zip(inference_event.uids, inference_event.rewards):
-                    llm_model = inference_event.task.llm_model_id
+    async def _calculate_final_rewards(self, miner_rewards: dict) -> np.ndarray:
+        """Calculate final rewards from processed miner rewards."""
+        reward_dict = {uid: 0 for uid in range(1024)}
 
-                    model_specific_reward = ModelZoo.get_model_by_id(llm_model).reward if llm_model else 1
-                    miner_rewards[TaskRegistry.get_task_config(InferenceTask)][uid]["reward"] += (
-                        reward * model_specific_reward
-                    )  # for inference 2x responses should mean 2x the reward
+        for task_config, rewards in miner_rewards.items():
+            r = np.array([x["reward"] / max(1, x["count"]) for x in list(rewards.values())])
+            logger.debug(f"Rewards for task {task_config.task.__name__}: {r}")
+            u = np.array(list(rewards.keys()))
 
-            for task_config, rewards in miner_rewards.items():
-                r = np.array([x["reward"] / max(1, x["count"]) for x in list(rewards.values())])
-                logger.debug(f"Rewards for task {task_config.task.__name__}: {r}")
-                u = np.array(list(rewards.keys()))
-                if task_config.task == InferenceTask:
-                    processed_rewards = r / max(1, (np.sum(r[r > 0]) + 1e-10))
-                else:
-                    processed_rewards = apply_reward_func(raw_rewards=r, p=shared_settings.REWARD_STEEPNESS)
-                processed_rewards *= task_config.probability
-                # update reward dict
-                for uid, reward in zip(u, processed_rewards):
-                    reward_dict[uid] += reward
-            final_rewards = np.array(list(reward_dict.values())).astype(float)
-            final_rewards[final_rewards < 0] = 0
-            final_rewards /= np.sum(final_rewards) + 1e-10
-        except Exception as ex:
-            logger.exception(f"{ex}")
+            if task_config.task == InferenceTask:
+                processed_rewards = r / max(1, (np.sum(r[r > 0]) + 1e-10))
+            else:
+                processed_rewards = apply_reward_func(raw_rewards=r, p=shared_settings.REWARD_STEEPNESS)
 
+            processed_rewards *= task_config.probability
+
+            for uid, reward in zip(u, processed_rewards):
+                reward_dict[uid] += reward
+
+        final_rewards = np.array(list(reward_dict.values())).astype(float)
+        final_rewards[final_rewards < 0] = 0
+        final_rewards /= np.sum(final_rewards) + 1e-10
+
+        return final_rewards
+
+    async def _set_weights_with_retry(self, final_rewards: np.ndarray) -> bool:
+        """Set weights on chain with retries."""
+        max_retries = 3
+        retry_delay = 30  # seconds
+
+        for attempt in range(max_retries):
+            success = set_weights(
+                final_rewards, step=self.step, subtensor=shared_settings.SUBTENSOR, metagraph=shared_settings.METAGRAPH
+            )
+            if success:
+                return True
+
+            if attempt < max_retries - 1:
+                logger.warning(
+                    f"Weight setting failed on attempt {attempt + 1}/{max_retries}, retrying in {retry_delay} seconds..."
+                )
+                await asyncio.sleep(retry_delay)
+
+        return False
+
+    async def _log_reward_stats(self, final_rewards: np.ndarray):
+        """Log statistics about the final rewards."""
         mean_value = final_rewards.mean()
         min_value = final_rewards.min()
         max_value = final_rewards.max()
@@ -240,14 +251,51 @@ class WeightSetter(AsyncLoopRunner):
         logger.debug(
             f"Reward stats. Mean: {mean_value:.2f}; Min: {min_value:.4f}; Max: {max_value:.4f}; Count: {length}"
         )
-        # set weights on chain
-        set_weights(
-            final_rewards, step=self.step, subtensor=shared_settings.SUBTENSOR, metagraph=shared_settings.METAGRAPH
-        )
-        # TODO: empty rewards queue only on weight setting success
-        self.reward_events[:] = []  # empty reward events queue
+
+    async def run_step(self):
+        """Main step function that orchestrates the weight setting process."""
         await asyncio.sleep(0.01)
-        return final_rewards
+
+        try:
+            if len(self.reward_events) == 0:
+                logger.warning("No reward events in queue, skipping weight setting...")
+                return
+
+            logger.debug(f"Found {len(self.reward_events)} reward events in queue")
+
+            # Initialize rewards tracking
+            miner_rewards = {
+                config: {uid: {"reward": 0, "count": 0} for uid in range(1024)} for config in TaskRegistry.task_configs
+            }
+
+            # Process all reward events
+            all_inference_events = []
+            for reward_events in self.reward_events:
+                inference_events = await self._process_standard_reward_events(reward_events, miner_rewards)
+                all_inference_events.extend(inference_events)
+
+            # Process inference events separately
+            await self._process_inference_events(all_inference_events, miner_rewards)
+
+            # Calculate final rewards
+            final_rewards = await self._calculate_final_rewards(miner_rewards)
+
+            # Log reward statistics
+            await self._log_reward_stats(final_rewards)
+
+            # Set weights with retry mechanism
+            success = await self._set_weights_with_retry(final_rewards)
+
+            if success:
+                self.reward_events[:] = []
+            else:
+                logger.error("Weight setting failed after all retries, keeping reward events in queue")
+
+            return final_rewards
+
+        except Exception as ex:
+            logger.exception(f"{ex}")
+            return None
 
 
 weight_setter = WeightSetter()
