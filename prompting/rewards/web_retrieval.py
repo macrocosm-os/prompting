@@ -2,10 +2,11 @@
 
 import json
 import os
-import pandas as pd
 from collections import defaultdict
-import numpy as np
 from urllib.parse import urlparse
+
+import numpy as np
+import pandas as pd
 from loguru import logger
 from pydantic import BaseModel
 from scipy import spatial
@@ -101,7 +102,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         if netloc.startswith("www."):
             netloc = netloc[4:]
 
-        print("NETLOC", parsed_url)
         # Check if URL is IP-based or has port
         if not netloc or any(c.isdigit() for c in netloc.split(".")) or ":" in netloc:
             discount_factor = 0

@@ -91,6 +91,7 @@ class SharedSettings(BaseSettings):
     SCORING_RATE_LIMIT_SEC: float = Field(0.5, env="SCORING_RATE_LIMIT_SEC")
     # Scoring queue threshold when rate-limit start to kick in, used to query validator API with scoring requests.
     SCORING_QUEUE_API_THRESHOLD: int = Field(5, env="SCORING_QUEUE_API_THRESHOLD")
+    API_TEST_MODE: bool = Field(False, env="API_TEST_MODE")
 
     # Validator scoring API (.env.validator).
     DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
@@ -202,6 +203,8 @@ class SharedSettings(BaseSettings):
             dotenv_file = ".env.validator"
         elif mode == "api":
             dotenv_file = ".env.api"
+            if os.getenv("API_TEST_MODE"):
+                logger.warning("API_TEST_MODE is set to true - THE API IS RUNNING IN TEST MODE.")
         else:
             raise ValueError(f"Invalid mode: {mode}")
 
