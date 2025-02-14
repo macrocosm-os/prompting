@@ -23,10 +23,12 @@ async def start_scoring_api(task_scorer, scoring_queue, reward_events):
     app.state.task_scorer.reward_events = reward_events
 
     logger.info(f"Starting Scoring API on https://0.0.0.0:{settings.shared_settings.SCORING_API_PORT}")
-    uvicorn.run(
+    config = uvicorn.Config(
         "prompting.api.api:app",
         host="0.0.0.0",
         port=settings.shared_settings.SCORING_API_PORT,
         loop="asyncio",
         reload=False,
     )
+    server = uvicorn.Server(config)
+    await server.serve()
