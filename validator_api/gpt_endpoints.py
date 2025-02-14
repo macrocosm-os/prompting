@@ -79,13 +79,13 @@ async def completions(request: ChatCompletionRequest, api_key: str = Depends(val
     - Test-time inference (`test_time_inference`).
     """
     try:
-        request.seed = request.seed or random.randint(0, 1000000)
-        uids = request.uids or filter_available_uids(task="ChatTask", model=request.model)
-
+        body = await request.json()
+        body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
+        uids = body.get("uids") or filter_available_uids(
+            task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=N_MINERS
+        )
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
-
-        uids = random.sample(uids, min(len(uids), N_MINERS))
 
         if request.test_time_inference:
             return await test_time_inference(request.messages, request.model)
@@ -121,7 +121,7 @@ async def completions(request: ChatCompletionRequest, api_key: str = Depends(val
     The search is performed using DuckDuckGo through the miner network.
     """,
 )
-async def web_retrieval(request: WebSearchQuery):
+async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 5, max_response_time: int = 10):
     """
     Handles web retrieval through distributed miners.
 
@@ -129,7 +129,7 @@ async def web_retrieval(request: WebSearchQuery):
 
     If no miners are available, an HTTPException is raised.
     """
-    uids = request.uids or filter_available_uids(task="WebRetrievalTask")
+    uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
     if not uids:
         raise HTTPException(status_code=500, detail="No available miners")
 
@@ -140,7 +140,11 @@ async def web_retrieval(request: WebSearchQuery):
         "seed": random.randint(0, 1_000_000),
         "sampling_parameters": shared_settings.SAMPLING_PARAMS,
         "task": "WebRetrievalTask",
-        "messages": [{"role": "user", "content": request.search_query}],
+        "target_results": n_results,
+        "timeout": max_response_time,
+        "messages": [
+            {"role": "user", "content": search_query},
+        ],
     }
 
     timeout_seconds = 30
