@@ -2,10 +2,11 @@
 
 import json
 import os
-import pandas as pd
 from collections import defaultdict
-import numpy as np
 from urllib.parse import urlparse
+
+import numpy as np
+import pandas as pd
 from loguru import logger
 from pydantic import BaseModel
 from scipy import spatial
