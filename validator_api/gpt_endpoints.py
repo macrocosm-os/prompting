@@ -61,7 +61,7 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
     uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
     if not uids:
         raise HTTPException(status_code=500, detail="No available miners")
-        
+
     uids = random.sample(uids, min(len(uids), n_miners))
     # logger.debug(f"🔍 Querying uids: {uids}")
     if len(uids) == 0:
