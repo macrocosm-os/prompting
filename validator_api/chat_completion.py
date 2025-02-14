@@ -8,8 +8,11 @@ from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
+from shared import settings
+
+shared_settings = settings.shared_settings
+
 from shared.epistula import make_openai_query
-from shared.settings import shared_settings
 from validator_api import scoring_queue
 from validator_api.utils import filter_available_uids
 

@@ -18,7 +18,6 @@ def health():
 
 
 async def start_scoring_api(task_scorer, scoring_queue, reward_events):
-    # We pass an object of task scorer then override it's attributes to ensure that they are managed by mp
     app.state.task_scorer = task_scorer
     app.state.task_scorer.scoring_queue = scoring_queue
     app.state.task_scorer.reward_events = reward_events
