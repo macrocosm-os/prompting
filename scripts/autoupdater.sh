@@ -135,8 +135,11 @@ update_and_restart() {
     fi
 
     if [[ -x "./run.sh" ]]; then
-        log INFO "Update successful, restarting application..."
-        exec ./run.sh
+        log INFO "Update successful, restarting validator..."
+        pm2 restart s1_validator_main_process
+        log INFO "Validator restart initiated via PM2"
+        # Let PM2 handle our own restart if needed
+        return 0
     else
         log ERROR "run.sh not found or not executable"
         return 1

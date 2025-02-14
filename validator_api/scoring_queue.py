@@ -8,9 +8,10 @@ from loguru import logger
 from pydantic import BaseModel
 
 from shared import settings
-from shared.loop_runner import AsyncLoopRunner
 
 shared_settings = settings.shared_settings
+
+from shared.loop_runner import AsyncLoopRunner
 
 
 class ScoringPayload(BaseModel):

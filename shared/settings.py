@@ -88,16 +88,17 @@ class SharedSettings(BaseSettings):
     # API key used to access validator organic scoring mechanism (both .env.validator and .env.api).
     SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
     # Scoring request rate limit in seconds.
-    SCORING_RATE_LIMIT_SEC: float = Field(0.5, env="SCORING_RATE_LIMIT_SEC")
+    SCORING_RATE_LIMIT_SEC: float = Field(5, env="SCORING_RATE_LIMIT_SEC")
     # Scoring queue threshold when rate-limit start to kick in, used to query validator API with scoring requests.
-    SCORING_QUEUE_API_THRESHOLD: int = Field(5, env="SCORING_QUEUE_API_THRESHOLD")
+    SCORING_QUEUE_API_THRESHOLD: int = Field(1, env="SCORING_QUEUE_API_THRESHOLD")
+    API_TEST_MODE: bool = Field(False, env="API_TEST_MODE")
 
     # Validator scoring API (.env.validator).
     DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
     SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
     SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
     SCORE_ORGANICS: bool = Field(False, env="SCORE_ORGANICS")
-    WORKERS: int = Field(2, env="WORKERS")
+    WORKERS: int = Field(1, env="WORKERS")
 
     # API Management (.env.api).
     API_PORT: int = Field(8005, env="API_PORT")
@@ -202,6 +203,8 @@ class SharedSettings(BaseSettings):
             dotenv_file = ".env.validator"
         elif mode == "api":
             dotenv_file = ".env.api"
+            if os.getenv("API_TEST_MODE"):
+                logger.warning("API_TEST_MODE is set to true - THE API IS RUNNING IN TEST MODE.")
         else:
             raise ValueError(f"Invalid mode: {mode}")
 

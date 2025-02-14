@@ -1,4 +1,6 @@
+import asyncio
 import json
+import random
 import re
 import time
 
@@ -8,6 +10,7 @@ from shared.timer import Timer
 from validator_api.chat_completion import chat_completion
 
 MAX_THINKING_STEPS = 10
+ATTEMPTS_PER_STEP = 10
 
 
 def parse_multiple_json(api_response):
@@ -39,92 +42,151 @@ def parse_multiple_json(api_response):
             print(f"Failed to parse JSON object: {e}")
             continue
 
+    if len(parsed_objects) == 0:
+        logger.error(
+            f"No valid JSON objects found in the response - couldn't parse json. The miner response was: {api_response}"
+        )
+        return None
+    if (
+        not parsed_objects[0].get("title")
+        or not parsed_objects[0].get("content")
+        or not parsed_objects[0].get("next_action")
+    ):
+        logger.error(
+            f"Invalid JSON object found in the response - field missing. The miner response was: {api_response}"
+        )
+        return None
     return parsed_objects
 
 
 async def make_api_call(messages, max_tokens, model=None, is_final_answer=False):
     logger.info(f"Making API call with messages: {messages}")
-    response = None
-    response_dict = None
-    for attempt in range(3):
+
+    async def single_attempt():
         try:
             response = await chat_completion(
                 body={
                     "messages": messages,
-                    "max_tokens": max_tokens,
                     "model": model,
-                    "stream": False,
                     "task": "InferenceTask",
+                    "test_time_inference": True,
+                    "mixture": False,
                     "sampling_parameters": {
                         "temperature": 0.5,
-                        "max_new_tokens": 1000,
-                        "top_p": 1,
+                        "max_new_tokens": 500,
                     },
-                }
+                    "seed": (seed := random.randint(0, 1000000)),
+                },
+                num_miners=3,
             )
-            # return response.choices[0].message.content
+            logger.debug(
+                f"Making API call with\n\nMESSAGES: {messages}\n\nSEED: {seed}\n\nRESPONSE: {response.choices[0].message.content}"
+            )
             response_dict = parse_multiple_json(response.choices[0].message.content)[0]
             return response_dict
         except Exception as e:
-            logger.error(f"Failed to get valid step back from miner: {e}")
-            if attempt == 2:
-                logger.exception(f"Error generating answer: {e}, RESPONSE DICT: {response_dict}")
-                if is_final_answer:
-                    return {
-                        "title": "Error",
-                        "content": f"Failed to generate final answer after 3 attempts. Error: {str(e)}",
-                    }
-                else:
-                    return {
-                        "title": "Error",
-                        "content": f"Failed to generate step after 3 attempts. Error: {str(e)}",
-                        "next_action": "final_answer",
-                    }
-            time.sleep(1)  # Wait for 1 second before retrying
+            logger.error(f"Failed to get valid response: {e}")
+            return None
+
+    # Create three concurrent tasks for more robustness against invalid jsons
+    tasks = [asyncio.create_task(single_attempt()) for _ in range(ATTEMPTS_PER_STEP)]
+
+    # As each task completes, check if it was successful
+    for completed_task in asyncio.as_completed(tasks):
+        try:
+            result = await completed_task
+            if result is not None:
+                # Cancel remaining tasks
+                for task in tasks:
+                    task.cancel()
+                return result
+        except Exception as e:
+            logger.error(f"Task failed with error: {e}")
+            continue
+
+    # If all tasks failed, return error response
+    error_msg = "All concurrent API calls failed"
+    logger.error(error_msg)
+    if is_final_answer:
+        return {
+            "title": "Error",
+            "content": f"Failed to generate final answer. Error: {error_msg}",
+        }
+    else:
+        return {
+            "title": "Error",
+            "content": f"Failed to generate step. Error: {error_msg}",
+            "next_action": "final_answer",
+        }
 
 
-async def generate_response(original_messages: list[dict[str, str]]):
+async def generate_response(original_messages: list[dict[str, str]], model: str = None):
     messages = [
         {
             "role": "system",
-            "content": """You are an expert AI assistant with advanced reasoning capabilities. Your task is to provide detailed, step-by-step explanations of your thought process. For each step:
+            "content": """You are a world-class expert in analytical reasoning and problem-solving. Your task is to break down complex problems through rigorous step-by-step analysis, carefully examining each aspect before moving forward. For each reasoning step:
 
-1. Provide a clear, concise title describing the current reasoning phase.
-2. Elaborate on your thought process in the content section.
-3. Decide whether to continue reasoning or provide a final answer.
-
-Response Format:
-Use JSON with keys: 'title', 'content', 'next_action' (values: 'continue' or 'final_answer')
-
-Key Instructions:
-- Employ at least 5 distinct reasoning steps.
-- Acknowledge your limitations as an AI and explicitly state what you can and cannot do.
-- Actively explore and evaluate alternative answers or approaches.
-- Critically assess your own reasoning; identify potential flaws or biases.
-- When re-examining, employ a fundamentally different approach or perspective.
-- Utilize at least 3 diverse methods to derive or verify your answer.
-- Incorporate relevant domain knowledge and best practices in your reasoning.
-- Quantify certainty levels for each step and the final conclusion when applicable.
-- Consider potential edge cases or exceptions to your reasoning.
-- Provide clear justifications for eliminating alternative hypotheses.
-- Output only one step at a time to ensure a detailed and coherent explanation.
-
-
-Example of a valid JSON response:
-```json
+OUTPUT FORMAT:
+Return a JSON object with these required fields:
 {
-    "title": "Initial Problem Analysis",
-    "content": "To approach this problem effectively, I'll first break down the given information into key components. This involves identifying...[detailed explanation]... By structuring the problem this way, we can systematically address each aspect.",
-    "next_action": "continue"
-}```
-""",
+    "title": "Brief, descriptive title of current reasoning phase",
+    "content": "Detailed explanation of your analysis",
+    "next_action": "continue" or "final_answer"
+}
+
+REASONING PROCESS:
+1. Initial Analysis
+   - Break down the problem into core components
+   - Identify key constraints and requirements
+   - List relevant domain knowledge and principles
+
+2. Multiple Perspectives
+   - Examine the problem from at least 3 different angles
+   - Consider both conventional and unconventional approaches
+   - Identify potential biases in initial assumptions
+
+3. Exploration & Validation
+   - Test preliminary conclusions against edge cases
+   - Apply domain-specific best practices
+   - Quantify confidence levels when possible (e.g., 90% certain)
+   - Document key uncertainties or limitations
+
+4. Critical Review
+   - Actively seek counterarguments to your reasoning
+   - Identify potential failure modes
+   - Consider alternative interpretations of the data/requirements
+   - Validate assumptions against provided context
+
+5. Synthesis & Refinement
+   - Combine insights from multiple approaches
+   - Strengthen weak points in the reasoning chain
+   - Address identified edge cases and limitations
+   - Build towards a comprehensive solution
+
+REQUIREMENTS:
+- Each step must focus on ONE specific aspect of reasoning
+- Explicitly state confidence levels and uncertainty
+- When evaluating options, use concrete criteria
+- Include specific examples or scenarios when relevant
+- Acknowledge limitations in your knowledge or capabilities
+- Maintain logical consistency across steps
+- Build on previous steps while avoiding redundancy
+
+CRITICAL THINKING CHECKLIST:
+✓ Have I considered non-obvious interpretations?
+✓ Are my assumptions clearly stated and justified?
+✓ Have I identified potential failure modes?
+✓ Is my confidence level appropriate given the evidence?
+✓ Have I adequately addressed counterarguments?
+
+Remember: Quality of reasoning is more important than speed. Take the necessary steps to build a solid analytical foundation before moving to conclusions.""",
         }
     ]
     messages += original_messages
     messages += [
         {
             "role": "assistant",
-            "content": "Thank you! I will now think step by step following my instructions, starting at the beginning after decomposing the problem.",
+            "content": "I understand. I will now analyze the problem systematically, following the structured reasoning process while maintaining high standards of analytical rigor and self-criticism.",
         }
     ]
 
@@ -134,7 +196,7 @@ Example of a valid JSON response:
 
     for _ in range(MAX_THINKING_STEPS):
         with Timer() as timer:
-            step_data = await make_api_call(messages, 300)
+            step_data = await make_api_call(messages, 300, model=model)
         thinking_time = timer.final_time
         total_thinking_time += thinking_time
 
@@ -146,27 +208,30 @@ Example of a valid JSON response:
             break
 
         step_count += 1
-
-        # Yield after each step
         yield steps, None
 
-    # Generate final answer
     messages.append(
         {
             "role": "user",
-            "content": "Please provide the final answer based on your reasoning above. You must return your answer in a valid json.",
+            "content": """Based on your thorough analysis, please provide your final answer. Your response should:
+1. Clearly state your conclusion
+2. Summarize the key supporting evidence
+3. Acknowledge any remaining uncertainties
+4. Include relevant caveats or limitations
+
+Return your answer in the same JSON format as previous steps.""",
         }
     )
 
     start_time = time.time()
-    final_data = await make_api_call(messages, 200, is_final_answer=True)
+    final_data = await make_api_call(messages, 200, is_final_answer=True, model=model)
     end_time = time.time()
     thinking_time = end_time - start_time
     total_thinking_time += thinking_time
 
     if final_data["title"] == "Error":
         steps.append(("Error", final_data["content"], thinking_time))
-        raise ValueError("Failed to generate final answer: {final_data['content']}")
+        raise ValueError(f"Failed to generate final answer: {final_data['content']}")
 
     steps.append(("Final Answer", final_data["content"], thinking_time))
 
