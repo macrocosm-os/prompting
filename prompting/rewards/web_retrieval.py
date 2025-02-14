@@ -102,7 +102,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         if netloc.startswith("www."):
             netloc = netloc[4:]
 
-        print("NETLOC", parsed_url)
         # Check if URL is IP-based or has port
         if not netloc or any(c.isdigit() for c in netloc.split(".")) or ":" in netloc:
             discount_factor = 0
