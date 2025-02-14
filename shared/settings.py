@@ -201,6 +201,8 @@ class SharedSettings(BaseSettings):
             dotenv_file = ".env.validator"
         elif mode == "api":
             dotenv_file = ".env.api"
+            if os.getenv("API_TEST_MODE"):
+                logger.warning("API_TEST_MODE is set to true - THE API IS RUNNING IN TEST MODE.")
         else:
             raise ValueError(f"Invalid mode: {mode}")
 

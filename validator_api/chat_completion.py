@@ -11,8 +11,8 @@ from loguru import logger
 
 from shared.epistula import make_openai_query
 from shared.settings import shared_settings
-from shared.uids import get_uids
 from validator_api import scoring_queue
+from validator_api.utils import filter_available_uids
 
 
 async def peek_until_valid_chunk(
@@ -221,23 +221,21 @@ async def chat_completion(
     body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 10
 ) -> tuple | StreamingResponse:
     """Handle chat completion with multiple miners in parallel."""
-    logger.debug(f"REQUEST_BODY: {body}")
-    # Get multiple UIDs if none specified
-    if uids is None:
-        uids = list(get_uids(sampling_mode="random", k=100))
-        if uids is None or len(uids) == 0:  # if not uids throws error, figure out how to fix
-            logger.error("No available miners found")
-            raise HTTPException(status_code=503, detail="No available miners found")
-        selected_uids = random.sample(uids, min(num_miners, len(uids)))
-    else:
-        selected_uids = uids[:num_miners]  # If UID is specified, only use that one
+    body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
+    if not uids:
+        uids = body.get("uids") or filter_available_uids(
+            task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=num_miners
+        )
+        if not uids:
+            raise HTTPException(status_code=500, detail="No available miners")
+        uids = random.sample(uids, min(len(uids), num_miners))
 
-    logger.debug(f"Querying uids {selected_uids}")
+    logger.debug(f"Querying uids {uids}")
     STREAM = body.get("stream", False)
 
     # Initialize chunks collection for each miner
-    collected_chunks_list = [[] for _ in selected_uids]
-    timings_list = [[] for _ in selected_uids]
+sels]
+    timings_list = [[] for _ in uids]
 
     timeout_seconds = max(
         30, max(0, math.floor(math.log2(body["sampling_parameters"].get("max_new_tokens", 256) / 256))) * 10 + 30
@@ -250,11 +248,11 @@ async def chat_completion(
                     shared_settings.METAGRAPH, shared_settings.WALLET, timeout_seconds, body, uid, stream=True
                 )
             )
-            for uid in selected_uids
+            for uid in uids
         ]
 
         return StreamingResponse(
-            stream_from_first_response(response_tasks, collected_chunks_list, body, selected_uids, timings_list),
+            stream_from_first_response(response_tasks, collected_chunks_list, body, uids, timings_list),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -265,7 +263,7 @@ async def chat_completion(
         # For non-streaming requests, wait for first valid response
         response_tasks = [
             asyncio.create_task(get_response_from_miner(body=body, uid=uid, timeout_seconds=timeout_seconds))
-            for uid in selected_uids
+            for uid in uids
         ]
 
         first_valid_response = None
