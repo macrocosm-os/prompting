@@ -175,7 +175,7 @@ cython_debug/
 # Repository-specific files.
 AutoAWQ/
 testing/
-data/*
+# data/*
 plots/*
 core
 app.config.js
