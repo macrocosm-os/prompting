@@ -124,7 +124,7 @@ docstring-code-line-length = "dynamic"
 max-complexity = 14
 
 [tool.poetry.dependencies]
-bittensor = "8.5.1"
+bittensor = "9.0.0"
 tqdm = "^4.66.4"
 requests = "^2.32.3"
 python = ">=3.10 <3.11"
