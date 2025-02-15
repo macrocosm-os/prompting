@@ -237,7 +237,7 @@ async def chat_completion(
     STREAM = body.get("stream", False)
 
     # Initialize chunks collection for each miner
-sels]
+    collected_chunks_list = [[] for _ in uids]
     timings_list = [[] for _ in uids]
 
     timeout_seconds = max(

@@ -16,8 +16,6 @@ validator_registry = ValidatorRegistry()
 
 shared_settings = settings.shared_settings
 
-from shared.loop_runner import AsyncLoopRunner
-
 
 class ScoringPayload(BaseModel):
     payload: dict[str, Any]
