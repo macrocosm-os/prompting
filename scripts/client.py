@@ -12,11 +12,11 @@ from shared.epistula import query_miners
 
 """
 This has assumed you have:
-1. Registered your miner on the chain (finney/test)
+1. Registered your miner on the chain (finney/testnet)
 2. Are serving your miner on an open port (e.g. 12345)
 
 Steps:
-- Instantiate your synapse subclass with the relevant information. E.g. messages, roles, etc.
+- Instantiate your synapse with the relevant information. E.g. messages, roles, etc.
 - Instantiate your wallet and a dendrite client
 - Query the dendrite client with your synapse object
 - Iterate over the async generator to extract the yielded tokens on the server side
