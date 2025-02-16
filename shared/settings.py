@@ -18,7 +18,7 @@ from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
-from shared.misc import cached_property_with_expiration
+from shared.misc import cached_property_with_expiration, is_cuda_available
 
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -274,9 +274,11 @@ class SharedSettings(BaseSettings):
         return bt.dendrite(wallet=self.WALLET)
 
 
-shared_settings: Optional[SharedSettings] = None
 try:
-    shared_settings = SharedSettings.load(mode="mock")
+    if is_cuda_available():
+        shared_settings = SharedSettings.load(mode="validator")
+    else:
+        shared_settings = SharedSettings.load(mode="mock")
     pass
 except Exception as e:
     logger.exception(f"Error loading settings: {e}")
