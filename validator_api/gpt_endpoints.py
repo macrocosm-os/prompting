@@ -20,6 +20,7 @@ from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.test_time_inference import generate_response
 from validator_api.utils import filter_available_uids
+
 from .serializers import ChatCompletionRequest, ErrorResponse, SearchResult, WebSearchResponse
 
 router = APIRouter()
