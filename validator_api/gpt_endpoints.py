@@ -19,7 +19,7 @@ from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.test_time_inference import generate_response
 from validator_api.utils import filter_available_uids
 
-from .serializers import ChatCompletionRequest, ErrorResponse, SearchResult, WebSearchQuery, WebSearchResponse
+from .serializers import ChatCompletionRequest, ErrorResponse, SearchResult, WebSearchResponse
 
 shared_settings = settings.shared_settings
 
@@ -133,7 +133,7 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
     if not uids:
         raise HTTPException(status_code=500, detail="No available miners")
 
-    uids = random.sample(uids, min(len(uids), request.n_miners))
+    uids = random.sample(uids, min(len(uids), n_miners))
     logger.debug(f"🔍 Querying uids: {uids}")
 
     body = {
