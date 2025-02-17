@@ -27,7 +27,7 @@ def check_uid_availability(
     metagraph = shared_settings.METAGRAPH
     # Filter non serving axons.
     if not metagraph.axons[uid].is_serving:
-        logger.debug(f"uid: {uid} is not serving")
+        # logger.debug(f"uid: {uid} is not serving")
         return False
 
     # Filter validator permit > 1024 stake.

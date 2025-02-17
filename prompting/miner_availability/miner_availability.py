@@ -87,7 +87,6 @@ class CheckMinerAvailability(AsyncLoopRunner):
                     llm_model_availabilities={model: False for model in model_config},
                 )
 
-        logger.debug("Miner availabilities updated.")
         self.current_index = end_index
 
         if self.current_index >= len(self.uids):

@@ -3,7 +3,6 @@ from typing import Dict, List
 
 import numpy as np
 import trafilatura
-from loguru import logger
 from openai import OpenAI
 
 from prompting.base.duckduckgo_patch import PatchedDDGS
@@ -55,10 +54,8 @@ async def get_websites_with_similarity(
     Returns:
         List of dictionaries containing website URLs and their best matching chunks
     """
-    logger.debug("Getting results")
     ddgs = PatchedDDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
     results = list(ddgs.text(query))
-    logger.debug(f"Got {len(results)} results")
     urls = [r["href"] for r in results][:n_results]
 
     # Fetch and extract content
@@ -74,7 +71,6 @@ async def get_websites_with_similarity(
         if not text:  # Skip if extraction failed
             continue
 
-        # logger.debug(f"TEXTS: {text}")
         chunks = create_chunks(text)
         chunk_embeddings = client.embeddings.create(model="text-embedding-ada-002", input=chunks).data
 

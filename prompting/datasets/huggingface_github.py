@@ -1,5 +1,4 @@
 from datasets import load_dataset
-from loguru import logger
 from pydantic import ConfigDict, model_validator
 
 from shared.base import BaseDataset, DatasetEntry
@@ -61,7 +60,6 @@ class HuggingFaceGithubDataset(BaseDataset):
                 entry = next(self.iterator)
                 return self._process_entry(entry)  # Throws failed to get a valid file after multiple attempts
             except StopIteration:
-                logger.warning("Reached end of dataset. Resetting iterator.")
                 self.reset()
         raise Exception("Failed to get a valid file after multiple attempts")
 

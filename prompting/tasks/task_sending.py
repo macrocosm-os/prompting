@@ -1,7 +1,6 @@
 # ruff: noqa: E402
 import asyncio
 import time
-from typing import List
 
 import bittensor as bt
 from loguru import logger
@@ -14,7 +13,7 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.web_retrieval import WebRetrievalTask
 from shared import settings
-from shared.dendrite import DendriteResponseEvent, SynapseStreamResult
+from shared.dendrite import DendriteResponseEvent
 from shared.epistula import query_miners
 from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
@@ -25,8 +24,7 @@ shared_settings = settings.shared_settings
 NEURON_SAMPLE_SIZE = 100
 
 
-# TODO: do we actually need this logging?
-def log_stream_results(stream_results: List[SynapseStreamResult]):
+def log_stream_results(stream_results):
     failed_responses = [
         response for response in stream_results if response.exception is not None or response.completion is None
     ]
@@ -45,7 +43,6 @@ def log_stream_results(stream_results: List[SynapseStreamResult]):
 async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
     # Get the list of uids and their axons to query for this step.
     uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
-    logger.debug(f"🔍 Querying uids: {uids}")
     if len(uids) == 0:
         logger.warning("No available miners. This should already have been caught earlier.")
         return
@@ -60,12 +57,8 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
     if isinstance(task, WebRetrievalTask):
         body["target_results"] = task.target_results
     body["timeout"] = task.timeout
-
-    logger.info(f"🔍 Sending task {task.task_id} with body: {body}")
     stream_results = await query_miners(uids, body)
-    logger.debug(f"🔍 Collected responses from {len(stream_results)} miners")
-
-    log_stream_results(stream_results)
+    # log_stream_results(stream_results)
 
     response_event = DendriteResponseEvent(
         stream_results=stream_results,
@@ -78,7 +71,6 @@ async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
             shared_settings.INFERENCE_TIMEOUT if isinstance(task, InferenceTask) else shared_settings.NEURON_TIMEOUT
         ),
     )
-    logger.debug("🔍 Response event created")
     return response_event
 
 
@@ -143,10 +135,8 @@ class TaskSender(AsyncLoopRunner):
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
         while len(self.scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
-            logger.debug("Scoring queue is full. Waiting 1 second...")
             await asyncio.sleep(1)
         while len(self.task_queue) == 0:
-            logger.warning("No tasks in queue. Waiting 1 second...")
             await asyncio.sleep(1)
         try:
             # get task from the task queue
@@ -157,13 +147,9 @@ class TaskSender(AsyncLoopRunner):
             with Timer() as timer:
                 response_event = await collect_responses(task=task)
             if response_event is None:
-                logger.warning("No response event collected. This should not be happening.")
                 return
 
-            logger.debug("🔍 Estimating block")
             estimated_block = self.estimate_block
-            logger.debug("🔍 Creating scoring config")
-
             scoring_config = ScoringConfig(
                 task=task,
                 response=response_event,
@@ -172,9 +158,7 @@ class TaskSender(AsyncLoopRunner):
                 step=self.step,
                 task_id=task.task_id,
             )
-            logger.debug(f"Collected responses in {timer.final_time:.2f} seconds")
             self.scoring_queue.append(scoring_config)
-            logger.debug(f"SCORING: Added to queue: {task.__class__.__name__}. Queue size: {len(self.scoring_queue)}")
 
             # Log the step event.
             return ValidatorLoggingEvent(

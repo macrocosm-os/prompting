@@ -1,6 +1,7 @@
 import json
 
 import requests
+from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from prompting.llms.apis.llm_messages import LLMMessages
@@ -9,7 +10,6 @@ from shared import settings
 shared_settings = settings.shared_settings
 
 
-# TODO: key error in response.json() when response is 500
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def chat_complete(
     messages: LLMMessages,
@@ -38,6 +38,10 @@ def chat_complete(
         "logprobs": logprobs,
     }
     response = requests.post(url, headers=headers, data=json.dumps(data), timeout=30)
+    if not response.status_code == 200:
+        logger.error(f"SN19 API returned status code {response.status_code}")
+        logger.error(f"Response: {response.text}")
+        raise Exception(f"SN19 API returned status code {response.status_code}")
     response_json = response.json()
     try:
         return response_json["choices"][0]["message"].get("content")

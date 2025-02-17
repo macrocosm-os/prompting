@@ -7,18 +7,17 @@ from shared import settings
 from shared.loop_runner import AsyncLoopRunner
 from shared.uids import get_uids
 
-shared_settings = settings.shared_settings
-
 
 class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
+    interval: int = 300
     miner_availabilities: dict[int, dict] = {}
 
     async def run_step(self):
-        if shared_settings.API_TEST_MODE:
+        if settings.shared_settings.API_TEST_MODE:
             return
         try:
             response = requests.post(
-                f"http://{shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities",
+                f"http://{settings.shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities",
                 headers={"accept": "application/json", "Content-Type": "application/json"},
                 json=get_uids(sampling_mode="all"),
                 timeout=10,

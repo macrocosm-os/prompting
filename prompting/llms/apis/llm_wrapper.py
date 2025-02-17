@@ -50,5 +50,4 @@ class LLMWrapper:
                 logprobs=logprobs,
             )
             response = response.choices[0].message.content
-        logger.debug(f"Generated {len(response)} characters using {model}")
         return response
