@@ -5,7 +5,7 @@ import time
 import uuid
 
 import numpy as np
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from loguru import logger
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
@@ -21,7 +21,7 @@ from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.test_time_inference import generate_response
 from validator_api.utils import filter_available_uids
 
-from .serializers import ChatCompletionRequest, ErrorResponse, SearchResult, WebSearchResponse
+from .serializers import ErrorResponse, SearchResult, WebSearchResponse
 
 router = APIRouter()
 N_MINERS = 5
@@ -66,7 +66,7 @@ def validate_api_key(api_key: str = Header(...)):
     Results are streamed back to the client as they are generated.
     """,
 )
-async def completions(request: ChatCompletionRequest, api_key: str = Depends(validate_api_key)):
+async def completions(request: Request, api_key: str = Depends(validate_api_key)):
     """
     Executes a chat completion request.
 
@@ -159,18 +159,16 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
 
     search_results = []
     for result in results:
-        try:
-            parsed_result = json.loads(result)
-            search_results.append(SearchResult(**parsed_result))
-            logger.info(f"🔍 Parsed Result: {parsed_result}")
-        except Exception:
-            logger.error(f"🔍 Failed to parse result: {result}")
+        for website in result:
+            try:
+                parsed_result = json.loads(website)
+                search_results.append(SearchResult(**parsed_result))
+                logger.info(f"🔍 Parsed Result: {parsed_result}")
+            except Exception as e:
+                logger.error(f"{e}: {website}")
 
-    flattened_results = []
-    for result in search_results:
-        flattened_results.extend(result)
 
-    distinct_results = list(np.unique(flattened_results))
+    distinct_results = list(np.unique(search_results))
 
     if len(search_results) == 0:
         raise HTTPException(status_code=500, detail="No miner responded successfully")
