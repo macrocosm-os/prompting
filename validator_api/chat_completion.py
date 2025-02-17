@@ -163,7 +163,6 @@ async def collect_remaining_responses(
     """Collect remaining responses for scoring without blocking the main response."""
     try:
         responses = await remaining
-        # logger.debug(f"responses to forward: {responses}")
         for i, response in enumerate(responses):
             if isinstance(response, Exception):
                 logger.error(f"Error collecting response from uid {uids[i+1]}: {response}")
@@ -205,8 +204,6 @@ async def chat_completion(
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
         uids = random.sample(uids, min(len(uids), num_miners))
-
-    logger.debug(f"Querying uids {uids}")
 
     STREAM = body.get("stream", False)
 

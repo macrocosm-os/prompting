@@ -60,6 +60,14 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         logger.info("Starting WeightSetter...")
         asyncio.create_task(weight_setter.start(reward_events))
 
+        # while True:
+        #     await asyncio.sleep(5)
+
+        #     # Check if all tasks are still running
+        #     logger.debug(f"Number of tasks in Task Queue: {len(task_queue)}")
+        #     logger.debug(f"Number of tasks in Scoring Queue: {len(scoring_queue)}")
+        #     logger.debug(f"Number of tasks in Reward Events: {len(reward_events)}")
+
     asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events))
 
 

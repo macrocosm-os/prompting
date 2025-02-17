@@ -75,5 +75,4 @@ class MultiChoiceRewardModel(BaseRewardModel):
             timings.append(time.perf_counter() - start_time)
             rewards.append(reward)
 
-        # logger.debug(f"Rewards: {rewards}")
         return BatchRewardOutput(rewards=np.asarray(rewards), timings=np.asarray(timings))

@@ -162,9 +162,9 @@ class OpenAIMiner:
             except Exception:
                 logger.error("Failed to get external IP")
 
-        # logger.info(
-        #     f"Serving miner endpoint {external_ip}:{shared_settings.AXON_PORT} on network: {shared_settings.SUBTENSOR_NETWORK} with netuid: {shared_settings.NETUID}"
-        # )
+        logger.info(
+            f"Serving miner endpoint {external_ip}:{shared_settings.AXON_PORT} on network: {shared_settings.SUBTENSOR_NETWORK} with netuid: {shared_settings.NETUID}"
+        )
 
         serve_success = serve_extrinsic(
             subtensor=shared_settings.SUBTENSOR,

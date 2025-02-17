@@ -31,10 +31,8 @@ class TaskLoop(AsyncLoopRunner):
 
     async def run_step(self):
         if len(self.task_queue) > shared_settings.TASK_QUEUE_LENGTH_THRESHOLD:
-            # logger.debug("Task queue is full. Skipping task generation.")
             return None
         if len(self.scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
-            # logger.debug("Scoring queue is full. Skipping task generation.")
             return None
         await asyncio.sleep(0.1)
         try:

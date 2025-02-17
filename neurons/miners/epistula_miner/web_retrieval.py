@@ -56,7 +56,6 @@ async def get_websites_with_similarity(
     """
     ddgs = PatchedDDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
     results = list(ddgs.text(query))
-    # logger.debug(f"Got {len(results)} results")
     urls = [r["href"] for r in results][:n_results]
 
     # Fetch and extract content

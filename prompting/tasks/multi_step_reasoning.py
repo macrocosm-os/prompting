@@ -231,11 +231,6 @@ class MultiStepReasoningTask(WikiQuestionAnsweringTask):
         return self.query
 
     def make_reference(self, dataset_entry: Context):
-        # logger.info(f"Generating reference for Multi Step Reasoning task with query: {self.query}")
         steps, total_thinking_time = execute_multi_step_reasoning(user_query=self.query)
-        # logger.info(
-        #     f"**Steps: {steps}**, **Total thinking time for multi step reasoning: {total_thinking_time} seconds**"
-        # )
-        # logger.info(f"**Total thinking time for multi step reasoning: {total_thinking_time} seconds**")
         self.reference = steps[-1][1]
         return self.reference
