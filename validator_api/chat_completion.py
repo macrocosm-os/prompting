@@ -269,7 +269,6 @@ async def chat_completion(
         response_tasks = [
             asyncio.create_task(get_response_from_miner(body=body, uid=uid, timeout_seconds=timeout_seconds))
             for uid in uids
-            for uid in uids
         ]
 
         first_valid_response = None

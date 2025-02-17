@@ -50,7 +50,6 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
             return await test_time_inference(body["messages"], body.get("model", None))
-            return await test_time_inference(body["messages"], body.get("model", None))
         if body.get("mixture", False):
             return await mixture_of_miners(body, uids=uids)
         else:
