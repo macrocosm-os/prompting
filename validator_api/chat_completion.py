@@ -13,8 +13,13 @@ from shared import settings
 
 shared_settings = settings.shared_settings
 
+from shared import settings
+
+shared_settings = settings.shared_settings
+
 from shared.epistula import make_openai_query
 from validator_api import scoring_queue
+from validator_api.utils import filter_available_uids
 from validator_api.utils import filter_available_uids
 
 
@@ -264,6 +269,7 @@ async def chat_completion(
         # For non-streaming requests, wait for first valid response
         response_tasks = [
             asyncio.create_task(get_response_from_miner(body=body, uid=uid, timeout_seconds=timeout_seconds))
+            for uid in uids
             for uid in uids
         ]
 
