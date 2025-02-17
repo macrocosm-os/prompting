@@ -13,8 +13,6 @@ from starlette.responses import StreamingResponse
 from shared import settings
 
 shared_settings = settings.shared_settings
-
-shared_settings = settings.shared_settings
 from shared.epistula import SynapseStreamResult, query_miners
 from validator_api import scoring_queue
 from validator_api.api_management import _keys
@@ -39,9 +37,6 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
     try:
         body = await request.json()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
-        uids = body.get("uids") or filter_available_uids(
-            task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=N_MINERS
-        )
         uids = body.get("uids") or filter_available_uids(
             task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=N_MINERS
         )
