@@ -232,4 +232,5 @@ class WeightSetter(AsyncLoopRunner):
         await asyncio.sleep(0.01)
         return final_rewards
 
+
 weight_setter = WeightSetter()

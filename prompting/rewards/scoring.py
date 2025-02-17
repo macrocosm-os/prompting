@@ -1,6 +1,7 @@
 import asyncio
 import threading
 
+from loguru import logger
 from pydantic import ConfigDict
 
 from prompting.llms.model_manager import model_manager, model_scheduler

@@ -24,7 +24,7 @@ shared_settings = settings.shared_settings
 NEURON_SAMPLE_SIZE = 100
 
 
-def log_stream_results(stream_results: List[SynapseStreamResult]):
+def log_stream_results(stream_results):
     failed_responses = [
         response for response in stream_results if response.exception is not None or response.completion is None
     ]

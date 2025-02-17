@@ -1,4 +1,3 @@
-import asyncio
 import subprocess
 import time
 import traceback
