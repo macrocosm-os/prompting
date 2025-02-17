@@ -64,8 +64,6 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 @router.post("/web_retrieval")
 async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 5, max_response_time: int = 10):
     uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
-async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 5, max_response_time: int = 10):
-    uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
     if not uids:
         raise HTTPException(status_code=500, detail="No available miners")
 
@@ -78,8 +76,6 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
         "seed": random.randint(0, 1_000_000),
         "sampling_parameters": shared_settings.SAMPLING_PARAMS,
         "task": "WebRetrievalTask",
-        "target_results": n_results,
-        "timeout": max_response_time,
         "target_results": n_results,
         "timeout": max_response_time,
         "messages": [
