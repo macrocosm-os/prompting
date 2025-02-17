@@ -2,7 +2,6 @@ import random
 
 import numpy as np
 import torch
-from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, pipeline
 
 from shared.settings import shared_settings
