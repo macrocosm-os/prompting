@@ -157,25 +157,21 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
         if isinstance(res, SynapseStreamResult) and res.accumulated_chunks
     ]
 
+    distinct_results = list(np.unique(results))
     search_results = []
-    website = None
-    for result in results:
+    for result in distinct_results:
         try:
             parsed_result = json.loads(result)
-            for website in parsed_result:
-                search_results.append(SearchResult(**website))
-                logger.info(f"🔍 Parsed Result: {website}")
-        except Exception as e:
-            logger.error(f"{e}: {website}")
-
-
-    distinct_results = list(np.unique(search_results))
+            search_results.append(SearchResult(**parsed_result))
+            logger.info(f"🔍 Parsed Result: {parsed_result}")
+        except Exception:
+            logger.error(f"🔍 Failed to parse result: {result}")
 
     if len(search_results) == 0:
         raise HTTPException(status_code=500, detail="No miner responded successfully")
 
     asyncio.create_task(scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=[]))
-    return WebSearchResponse(results=distinct_results)
+    return WebSearchResponse(results=search_results)
 
 
 @router.post(
