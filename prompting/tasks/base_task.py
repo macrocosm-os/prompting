@@ -33,6 +33,7 @@ class BaseTask(BaseModel, ABC):
     query: Any = None
     reference: Any = None
     task_id: str = Field(default_factory=lambda: str(uuid4()), allow_mutation=False)
+    organic: bool = False
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -60,6 +61,7 @@ class BaseTextTask(BaseTask):
     sampling_params: dict[str, float] = settings.shared_settings.SAMPLING_PARAMS
     timeout: int = settings.shared_settings.NEURON_TIMEOUT
     max_tokens: int = settings.shared_settings.NEURON_MAX_TOKENS
+    organic: bool = True
 
     @property
     def task_messages(self) -> list[str] | list[dict]:
