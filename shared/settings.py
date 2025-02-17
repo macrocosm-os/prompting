@@ -88,7 +88,7 @@ class SharedSettings(BaseSettings):
 
     # ==== API =====
     # Hotkey used to run api, defaults to Macrocosmos
-    API_HOTKEY: str = Field("5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3", env="API_HOTKEY")
+    API_HOTKEY: str = Field("5Cg5QgjMfRqBC6bh8X4PDbQi7UzVRn9eyWXsB8gkyfppFPPy", env="API_HOTKEY")
     # Scoring request rate limit in seconds.
     SCORING_RATE_LIMIT_SEC: float = Field(5, env="SCORING_RATE_LIMIT_SEC")
     # Scoring queue threshold when rate-limit start to kick in, used to query validator API with scoring requests.

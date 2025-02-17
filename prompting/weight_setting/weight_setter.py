@@ -40,7 +40,6 @@ def apply_reward_func(raw_rewards: np.ndarray, p=0.5):
 
 def save_weights(weights: list[np.ndarray]):
     """Saves the list of numpy arrays to a file."""
-    logger.info("Saving validator state.")
     # Save all arrays into a single .npz file
     np.savez_compressed(FILENAME, *weights)
 
@@ -86,17 +85,12 @@ def set_weights(
         ) = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
             uids=processed_weight_uids, weights=processed_weights
         )
-        logger.debug("uint_weights", uint_weights)
-        logger.debug("uint_uids", uint_uids)
     except Exception as ex:
         logger.exception(f"Issue with setting weights: {ex}")
 
     # Create a dataframe from weights and uids and save it as a csv file, with the current step as the filename.
     if shared_settings.LOG_WEIGHTS:
         try:
-            logger.debug(
-                f"Lengths... UIDS: {len(uint_uids)}, WEIGHTS: {len(processed_weights.flatten())}, RAW_WEIGHTS: {len(weights.flatten())}, UINT_WEIGHTS: {len(uint_weights)}"
-            )
             weights_df = pd.DataFrame(
                 {
                     "step": step,
@@ -129,10 +123,10 @@ def set_weights(
         version_key=__spec_version__,
     )
 
-    if result[0] is True:
-        logger.info("set_weights on chain successfully!")
+    if result[0]:
+        logger.info("Successfully set weights on chain")
     else:
-        logger.error(f"set_weights failed: {result}")
+        logger.error(f"Failed to set weights on chain: {result}")
 
 
 class WeightSetter(AsyncLoopRunner):
@@ -155,7 +149,6 @@ class WeightSetter(AsyncLoopRunner):
         try:
             with np.load(FILENAME) as data:
                 PAST_WEIGHTS = [data[key] for key in data.files]
-            logger.debug(f"Loaded persistent weights of length: {len(PAST_WEIGHTS)}")
         except FileNotFoundError:
             logger.info("No weights file found - this is expected on a new validator, starting with empty weights")
             PAST_WEIGHTS = []
@@ -169,8 +162,6 @@ class WeightSetter(AsyncLoopRunner):
             if len(self.reward_events) == 0:
                 logger.warning("No reward events in queue, skipping weight setting...")
                 return
-            logger.debug(f"Found {len(self.reward_events)} reward events in queue")
-
             # reward_events is a list of lists of WeightedRewardEvents - the 'sublists' each contain the multiple reward events for a single task
             self.reward_events: list[list[WeightedRewardEvent]] = self.reward_events  # to get correct typehinting
 
@@ -217,7 +208,6 @@ class WeightSetter(AsyncLoopRunner):
 
             for task_config, rewards in miner_rewards.items():
                 r = np.array([x["reward"] / max(1, x["count"]) for x in list(rewards.values())])
-                logger.debug(f"Rewards for task {task_config.task.__name__}: {r}")
                 u = np.array(list(rewards.keys()))
                 if task_config.task == InferenceTask:
                     processed_rewards = r / max(1, (np.sum(r[r > 0]) + 1e-10))
@@ -233,13 +223,6 @@ class WeightSetter(AsyncLoopRunner):
         except Exception as ex:
             logger.exception(f"{ex}")
 
-        mean_value = final_rewards.mean()
-        min_value = final_rewards.min()
-        max_value = final_rewards.max()
-        length = len(final_rewards)
-        logger.debug(
-            f"Reward stats. Mean: {mean_value:.2f}; Min: {min_value:.4f}; Max: {max_value:.4f}; Count: {length}"
-        )
         # set weights on chain
         set_weights(
             final_rewards, step=self.step, subtensor=shared_settings.SUBTENSOR, metagraph=shared_settings.METAGRAPH

@@ -60,7 +60,8 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
     uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
     if not uids:
         raise HTTPException(status_code=500, detail="No available miners")
-    logger.debug(f"🔍 Querying uids: {uids}")
+
+    uids = random.sample(uids, min(len(uids), n_miners))
     if len(uids) == 0:
         logger.warning("No available miners. This should already have been caught earlier.")
         return
@@ -84,9 +85,6 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
         if isinstance(res, SynapseStreamResult) and res.accumulated_chunks
     ]
     distinct_results = list(np.unique(results))
-    logger.info(
-        f"🔍 Collected responses from {len(stream_results)} miners. {len(results)} responded successfully with a total of {len(distinct_results)} distinct results"
-    )
     loaded_results = []
     for result in distinct_results:
         try:
@@ -107,7 +105,7 @@ async def test_time_inference(messages: list[dict], model: str = None):
     async def create_response_stream(messages):
         async for steps, total_thinking_time in generate_response(messages, model=model):
             if total_thinking_time is not None:
-                logger.info(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
+                logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
             yield steps, total_thinking_time
 
     # Create a streaming response that yields each step

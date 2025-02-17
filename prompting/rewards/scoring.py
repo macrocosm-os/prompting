@@ -51,7 +51,6 @@ class TaskScorer(AsyncLoopRunner):
                 task_id=task_id,
             )
         )
-        logger.debug(f"Added to queue: {task.__class__.__name__}. Queue size: {len(self.scoring_queue)}")
 
     async def run_step(self) -> RewardLoggingEvent:
         await asyncio.sleep(0.1)
@@ -63,7 +62,6 @@ class TaskScorer(AsyncLoopRunner):
             or (scoring_config.task.llm_model is None)
         ]
         if len(scorable) == 0:
-            logger.debug("Nothing to score. Skipping scoring step.")
             # Run a model_scheduler step to load a new model as there are no more tasks to be scored
             if len(self.scoring_queue) > 0:
                 await model_scheduler.run_step()
@@ -78,10 +76,6 @@ class TaskScorer(AsyncLoopRunner):
 
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
-        logger.debug(
-            f"{len(scoring_config.response.completions)} completions to score for task "
-            f"{scoring_config.task.__class__.__name__}"
-        )
         reward_events = reward_pipeline.apply(
             response_event=scoring_config.response,
             challenge=scoring_config.task.query,

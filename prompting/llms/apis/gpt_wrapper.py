@@ -35,7 +35,6 @@ class GPT(BaseModel):
                 model="gpt-3.5-turbo",
             )
             assert response.choices[0].message.content.lower() == "hello"
-            logger.info("GPT test passed")
         except Exception as ex:
             logger.exception(f"Failed GPT test: {ex}")
 
@@ -86,10 +85,6 @@ class GPT(BaseModel):
                 break
             else:
                 model = shared_settings.GPT_MODEL_CONFIG[model].get("upgrade")
-                logger.debug(f"INPUT TOKENS: {input_tokens}")
-                logger.warning(
-                    f"Upgrading to model {model} because output tokens ({output_tokens}) < min tokens({min_tokens})"
-                )
                 if model is None:
                     raise ValueError(
                         f"Minimum tokens ({min_tokens}) exceed the available output tokens ({output_tokens})"
@@ -115,8 +110,6 @@ class GPT(BaseModel):
                 input_cost = (
                     response.usage.prompt_tokens * shared_settings.GPT_MODEL_CONFIG[model]["input_token_cost"]
                 ) / 1000
-                logger.debug(f"MSG TOKENS: {messages.get_tokens(model)}")
-                logger.debug(f"USAGE: {response.usage}")
                 return response, output_cost + input_cost
             except Exception as ex:
                 logger.exception(f"GPT call failed: {ex}")
@@ -166,10 +159,6 @@ class GPT(BaseModel):
                 break
             else:
                 model = shared_settings.GPT_MODEL_CONFIG[model].get("upgrade")
-                logger.debug(f"INPUT TOKENS: {input_tokens}")
-                logger.warning(
-                    f"Upgrading to model {model} because output tokens ({output_tokens}) < min tokens({min_tokens})"
-                )
                 if model is None:
                     raise ValueError(
                         f"Minimum tokens ({min_tokens}) exceed the available output tokens ({output_tokens})"
@@ -195,8 +184,6 @@ class GPT(BaseModel):
                 input_cost = (
                     response.usage.prompt_tokens * shared_settings.GPT_MODEL_CONFIG[model]["input_token_cost"]
                 ) / 1000
-                logger.info(f"MSG TOKENS: {messages.get_tokens(model)}")
-                logger.info(f"USAGE: {response.usage}")
                 return response, output_cost + input_cost
             except Exception as ex:
                 logger.exception(f"GPT call failed: {ex}")

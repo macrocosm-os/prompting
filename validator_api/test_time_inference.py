@@ -60,8 +60,6 @@ def parse_multiple_json(api_response):
 
 
 async def make_api_call(messages, max_tokens, model=None, is_final_answer=False):
-    logger.info(f"Making API call with messages: {messages}")
-
     async def single_attempt():
         try:
             response = await chat_completion(

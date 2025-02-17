@@ -15,7 +15,6 @@ app.include_router(scoring_router, tags=["scoring"])
 
 @app.get("/health")
 def health():
-    logger.info("Health endpoint accessed.")
     return {"status": "healthy"}
 
 

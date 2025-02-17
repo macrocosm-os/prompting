@@ -73,8 +73,8 @@ class ScoringQueue(AsyncLoopRunner):
                 validator_registry.update_validators(uid=vali_uid, response_code=response.status_code)
                 if response.status_code != 200:
                     # Raise an exception so that the retry logic in the except block handles it.
-                    raise Exception(f"Non-200 response: {response.status_code} for validator {vali_uid}")
-                logger.info(f"Forwarding response completed with status {response.status_code}")
+                    raise Exception(f"Non-200 response: {response.status_code} for uids {uids}")
+                logger.debug(f"Forwarding response completed with status {response.status_code}")
         except Exception as e:
             if scoring_payload.retries < self.max_scoring_retries:
                 scoring_payload.retries += 1
@@ -93,7 +93,7 @@ class ScoringQueue(AsyncLoopRunner):
             return
 
         if body.get("task") != "InferenceTask" and body.get("task") != "WebRetrievalTask":
-            logger.debug(f"Skipping forwarding for non-inference/web retrieval task: {body.get('task')}")
+            # logger.debug(f"Skipping forwarding for non-inference/web retrieval task: {body.get('task')}")
             return
 
         uids = [int(u) for u in uids]
@@ -107,9 +107,6 @@ class ScoringQueue(AsyncLoopRunner):
 
         async with self._scoring_lock:
             self._scoring_queue.append(scoring_item)
-
-        logger.info(f"Appended responses from uids {uids} into scoring queue with size: {self.size}")
-        logger.debug(f"Queued responses body: {body}, chunks: {chunks}")
 
     @property
     def size(self) -> int:

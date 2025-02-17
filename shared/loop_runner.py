@@ -33,15 +33,12 @@ class AsyncLoopRunner(BaseModel, ABC):
         """Get the current time from the time server with a timeout."""
         if not self.sync:
             time = datetime.datetime.now(datetime.timezone.utc)
-            # logger.debug(f"Time: {time}")
             return time
         try:
             async with aiohttp.ClientSession() as session:
-                logger.info("Waiting for response time")
                 async with session.get(self.time_server_url, timeout=5) as response:
                     if response.status == 200:
                         data = await response.json()
-                        logger.info("Got response")
                         return datetime.datetime.fromisoformat(data["datetime"].replace("Z", "+00:00"))
                     else:
                         raise Exception(f"Failed to get server time. Status: {response.status}")
@@ -64,7 +61,6 @@ class AsyncLoopRunner(BaseModel, ABC):
             next_run = self.next_sync_point(current_time)
         else:
             next_run = last_run_time + timedelta(seconds=self.interval)
-        # logger.debug(f"Next run: {next_run}")
 
         wait_time = (next_run - current_time).total_seconds()
         if wait_time > 0:
@@ -76,21 +72,15 @@ class AsyncLoopRunner(BaseModel, ABC):
 
     async def run_loop(self):
         """Run the loop periodically, optionally synchronizing across all instances."""
-        logger.debug(f"Starting loop {self.__class__.__name__}; running: {self.running}")
 
         last_run_time = await self.get_time()
-        logger.debug(f"Got time of last run: {last_run_time}")
         try:
             while self.running:
                 with profiler.measure(self.name):
-                    # logger.debug("Waiting...")
                     next_run = await self.wait_for_next_execution(last_run_time)
-                    # logger.debug("Wait ended")
                     try:
-                        await self.run_step()  # run_results = await self.run_step()
-                        # logger.debug(f"Run_results: {run_results}")
+                        await self.run_step()
                         self.step += 1
-                        # logger.debug(f"{self.name}: Step {self.step} completed at {next_run}")
                     except Exception as ex:
                         logger.exception(f"Error in loop iteration: {ex}")
                     last_run_time = next_run
@@ -100,8 +90,6 @@ class AsyncLoopRunner(BaseModel, ABC):
             logger.error(f"Fatal error in loop: {e}")
         finally:
             self.running = False
-            logger.info("Loop has been cleaned up.")
-        logger.debug("Exiting run_loop")
 
     async def start(self, name: str | None = None):
         """Start the loop."""
@@ -109,7 +97,6 @@ class AsyncLoopRunner(BaseModel, ABC):
             logger.warning("Loop is already running.")
             return
         self.running = True
-        logger.debug(f"{self.name}: Starting loop with {'synchronized' if self.sync else 'non-synchronized'} mode")
         self._task = asyncio.create_task(self.run_loop(), name=name)
 
     async def stop(self):
@@ -120,4 +107,4 @@ class AsyncLoopRunner(BaseModel, ABC):
             try:
                 await self._task
             except asyncio.CancelledError:
-                logger.info("Loop task was cancelled.")
+                logger.debug("Loop task was cancelled.")
