@@ -17,7 +17,6 @@ from validator_api.utils import update_miner_availabilities_for_api
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: start the background tasks.
     background_task = asyncio.create_task(update_miner_availabilities_for_api.start())
     yield
     background_task.cancel()
@@ -27,7 +26,6 @@ async def lifespan(app: FastAPI):
         pass
 
 
-# Create the FastAPI app with the lifespan handler.
 app = FastAPI(lifespan=lifespan)
 app.include_router(gpt_router, tags=["GPT Endpoints"])
 app.include_router(api_management_router, tags=["API Management"])
@@ -41,15 +39,21 @@ async def health():
 async def main():
     asyncio.create_task(update_miner_availabilities_for_api.start())
     asyncio.create_task(scoring_queue.scoring_queue.start())
-    uvicorn.run(
+
+    config = uvicorn.Config(
         "validator_api.api:app",
         host=shared_settings.API_HOST,
         port=shared_settings.API_PORT,
         log_level="debug",
         timeout_keep_alive=60,
+        # Note: The `workers` parameter is typically only supported via the CLI.
+        # When running programmatically with `server.serve()`, only a single worker will run.
         workers=shared_settings.WORKERS,
         reload=False,
     )
+    server = uvicorn.Server(config)
+
+    await server.serve()
 
 
 if __name__ == "__main__":

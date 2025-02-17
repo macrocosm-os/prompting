@@ -3,8 +3,13 @@ import multiprocessing as mp
 import sys
 
 import loguru
+import netaddr
+import requests
 import torch
 import wandb
+from bittensor.core.extrinsics.serving import serve_extrinsic
+
+from prompting.rewards.scoring import task_scorer
 
 # ruff: noqa: E402
 from shared import settings
@@ -33,7 +38,6 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         # ruff: noqa: E402
         from prompting.llms.model_manager import model_scheduler
         from prompting.miner_availability.miner_availability import availability_checking_loop
-        from prompting.rewards.scoring import task_scorer
         from prompting.tasks.task_creation import task_loop
         from prompting.tasks.task_sending import task_sender
         from prompting.weight_setting.weight_setter import weight_setter
@@ -78,10 +82,25 @@ def start_api(scoring_queue, reward_events):
         # TODO: We should not use 2 availability loops for each process, in reality
         # we should only be sharing the miner availability data between processes.
         from prompting.miner_availability.miner_availability import availability_checking_loop
-        from prompting.rewards.scoring import task_scorer
 
         asyncio.create_task(availability_checking_loop.start())
 
+        try:
+            external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
+            netaddr.IPAddress(external_ip)
+
+            serve_success = serve_extrinsic(
+                subtensor=settings.shared_settings.SUBTENSOR,
+                wallet=settings.shared_settings.WALLET,
+                ip=external_ip,
+                port=settings.shared_settings.SCORING_API_PORT,
+                protocol=4,
+                netuid=settings.shared_settings.NETUID,
+            )
+
+            logger.debug(f"Serve success: {serve_success}")
+        except Exception as e:
+            logger.warning(f"Failed to serve scoring api to chain: {e}")
         await start_scoring_api(task_scorer, scoring_queue, reward_events)
 
         while True:

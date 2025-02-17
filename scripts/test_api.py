@@ -47,7 +47,7 @@ async def make_completion(client: openai.AsyncOpenAI, prompt: str, stream: bool 
 async def main():
     PORT = 8005
     # Example API key, replace with yours:
-    API_KEY = "0566dbe21ee33bba9419549716cd6f1f"
+    API_KEY = ""
     client = openai.AsyncOpenAI(
         base_url=f"http://0.0.0.0:{PORT}/v1",
         max_retries=0,

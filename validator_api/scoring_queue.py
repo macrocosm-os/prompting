@@ -8,7 +8,11 @@ from loguru import logger
 from pydantic import BaseModel
 
 from shared import settings
+from shared.epistula import create_header_hook
 from shared.loop_runner import AsyncLoopRunner
+from validator_api.validator_forwarding import ValidatorRegistry
+
+validator_registry = ValidatorRegistry()
 
 shared_settings = settings.shared_settings
 
@@ -44,32 +48,47 @@ class ScoringQueue(AsyncLoopRunner):
 
             scoring_payload = self._scoring_queue.popleft()
             payload = scoring_payload.payload
-            uids = payload["uid"]
+            uids = payload["uids"]
             logger.info(f"Received new organic for scoring, uids: {uids}")
-
-        url = f"http://{shared_settings.VALIDATOR_API}/scoring"
+        try:
+            vali_uid, vali_axon, vali_hotkey = validator_registry.get_available_axon()
+            # get_available_axon() will return None if it cannot find an available validator, which will fail to unpack
+            url = f"http://{vali_axon}/scoring"
+        except Exception as e:
+            logger.exception(f"Could not find available validator scoring endpoint: {e}")
         try:
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
-            async with httpx.AsyncClient(timeout=timeout) as client:
+            # Add required headers for signature verification
+
+            logger.debug(f"Forwarding payload to {url}.\n\nPAYLOAD: {payload}")
+            async with httpx.AsyncClient(
+                timeout=timeout,
+                event_hooks={"request": [create_header_hook(shared_settings.WALLET.hotkey, vali_hotkey)]},
+            ) as client:
                 response = await client.post(
                     url=url,
                     json=payload,
-                    headers={"api-key": shared_settings.SCORING_KEY, "Content-Type": "application/json"},
+                    # headers=headers,
                 )
+                validator_registry.update_validators(uid=vali_uid, response_code=response.status_code)
                 if response.status_code != 200:
                     # Raise an exception so that the retry logic in the except block handles it.
                     raise Exception(f"Non-200 response: {response.status_code} for uids {uids}")
-                # logger.info(f"Forwarding response completed with status {response.status_code}")
+                logger.debug(f"Forwarding response completed with status {response.status_code}")
         except Exception as e:
             if scoring_payload.retries < self.max_scoring_retries:
                 scoring_payload.retries += 1
                 async with self._scoring_lock:
                     self._scoring_queue.appendleft(scoring_payload)
-                logger.error(f"Tried to forward response to {url} with payload {payload}. Queued for retry")
+                logger.error(
+                    f"Tried to forward response to {url} with payload {payload}. Exception: {e}. Queued for retry"
+                )
             else:
                 logger.exception(f"Error while forwarding response after {scoring_payload.retries} retries: {e}")
 
-    async def append_response(self, uids: list[int], body: dict[str, Any], chunks: list[list[str]]):
+    async def append_response(
+        self, uids: list[int], body: dict[str, Any], chunks: list[list[str]], timings: list[list[float]] | None = None
+    ):
         if not shared_settings.SCORE_ORGANICS:
             return
 
@@ -78,8 +97,12 @@ class ScoringQueue(AsyncLoopRunner):
             return
 
         uids = [int(u) for u in uids]
-        chunk_dict = {u: c for u, c in zip(uids, chunks)}
-        payload = {"body": body, "chunks": chunk_dict, "uid": uids}
+        chunk_dict = {str(u): c for u, c in zip(uids, chunks)}
+        if timings:
+            timing_dict = {str(u): t for u, t in zip(uids, timings)}
+        else:
+            timing_dict = {}
+        payload = {"body": body, "chunks": chunk_dict, "uids": uids, "timings": timing_dict}
         scoring_item = ScoringPayload(payload=payload)
 
         async with self._scoring_lock:

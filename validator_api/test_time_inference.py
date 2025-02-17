@@ -1,3 +1,4 @@
+import asyncio
 import json
 import random
 import re
@@ -9,6 +10,7 @@ from shared.timer import Timer
 from validator_api.chat_completion import chat_completion
 
 MAX_THINKING_STEPS = 10
+ATTEMPTS_PER_STEP = 10
 
 
 def parse_multiple_json(api_response):
@@ -72,7 +74,8 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer=False)
                         "max_new_tokens": 500,
                     },
                     "seed": (seed := random.randint(0, 1000000)),
-                }
+                },
+                num_miners=3,
             )
             logger.debug(
                 f"Making API call with\n\nMESSAGES: {messages}\n\nSEED: {seed}\n\nRESPONSE: {response.choices[0].message.content}"
@@ -83,21 +86,36 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer=False)
             logger.error(f"Failed to get valid response: {e}")
             return None
 
-    # Create three concurrent tasks
-    try:
-        return await single_attempt()
-    except Exception as e:
-        if is_final_answer:
-            return {
-                "title": "Error",
-                "content": f"Failed to generate final answer. Error: {e}",
-            }
-        else:
-            return {
-                "title": "Error",
-                "content": f"Failed to generate step. Error: {e}",
-                "next_action": "final_answer",
-            }
+    # Create three concurrent tasks for more robustness against invalid jsons
+    tasks = [asyncio.create_task(single_attempt()) for _ in range(ATTEMPTS_PER_STEP)]
+
+    # As each task completes, check if it was successful
+    for completed_task in asyncio.as_completed(tasks):
+        try:
+            result = await completed_task
+            if result is not None:
+                # Cancel remaining tasks
+                for task in tasks:
+                    task.cancel()
+                return result
+        except Exception as e:
+            logger.error(f"Task failed with error: {e}")
+            continue
+
+    # If all tasks failed, return error response
+    error_msg = "All concurrent API calls failed"
+    logger.error(error_msg)
+    if is_final_answer:
+        return {
+            "title": "Error",
+            "content": f"Failed to generate final answer. Error: {error_msg}",
+        }
+    else:
+        return {
+            "title": "Error",
+            "content": f"Failed to generate step. Error: {error_msg}",
+            "next_action": "final_answer",
+        }
 
 
 async def generate_response(original_messages: list[dict[str, str]], model: str = None):

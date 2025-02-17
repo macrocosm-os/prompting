@@ -23,7 +23,7 @@ MIN_MATCH_THRESHOLD = 98
 
 # Define file paths
 PAST_WEBSITES_FILE = "past_websites.csv"
-TOP_DOMAINS_FILE = "../data/top100k_domains.csv"
+TOP_DOMAINS_FILE = "data/top100k_domains.csv"
 
 # Define blacklisted terms
 BLACKLISTED_TERMS = {

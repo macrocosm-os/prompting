@@ -64,9 +64,9 @@ class AsyncLoopRunner(BaseModel, ABC):
 
         wait_time = (next_run - current_time).total_seconds()
         if wait_time > 0:
-            logger.debug(
-                f"{self.name}: Waiting for {wait_time:.2f} seconds until next {'sync point' if self.sync else 'execution'}"
-            )
+            # logger.debug(
+            #     f"{self.name}: Waiting for {wait_time:.2f} seconds until next {'sync point' if self.sync else 'execution'}"
+            # )
             await asyncio.sleep(wait_time)
         return next_run
 

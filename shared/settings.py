@@ -18,7 +18,7 @@ from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
-from shared.misc import cached_property_with_expiration
+from shared.misc import cached_property_with_expiration, is_cuda_available
 
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -83,28 +83,28 @@ class SharedSettings(BaseSettings):
     SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
+    DEPLOY_SCORING_API: bool = Field(True, env="DEPLOY_SCORING_API")
+    SCORING_API_PORT: int = Field(8095, env="SCORING_API_PORT")
 
     # ==== API =====
-    # API key used to access validator organic scoring mechanism (both .env.validator and .env.api).
-    SCORING_KEY: str | None = Field(None, env="SCORING_KEY")
+    # Hotkey used to run api, defaults to Macrocosmos
+    API_HOTKEY: str = Field("5F4tQyWrhfGVcNhoqeiNsR6KjD4wMZ2kfhLj4oHYuyHbZAc3", env="API_HOTKEY")
     # Scoring request rate limit in seconds.
-    SCORING_RATE_LIMIT_SEC: float = Field(0.5, env="SCORING_RATE_LIMIT_SEC")
+    SCORING_RATE_LIMIT_SEC: float = Field(5, env="SCORING_RATE_LIMIT_SEC")
     # Scoring queue threshold when rate-limit start to kick in, used to query validator API with scoring requests.
-    SCORING_QUEUE_API_THRESHOLD: int = Field(5, env="SCORING_QUEUE_API_THRESHOLD")
+    SCORING_QUEUE_API_THRESHOLD: int = Field(1, env="SCORING_QUEUE_API_THRESHOLD")
     API_TEST_MODE: bool = Field(False, env="API_TEST_MODE")
 
     # Validator scoring API (.env.validator).
-    DEPLOY_SCORING_API: bool = Field(False, env="DEPLOY_SCORING_API")
-    SCORING_API_PORT: int = Field(8094, env="SCORING_API_PORT")
-    SCORING_ADMIN_KEY: str | None = Field(None, env="SCORING_ADMIN_KEY")
     SCORE_ORGANICS: bool = Field(False, env="SCORE_ORGANICS")
-    WORKERS: int = Field(2, env="WORKERS")
+    WORKERS: int = Field(1, env="WORKERS")
 
     # API Management (.env.api).
     API_PORT: int = Field(8005, env="API_PORT")
     API_HOST: str = Field("0.0.0.0", env="API_HOST")
     # Validator scoring API address.
-    VALIDATOR_API: str = Field("0.0.0.0:8094", env="VALIDATOR_API")
+    # TODO: Choose this dynamically from the network
+    VALIDATOR_API: str = Field("184.105.5.17:8094", env="VALIDATOR_API")  # Used for availability
     # Default SN1 API address
     DEFAULT_SN1_API: str = Field("http://sn1.api.macrocosmos.ai:11198/v1", env="DEFAULT_SN1_API")
     # File with keys used to access API.
@@ -180,8 +180,6 @@ class SharedSettings(BaseSettings):
                 logger.warning(
                     "No SCORING_KEY found in .env.api file. You must add a scoring key that will allow us to forward miner responses to the validator for scoring."
                 )
-            if not os.getenv("SCORE_ORGANICS"):
-                logger.warning("Not scoring organics. This means that miners may not respond as consistently.")
         elif v["mode"] == "miner":
             if not dotenv.load_dotenv(".env.miner"):
                 logger.warning("No .env.miner file found. Please create one.")
@@ -276,9 +274,11 @@ class SharedSettings(BaseSettings):
         return bt.dendrite(wallet=self.WALLET)
 
 
-shared_settings: Optional[SharedSettings] = None
 try:
-    shared_settings = SharedSettings.load(mode="mock")
+    if is_cuda_available():
+        shared_settings = SharedSettings.load(mode="validator")
+    else:
+        shared_settings = SharedSettings.load(mode="mock")
     pass
 except Exception as e:
     logger.exception(f"Error loading settings: {e}")
