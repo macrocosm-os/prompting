@@ -153,7 +153,7 @@ async def query_miners(
                 results.append(SynapseStreamResult(uid=uid, exception=f"Unknown response type: {response}"))
         return results
     except Exception as e:
-        logger.error(f"Error in query_miners: {e}")
+        # logger.error(f"Error in query_miners: {e}")
         return []
 
 
