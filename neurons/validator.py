@@ -1,11 +1,15 @@
 import asyncio
 import multiprocessing as mp
 import sys
-import time
 
 import loguru
+import netaddr
+import requests
 import torch
 import wandb
+from bittensor.core.extrinsics.serving import serve_extrinsic
+
+from prompting.rewards.scoring import task_scorer
 
 # ruff: noqa: E402
 from shared import settings
@@ -34,7 +38,6 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         # ruff: noqa: E402
         from prompting.llms.model_manager import model_scheduler
         from prompting.miner_availability.miner_availability import availability_checking_loop
-        from prompting.rewards.scoring import task_scorer
         from prompting.tasks.task_creation import task_loop
         from prompting.tasks.task_sending import task_sender
         from prompting.weight_setting.weight_setter import weight_setter
@@ -61,18 +64,10 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         logger.info("Starting WeightSetter...")
         asyncio.create_task(weight_setter.start(reward_events))
 
-        # Main monitoring loop
-        start = time.time()
-
-        logger.info("Starting Main Monitoring Loop...")
         while True:
             await asyncio.sleep(5)
-            current_time = time.time()
-            time_diff = current_time - start
-            start = current_time
 
             # Check if all tasks are still running
-            logger.debug(f"Running {time_diff:.2f} seconds")
             logger.debug(f"Number of tasks in Task Queue: {len(task_queue)}")
             logger.debug(f"Number of tasks in Scoring Queue: {len(scoring_queue)}")
             logger.debug(f"Number of tasks in Reward Events: {len(reward_events)}")
@@ -87,15 +82,29 @@ def start_api(scoring_queue, reward_events):
         # TODO: We should not use 2 availability loops for each process, in reality
         # we should only be sharing the miner availability data between processes.
         from prompting.miner_availability.miner_availability import availability_checking_loop
-        from prompting.rewards.scoring import task_scorer
 
         asyncio.create_task(availability_checking_loop.start())
 
+        try:
+            external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
+            netaddr.IPAddress(external_ip)
+
+            serve_success = serve_extrinsic(
+                subtensor=settings.shared_settings.SUBTENSOR,
+                wallet=settings.shared_settings.WALLET,
+                ip=external_ip,
+                port=settings.shared_settings.SCORING_API_PORT,
+                protocol=4,
+                netuid=settings.shared_settings.NETUID,
+            )
+
+            logger.debug(f"Serve success: {serve_success}")
+        except Exception as e:
+            logger.warning(f"Failed to serve scoring api to chain: {e}")
         await start_scoring_api(task_scorer, scoring_queue, reward_events)
 
         while True:
             await asyncio.sleep(10)
-            logger.debug("Running API...")
 
     asyncio.run(start())
 
@@ -112,7 +121,6 @@ async def main():
 
         try:
             # # Start checking the availability of miners at regular intervals
-
             if settings.shared_settings.DEPLOY_SCORING_API:
                 # Use multiprocessing to bypass API blocking issue
                 api_process = mp.Process(target=start_api, args=(scoring_queue, reward_events), name="API_Process")
@@ -122,13 +130,9 @@ async def main():
             loop_process = mp.Process(
                 target=create_loop_process, args=(task_queue, scoring_queue, reward_events), name="LoopProcess"
             )
-            # task_loop_process = mp.Process(
-            #     target=create_task_loop, args=(task_queue, scoring_queue), name="TaskLoopProcess"
-            # )
+
             loop_process.start()
-            # task_loop_process.start()
             processes.append(loop_process)
-            # processes.append(task_loop_process)
             GPUInfo.log_gpu_info()
 
             step = 0
@@ -143,9 +147,9 @@ async def main():
                     current_block = settings.shared_settings.SUBTENSOR.get_current_block()
                     last_update_block = settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID]
                     logger.warning(
-                        f"UPDATES HAVE STALED FOR {current_block - last_update_block} BLOCKS AND {step} STEPS"
+                        f"Metagraph hasn't been updated for {current_block - last_update_block} blocks. "
+                        f"Staled block: {current_block}, Last update: {last_update_block}"
                     )
-                    logger.warning(f"STALED: {current_block}, {settings.shared_settings.METAGRAPH.block}")
                     sys.exit(1)
                 step += 1
 

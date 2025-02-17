@@ -42,7 +42,6 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         )
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
-
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
             return await test_time_inference(body["messages"], body.get("model", None))
@@ -61,7 +60,8 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
     uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
     if not uids:
         raise HTTPException(status_code=500, detail="No available miners")
-    logger.debug(f"🔍 Querying uids: {uids}")
+
+    uids = random.sample(uids, min(len(uids), n_miners))
     if len(uids) == 0:
         logger.warning("No available miners. This should already have been caught earlier.")
         return
@@ -85,9 +85,6 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
         if isinstance(res, SynapseStreamResult) and res.accumulated_chunks
     ]
     distinct_results = list(np.unique(results))
-    logger.info(
-        f"🔍 Collected responses from {len(stream_results)} miners. {len(results)} responded successfully with a total of {len(distinct_results)} distinct results"
-    )
     loaded_results = []
     for result in distinct_results:
         try:
@@ -98,8 +95,8 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
     if len(loaded_results) == 0:
         raise HTTPException(status_code=500, detail="No miner responded successfully")
 
-    chunks = [res.accumulated_chunks if res and res.accumulated_chunks else [] for res in stream_results]
-    asyncio.create_task(scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=chunks))
+    collected_chunks_list = [res.accumulated_chunks if res and res.accumulated_chunks else [] for res in stream_results]
+    asyncio.create_task(scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=collected_chunks_list))
     return loaded_results
 
 
@@ -108,7 +105,7 @@ async def test_time_inference(messages: list[dict], model: str = None):
     async def create_response_stream(messages):
         async for steps, total_thinking_time in generate_response(messages, model=model):
             if total_thinking_time is not None:
-                logger.info(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
+                logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
             yield steps, total_thinking_time
 
     # Create a streaming response that yields each step

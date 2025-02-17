@@ -4,7 +4,6 @@ from abc import ABC, abstractmethod
 from typing import Any, ClassVar
 from uuid import uuid4
 
-from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
@@ -33,6 +32,7 @@ class BaseTask(BaseModel, ABC):
     query: Any = None
     reference: Any = None
     task_id: str = Field(default_factory=lambda: str(uuid4()), allow_mutation=False)
+    organic: bool = False
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -60,6 +60,7 @@ class BaseTextTask(BaseTask):
     sampling_params: dict[str, float] = settings.shared_settings.SAMPLING_PARAMS
     timeout: int = settings.shared_settings.NEURON_TIMEOUT
     max_tokens: int = settings.shared_settings.NEURON_MAX_TOKENS
+    organic: bool = False
 
     @property
     def task_messages(self) -> list[str] | list[dict]:
@@ -79,7 +80,6 @@ class BaseTextTask(BaseTask):
 
     def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
-        logger.info("🤖 Generating reference...")
         self.reference = model_manager.get_model(settings.shared_settings.LLM_MODEL).generate(
             messages=messages
         )  # This should be a list of dict
@@ -93,7 +93,6 @@ class BaseTextTask(BaseTask):
         messages: list[str],
     ) -> str:
         """Generates a query to be used for generating the challenge"""
-        logger.info("🤖 Generating query...")
         llm_messages = [LLMMessage(role="system", content=self.query_system_prompt)] if self.query_system_prompt else []
         llm_messages.extend([LLMMessage(role="user", content=message) for message in messages])
 
