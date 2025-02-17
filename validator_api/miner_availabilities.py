@@ -7,10 +7,12 @@ from loguru import logger
 from pydantic import BaseModel
 
 from shared import settings
+
+shared_settings = settings.shared_settings
+
 from shared.loop_runner import AsyncLoopRunner
 from shared.uids import get_uids
 
-shared_settings = settings.shared_settings
 router = APIRouter()
 
 
@@ -59,13 +61,17 @@ def get_available_miner(task: Optional[str] = None, model: Optional[str] = None)
 
 
 class MinerAvailabilitiesUpdater(AsyncLoopRunner):
-    interval: int = 20
+    interval: int = 40
 
     async def run_step(self):
-        uids = get_uids(sampling_mode="random", k=100)
+        uids = get_uids(
+            sampling_mode="random", k=100
+        )  # TODO: We should probably not just randomly sample uids, there's likely a better way to do this.
+        # TODO: Default to highest stake validator's availability api
         url = f"{shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities"
 
         try:
+            # TODO: Need to add some level of ddos protection for this
             result = requests.post(url, json=uids.tolist(), timeout=10)
             result.raise_for_status()  # Raise an exception for bad status codes
 

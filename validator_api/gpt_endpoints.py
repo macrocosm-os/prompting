@@ -11,6 +11,8 @@ from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice,
 from starlette.responses import StreamingResponse
 
 from shared import settings
+
+shared_settings = settings.shared_settings
 from shared.epistula import SynapseStreamResult, query_miners
 from validator_api import scoring_queue
 from validator_api.api_management import _keys
@@ -18,10 +20,7 @@ from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.test_time_inference import generate_response
 from validator_api.utils import filter_available_uids
-
 from .serializers import ChatCompletionRequest, ErrorResponse, SearchResult, WebSearchResponse
-
-shared_settings = settings.shared_settings
 
 router = APIRouter()
 N_MINERS = 5
@@ -86,14 +85,13 @@ async def completions(request: ChatCompletionRequest, api_key: str = Depends(val
         )
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
-
-        if request.test_time_inference:
-            return await test_time_inference(request.messages, request.model)
-
-        if request.mixture:
-            return await mixture_of_miners(request.dict(), uids=uids)
-
-        return await chat_completion(request.dict(), uids=uids)
+        # Choose between regular completion and mixture of miners.
+        if body.get("test_time_inference", False):
+            return await test_time_inference(body["messages"], body.get("model", None))
+        if body.get("mixture", False):
+            return await mixture_of_miners(body, uids=uids)
+        else:
+            return await chat_completion(body, uids=uids)
 
     except Exception as e:
         logger.exception(f"Error in chat completion: {e}")
@@ -134,7 +132,9 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
         raise HTTPException(status_code=500, detail="No available miners")
 
     uids = random.sample(uids, min(len(uids), n_miners))
-    logger.debug(f"🔍 Querying uids: {uids}")
+    if len(uids) == 0:
+        logger.warning("No available miners. This should already have been caught earlier.")
+        return
 
     body = {
         "seed": random.randint(0, 1_000_000),
@@ -157,8 +157,6 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
     ]
 
     distinct_results = list(np.unique(results))
-    logger.info(f"🔍 {len(results)} miners responded successfully with {len(distinct_results)} distinct results.")
-
     search_results = []
     for result in distinct_results:
         try:
@@ -203,7 +201,7 @@ async def test_time_inference(messages: list[dict], model: str | None = None):
     async def create_response_stream(messages):
         async for steps, total_thinking_time in generate_response(messages, model=model):
             if total_thinking_time is not None:
-                logger.info(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
+                logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
             yield steps, total_thinking_time
 
     async def stream_steps():
