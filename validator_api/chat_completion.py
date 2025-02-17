@@ -219,8 +219,14 @@ async def get_response_from_miner(body: dict[str, any], uid: int, timeout_second
     )
 
 
+from openai.types.chat.chat_completion_message_tool_call import Function, ChatCompletionMessageToolCall
+
+
 async def chat_completion(
-    body: dict[str, any], uids: Optional[list[int]] = None, num_miners: int = 10
+    body: dict[str, any],
+    uids: Optional[list[int]] = None,
+    num_miners: int = 10,
+    extra_data: Optional[list[ChatCompletionMessageToolCall]] = None,
 ) -> tuple | StreamingResponse:
     """Handle chat completion with multiple miners in parallel."""
     body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
@@ -287,4 +293,8 @@ async def chat_completion(
         if first_valid_response is None:
             raise HTTPException(status_code=502, detail="No valid response received")
 
+        logger.debug(f"ADDING EXTRA DATA {extra_data}")
+        if extra_data:
+            first_valid_response[0].choices[0].message.tool_calls = extra_data
+            logger.debug(f"FIRST VALID RESPONSE {first_valid_response[0]}")
         return first_valid_response[0]  # Return only the response object, not the chunks

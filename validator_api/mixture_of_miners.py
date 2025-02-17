@@ -23,6 +23,9 @@ async def get_miner_response(body: dict, uid: str, timeout_seconds: int) -> tupl
         return None
 
 
+from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
+
+
 async def mixture_of_miners(body: dict[str, any], uids: list[int]) -> tuple | StreamingResponse:
     """Handle chat completion with mixture of miners approach.
 
@@ -76,4 +79,16 @@ async def mixture_of_miners(body: dict[str, any], uids: list[int]) -> tuple | St
 
     # Get final response using a random top miner.
     final_uid = random.choice(get_uids(sampling_mode="top_incentive", k=TOP_INCENTIVE_POOL))
-    return await chat_completion(final_body, uids=[int(final_uid)])
+    # return await chat_completion(final_body, uids=[int(final_uid)])
+    extra_data = [
+        ChatCompletionMessageToolCall(
+            id="miner_response", type="function", function=Function(name=miner_uid, arguments=generation)
+        )
+        for miner_uid, generation in zip(uids, completions)
+    ]
+    logger.debug(f"CALLING FINAL CHAT COMPLETION WITH UIDS {uids}\n\nBODY: {final_body}\n\nEXTRA DATA: {extra_data}")
+    return await chat_completion(
+        final_body,
+        uids=[int(final_uid)],
+        extra_data=extra_data,
+    )

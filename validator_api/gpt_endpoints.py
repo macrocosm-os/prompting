@@ -5,7 +5,7 @@ import time
 import uuid
 
 import numpy as np
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from loguru import logger
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
@@ -66,7 +66,7 @@ def validate_api_key(api_key: str = Header(...)):
     Results are streamed back to the client as they are generated.
     """,
 )
-async def completions(request: ChatCompletionRequest, api_key: str = Depends(validate_api_key)):
+async def completions(request: Request, api_key: str = Depends(validate_api_key)):
     """
     Executes a chat completion request.
 
@@ -80,6 +80,7 @@ async def completions(request: ChatCompletionRequest, api_key: str = Depends(val
     """
     try:
         body = await request.json()
+        # body = request.json()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         uids = body.get("uids") or filter_available_uids(
             task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=N_MINERS
