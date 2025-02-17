@@ -158,14 +158,15 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
     ]
 
     search_results = []
+    website = None
     for result in results:
-        for website in result:
-            try:
-                parsed_result = json.loads(website)
-                search_results.append(SearchResult(**parsed_result))
-                logger.info(f"🔍 Parsed Result: {parsed_result}")
-            except Exception as e:
-                logger.error(f"{e}: {website}")
+        try:
+            parsed_result = json.loads(result)
+            for website in parsed_result:
+                search_results.append(SearchResult(**website))
+                logger.info(f"🔍 Parsed Result: {website}")
+        except Exception as e:
+            logger.error(f"{e}: {website}")
 
 
     distinct_results = list(np.unique(search_results))
