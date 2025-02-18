@@ -61,7 +61,7 @@ def parse_multiple_json(api_response):
     return parsed_objects
 
 
-async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool = False, use_miners: bool = True):
+async def make_api_call(messages, model=None, is_final_answer: bool = False, use_miners: bool = True, target_uids=None):
     async def single_attempt():
         try:
             if use_miners:
@@ -79,6 +79,7 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool 
                         "seed": random.randint(0, 1000000),
                     },
                     num_miners=3,
+                    uids=target_uids,
                 )
                 response_str = response.choices[0].message.content
             else:
@@ -143,7 +144,7 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool 
         }
 
 
-async def generate_response(original_messages: list[dict[str, str]], model: str = None, use_miners: bool = True):
+async def generate_response(original_messages: list[dict[str, str]], model: str = None, target_uids: list[str] = None, use_miners: bool = True):
     messages = [
         {
             "role": "system",
@@ -219,7 +220,7 @@ Remember: Quality of reasoning is more important than speed. Take the necessary 
 
     for _ in range(MAX_THINKING_STEPS):
         with Timer() as timer:
-            step_data = await make_api_call(messages, 300, model=model, use_miners=use_miners)
+            step_data = await make_api_call(messages, model=model, use_miners=use_miners, target_uids=target_uids)
         thinking_time = timer.final_time
         total_thinking_time += thinking_time
 
@@ -237,17 +238,18 @@ Remember: Quality of reasoning is more important than speed. Take the necessary 
         {
             "role": "user",
             "content": """Based on your thorough analysis, please provide your final answer. Your response should:
-1. Clearly state your conclusion
-2. Summarize the key supporting evidence
-3. Acknowledge any remaining uncertainties
-4. Include relevant caveats or limitations
+        1. Clearly state your conclusion
+        2. Summarize the key supporting evidence
+        3. Acknowledge any remaining uncertainties
+        4. Include relevant caveats or limitations
 
-Return your answer in the same JSON format as previous steps.""",
-        }
-    )
+        Return your answer in the same JSON format as previous steps.""",
+                }
+            )
 
     start_time = time.time()
-    final_data = await make_api_call(messages, 200, is_final_answer=True, model=model, use_miners=use_miners)
+    final_data = await make_api_call(messages, model=model, is_final_answer=True, use_miners=use_miners, target_uids=target_uids)
+
     end_time = time.time()
     thinking_time = end_time - start_time
     total_thinking_time += thinking_time
