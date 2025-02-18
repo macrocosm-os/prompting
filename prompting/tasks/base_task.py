@@ -60,7 +60,7 @@ class BaseTextTask(BaseTask):
     sampling_params: dict[str, float] = settings.shared_settings.SAMPLING_PARAMS
     timeout: int = settings.shared_settings.NEURON_TIMEOUT
     max_tokens: int = settings.shared_settings.NEURON_MAX_TOKENS
-    organic: bool = True
+    organic: bool = False
 
     @property
     def task_messages(self) -> list[str] | list[dict]:
