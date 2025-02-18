@@ -112,7 +112,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         # trying to use a search box to enter exactly the relevant section they need
         discount_factor = 1 - fuzz.token_sort_ratio(response_url, response_relevant) / 100
         # Check if URL is IP-based or has port
-        if not response_url or len(response_url) > 200:
+        if not response_url or len(response_url) > 500:
             logger.debug(f"URL {response_url} is too long, setting discount factor to 0")
             return 0
         if not netloc or any(c.isdigit() for c in netloc.split(".")) or ":" in netloc:
