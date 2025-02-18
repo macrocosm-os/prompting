@@ -219,8 +219,8 @@ Remember: Quality of reasoning is more important than speed. Take the necessary 
         4. Include relevant caveats or limitations
 
         Return your answer in the same JSON format as previous steps.""",
-                }
-            )
+        }
+    )
 
     start_time = time.time()
     final_data = await make_api_call(messages, 200, is_final_answer=True, model=model, target_uids=target_uids)
