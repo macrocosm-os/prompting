@@ -1,4 +1,5 @@
 import json
+import random
 import re
 import time
 from typing import ClassVar
@@ -201,7 +202,7 @@ AVOID:
 - Obvious or straightforward calculations
 - Questions that don't require analysis
 
-Remember: The goal is to create questions where the context and parameters are revealed progressively, requiring the reader to integrate information across multiple sentences to fully understand and solve the problem.
+Remember: The goal is to create questions where the context and parameters are revealed progressively, requiring the reader to integrate information across multiple sentences to fully understand and solve the problem. Make sure that the question is spread over at least 3 sentences.
 """
 
 QUERY_PROMPT_TEMPLATE = """\
@@ -212,6 +213,12 @@ Ask a specific question about the following context:
 
 You must ask a question that can be answered by the context.
 """
+
+SAMPLE_SYSTEM_PROMPTS = [
+    """You are an LLM specialising in reasoning and solving complex questions. You will be given a chat interaction with a user and must answer appropriately.""",
+    """You are a step-by-step problem solver. When given a complex question, you break it down into clear logical steps, showing your work and explaining your reasoning at each stage. You maintain a methodical approach to ensure accuracy.""",
+    """You are an expert at mathematical and analytical reasoning. You excel at carefully parsing multi-part problems, identifying key information, and systematically working through solutions while clearly documenting your thought process.""",
+]
 
 
 class MultiStepReasoningTask(WikiQuestionAnsweringTask):
@@ -227,7 +234,9 @@ class MultiStepReasoningTask(WikiQuestionAnsweringTask):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.content)
         question = self.generate_query(messages=[QUERY_SYSTEM_PROMPT, query_prompt])
         msgs = [p + ". " if i < len(question.split(". ")) - 1 else p for i, p in enumerate(question.split(". ")) if p]
-        self.messages = [{"role": "user", "content": msg} for msg in msgs]
+        self.messages = [{"role": "system", "content": random.choice(SAMPLE_SYSTEM_PROMPTS)}] + [
+            {"role": random.choice("user", "assistant"), "content": msg} for msg in msgs
+        ]
         return self.query
 
     def make_reference(self, dataset_entry: Context):

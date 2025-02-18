@@ -226,7 +226,8 @@ async def make_openai_query(
     extra_body = {k: v for k, v in body.items() if k not in ["messages", "model"]}
     start_time = time.perf_counter()
     chat = await miner.chat.completions.create(
-        model=None,
+        # model=None,
+        model=body.get("model", None),
         messages=body["messages"],
         stream=True,
         extra_body=extra_body,
