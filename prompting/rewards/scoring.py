@@ -84,6 +84,8 @@ class TaskScorer(AsyncLoopRunner):
             task=scoring_config.task,
         )
         self.reward_events.append(reward_events)
+
+        # TODO: Remove this once we have a better way to handle organic tasks
         if scoring_config.task.organic:
             self.reward_events.append(
                 reward_events
