@@ -94,7 +94,7 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool 
             response_dict = parse_multiple_json(response_str)[0]
             return response_dict
         except Exception as e:
-            logger.exception(f"Failed to get valid response: {e}")
+            logger.warning(f"Failed to get valid response: {e}")
             return None
 
     # When not using miners, let's try and save tokens
