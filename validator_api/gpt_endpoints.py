@@ -84,15 +84,16 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
         for res in stream_results
         if isinstance(res, SynapseStreamResult) and res.accumulated_chunks
     ]
-    distinct_results = list(np.unique(results))
     loaded_results = []
-    for result in distinct_results:
+    for result in results:
         try:
-            loaded_results.append(json.loads(result))
+            loaded_results.extend(json.loads(result))
             logger.info(f"🔍 Result: {result}")
         except Exception:
             logger.error(f"🔍 Result: {result}")
-    if len(loaded_results) == 0:
+
+    distinct_results = list(np.unique(loaded_results))
+    if len(distinct_results) == 0:
         raise HTTPException(status_code=500, detail="No miner responded successfully")
 
     collected_chunks_list = [res.accumulated_chunks if res and res.accumulated_chunks else [] for res in stream_results]
