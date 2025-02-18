@@ -79,7 +79,7 @@ def filter_available_uids(
 
         filtered_uids.append(uid)
     if len(filtered_uids) == 0:
-        logger.error(f"Got empty list of available UIDs. Check VALIDATOR_API and SCORING_KEY in .env.api")
+        logger.error("Got empty list of available UIDs. Check VALIDATOR_API and SCORING_KEY in .env.api")
         return filtered_uids
 
     filtered_uids = random.sample(filtered_uids, min(len(filtered_uids), n_miners))

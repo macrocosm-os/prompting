@@ -79,9 +79,7 @@ class ScoringQueue(AsyncLoopRunner):
                 scoring_payload.retries += 1
                 async with self._scoring_lock:
                     self._scoring_queue.appendleft(scoring_payload)
-                logger.error(
-                    f"Tried to forward response to {url} for uids {uids}. Exception: {e}. Queued for retry"
-                )
+                logger.error(f"Tried to forward response to {url} for uids {uids}. Exception: {e}. Queued for retry")
             else:
                 logger.exception(f"Error while forwarding response after {scoring_payload.retries} retries: {e}")
 
