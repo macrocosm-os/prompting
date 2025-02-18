@@ -78,6 +78,6 @@ def filter_available_uids(
                 continue
 
         filtered_uids.append(uid)
-    filtered_uids = random.sample(filtered_uids, n_miners)
+    filtered_uids = random.sample(filtered_uids, min(n_miners, len(filtered_uids)))
 
     return filtered_uids

@@ -126,7 +126,7 @@ class MultiChoiceTask(BaseTextTask):
         new_query = "?".join(query.split("?")[:2]) + "?\n" + options_string
         return new_query
 
-    def make_reference(self, dataset_entry: Context) -> str:
+    async def make_reference(self, dataset_entry: Context) -> str:
         return self.reference
 
     def extract_query_and_reference(self, query_with_choices: str) -> tuple[str, str]:

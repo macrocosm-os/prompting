@@ -70,7 +70,7 @@ class TaskScorer(AsyncLoopRunner):
         scoring_config: ScoringConfig = scorable.pop(0)
 
         # here we generate the actual reference
-        scoring_config.task.make_reference(
+        await scoring_config.task.make_reference(
             dataset_entry=scoring_config.dataset_entry,
         )
 

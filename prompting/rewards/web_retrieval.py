@@ -27,7 +27,10 @@ TOP_DOMAINS_FILE = "data/top100k_domains.csv"
 
 # Define blacklisted terms
 BLACKLISTED_TERMS = {
+    "howtogeek",
     "docs.google.com",
+    "?q=",
+    "/search",
     "sheets.google.com",
     "drive.google.com",
     "pastebin",
@@ -115,7 +118,8 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
 
             # If domain is in top 100k, don't apply penalty
             if domain in TOP_DOMAINS:
-                discount_factor = 1.0
+                # if the domain is in the top 100k, we allow 10 occurrences in the last 200 URLs before penalising
+                discount_factor = 1.0 / (max(0, domain_count - 10))
                 logger.debug(f"Domain {domain} is in top 100k domains, not applying penalty")
             else:
                 # Count how many times this domain has been used by this miner

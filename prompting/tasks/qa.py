@@ -63,7 +63,7 @@ class WikiQuestionAnsweringTask(BaseTextTask):
         self.query = self.generate_query(messages=[query_prompt])
         return self.query
 
-    def make_reference(self, dataset_entry: Context):
+    async def make_reference(self, dataset_entry: Context):
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.content, question=self.query)
         self.reference = self.generate_reference(messages=[{"role": "user", "content": reference_prompt}])
         return self.reference
@@ -85,7 +85,7 @@ class WebQuestionAnsweringTask(BaseTextTask):
         self.query = self.generate_query(messages=[query_prompt])
         return self.query
 
-    def make_reference(self, dataset_entry: Context):
+    async def make_reference(self, dataset_entry: Context):
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.website_content, question=self.query)
         self.reference = self.generate_reference(messages=[{"role": "user", "content": reference_prompt}])
         return self.reference

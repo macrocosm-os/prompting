@@ -98,19 +98,19 @@ class MultiStepReasoningTask(WikiQuestionAnsweringTask):
         return self.query
 
     async def _async_generate_reference(self):
-        async for steps, total_thinking_time in generate_response(self.messages, model=self.llm_model_id):
+        async for steps, total_thinking_time in generate_response(
+            self.messages, model=self.llm_model_id, use_miners=False
+        ):
+            logger.debug(f"Step generated in reference of MSR: {steps}")
             if total_thinking_time is not None:
                 logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
         return steps[-1]
 
-    def make_reference(self, dataset_entry: Context):
+    async def make_reference(self, dataset_entry: Context):
         try:
             logger.debug(f"Generating reference for MSR: {self.messages}")
-            future = asyncio.create_task(self._async_generate_reference())
-            while not future.done():
-                logger.debug("Waiting for reference to be generated")
-                time.sleep(0.1)  # Small sleep to prevent busy waiting
-            self.reference = future.result()
+            # Run the async function in a new event loop
+            await self._async_generate_reference()
             logger.debug(f"Generated reference for MSR: {self.reference}")
         except Exception as e:
             logger.error(f"Error getting final answer for MSR: {e}")

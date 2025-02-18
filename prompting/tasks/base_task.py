@@ -41,7 +41,7 @@ class BaseTask(BaseModel, ABC):
         raise NotImplementedError("Method make_query must be implemented")
 
     @abstractmethod
-    def make_reference(self, **kwargs):
+    async def make_reference(self, **kwargs):
         raise NotImplementedError("Method make_reference must be implemented")
 
 
@@ -75,7 +75,7 @@ class BaseTextTask(BaseTask):
     def make_query(self, dataset_entry: DatasetEntry, **kwargs) -> str:
         return self.query
 
-    def make_reference(self, dataset_entry: DatasetEntry) -> str:
+    async def make_reference(self, dataset_entry: DatasetEntry) -> str:
         return self.reference
 
     def generate_reference(self, messages: list[str]) -> str:
