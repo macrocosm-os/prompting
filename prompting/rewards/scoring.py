@@ -94,7 +94,7 @@ class TaskScorer(AsyncLoopRunner):
             f"Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with model "
             f"{scoring_config.task.llm_model_id}"
         )
-        
+
         log_event(
             RewardLoggingEvent(
                 response_event=scoring_config.response,
@@ -107,7 +107,7 @@ class TaskScorer(AsyncLoopRunner):
                 task_id=scoring_config.task_id,
                 task_dict=scoring_config.task.model_dump(),
                 source=scoring_config.dataset_entry.source,
-                organic = scoring_config.task.organic,
+                organic=scoring_config.task.organic,
             )
         )
         await asyncio.sleep(0.01)
