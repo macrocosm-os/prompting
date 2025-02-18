@@ -11,12 +11,15 @@ shared_settings = settings.shared_settings
 router = APIRouter()
 
 
-# Load and save functions for API keys
 def load_api_keys():
     try:
         with open(shared_settings.API_KEYS_FILE, "r") as f:
             return json.load(f)
     except FileNotFoundError:
+        logger.error(f"API keys are not found: {shared_settings.API_KEYS_FILE}")
+        return {}
+    except json.JSONDecodeError:
+        logger.exception("JSON decode error when reading API keys")
         return {}
 
 
@@ -27,7 +30,6 @@ def save_api_keys(api_keys):
 
 # Use lifespan to initialize API keys
 _keys = load_api_keys()
-logger.info(f"Loaded API keys: {_keys}")
 
 
 # Dependency to validate the admin key

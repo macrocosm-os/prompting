@@ -5,7 +5,7 @@ import time
 import uuid
 
 import numpy as np
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
@@ -15,7 +15,7 @@ from shared import settings
 shared_settings = settings.shared_settings
 from shared.epistula import SynapseStreamResult, query_miners
 from validator_api import scoring_queue
-from validator_api.api_management import _keys
+from validator_api.api_management import validate_api_key
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.test_time_inference import generate_response
@@ -23,12 +23,6 @@ from validator_api.utils import filter_available_uids
 
 router = APIRouter()
 N_MINERS = 5
-
-
-def validate_api_key(api_key: str = Header(...)):
-    if api_key not in _keys:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    return _keys[api_key]
 
 
 @router.post("/v1/chat/completions")
@@ -56,7 +50,13 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 
 
 @router.post("/web_retrieval")
-async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 5, max_response_time: int = 10):
+async def web_retrieval(
+        search_query: str,
+        n_miners: int = 10,
+        n_results: int = 5,
+        max_response_time: int = 10,
+        api_key: str = Depends(validate_api_key)
+    ):
     uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
     if not uids:
         raise HTTPException(status_code=500, detail="No available miners")

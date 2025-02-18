@@ -1,11 +1,13 @@
 import asyncio
 import contextlib
 
+from loguru import logger
 import uvicorn
 from fastapi import FastAPI
 
 from shared import settings
 
+# Load shared settings
 settings.shared_settings = settings.SharedSettings.load(mode="api")
 shared_settings = settings.shared_settings
 
@@ -13,17 +15,31 @@ from validator_api import scoring_queue
 from validator_api.api_management import router as api_management_router
 from validator_api.gpt_endpoints import router as gpt_router
 from validator_api.utils import update_miner_availabilities_for_api
+from multiprocessing import Lock
+
+_lock = Lock()
 
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    background_task = asyncio.create_task(update_miner_availabilities_for_api.start())
-    yield
-    background_task.cancel()
+    # Start background tasks for each worker.
+    # Note: When running with multiple workers, these tasks will be started in every process.
     try:
-        await background_task
-    except asyncio.CancelledError:
-        pass
+        from validator_api import api_management
+        with _lock:
+            api_management._keys = api_management.load_api_keys()
+        miner_task = asyncio.create_task(update_miner_availabilities_for_api.start())
+        scoring_task = asyncio.create_task(scoring_queue.scoring_queue.start())
+    except BaseException as e:
+        logger.exception(f"Exception {e}")
+    try:
+        yield
+    finally:
+        miner_task.cancel()
+        scoring_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await miner_task
+            await scoring_task
 
 
 app = FastAPI(lifespan=lifespan)
@@ -36,25 +52,14 @@ async def health():
     return {"status": "ok"}
 
 
-async def main():
-    asyncio.create_task(update_miner_availabilities_for_api.start())
-    asyncio.create_task(scoring_queue.scoring_queue.start())
-
-    config = uvicorn.Config(
-        "validator_api.api:app",
+if __name__ == "__main__":
+    # Run the app with multiple workers using uvicorn.run()
+    uvicorn.run(
+        "validator_api.api:app",  # Reference to the application
         host=shared_settings.API_HOST,
         port=shared_settings.API_PORT,
         log_level="debug",
         timeout_keep_alive=60,
-        # Note: The `workers` parameter is typically only supported via the CLI.
-        # When running programmatically with `server.serve()`, only a single worker will run.
-        workers=shared_settings.WORKERS,
+        workers=shared_settings.WORKERS,  # This will spawn the specified number of worker processes
         reload=False,
     )
-    server = uvicorn.Server(config)
-
-    await server.serve()
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
