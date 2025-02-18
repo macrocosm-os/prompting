@@ -137,6 +137,7 @@ def reinit_wandb():
 
 class BaseEvent(BaseModel):
     forward_time: float | None = None
+    organic: bool = False
 
 
 class WeightSetEvent(BaseEvent):
@@ -216,8 +217,19 @@ class MinerLoggingEvent(BaseEvent):
     validator_dividends: float
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+def censor_organic(event: RewardLoggingEvent):
+    event.reference = "ORGANIC_REFERENCE"
+    event.challenge = "ORGANIC_CHALLENGE"
+    event.response_event.completions = ["ORGANIC_COMPLETION" for _ in event.response_event.completions]
+    event.response_event.stream_results_exceptions = ["ORGANIC_EXCEPTION" for _ in event.response_event.stream_results_exceptions]
+    event.response_event.stream_results_all_chunks = [["ORGANIC_CHUNK" for _ in chunk] for chunk in event.response_event.stream_results_all_chunks]
+    event.response_event.stream_results_all_chunks_timings = [[0.0 for _ in chunk] for chunk in event.response_event.stream_results_all_chunks_timings]
+    return event
 
 def log_event(event: BaseEvent):
+    if event.organic:
+        event = censor_organic(event)
+
     if not settings.shared_settings.LOGGING_DONT_SAVE_EVENTS:
         logger.info(f"{event}")
 
