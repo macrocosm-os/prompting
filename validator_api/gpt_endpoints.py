@@ -16,6 +16,7 @@ shared_settings = settings.shared_settings
 from shared.epistula import SynapseStreamResult, query_miners
 from validator_api import scoring_queue
 from validator_api.api_management import _keys
+from validator_api.api_management import validate_api_key
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.test_time_inference import generate_response
@@ -25,26 +26,30 @@ router = APIRouter()
 N_MINERS = 5
 
 
-def validate_api_key(api_key: str = Header(...)):
-    if api_key not in _keys:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    return _keys[api_key]
-
-
 @router.post("/v1/chat/completions")
-async def completions(request: Request, api_key: str = Depends(validate_api_key)):
+async def completions(
+    request: Request,
+    api_key: str = Depends(validate_api_key)
+):
     """Main endpoint that handles both regular and mixture of miners chat completion."""
     try:
         body = await request.json()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
-        uids = body.get("uids") or filter_available_uids(
-            task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=N_MINERS
-        )
+        if body.get("uids"):
+            uids = body.get("uids")
+        else:
+            uids = filter_available_uids(
+                task=body.get("task"), 
+                model=body.get("model"), 
+                test=shared_settings.API_TEST_MODE, 
+                n_miners=N_MINERS
+            )
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
+            
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
-            return await test_time_inference(body["messages"], body.get("model", None))
+            return await test_time_inference(body["messages"], body.get("model", None), target_uids=body.get("uids", None))
         if body.get("mixture", False):
             return await mixture_of_miners(body, uids=uids)
         else:
@@ -56,15 +61,21 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 
 
 @router.post("/web_retrieval")
-async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 5, max_response_time: int = 10):
-    uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
-    if not uids:
-        raise HTTPException(status_code=500, detail="No available miners")
+async def web_retrieval(search_query: str, 
+                        n_miners: int = 10, 
+                        n_results: int = 5, 
+                        max_response_time: int = 10,
+                        api_key: str = Depends(validate_api_key),
+                        target_uids: list[str] = None):
+    
+    if target_uids:
+        uids = target_uids
+    else:
+        uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
+        uids = random.sample(uids, min(len(uids), n_miners))
 
-    uids = random.sample(uids, min(len(uids), n_miners))
     if len(uids) == 0:
-        logger.warning("No available miners. This should already have been caught earlier.")
-        return
+        raise HTTPException(status_code=500, detail="No available miners")
 
     body = {
         "seed": random.randint(0, 1_000_000),
@@ -101,9 +112,9 @@ async def web_retrieval(search_query: str, n_miners: int = 10, n_results: int = 
 
 
 @router.post("/test_time_inference")
-async def test_time_inference(messages: list[dict], model: str = None):
+async def test_time_inference(messages: list[dict], model: str = None, target_uids: list[str] = None):
     async def create_response_stream(messages):
-        async for steps, total_thinking_time in generate_response(messages, model=model):
+        async for steps, total_thinking_time in generate_response(messages, model=model, target_uids=target_uids):
             if total_thinking_time is not None:
                 logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
             yield steps, total_thinking_time
