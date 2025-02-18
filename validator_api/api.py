@@ -17,11 +17,14 @@ from validator_api.utils import update_miner_availabilities_for_api
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    background_task = asyncio.create_task(update_miner_availabilities_for_api.start())
+    miner_task = asyncio.create_task(update_miner_availabilities_for_api.start())
+    scoring_task = asyncio.create_task(scoring_queue.scoring_queue.start())
     yield
-    background_task.cancel()
+    miner_task.cancel()
+    scoring_task.cancel()
     try:
-        await background_task
+        await miner_task
+        await scoring_task
     except asyncio.CancelledError:
         pass
 
@@ -37,9 +40,6 @@ async def health():
 
 
 async def main():
-    asyncio.create_task(update_miner_availabilities_for_api.start())
-    asyncio.create_task(scoring_queue.scoring_queue.start())
-
     config = uvicorn.Config(
         "validator_api.api:app",
         host=shared_settings.API_HOST,

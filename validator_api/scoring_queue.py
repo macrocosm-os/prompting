@@ -60,7 +60,6 @@ class ScoringQueue(AsyncLoopRunner):
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
             # Add required headers for signature verification
 
-            logger.debug(f"Forwarding payload to {url}.\n\nPAYLOAD: {payload}")
             async with httpx.AsyncClient(
                 timeout=timeout,
                 event_hooks={"request": [create_header_hook(shared_settings.WALLET.hotkey, vali_hotkey)]},
@@ -81,7 +80,7 @@ class ScoringQueue(AsyncLoopRunner):
                 async with self._scoring_lock:
                     self._scoring_queue.appendleft(scoring_payload)
                 logger.error(
-                    f"Tried to forward response to {url} with payload {payload}. Exception: {e}. Queued for retry"
+                    f"Tried to forward response to {url} for uids {uids}. Exception: {e}. Queued for retry"
                 )
             else:
                 logger.exception(f"Error while forwarding response after {scoring_payload.retries} retries: {e}")
