@@ -5,7 +5,7 @@ import time
 import uuid
 
 import numpy as np
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
@@ -15,7 +15,6 @@ from shared import settings
 shared_settings = settings.shared_settings
 from shared.epistula import SynapseStreamResult, query_miners
 from validator_api import scoring_queue
-from validator_api.api_management import _keys
 from validator_api.api_management import validate_api_key
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
@@ -27,10 +26,7 @@ N_MINERS = 5
 
 
 @router.post("/v1/chat/completions")
-async def completions(
-    request: Request,
-    api_key: str = Depends(validate_api_key)
-):
+async def completions(request: Request, api_key: str = Depends(validate_api_key)):
     """Main endpoint that handles both regular and mixture of miners chat completion."""
     try:
         body = await request.json()
@@ -39,17 +35,16 @@ async def completions(
             uids = body.get("uids")
         else:
             uids = filter_available_uids(
-                task=body.get("task"), 
-                model=body.get("model"), 
-                test=shared_settings.API_TEST_MODE, 
-                n_miners=N_MINERS
+                task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=N_MINERS
             )
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
-            
+
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
-            return await test_time_inference(body["messages"], body.get("model", None), target_uids=body.get("uids", None))
+            return await test_time_inference(
+                body["messages"], body.get("model", None), target_uids=body.get("uids", None)
+            )
         if body.get("mixture", False):
             return await mixture_of_miners(body, uids=uids)
         else:
@@ -61,13 +56,14 @@ async def completions(
 
 
 @router.post("/web_retrieval")
-async def web_retrieval(search_query: str, 
-                        n_miners: int = 10, 
-                        n_results: int = 5, 
-                        max_response_time: int = 10,
-                        api_key: str = Depends(validate_api_key),
-                        target_uids: list[str] = None):
-    
+async def web_retrieval(
+    search_query: str,
+    n_miners: int = 10,
+    n_results: int = 5,
+    max_response_time: int = 10,
+    api_key: str = Depends(validate_api_key),
+    target_uids: list[str] = None,
+):
     if target_uids:
         uids = target_uids
     else:
