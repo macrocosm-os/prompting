@@ -122,6 +122,8 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         else:
             domain = netloc
 
+            domain_count = np.sum(np.array([domain == d for d in past_websites[uid]])) + 1
+
             # If domain is in top 100k, don't apply penalty
             if domain in TOP_DOMAINS:
                 # if the domain is in the top 100k, we allow 10 occurrences in the last 200 URLs before penalising
@@ -129,7 +131,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
                 logger.debug(f"Domain {domain} is in top 100k domains, not applying penalty")
             else:
                 # Count how many times this domain has been used by this miner
-                domain_count = np.sum(np.array([domain == d for d in past_websites[uid]])) + 1
                 discount_factor *= 1.0 / domain_count
                 if domain in past_websites[uid]:
                     logger.debug(

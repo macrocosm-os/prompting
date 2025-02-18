@@ -6,10 +6,10 @@ import time
 
 from loguru import logger
 
+from prompting.llms.apis.llm_messages import LLMMessage, LLMMessages
+from prompting.llms.apis.llm_wrapper import LLMWrapper
 from shared.timer import Timer
 from validator_api.chat_completion import chat_completion
-from prompting.llms.apis.llm_wrapper import LLMWrapper
-from prompting.llms.apis.llm_messages import LLMMessages, LLMMessage
 
 MAX_THINKING_STEPS = 10
 ATTEMPTS_PER_STEP = 10
@@ -76,13 +76,13 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool 
                             "temperature": 0.5,
                             "max_new_tokens": 500,
                         },
-                        "seed": (seed := random.randint(0, 1000000)),
+                        "seed": random.randint(0, 1000000),
                     },
                     num_miners=3,
                 )
                 response_str = response.choices[0].message.content
             else:
-                logger.debug(f"Using SN19 API for inference in MSR")
+                logger.debug("Using SN19 API for inference in MSR")
                 response_str = LLMWrapper.chat_complete(
                     messages=LLMMessages(*[LLMMessage(role=m["role"], content=m["content"]) for m in messages]),
                     model=model,
@@ -105,7 +105,7 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool 
                 if result is not None:
                     return result
                 else:
-                    logger.error(f"Failed to get valid response: {e}")
+                    logger.error(f"Failed to get valid response")
                     continue
             except Exception as e:
                 logger.error(f"Failed to get valid response: {e}")
