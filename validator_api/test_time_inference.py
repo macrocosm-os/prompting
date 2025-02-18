@@ -97,21 +97,30 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool 
             logger.exception(f"Failed to get valid response: {e}")
             return None
 
-    # Create three concurrent tasks for more robustness against invalid jsons
-    tasks = [asyncio.create_task(single_attempt()) for _ in range(ATTEMPTS_PER_STEP)]
+    # When not using miners, let's try and save tokens
+    if not use_miners:
+        for _ in range(ATTEMPTS_PER_STEP):
+            try:
+                return await single_attempt()
+            except Exception as e:
+                logger.error(f"Failed to get valid response: {e}")
+                continue
+    else:
+        # when using miners, we try and save time
+        tasks = [asyncio.create_task(single_attempt()) for _ in range(ATTEMPTS_PER_STEP)]
 
-    # As each task completes, check if it was successful
-    for completed_task in asyncio.as_completed(tasks):
-        try:
-            result = await completed_task
-            if result is not None:
-                # Cancel remaining tasks
-                for task in tasks:
-                    task.cancel()
-                return result
-        except Exception as e:
-            logger.error(f"Task failed with error: {e}")
-            continue
+        # As each task completes, check if it was successful
+        for completed_task in asyncio.as_completed(tasks):
+            try:
+                result = await completed_task
+                if result is not None:
+                    # Cancel remaining tasks
+                    for task in tasks:
+                        task.cancel()
+                    return result
+            except Exception as e:
+                logger.error(f"Task failed with error: {e}")
+                continue
 
     # If all tasks failed, return error response
     error_msg = "All concurrent API calls failed"

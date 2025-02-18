@@ -108,6 +108,9 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         if netloc.startswith("www."):
             netloc = netloc[4:]
 
+        # Penalise a completion where the relevant section is contained in the URL (e.g. miners)
+        # trying to use a search box to enter exactly the relevant section they need
+        discount_factor = 1 - fuzz.token_sort_ratio(response_url, response_relevant) / 100
         # Check if URL is IP-based or has port
         if not netloc or any(c.isdigit() for c in netloc.split(".")) or ":" in netloc:
             discount_factor = 0
@@ -119,12 +122,12 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             # If domain is in top 100k, don't apply penalty
             if domain in TOP_DOMAINS:
                 # if the domain is in the top 100k, we allow 10 occurrences in the last 200 URLs before penalising
-                discount_factor = 1.0 / (max(0, domain_count - 10))
+                discount_factor *= 1.0 / (max(0, domain_count - 10))
                 logger.debug(f"Domain {domain} is in top 100k domains, not applying penalty")
             else:
                 # Count how many times this domain has been used by this miner
                 domain_count = np.sum(np.array([domain == d for d in past_websites[uid]])) + 1
-                discount_factor = 1.0 / domain_count
+                discount_factor *= 1.0 / domain_count
                 if domain in past_websites[uid]:
                     logger.debug(
                         f"Already used domain {domain} for this UID, applying ( discount ) factor {discount_factor}"

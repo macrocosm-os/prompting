@@ -104,13 +104,13 @@ class MultiStepReasoningTask(WikiQuestionAnsweringTask):
             logger.debug(f"Step generated in reference of MSR: {steps}")
             if total_thinking_time is not None:
                 logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
-        return steps[-1]
+        return steps[-1][1]
 
     async def make_reference(self, dataset_entry: Context):
         try:
             logger.debug(f"Generating reference for MSR: {self.messages}")
             # Run the async function in a new event loop
-            await self._async_generate_reference()
+            self.reference = await self._async_generate_reference()
             logger.debug(f"Generated reference for MSR: {self.reference}")
         except Exception as e:
             logger.error(f"Error getting final answer for MSR: {e}")
