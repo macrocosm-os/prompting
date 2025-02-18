@@ -2,6 +2,7 @@ import json
 import random
 import textwrap
 from typing import ClassVar, Optional
+
 from pydantic import Field
 
 from prompting.datasets.random_website import DDGDatasetEntry
