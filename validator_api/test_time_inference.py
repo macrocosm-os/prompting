@@ -101,7 +101,12 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool 
     if not use_miners:
         for _ in range(ATTEMPTS_PER_STEP):
             try:
-                return await single_attempt()
+                result = await single_attempt()
+                if result is not None:
+                    return result
+                else:
+                    logger.error(f"Failed to get valid response: {e}")
+                    continue
             except Exception as e:
                 logger.error(f"Failed to get valid response: {e}")
                 continue
