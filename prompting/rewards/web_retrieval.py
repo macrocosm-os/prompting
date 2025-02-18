@@ -27,6 +27,9 @@ TOP_DOMAINS_FILE = "data/top100k_domains.csv"
 
 # Define blacklisted terms
 BLACKLISTED_TERMS = {
+    "docs.google.com",
+    "sheets.google.com",
+    "drive.google.com",
     "pastebin",
     "paste",
     "gist",
