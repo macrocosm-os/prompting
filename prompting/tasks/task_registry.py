@@ -37,10 +37,10 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=WikiQuestionAnsweringTask, probability=0.05, datasets=[WikiDataset], reward_model=QARewardConfig
         ),
-        TaskConfig(task=WebQuestionAnsweringTask, probability=0.25, datasets=[DDGDataset], reward_model=QARewardConfig),
+        TaskConfig(task=WebQuestionAnsweringTask, probability=0.15, datasets=[DDGDataset], reward_model=QARewardConfig),
         TaskConfig(
             task=InferenceTask,
-            probability=0.1,
+            probability=0.3,
             datasets=[SN13Dataset],
             reward_model=InferenceRewardConfig,
         ),
@@ -52,7 +52,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=ProgrammingTask,
-            probability=0.2,
+            probability=0.10,
             datasets=[HuggingFaceGithubDataset],
             reward_model=ProgrammingRewardConfig,
         ),
