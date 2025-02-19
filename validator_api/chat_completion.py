@@ -4,6 +4,8 @@ import math
 import random
 import time
 from typing import Any, AsyncGenerator, Callable, List, Optional
+from collections import deque
+import hashlib
 
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
@@ -16,6 +18,23 @@ shared_settings = settings.shared_settings
 from shared.epistula import make_openai_query
 from validator_api import scoring_queue
 from validator_api.utils import filter_available_uids
+
+# Store the last 10k responses
+RESPONSE_CACHE_SIZE = 10000
+response_cache = deque(maxlen=RESPONSE_CACHE_SIZE)
+
+
+def _hash_response(response: str) -> str:
+    """Create a hash of the response content for comparison."""
+    return hashlib.sha256(response.encode()).hexdigest()
+
+
+def _get_response_content(response: tuple) -> str:
+    """Extract content from a non-streaming response tuple."""
+    try:
+        return response[0].choices[0].message.content
+    except (AttributeError, IndexError):
+        return ""
 
 
 async def peek_until_valid_chunk(
@@ -115,6 +134,7 @@ async def stream_from_first_response(
                     if first_chunk is None:
                         continue
 
+                    # Found a valid response
                     first_valid_response = rebuilt_generator
                     break
 
@@ -286,8 +306,8 @@ async def chat_completion(
                 try:
                     response = await task
                     if response and isinstance(response, tuple):
-                        if first_valid_response is None:
-                            first_valid_response = response
+                        # Found a valid response
+                        first_valid_response = response
                         collected_responses.append(response)
                 except Exception as e:
                     logger.error(f"Error in miner response: {e}")

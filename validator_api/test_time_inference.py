@@ -70,13 +70,12 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool 
                         "messages": messages,
                         "model": model,
                         "task": "InferenceTask",
-                        "test_time_inference": True,
                         "mixture": False,
+                        "stream": False,
                         "sampling_parameters": {
                             "temperature": 0.5,
                             "max_new_tokens": 500,
                         },
-                        "seed": random.randint(0, 1000000),
                     },
                     num_miners=3,
                 )
