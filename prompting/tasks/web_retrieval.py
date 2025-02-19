@@ -3,6 +3,8 @@ import random
 import textwrap
 from typing import ClassVar, Optional
 
+from pydantic import Field
+
 from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.web_retrieval import WebRetrievalRewardModel
@@ -36,8 +38,8 @@ class WebRetrievalTask(BaseTextTask):
     name: ClassVar[str] = "web_retrieval"
     augmentation_system_prompt: ClassVar[str] = ""
     query_system_prompt: ClassVar[Optional[str]] = QUERY_SYSTEM_PROMPT
-    target_results: int = random.randint(1, 10)
-    timeout: int = random.randint(3, 20)
+    target_results: int = Field(default_factory=lambda: random.randint(1, 10))
+    timeout: int = Field(default_factory=lambda: random.randint(3, 20))
 
     def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
         self.query = self.generate_query(
@@ -45,7 +47,7 @@ class WebRetrievalTask(BaseTextTask):
         )
         return self.query
 
-    def make_reference(self, dataset_entry: DDGDatasetEntry) -> str:
+    async def make_reference(self, dataset_entry: DDGDatasetEntry) -> str:
         dataset_entry.query = self.query
         ref_dict = dataset_entry.model_dump_json()
         self.reference = json.dumps(ref_dict)

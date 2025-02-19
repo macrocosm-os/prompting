@@ -75,7 +75,7 @@ class InferenceTask(BaseTextTask):
 
         return self.query
 
-    def make_reference(self, dataset_entry: ChatEntry) -> str:
+    async def make_reference(self, dataset_entry: ChatEntry) -> str:
         self.reference = model_manager.generate(
             messages=self.messages,
             model=self.llm_model,

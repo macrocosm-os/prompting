@@ -70,7 +70,7 @@ class TaskScorer(AsyncLoopRunner):
         scoring_config: ScoringConfig = scorable.pop(0)
 
         # here we generate the actual reference
-        scoring_config.task.make_reference(
+        await scoring_config.task.make_reference(
             dataset_entry=scoring_config.dataset_entry,
         )
 
@@ -84,6 +84,12 @@ class TaskScorer(AsyncLoopRunner):
             task=scoring_config.task,
         )
         self.reward_events.append(reward_events)
+
+        # TODO: Remove this once we have a better way to handle organic tasks
+        if scoring_config.task.organic:
+            self.reward_events.append(
+                reward_events
+            )  # Add the organic a second time, doubling the weight of the organic
         logger.debug(
             f"Scored {scoring_config.task.__class__.__name__} {scoring_config.task.task_id} with model "
             f"{scoring_config.task.llm_model_id}"

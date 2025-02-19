@@ -20,7 +20,11 @@ class LLMWrapper:
         logprobs=True,
     ) -> str:
         response: str | None = None
-        if "gpt" not in model.lower() and shared_settings.SN19_API_KEY and shared_settings.SN19_API_URL:
+        if (
+            shared_settings.SN19_API_KEY
+            and shared_settings.SN19_API_URL
+            and (model is None or "gpt" not in model.lower())
+        ):
             try:
                 response = chat_complete(
                     messages=messages,

@@ -77,12 +77,12 @@ class AsyncLoopRunner(BaseModel, ABC):
         try:
             while self.running:
                 with profiler.measure(self.name):
-                    next_run = await self.wait_for_next_execution(last_run_time)
                     try:
                         await self.run_step()
                         self.step += 1
                     except Exception as ex:
                         logger.exception(f"Error in loop iteration: {ex}")
+                    next_run = await self.wait_for_next_execution(last_run_time)
                     last_run_time = next_run
         except asyncio.CancelledError:
             logger.info("Loop was stopped.")
