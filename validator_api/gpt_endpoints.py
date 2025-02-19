@@ -5,7 +5,7 @@ import time
 import uuid
 
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Body
 from loguru import logger
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
@@ -33,9 +33,9 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         if body.get("uids"):
             try:
-                uids = [int(uid) for uid in body.get("uids")]
-            except Exception:
-                logger.error(f"Error in uids: {body.get('uids')}")
+                uids = list(map(int, body["uids"]))
+            except ValueError as e:
+                logger.error(f"Error in mapping uids to ints: {e}")
         else:
             uids = filter_available_uids(
                 task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=N_MINERS
@@ -45,11 +45,11 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
-            return await test_time_inference(body["messages"], body.get("model", None), target_uids=uids)
+            return await test_time_inference(messages=body["messages"], model=body.get("model"), target_uids=uids)
         if body.get("mixture", False):
-            return await mixture_of_miners(body, uids=uids)
+            return await mixture_of_miners(body=body, uids=uids)
         else:
-            return await chat_completion(body, uids=uids)
+            return await chat_completion(body=body, uids=uids)
 
     except Exception as e:
         logger.exception(f"Error in chat completion: {e}")
@@ -59,18 +59,17 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 @router.post("/web_retrieval")
 async def web_retrieval(
     search_query: str,
-    n_miners: int = 10,
-    n_results: int = 5,
-    max_response_time: int = 10,
-    api_key: str = Depends(validate_api_key),
-    target_uids: list[str] = None,
+    n_miners: int = Body(10),
+    n_results: int = Body(5),
+    max_response_time: int = Body(10),
+    target_uids: list[str] = Body(None),
+    api_key: str = Depends(validate_api_key)
 ):
     if target_uids:
-        uids = target_uids
         try:
-            uids = [int(uid) for uid in uids]
-        except Exception:
-            logger.error(f"Error in uids: {uids}")
+            uids = list(map(int, target_uids))
+        except ValueError as e:
+                logger.error(f"Error in mapping uids to ints: {e}")
     else:
         uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
         uids = random.sample(uids, min(len(uids), n_miners))
