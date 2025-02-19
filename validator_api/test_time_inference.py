@@ -105,7 +105,7 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool 
                 if result is not None:
                     return result
                 else:
-                    logger.error(f"Failed to get valid response")
+                    logger.error("Failed to get valid response")
                     continue
             except Exception as e:
                 logger.error(f"Failed to get valid response: {e}")

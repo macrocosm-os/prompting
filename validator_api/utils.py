@@ -85,5 +85,4 @@ def filter_available_uids(
 
     filtered_uids = random.sample(filtered_uids, min(len(filtered_uids), n_miners))
 
-
     return filtered_uids
