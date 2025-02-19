@@ -22,8 +22,10 @@ from web_retrieval import get_websites_with_similarity
 
 from prompting.llms.hf_llm import ReproducibleHF
 from shared.epistula import verify_signature
+from vllm import LLM, SamplingParams
 
-from transformers import pipeline
+# Initialize the model
+
 
 MODEL_ID: str = "gpt-3.5-turbo"
 NEURON_MAX_TOKENS: int = 256
@@ -46,16 +48,27 @@ class OpenAIMiner:
                 "Content-Type": "application/json",
             },
         )
-        self.llm = pipeline("text-generation", model="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B", device_map = "auto")
+        self.model = LLM(
+            model="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
+            trust_remote_code=True,
+            dtype="auto",  # Will use best available precision based on hardware
+            max_model_len=50000,  # Set below KV cache limit of 60304
+            gpu_memory_utilization=0.9  # Increase GPU memory usage
+        )
+
+        # Set up sampling parameters
+        self.sampling_params = SamplingParams(
+            temperature=0.7,
+            max_tokens=2000
+        )
 
     
     async def inference(self, messages):
-        generation = self.llm(messages, max_tokens=1024)[0].get("generated_text")
-        print(f"Messages: {messages}")
-        # print(f"Generation: {type(generation)}, {generation}")
-        generated_text = " ".join([d.get("content") for d in generation])
-        print(f"Generated Text: {generated_text}")
-        return generated_text
+        outputs = self.model.chat(
+            messages=messages,
+            sampling_params=self.sampling_params,
+        )
+        return outputs[0].outputs[0].text
 
     async def stream_web_retrieval(self, body, headers):
         async def word_stream(body, headers):

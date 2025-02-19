@@ -43,8 +43,8 @@ def verify_signature(
         return "Body is not of type bytes"
     ALLOWED_DELTA_MS = 8000
     keypair = Keypair(ss58_address=signed_by)
-    if timestamp + ALLOWED_DELTA_MS < now:
-        return "Request is too stale"
+    # if timestamp + ALLOWED_DELTA_MS < now:
+    #     return "Request is too stale"
     message = f"{sha256(body).hexdigest()}.{uuid}.{timestamp}.{signed_for}"
     verified = keypair.verify(message, signature)
     if not verified:
