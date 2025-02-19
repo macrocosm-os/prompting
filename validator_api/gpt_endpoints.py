@@ -32,7 +32,10 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         body = await request.json()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         if body.get("uids"):
-            uids = body.get("uids")
+            try:
+                uids = [int(uid) for uid in body.get("uids")]
+            except:
+                pass
         else:
             uids = filter_available_uids(
                 task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=N_MINERS
@@ -66,6 +69,10 @@ async def web_retrieval(
 ):
     if target_uids:
         uids = target_uids
+        try:
+            uids = [int(uid) for uid in uids]
+        except:
+            pass
     else:
         uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
         uids = random.sample(uids, min(len(uids), n_miners))
