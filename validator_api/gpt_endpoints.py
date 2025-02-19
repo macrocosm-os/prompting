@@ -35,7 +35,7 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
             try:
                 uids = [int(uid) for uid in body.get("uids")]
             except:
-                pass
+                logger.error(f"Error in uids: {body.get('uids')}")
         else:
             uids = filter_available_uids(
                 task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=N_MINERS
@@ -46,7 +46,7 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
             return await test_time_inference(
-                body["messages"], body.get("model", None), target_uids=body.get("uids", None)
+                body["messages"], body.get("model", None), target_uids=uids
             )
         if body.get("mixture", False):
             return await mixture_of_miners(body, uids=uids)
