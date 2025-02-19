@@ -61,7 +61,9 @@ def parse_multiple_json(api_response):
     return parsed_objects
 
 
-async def make_api_call(messages, model=None, is_final_answer: bool = False, use_miners: bool = True, target_uids=None):
+async def make_api_call(
+    messages, model=None, is_final_answer: bool = False, use_miners: bool = True, target_uids: list[str] = None
+):
     async def single_attempt():
         try:
             if use_miners:
@@ -144,7 +146,9 @@ async def make_api_call(messages, model=None, is_final_answer: bool = False, use
         }
 
 
-async def generate_response(original_messages: list[dict[str, str]], model: str = None, target_uids: list[str] = None, use_miners: bool = True):
+async def generate_response(
+    original_messages: list[dict[str, str]], model: str = None, target_uids: list[str] = None, use_miners: bool = True
+):
     messages = [
         {
             "role": "system",
@@ -234,21 +238,24 @@ Remember: Quality of reasoning is more important than speed. Take the necessary 
         step_count += 1
         yield steps, None
 
-    messages.append(
-        {
-            "role": "user",
-            "content": """Based on your thorough analysis, please provide your final answer. Your response should:
+    final_answer_prompt = """Based on your thorough analysis, please provide your final answer. Your response should:
+
         1. Clearly state your conclusion
         2. Summarize the key supporting evidence
         3. Acknowledge any remaining uncertainties
-        4. Include relevant caveats or limitations
+        4. Include relevant caveats or limitations"""
 
-        Return your answer in the same JSON format as previous steps.""",
+    messages.append(
+        {
+            "role": "user",
+            "content": final_answer_prompt,
         }
     )
 
     start_time = time.time()
-    final_data = await make_api_call(messages, model=model, is_final_answer=True, use_miners=use_miners, target_uids=target_uids)
+    final_data = await make_api_call(
+        messages, model=model, is_final_answer=True, use_miners=use_miners, target_uids=target_uids
+    )
 
     end_time = time.time()
     thinking_time = end_time - start_time
