@@ -3608,7 +3608,6 @@ description = "Python Imaging Library (Fork)"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"validator\""
 files = [
     {file = "pillow-11.1.0-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:e1abe69aca89514737465752b4bcaf8016de61b3be1397a8fc260ba33321b3a8"},
     {file = "pillow-11.1.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:c640e5a06869c75994624551f45e5506e4256562ead981cce820d5ab39ae2192"},
@@ -5063,7 +5062,6 @@ description = "Alternative regular expression module, to replace re."
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"validator\""
 files = [
     {file = "regex-2024.11.6-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ff590880083d60acc0433f9c3f713c51f7ac6ebb9adf889c79a261ecf541aa91"},
     {file = "regex-2024.11.6-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:658f90550f38270639e83ce492f27d2c8d2cd63805c65a13a14d36ca126753f0"},
@@ -5756,7 +5754,6 @@ description = "tiktoken is a fast BPE tokeniser for use with OpenAI's models"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"validator\""
 files = [
     {file = "tiktoken-0.8.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:b07e33283463089c81ef1467180e3e00ab00d46c2c4bbcef0acab5f771d6695e"},
     {file = "tiktoken-0.8.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:9269348cb650726f44dd3bbb3f9110ac19a8dcc8f54949ad3ef652ca22a38e21"},
@@ -6942,9 +6939,9 @@ cffi = {version = ">=1.11", markers = "platform_python_implementation == \"PyPy\
 cffi = ["cffi (>=1.11)"]
 
 [extras]
-validator = ["accelerate", "angle-emb", "autoawq", "bs4", "datasets", "duckduckgo-search", "huggingface-hub", "nltk", "numpy", "pandas", "pillow", "rouge", "thefuzz", "tiktoken", "torch", "torchvision", "trafilatura", "transformers", "wandb", "wikipedia"]
+validator = ["accelerate", "angle-emb", "autoawq", "bs4", "datasets", "duckduckgo-search", "huggingface-hub", "nltk", "numpy", "pandas", "rouge", "thefuzz", "torch", "torchvision", "trafilatura", "transformers", "wandb", "wikipedia"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10 <3.11"
-content-hash = "40bc3d03d875e774f98cbb888b77fe6b39544a0605868b37f7c7ea919995db1c"
+content-hash = "57b3250544d8503dd5e3ad7b3842b18508f6c9357b3f1988f593ba5b64bcccca"
