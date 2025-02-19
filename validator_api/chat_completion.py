@@ -297,6 +297,7 @@ async def chat_completion(
         ]
 
         first_valid_response = None
+        cached_response = None
         collected_responses = []
 
         while response_tasks and first_valid_response is None:
@@ -306,14 +307,29 @@ async def chat_completion(
                 try:
                     response = await task
                     if response and isinstance(response, tuple):
-                        # Found a valid response
+                        # Check if this is a cached response
+                        response_content = _get_response_content(response)
+                        response_hash = _hash_response(response_content)
+
+                        if response_hash in response_cache:
+                            logger.debug("Found cached response, continuing to next response")
+                            cached_response = response  # Store this as fallback
+                            collected_responses.append(response)
+                            continue
+
+                        # Not cached, this is a valid new response
+                        response_cache.append(response_hash)
                         first_valid_response = response
                         collected_responses.append(response)
                 except Exception as e:
                     logger.error(f"Error in miner response: {e}")
                 response_tasks.remove(task)
 
-        if first_valid_response is None:
+        # If we didn't find a non-cached response but have a cached one, use it
+        if first_valid_response is None and cached_response is not None:
+            logger.warning("All responses were cached, using the last cached response")
+            first_valid_response = cached_response
+        elif first_valid_response is None:
             raise HTTPException(status_code=502, detail="No valid response received")
 
         return first_valid_response[0]  # Return only the response object, not the chunks
