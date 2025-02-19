@@ -225,6 +225,13 @@ async def chat_completion(
     """Handle chat completion with multiple miners in parallel."""
     body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
     if not uids:
+        logger.debug(
+            "Finding miners for task: {} model: {} test: {} n_miners: {}",
+            body.get("task"),
+            body.get("model"),
+            shared_settings.API_TEST_MODE,
+            num_miners,
+        )
         uids = body.get("uids") or filter_available_uids(
             task=body.get("task"), model=body.get("model"), test=shared_settings.API_TEST_MODE, n_miners=num_miners
         )
@@ -238,6 +245,8 @@ async def chat_completion(
     collected_chunks_list = [[] for _ in uids]
     timings_list = [[] for _ in uids]
 
+    if not body.get("sampling_parameters"):
+        raise HTTPException(status_code=422, detail="Sampling parameters are required")
     timeout_seconds = max(
         30, max(0, math.floor(math.log2(body["sampling_parameters"].get("max_new_tokens", 256) / 256))) * 10 + 30
     )

@@ -65,7 +65,7 @@ class TaskRegistry(BaseModel):
         TaskConfig(
             task=MultiStepReasoningTask,
             probability=0.1,
-            datasets=[WikiDataset],
+            datasets=[DDGDataset],
             reward_model=MultiStepReasoningRewardConfig,
         ),
     ]

@@ -6,6 +6,8 @@ import time
 
 from loguru import logger
 
+from prompting.llms.apis.llm_messages import LLMMessage, LLMMessages
+from prompting.llms.apis.llm_wrapper import LLMWrapper
 from shared.timer import Timer
 from validator_api.chat_completion import chat_completion
 
@@ -59,48 +61,71 @@ def parse_multiple_json(api_response):
     return parsed_objects
 
 
-async def make_api_call(messages, max_tokens, model=None, is_final_answer=False):
+async def make_api_call(messages, max_tokens, model=None, is_final_answer: bool = False, use_miners: bool = True):
     async def single_attempt():
         try:
-            response = await chat_completion(
-                body={
-                    "messages": messages,
-                    "model": model,
-                    "task": "InferenceTask",
-                    "test_time_inference": True,
-                    "mixture": False,
-                    "sampling_parameters": {
-                        "temperature": 0.5,
-                        "max_new_tokens": 500,
+            if use_miners:
+                response = await chat_completion(
+                    body={
+                        "messages": messages,
+                        "model": model,
+                        "task": "InferenceTask",
+                        "test_time_inference": True,
+                        "mixture": False,
+                        "sampling_parameters": {
+                            "temperature": 0.5,
+                            "max_new_tokens": 500,
+                        },
+                        "seed": random.randint(0, 1000000),
                     },
-                    "seed": (seed := random.randint(0, 1000000)),
-                },
-                num_miners=3,
-            )
-            logger.debug(
-                f"Making API call with\n\nMESSAGES: {messages}\n\nSEED: {seed}\n\nRESPONSE: {response.choices[0].message.content}"
-            )
-            response_dict = parse_multiple_json(response.choices[0].message.content)[0]
+                    num_miners=3,
+                )
+                response_str = response.choices[0].message.content
+            else:
+                logger.debug("Using SN19 API for inference in MSR")
+                response_str = LLMWrapper.chat_complete(
+                    messages=LLMMessages(*[LLMMessage(role=m["role"], content=m["content"]) for m in messages]),
+                    model=model,
+                    temperature=0.5,
+                    max_tokens=2000,
+                )
+
+            logger.debug(f"Making API call with\n\nMESSAGES: {messages}\n\nRESPONSE: {response_str}")
+            response_dict = parse_multiple_json(response_str)[0]
             return response_dict
         except Exception as e:
-            logger.error(f"Failed to get valid response: {e}")
+            logger.warning(f"Failed to get valid response: {e}")
             return None
 
-    # Create three concurrent tasks for more robustness against invalid jsons
-    tasks = [asyncio.create_task(single_attempt()) for _ in range(ATTEMPTS_PER_STEP)]
+    # When not using miners, let's try and save tokens
+    if not use_miners:
+        for _ in range(ATTEMPTS_PER_STEP):
+            try:
+                result = await single_attempt()
+                if result is not None:
+                    return result
+                else:
+                    logger.error("Failed to get valid response")
+                    continue
+            except Exception as e:
+                logger.error(f"Failed to get valid response: {e}")
+                continue
+    else:
+        # when using miners, we try and save time
+        tasks = [asyncio.create_task(single_attempt()) for _ in range(ATTEMPTS_PER_STEP)]
 
-    # As each task completes, check if it was successful
-    for completed_task in asyncio.as_completed(tasks):
-        try:
-            result = await completed_task
-            if result is not None:
-                # Cancel remaining tasks
-                for task in tasks:
-                    task.cancel()
-                return result
-        except Exception as e:
-            logger.error(f"Task failed with error: {e}")
-            continue
+        # As each task completes, check if it was successful
+        for completed_task in asyncio.as_completed(tasks):
+            try:
+                result = await completed_task
+                if result is not None:
+                    # Cancel remaining tasks
+                    for task in tasks:
+                        task.cancel()
+                    return result
+            except Exception as e:
+                logger.error(f"Task failed with error: {e}")
+                continue
 
     # If all tasks failed, return error response
     error_msg = "All concurrent API calls failed"
@@ -118,7 +143,7 @@ async def make_api_call(messages, max_tokens, model=None, is_final_answer=False)
         }
 
 
-async def generate_response(original_messages: list[dict[str, str]], model: str = None):
+async def generate_response(original_messages: list[dict[str, str]], model: str = None, use_miners: bool = True):
     messages = [
         {
             "role": "system",
@@ -194,7 +219,7 @@ Remember: Quality of reasoning is more important than speed. Take the necessary 
 
     for _ in range(MAX_THINKING_STEPS):
         with Timer() as timer:
-            step_data = await make_api_call(messages, 300, model=model)
+            step_data = await make_api_call(messages, 300, model=model, use_miners=use_miners)
         thinking_time = timer.final_time
         total_thinking_time += thinking_time
 
@@ -222,7 +247,7 @@ Return your answer in the same JSON format as previous steps.""",
     )
 
     start_time = time.time()
-    final_data = await make_api_call(messages, 200, is_final_answer=True, model=model)
+    final_data = await make_api_call(messages, 200, is_final_answer=True, model=model, use_miners=use_miners)
     end_time = time.time()
     thinking_time = end_time - start_time
     total_thinking_time += thinking_time

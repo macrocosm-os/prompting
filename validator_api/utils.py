@@ -78,6 +78,7 @@ def filter_available_uids(
                 continue
 
         filtered_uids.append(uid)
+
     if len(filtered_uids) == 0:
         logger.error("Got empty list of available UIDs. Check VALIDATOR_API and SCORING_KEY in .env.api")
         return filtered_uids

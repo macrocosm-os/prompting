@@ -27,6 +27,12 @@ TOP_DOMAINS_FILE = "data/top100k_domains.csv"
 
 # Define blacklisted terms
 BLACKLISTED_TERMS = {
+    "howtogeek",
+    "docs.google.com",
+    "?q=",
+    "/search",
+    "sheets.google.com",
+    "drive.google.com",
     "pastebin",
     "paste",
     "gist",
@@ -102,7 +108,13 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         if netloc.startswith("www."):
             netloc = netloc[4:]
 
+        # Penalise a completion where the relevant section is contained in the URL (e.g. miners)
+        # trying to use a search box to enter exactly the relevant section they need
+        discount_factor = 1 - fuzz.token_sort_ratio(response_url, response_relevant) / 100
         # Check if URL is IP-based or has port
+        if not response_url or len(response_url) > 500:
+            logger.debug(f"URL {response_url} is too long, setting discount factor to 0")
+            return 0
         if not netloc or any(c.isdigit() for c in netloc.split(".")) or ":" in netloc:
             discount_factor = 0
             logger.debug(f"URL {response_url} appears to be IP-based or on specific port, setting discount factor to 0")
@@ -110,14 +122,16 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         else:
             domain = netloc
 
+            domain_count = np.sum(np.array([domain == d for d in past_websites[uid]])) + 1
+
             # If domain is in top 100k, don't apply penalty
             if domain in TOP_DOMAINS:
-                discount_factor = 1.0
+                # if the domain is in the top 100k, we allow 10 occurrences in the last 200 URLs before penalising
+                discount_factor *= 1.0 / (max(1, domain_count - 10))
                 logger.debug(f"Domain {domain} is in top 100k domains, not applying penalty")
             else:
                 # Count how many times this domain has been used by this miner
-                domain_count = np.sum(np.array([domain == d for d in past_websites[uid]])) + 1
-                discount_factor = 1.0 / domain_count
+                discount_factor *= 1.0 / max(1, domain_count)
                 if domain in past_websites[uid]:
                     logger.debug(
                         f"Already used domain {domain} for this UID, applying ( discount ) factor {discount_factor}"
