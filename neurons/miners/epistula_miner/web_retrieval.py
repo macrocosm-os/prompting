@@ -94,7 +94,7 @@ async def get_websites_with_similarity(
     return [
         {
             "url": result["website"],
-            "content": result["text"],
+            "content": result["text"][:5000],
             # "html": result["html"],
             "relevant": result["best_chunk"],
         }
