@@ -20,7 +20,7 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
                 f"http://{settings.shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities",
                 headers={"accept": "application/json", "Content-Type": "application/json"},
                 json=get_uids(sampling_mode="all"),
-                timeout=10,
+                timeout=15,
             )
 
             self.miner_availabilities = response.json()
@@ -30,8 +30,6 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
         logger.debug(
             f"MINER AVAILABILITIES UPDATED, TRACKED: {len(tracked_availabilities)}, UNTRACKED: {len(self.miner_availabilities) - len(tracked_availabilities)}"
         )
-        logger.debug(f"SAMPLE AVAILABILITIES: {random.choice(list(self.miner_availabilities.values()))}")
-
 
 update_miner_availabilities_for_api = UpdateMinerAvailabilitiesForAPI()
 
