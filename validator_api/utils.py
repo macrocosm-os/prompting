@@ -31,6 +31,7 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
             f"MINER AVAILABILITIES UPDATED, TRACKED: {len(tracked_availabilities)}, UNTRACKED: {len(self.miner_availabilities) - len(tracked_availabilities)}"
         )
 
+
 update_miner_availabilities_for_api = UpdateMinerAvailabilitiesForAPI()
 
 

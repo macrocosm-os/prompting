@@ -119,7 +119,7 @@ async def stream_from_first_response(
                     break
 
                 except Exception as e:
-                    logger.error(f"Error in miner response: {e}")
+                    logger.exception(f"Error in miner response: {e}")
                     # just skip and continue to the next task
 
         if first_valid_response is None:
@@ -330,8 +330,6 @@ async def collect_remainin_nonstream_responses(
         # TODO: Add timings.
         # timings = [response[2] if response else [] for response in collected_responses]
         # Append all collected responses to the scoring queue for later processing.
-        await scoring_queue.scoring_queue.append_response(
-            uids=uids, body=body, chunks=chunks
-        )
+        await scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=chunks)
     except Exception as e:
         logger.error(f"Error appending non-stream responses to scoring queue: {e}")
