@@ -195,7 +195,7 @@ Remember: Quality of reasoning is more important than speed. Take the necessary 
 
     for _ in range(MAX_THINKING_STEPS):
         with Timer() as timer:
-            step_data = await make_api_call(messages, 300, model=model, target_uids=target_uids)
+            step_data = await make_api_call(messages, model=model, target_uids=target_uids)
         thinking_time = timer.final_time
         total_thinking_time += thinking_time
 
