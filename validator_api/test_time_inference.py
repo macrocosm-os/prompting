@@ -223,7 +223,7 @@ Remember: Quality of reasoning is more important than speed. Take the necessary 
     )
 
     start_time = time.time()
-    final_data = await make_api_call(messages, 200, is_final_answer=True, model=model, target_uids=target_uids)
+    final_data = await make_api_call(messages, is_final_answer=True, model=model, target_uids=target_uids)
     end_time = time.time()
     thinking_time = end_time - start_time
     total_thinking_time += thinking_time
