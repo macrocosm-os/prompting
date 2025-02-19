@@ -34,7 +34,7 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         if body.get("uids"):
             try:
                 uids = [int(uid) for uid in body.get("uids")]
-            except:
+            except Exception:
                 logger.error(f"Error in uids: {body.get('uids')}")
         else:
             uids = filter_available_uids(
@@ -45,9 +45,7 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
 
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
-            return await test_time_inference(
-                body["messages"], body.get("model", None), target_uids=uids
-            )
+            return await test_time_inference(body["messages"], body.get("model", None), target_uids=uids)
         if body.get("mixture", False):
             return await mixture_of_miners(body, uids=uids)
         else:
@@ -71,8 +69,8 @@ async def web_retrieval(
         uids = target_uids
         try:
             uids = [int(uid) for uid in uids]
-        except:
-            pass
+        except Exception:
+            logger.error(f"Error in uids: {uids}")
     else:
         uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
         uids = random.sample(uids, min(len(uids), n_miners))
