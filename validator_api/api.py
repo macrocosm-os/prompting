@@ -18,14 +18,17 @@ from validator_api.utils import update_miner_availabilities_for_api
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    scoring_task = asyncio.create_task(scoring_queue.scoring_queue.start())
+    if shared_settings.SCORE_ORGANICS:
+        scoring_task = asyncio.create_task(scoring_queue.scoring_queue.start())
     miner_task = asyncio.create_task(update_miner_availabilities_for_api.start())
     yield
     miner_task.cancel()
-    scoring_task.cancel()
+    if shared_settings.SCORE_ORGANICS:
+        scoring_task.cancel()
     try:
         await miner_task
-        await scoring_task
+        if shared_settings.SCORE_ORGANICS:
+            await scoring_task
     except asyncio.CancelledError:
         pass
 

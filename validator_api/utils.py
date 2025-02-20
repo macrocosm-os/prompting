@@ -26,7 +26,7 @@ def read_fallback_uids() -> dict[str, dict]:
 
 
 class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
-    interval: int = 30
+    interval: int = 120
     miner_availabilities: dict[int, dict] = {}
 
     async def run_step(self):
