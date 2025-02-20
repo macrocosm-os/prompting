@@ -129,7 +129,7 @@ async def web_retrieval(
 
     # sometimes the results are not in the correct format, so we need to filter them out
     for result in flat_results:
-        if isinstance(result, dict) and 'url' in result:
+        if isinstance(result, dict) and "url" in result:
             if result["url"] not in seen_urls:
                 seen_urls.add(result["url"])
                 unique_results.append(result)
