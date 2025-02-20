@@ -1,8 +1,10 @@
 import asyncio
+import hashlib
 import json
 import math
 import random
 import time
+from collections import deque
 from typing import Any, AsyncGenerator, Callable, List, Optional
 
 from fastapi import HTTPException
@@ -16,6 +18,23 @@ shared_settings = settings.shared_settings
 from shared.epistula import make_openai_query
 from validator_api import scoring_queue
 from validator_api.utils import filter_available_uids
+
+# Store the last 10k responses
+RESPONSE_CACHE_SIZE = 10000
+response_cache = deque(maxlen=RESPONSE_CACHE_SIZE)
+
+
+def _hash_response(response: str) -> str:
+    """Create a hash of the response content for comparison."""
+    return hashlib.sha256(response.encode()).hexdigest()
+
+
+def _get_response_content(response: tuple) -> str:
+    """Extract content from a non-streaming response tuple."""
+    try:
+        return response[0].choices[0].message.content
+    except (AttributeError, IndexError):
+        return ""
 
 
 async def peek_until_valid_chunk(
@@ -115,6 +134,7 @@ async def stream_from_first_response(
                     if first_chunk is None:
                         continue
 
+                    # Found a valid response
                     first_valid_response = rebuilt_generator
                     break
 
@@ -277,6 +297,7 @@ async def chat_completion(
         ]
 
         first_valid_response = None
+        cached_response = None
         collected_responses = []
 
         while response_tasks and first_valid_response is None:
@@ -286,14 +307,29 @@ async def chat_completion(
                 try:
                     response = await task
                     if response and isinstance(response, tuple):
-                        if first_valid_response is None:
-                            first_valid_response = response
+                        # Check if this is a cached response
+                        response_content = _get_response_content(response)
+                        response_hash = _hash_response(response_content)
+
+                        if response_hash in response_cache:
+                            logger.debug("Found cached response, continuing to next response")
+                            cached_response = response  # Store this as fallback
+                            collected_responses.append(response)
+                            continue
+
+                        # Not cached, this is a valid new response
+                        response_cache.append(response_hash)
+                        first_valid_response = response
                         collected_responses.append(response)
                 except Exception as e:
                     logger.error(f"Error in miner response: {e}")
                 response_tasks.remove(task)
 
-        if first_valid_response is None:
+        # If we didn't find a non-cached response but have a cached one, use it
+        if first_valid_response is None and cached_response is not None:
+            logger.warning("All responses were cached, using the last cached response")
+            first_valid_response = cached_response
+        elif first_valid_response is None:
             raise HTTPException(status_code=502, detail="No valid response received")
 
         asyncio.create_task(

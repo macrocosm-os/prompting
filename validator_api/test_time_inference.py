@@ -1,6 +1,5 @@
 import asyncio
 import json
-import random
 import re
 import time
 
@@ -72,13 +71,12 @@ async def make_api_call(
                         "messages": messages,
                         "model": model,
                         "task": "InferenceTask",
-                        "test_time_inference": True,
                         "mixture": False,
+                        "stream": False,
                         "sampling_parameters": {
                             "temperature": 0.5,
                             "max_new_tokens": 500,
                         },
-                        "seed": random.randint(0, 1000000),
                     },
                     num_miners=3,
                     uids=target_uids,
