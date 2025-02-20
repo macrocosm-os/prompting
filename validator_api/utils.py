@@ -8,7 +8,7 @@ from shared.loop_runner import AsyncLoopRunner
 from shared.uids import get_uids
 
 
-def read_fallback_uids():
+def read_fallback_uids() -> dict:
     try:
         import json
         with open("miner_availabilities.json", "r") as file:
