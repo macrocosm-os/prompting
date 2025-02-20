@@ -74,8 +74,8 @@ class AsyncLoopRunner(BaseModel, ABC):
         """Run the loop periodically, optionally synchronizing across all instances."""
 
         last_run_time = await self.get_time()
-        try:
-            while self.running:
+        while self.running:
+            try:
                 with profiler.measure(self.name):
                     next_run = await self.wait_for_next_execution(last_run_time)
                     try:
@@ -84,12 +84,12 @@ class AsyncLoopRunner(BaseModel, ABC):
                     except Exception as ex:
                         logger.exception(f"Error in loop iteration: {ex}")
                     last_run_time = next_run
-        except asyncio.CancelledError:
-            logger.info("Loop was stopped.")
-        except Exception as e:
-            logger.error(f"Fatal error in loop: {e}")
-        finally:
-            self.running = False
+            except asyncio.CancelledError:
+                logger.info("Loop was stopped.")
+                self.running = False
+            except Exception as e:
+                logger.error(f"Fatal error in loop: {e}")
+        self.running = False
 
     async def start(self, name: str | None = None):
         """Start the loop."""
