@@ -217,6 +217,8 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             if not isinstance(data, list) and isinstance(data, dict):
                 data = [data]
             for website in data:
+                if not isinstance(website, dict):
+                    continue
                 response_url = website.get("url")
                 response_content = website.get("content")
                 response_relevant = website.get("relevant")

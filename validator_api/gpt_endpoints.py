@@ -63,7 +63,7 @@ async def web_retrieval(
     n_results: int = 5,
     max_response_time: int = 10,
     api_key: str = Depends(validate_api_key),
-    target_uids: list[str] = None,
+    target_uids: list[str] | list[int] = None,
 ):
     if target_uids:
         uids = target_uids
@@ -90,6 +90,7 @@ async def web_retrieval(
     }
 
     timeout_seconds = 30
+    logger.debug(f"🔍 Querying miners: {uids} for web retrieval")
     stream_results = await query_miners(uids, body, timeout_seconds)
     results = [
         "".join(res.accumulated_chunks)
@@ -109,7 +110,30 @@ async def web_retrieval(
 
     collected_chunks_list = [res.accumulated_chunks if res and res.accumulated_chunks else [] for res in stream_results]
     asyncio.create_task(scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=collected_chunks_list))
-    return loaded_results
+    loaded_results = [json.loads(r) if isinstance(r, str) else r for r in loaded_results]
+    flat_results = [item for sublist in loaded_results for item in sublist]
+    unique_results = []
+    seen_urls = set()
+
+    # for result in flat_results:
+    #     # TODO: This is a hack to try and avoid the stringify json issue, this needs a deeper fix.
+    #     try:
+    #         if isinstance(result, str):
+    #             result = json.loads(result)
+    #         if isinstance(result, dict) and 'url' in result:
+    #             if result["url"] not in seen_urls:
+    #                 seen_urls.add(result["url"])
+    #                 unique_results.append(result)
+    #     except Exception:
+    #         logger.warning(f"Skipping invalid result: {result}")
+
+    # sometimes the results are not in the correct format, so we need to filter them out
+    for result in flat_results:
+        if isinstance(result, dict) and "url" in result:
+            if result["url"] not in seen_urls:
+                seen_urls.add(result["url"])
+                unique_results.append(result)
+    return unique_results
 
 
 @router.post("/test_time_inference")
