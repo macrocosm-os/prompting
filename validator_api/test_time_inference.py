@@ -243,7 +243,13 @@ Remember: Quality of reasoning is more important than speed. Take the necessary 
         1. Clearly state your conclusion
         2. Summarize the key supporting evidence
         3. Acknowledge any remaining uncertainties
-        4. Include relevant caveats or limitations"""
+        4. Include relevant caveats or limitations
+        
+        Ensure your response uses the correct json format as follows:
+        {
+            "title": "Final Answer",
+            "content": "Detailed explanation of your answer",
+        }"""
 
     messages.append(
         {
