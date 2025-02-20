@@ -57,6 +57,8 @@ class AsyncLoopRunner(BaseModel, ABC):
     async def wait_for_next_execution(self, last_run_time):
         """Wait until the next execution time, either synced or based on last run."""
         current_time = await self.get_time()
+        if last_run_time.tzinfo is None:
+            last_run_time = last_run_time.replace(tzinfo=current_time.tzinfo)
         if self.sync:
             next_run = self.next_sync_point(current_time)
         else:
@@ -64,9 +66,6 @@ class AsyncLoopRunner(BaseModel, ABC):
 
         wait_time = (next_run - current_time).total_seconds()
         if wait_time > 0:
-            # logger.debug(
-            #     f"{self.name}: Waiting for {wait_time:.2f} seconds until next {'sync point' if self.sync else 'execution'}"
-            # )
             await asyncio.sleep(wait_time)
         return next_run
 
