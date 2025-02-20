@@ -2,6 +2,7 @@ import json
 import re
 import time
 
+from loguru import logger
 import numpy as np
 from pydantic import Field, model_validator
 
@@ -59,6 +60,9 @@ class MultiChoiceRewardModel(BaseRewardModel):
             valid_choices = self.process_predictions(loaded_json)
             return valid_choices.get(reference.upper(), 0.0)
         except ValueError:
+            return None
+        except Exception as e:
+            logger.warning(f"Error processing JSON data: {e}")
             return None
 
     def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
