@@ -8,12 +8,15 @@ from shared.loop_runner import AsyncLoopRunner
 from shared.uids import get_uids
 
 
-def read_fallback_uids() -> dict:
+def read_fallback_uids() -> dict[str, dict]:
     try:
-        import json
-        with open("miner_availabilities.json", "r") as file:
-            data = json.load(file)
-        return data
+        from collections import defaultdict
+        uids = get_uids(sampling_mode="all")
+        return {
+            str(uid):
+            {"task_availabilities": defaultdict(lambda: True), "llm_model_availabilities", defaultdict(lambda: True)}
+            for uid in uids
+        }
     except Exception as e2:
         logger.error(f"Error reading miner availabilities from JSON file: {e2}")
         return {}
