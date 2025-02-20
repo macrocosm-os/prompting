@@ -1,9 +1,9 @@
 import asyncio
 import contextlib
 
-from loguru import logger
 import uvicorn
 from fastapi import FastAPI
+from loguru import logger
 
 from shared import settings
 

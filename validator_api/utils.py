@@ -11,11 +11,12 @@ from shared.uids import get_uids
 def read_fallback_uids() -> dict[str, dict]:
     try:
         from collections import defaultdict
+
         uids = get_uids(sampling_mode="all")
         return {
             str(uid): {
                 "task_availabilities": defaultdict(lambda: True),
-                "llm_model_availabilities": defaultdict(lambda: True)
+                "llm_model_availabilities": defaultdict(lambda: True),
             }
             for uid in uids
         }
