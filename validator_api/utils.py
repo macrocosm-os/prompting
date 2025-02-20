@@ -22,7 +22,7 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
                 f"http://{settings.shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities",
                 headers={"accept": "application/json", "Content-Type": "application/json"},
                 json=get_uids(sampling_mode="all"),
-                timeout=10,
+                timeout=15,
             )
             self.miner_availabilities = response.json()
         except Exception as e:
