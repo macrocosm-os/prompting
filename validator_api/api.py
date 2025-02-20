@@ -3,6 +3,7 @@ import contextlib
 
 import uvicorn
 from fastapi import FastAPI
+from loguru import logger
 
 from shared import settings
 
@@ -40,6 +41,7 @@ async def health():
 
 
 async def main():
+    logger.info(f"Starting API with {shared_settings.WORKERS} worker(s).")
     config = uvicorn.Config(
         "validator_api.api:app",
         host=shared_settings.API_HOST,
