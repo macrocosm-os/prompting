@@ -25,11 +25,17 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
 
             self.miner_availabilities = response.json()
         except Exception as e:
-            logger.exception(f"Error while updating miner availabilities for API: {e}")
+            logger.error(f"Failed updating miner availabilities for API, fallback to json file: {e}")
+            try:
+                import json
+                with open("miner_availabilities.json", "r") as file:
+                    data = json.load(file)
+                self.miner_availabilities = data
+            except Exception as e2:
+                logger.error(f"Error reading miner availabilities from JSON file: {e2}")
+                self.miner_availabilities = {}
         tracked_availabilities = [m for m in self.miner_availabilities.values() if m is not None]
-        logger.debug(
-            f"MINER AVAILABILITIES UPDATED, TRACKED: {len(tracked_availabilities)}, UNTRACKED: {len(self.miner_availabilities) - len(tracked_availabilities)}"
-        )
+        logger.info(f"Availabilities updated, tracked: {len(tracked_availabilities)}")
 
 
 update_miner_availabilities_for_api = UpdateMinerAvailabilitiesForAPI()
