@@ -214,7 +214,9 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         result = []
         try:
             data = json.loads(completion)
-            if not isinstance(data, list) and isinstance(data, dict):
+            if not isinstance(data, list) and not isinstance(data, dict):
+                return result
+            elif isinstance(data, dict):
                 data = [data]
             for website in data:
                 response_url = website.get("url")
@@ -224,4 +226,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             return result
         except json.JSONDecodeError:
             result = []
+        except Exception as e:
+            logger.warning(f"Failed to parse completion: {e}")
         return result
