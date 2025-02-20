@@ -8,6 +8,23 @@ from shared.loop_runner import AsyncLoopRunner
 from shared.uids import get_uids
 
 
+def read_fallback_uids() -> dict[str, dict]:
+    try:
+        from collections import defaultdict
+
+        uids = get_uids(sampling_mode="all")
+        return {
+            str(uid): {
+                "task_availabilities": defaultdict(lambda: True),
+                "llm_model_availabilities": defaultdict(lambda: True),
+            }
+            for uid in uids
+        }
+    except Exception as e2:
+        logger.error(f"Error reading miner availabilities from JSON file: {e2}")
+        return {}
+
+
 class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
     interval: int = 30
     miner_availabilities: dict[int, dict] = {}
@@ -23,14 +40,12 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
                 json=get_uids(sampling_mode="all"),
                 timeout=15,
             )
-
             self.miner_availabilities = response.json()
         except Exception as e:
-            logger.exception(f"Error while updating miner availabilities for API: {e}")
+            logger.error(f"Failed updating miner availabilities for API, fallback to all uids: {e}")
+            self.miner_availabilities = read_fallback_uids()
         tracked_availabilities = [m for m in self.miner_availabilities.values() if m is not None]
-        logger.debug(
-            f"MINER AVAILABILITIES UPDATED, TRACKED: {len(tracked_availabilities)}, UNTRACKED: {len(self.miner_availabilities) - len(tracked_availabilities)}"
-        )
+        logger.info(f"Availabilities updated, tracked: {len(tracked_availabilities)}")
 
 
 update_miner_availabilities_for_api = UpdateMinerAvailabilitiesForAPI()
@@ -80,8 +95,11 @@ def filter_available_uids(
         filtered_uids.append(uid)
 
     if len(filtered_uids) == 0:
-        logger.error("Got empty list of available UIDs. Check VALIDATOR_API and SCORING_KEY in .env.api")
-        return filtered_uids
+        logger.error(
+            "Got an empty list of available UIDs, falling back to all uids. "
+            "Check VALIDATOR_API and SCORING_KEY in .env.api"
+        )
+        filtered_uids = get_uids(sampling_mode="top_incentive", k=n_miners)
 
     filtered_uids = random.sample(filtered_uids, min(len(filtered_uids), n_miners))
 
