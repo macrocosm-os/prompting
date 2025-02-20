@@ -114,10 +114,25 @@ async def web_retrieval(
     flat_results = [item for sublist in loaded_results for item in sublist]
     unique_results = []
     seen_urls = set()
+
+    # for result in flat_results:
+    #     # TODO: This is a hack to try and avoid the stringify json issue, this needs a deeper fix.
+    #     try:
+    #         if isinstance(result, str):
+    #             result = json.loads(result)
+    #         if isinstance(result, dict) and 'url' in result:
+    #             if result["url"] not in seen_urls:
+    #                 seen_urls.add(result["url"])
+    #                 unique_results.append(result)
+    #     except Exception:
+    #         logger.warning(f"Skipping invalid result: {result}")
+
+    # sometimes the results are not in the correct format, so we need to filter them out
     for result in flat_results:
-        if result["url"] not in seen_urls:
-            seen_urls.add(result["url"])
-            unique_results.append(result)
+        if isinstance(result, dict) and 'url' in result:
+            if result["url"] not in seen_urls:
+                seen_urls.add(result["url"])
+                unique_results.append(result)
     return unique_results
 
 
