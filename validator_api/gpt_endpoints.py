@@ -63,7 +63,7 @@ async def web_retrieval(
     n_results: int = 5,
     max_response_time: int = 10,
     api_key: str = Depends(validate_api_key),
-    target_uids: list[str] = None,
+    target_uids: list[str] | list[int] = None,
 ):
     if target_uids:
         uids = target_uids
@@ -90,6 +90,7 @@ async def web_retrieval(
     }
 
     timeout_seconds = 30
+    logger.debug(f"🔍 Querying miners: {uids} for web retrieval")
     stream_results = await query_miners(uids, body, timeout_seconds)
     results = [
         "".join(res.accumulated_chunks)

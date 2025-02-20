@@ -17,8 +17,8 @@ from validator_api.utils import update_miner_availabilities_for_api
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
-    miner_task = asyncio.create_task(update_miner_availabilities_for_api.start())
     scoring_task = asyncio.create_task(scoring_queue.scoring_queue.start())
+    miner_task = asyncio.create_task(update_miner_availabilities_for_api.start())
     yield
     miner_task.cancel()
     scoring_task.cancel()

@@ -42,6 +42,7 @@ class ScoringQueue(AsyncLoopRunner):
 
     async def run_step(self):
         """Perform organic scoring: pop queued payload, forward to the validator API."""
+        logger.debug("Running scoring step")
         async with self._scoring_lock:
             if not self._scoring_queue:
                 return

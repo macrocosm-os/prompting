@@ -9,10 +9,11 @@ from shared.uids import get_uids
 
 
 class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
-    interval: int = 300
+    interval: int = 30
     miner_availabilities: dict[int, dict] = {}
 
     async def run_step(self):
+        logger.debug("Running update miner availabilities step")
         if settings.shared_settings.API_TEST_MODE:
             return
         try:
