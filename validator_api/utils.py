@@ -13,8 +13,10 @@ def read_fallback_uids() -> dict[str, dict]:
         from collections import defaultdict
         uids = get_uids(sampling_mode="all")
         return {
-            str(uid):
-            {"task_availabilities": defaultdict(lambda: True), "llm_model_availabilities", defaultdict(lambda: True)}
+            str(uid): {
+                "task_availabilities": defaultdict(lambda: True),
+                "llm_model_availabilities": defaultdict(lambda: True)
+            }
             for uid in uids
         }
     except Exception as e2:
@@ -36,10 +38,9 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
                 json=get_uids(sampling_mode="all"),
                 timeout=15,
             )
-
             self.miner_availabilities = response.json()
         except Exception as e:
-            logger.error(f"Failed updating miner availabilities for API, fallback to json file: {e}")
+            logger.error(f"Failed updating miner availabilities for API, fallback to all uids: {e}")
             self.miner_availabilities = read_fallback_uids()
         tracked_availabilities = [m for m in self.miner_availabilities.values() if m is not None]
         logger.info(f"Availabilities updated, tracked: {len(tracked_availabilities)}")
