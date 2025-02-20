@@ -8,6 +8,17 @@ from shared.loop_runner import AsyncLoopRunner
 from shared.uids import get_uids
 
 
+def read_fallback_uids():
+    try:
+        import json
+        with open("miner_availabilities.json", "r") as file:
+            data = json.load(file)
+        return data
+    except Exception as e2:
+        logger.error(f"Error reading miner availabilities from JSON file: {e2}")
+        return {}
+
+
 class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
     interval: int = 300
     miner_availabilities: dict[int, dict] = {}
@@ -26,14 +37,7 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
             self.miner_availabilities = response.json()
         except Exception as e:
             logger.error(f"Failed updating miner availabilities for API, fallback to json file: {e}")
-            try:
-                import json
-                with open("miner_availabilities.json", "r") as file:
-                    data = json.load(file)
-                self.miner_availabilities = data
-            except Exception as e2:
-                logger.error(f"Error reading miner availabilities from JSON file: {e2}")
-                self.miner_availabilities = {}
+            self.miner_availabilities = read_fallback_uids()
         tracked_availabilities = [m for m in self.miner_availabilities.values() if m is not None]
         logger.info(f"Availabilities updated, tracked: {len(tracked_availabilities)}")
 
@@ -85,8 +89,11 @@ def filter_available_uids(
         filtered_uids.append(uid)
 
     if len(filtered_uids) == 0:
-        logger.error("Got empty list of available UIDs. Check VALIDATOR_API and SCORING_KEY in .env.api")
-        return filtered_uids
+        logger.error(
+            "Got an empty list of available UIDs, falling back to all uids. "
+            "Check VALIDATOR_API and SCORING_KEY in .env.api"
+        )
+        filtered_uids = get_uids(sampling_mode="top_incentive", k=n_miners)
 
     filtered_uids = random.sample(filtered_uids, min(len(filtered_uids), n_miners))
 
