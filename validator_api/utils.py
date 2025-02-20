@@ -2,6 +2,7 @@ import random
 
 import requests
 from loguru import logger
+import json
 
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
@@ -16,21 +17,25 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
         if settings.shared_settings.API_TEST_MODE:
             return
         try:
+            self.miner_availabilities = get_uids(sampling_mode="all")
             response = requests.post(
                 f"http://{settings.shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities",
                 headers={"accept": "application/json", "Content-Type": "application/json"},
                 json=get_uids(sampling_mode="all"),
                 timeout=10,
             )
-
             self.miner_availabilities = response.json()
         except Exception as e:
-            logger.exception(f"Error while updating miner availabilities for API: {e}")
+            logger.error(f"Failed updating miner availabilities for API, fallback to json file: {e}")
+            try:
+                with open("miner_availabilities.json", "r") as file:
+                    data = json.load(file)
+                self.miner_availabilities = data
+            except Exception as e2:
+                logger.error(f"Error reading miner availabilities from JSON file: {e2}")
+                self.miner_availabilities = {}
         tracked_availabilities = [m for m in self.miner_availabilities.values() if m is not None]
-        logger.debug(
-            f"MINER AVAILABILITIES UPDATED, TRACKED: {len(tracked_availabilities)}, UNTRACKED: {len(self.miner_availabilities) - len(tracked_availabilities)}"
-        )
-        logger.debug(f"SAMPLE AVAILABILITIES: {random.choice(list(self.miner_availabilities.values()))}")
+        logger.info(f"Availabilities updated, tracked: {len(tracked_availabilities)}")
 
 
 update_miner_availabilities_for_api = UpdateMinerAvailabilitiesForAPI()

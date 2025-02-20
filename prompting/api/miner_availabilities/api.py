@@ -1,6 +1,8 @@
 from typing import Literal
+import json
 
 from fastapi import APIRouter
+from fastapi.encoders import jsonable_encoder
 
 from prompting.miner_availability.miner_availability import miner_availabilities
 from prompting.tasks.task_registry import TaskRegistry
@@ -11,7 +13,11 @@ router = APIRouter()
 @router.post("/miner_availabilities")
 async def get_miner_availabilities(uids: list[int] | None = None):
     if uids:
-        return {uid: miner_availabilities.miners.get(uid) for uid in uids}
+        data = {uid: miner_availabilities.miners.get(uid) for uid in uids}
+        encoded_data = jsonable_encoder(data)
+        with open("miner_availabilities.json", "w") as file:
+            json.dump(encoded_data, file)
+        return data
     return miner_availabilities.miners
 
 
