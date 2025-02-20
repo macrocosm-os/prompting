@@ -296,4 +296,40 @@ async def chat_completion(
         if first_valid_response is None:
             raise HTTPException(status_code=502, detail="No valid response received")
 
+        asyncio.create_task(
+            collect_remainin_nonstream_responses(
+                pending=pending,
+                collected_responses=collected_responses,
+                body=body,
+                uids=uids,
+                timings_list=timings_list,
+            )
+        )
         return first_valid_response[0]  # Return only the response object, not the chunks
+
+
+async def collect_remainin_nonstream_responses(
+    pending: set[asyncio.Task],
+    collected_responses: list,
+    body: dict,
+    uids: list,
+    timings_list: list,
+):
+    """Wait for all pending miner tasks to complete and append their responses to the scoring queue."""
+    try:
+        # Wait for all remaining tasks; allow exceptions to be returned.
+        remaining_responses = await asyncio.gather(*pending, return_exceptions=True)
+        for response in remaining_responses:
+            if not isinstance(response, Exception) and response and isinstance(response, tuple):
+                collected_responses.append(response)
+    except Exception as e:
+        logger.error(f"Error gathering pending non-stream responses for scoring: {e}")
+
+    try:
+        chunks = [response[1] if response else [] for response in collected_responses]
+        # TODO: Add timings.
+        # timings = [response[2] if response else [] for response in collected_responses]
+        # Append all collected responses to the scoring queue for later processing.
+        await scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=chunks)
+    except Exception as e:
+        logger.error(f"Error appending non-stream responses to scoring queue: {e}")
