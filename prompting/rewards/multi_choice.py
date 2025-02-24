@@ -29,8 +29,8 @@ class MultiChoiceRewardModel(BaseRewardModel):
         cleaned_json_string = re.sub(r'"\s*\n\s*"', r'""', cleaned_json_string)
         try:
             return {k.upper(): v for k, v in json.loads(cleaned_json_string).items()}
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON data: {e}")
+        except Exception:
+            return None
 
     def process_predictions(self, predictions: dict[str, float]) -> dict[str, float]:
         if not all(isinstance(value, (int, float)) for value in predictions.values()):
@@ -56,6 +56,8 @@ class MultiChoiceRewardModel(BaseRewardModel):
     def logit_reward(self, reference: str, completion: str) -> float:
         try:
             loaded_json = self.safe_load_json(completion)
+            if not loaded_json:
+                return None
             valid_choices = self.process_predictions(loaded_json)
             return valid_choices.get(reference.upper(), 0.0)
         except ValueError:
