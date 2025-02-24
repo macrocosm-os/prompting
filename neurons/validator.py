@@ -159,9 +159,11 @@ async def main():
                         f"Metagraph hasn't been updated for {current_block - last_update_block} blocks. "
                         f"Staled block: {current_block}, Last update: {last_update_block}"
                     )
-                    sys.exit(1)
+                    break # Exit the loop
                 step += 1
 
+        except KeyboardInterrupt:
+            logger.info("KeyboardInterrupt detected. Shutting down gracefully...")
         except Exception as e:
             logger.error(f"Main loop error: {e}")
             raise
