@@ -1,15 +1,14 @@
 import asyncio
 import atexit
 import multiprocessing as mp
-import sys
 
 import loguru
 import netaddr
 import requests
 import torch
-import wandb
 from bittensor.core.extrinsics.serving import serve_extrinsic
 
+import wandb
 from prompting.rewards.scoring import task_scorer
 
 # ruff: noqa: E402
@@ -159,7 +158,7 @@ async def main():
                         f"Metagraph hasn't been updated for {current_block - last_update_block} blocks. "
                         f"Staled block: {current_block}, Last update: {last_update_block}"
                     )
-                    break # Exit the loop
+                    break  # Exit the loop
                 step += 1
 
         except KeyboardInterrupt:
