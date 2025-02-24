@@ -211,7 +211,7 @@ Remember: Quality of reasoning is more important than speed. Take the necessary 
 
 Example:
 
-User Query: How many piano tuners are in New York City? 
+User Query: How many piano tuners are in New York City?
 
 Expected Answer:
 {
@@ -257,7 +257,7 @@ Expected Answer:
         3. Acknowledge any remaining uncertainties
         4. Include relevant caveats or limitations
         5. Synthesis & Refinement
-        
+
         Ensure your response uses the correct json format as follows:
         {
             "title": "Final Answer",
