@@ -1,4 +1,5 @@
 import asyncio
+import atexit
 import multiprocessing as mp
 import sys
 
@@ -27,6 +28,14 @@ from loguru import logger
 torch.multiprocessing.set_start_method("spawn", force=True)
 
 NEURON_SAMPLE_SIZE = 100  # TODO: Should add this to constants.py
+
+
+def cleanup():
+    logger.info("Shutting down wandb before exit.")
+    wandb.teardown()
+
+
+atexit.register(cleanup)
 
 
 def create_loop_process(task_queue, scoring_queue, reward_events):
