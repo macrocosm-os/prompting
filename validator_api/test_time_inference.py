@@ -207,7 +207,19 @@ CRITICAL THINKING CHECKLIST:
 ✓ Is my confidence level appropriate given the evidence?
 ✓ Have I adequately addressed counterarguments?
 
-Remember: Quality of reasoning is more important than speed. Take the necessary steps to build a solid analytical foundation before moving to conclusions.""",
+Remember: Quality of reasoning is more important than speed. Take the necessary steps to build a solid analytical foundation before moving to conclusions.
+
+Example:
+
+User Query: How many piano tuners are in New York City?
+
+Expected Answer:
+{
+    "title": "Estimating the Number of Piano Tuners in New York City",
+    "content": "To estimate the number of piano tuners in NYC, we need to break down the problem into core components. Key factors include the total population of NYC, the number of households with pianos, the average number of pianos per household, and the frequency of piano tuning. We should also consider the number of professional piano tuners and their workload.",
+    "next_action": "continue"
+}
+""",
         }
     ]
     messages += original_messages
@@ -244,11 +256,12 @@ Remember: Quality of reasoning is more important than speed. Take the necessary 
         2. Summarize the key supporting evidence
         3. Acknowledge any remaining uncertainties
         4. Include relevant caveats or limitations
+        5. Synthesis & Refinement
 
         Ensure your response uses the correct json format as follows:
         {
             "title": "Final Answer",
-            "content": "Detailed explanation of your answer",
+            "content": "Conclusion and detailed explanation of your answer",
         }"""
 
     messages.append(
