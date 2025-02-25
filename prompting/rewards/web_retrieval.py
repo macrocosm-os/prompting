@@ -83,6 +83,7 @@ class WebsiteResult(BaseModel):
 
 
 class WebRetrievalRewardModel(RelevanceRewardModel):
+    @lru_cache(maxsize=1000)
     def _cosine_similarity(self, content1: str, content2: str) -> float:
         """Calculate the cosine similarity between sentence embeddings of the reference and completions."""
         reference_emb_flatten = self.embedding_model.encode(content1, to_numpy=True).flatten()
