@@ -84,6 +84,10 @@ class WebsiteResult(BaseModel):
 
 
 class WebRetrievalRewardModel(RelevanceRewardModel):
+    def __hash__(self):
+        # Use the id of the object as its hash
+        return hash(self.model_dump_json)
+    
     @lru_cache(maxsize=1000)
     def _cosine_similarity(self, content1: str, content2: str) -> float:
         """Calculate the cosine similarity between sentence embeddings of the reference and completions."""
