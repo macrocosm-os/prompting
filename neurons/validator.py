@@ -1,5 +1,4 @@
 import asyncio
-import atexit
 import multiprocessing as mp
 
 import loguru
@@ -29,12 +28,12 @@ torch.multiprocessing.set_start_method("spawn", force=True)
 NEURON_SAMPLE_SIZE = 100  # TODO: Should add this to constants.py
 
 
-def cleanup():
-    logger.info("Shutting down wandb before exit.")
-    wandb.teardown()
+# def cleanup():
+#     logger.info("Shutting down wandb before exit.")
+#     wandb.teardown()
 
 
-atexit.register(cleanup)
+# atexit.register(cleanup)
 
 
 def create_loop_process(task_queue, scoring_queue, reward_events):
@@ -79,9 +78,10 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
             logger.debug(f"Number of tasks in Task Queue: {len(task_queue)}")
             logger.debug(f"Number of tasks in Scoring Queue: {len(scoring_queue)}")
             logger.debug(f"Number of tasks in Reward Events: {len(reward_events)}")
+
     try:
         asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events))
-    except Exception as e: 
+    except Exception as e:
         logger.info(f"Terminating loop process: {e}")
     finally:
         logger.info("Cleaning up resources...")
@@ -176,8 +176,6 @@ async def main():
             logger.error(f"Main loop error: {e}")
             raise
         finally:
-            wandb.finish(0)
-            wandb.teardown()
             # Clean up processes
             for process in processes:
                 if process.is_alive():

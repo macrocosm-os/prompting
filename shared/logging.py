@@ -5,19 +5,19 @@ from datetime import datetime, timedelta
 from typing import Any, Literal
 
 import numpy as np
-import wandb
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
 from wandb.wandb_run import Run
 
 import prompting
+import wandb
 from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.task_registry import TaskRegistry
 from shared import settings
 from shared.dendrite import DendriteResponseEvent
 
 # TODO: Get rid of global variables.
-WANDB: Run
+WANDB: Run | None = None
 
 
 @dataclass
@@ -79,7 +79,7 @@ def should_reinit_wandb():
 
 def init_wandb(reinit=False, neuron: Literal["validator", "miner", "api"] = "validator", custom_tags: list = []):
     """Starts a new wandb run."""
-    global WANDB
+    # global WANDB
     tags = [
         f"Wallet: {settings.shared_settings.WALLET.hotkey.ss58_address}",
         f"Version: {prompting.__version__}",
@@ -111,7 +111,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner", "api"] = "val
     wandb_run_name = f"{neuron}{settings.shared_settings.UID}-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     # Initialize the wandb run with the custom name.
-    WANDB = wandb.init(
+    wandb_obj = wandb.init(
         reinit=reinit,
         name=wandb_run_name,
         project=settings.shared_settings.WANDB_PROJECT_NAME,
@@ -122,16 +122,15 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner", "api"] = "val
         notes=settings.shared_settings.WANDB_NOTES,
         config=wandb_config,
     )
-    signature = settings.shared_settings.WALLET.hotkey.sign(WANDB.id.encode()).hex()
+    signature = settings.shared_settings.WALLET.hotkey.sign(wandb_obj.id.encode()).hex()
     wandb_config["SIGNATURE"] = signature
-    WANDB.config.update(wandb_config)
-    logger.success(f"Started a new wandb run <blue> {WANDB.name} </blue>")
+    wandb_obj.config.update(wandb_config)
+    logger.success(f"Started a new wandb run <blue> {wandb_obj.name} </blue>")
 
 
 def reinit_wandb():
     """Reinitializes wandb, rolling over the run."""
-    global WANDB
-    WANDB.finish()
+    wandb.finish()
     init_wandb(reinit=True)
 
 
