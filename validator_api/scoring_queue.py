@@ -58,6 +58,15 @@ class ScoringQueue(AsyncLoopRunner):
         except Exception as e:
             logger.exception(f"Could not find available validator scoring endpoint: {e}")
         try:
+            # Verify payload is JSON serializable before sending
+            try:
+                import json
+                json.dumps(payload)
+            except TypeError as e:
+                logger.error(f"Payload is not JSON serializable: {e}")
+                # If we can't serialize the payload, skip this scoring item
+                return
+                
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
             # Add required headers for signature verification
 
@@ -94,13 +103,29 @@ class ScoringQueue(AsyncLoopRunner):
             # logger.debug(f"Skipping forwarding for non-inference/web retrieval task: {body.get('task')}")
             return
 
+        # Recursively convert Pydantic models to dictionaries
+        def make_json_serializable(obj):
+            if hasattr(obj, "model_dump"):
+                return obj.model_dump()
+            elif hasattr(obj, "dict"):  # For older Pydantic versions
+                return obj.dict()
+            elif isinstance(obj, dict):
+                return {k: make_json_serializable(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [make_json_serializable(item) for item in obj]
+            else:
+                return obj
+
+        # Convert the entire body to ensure all nested objects are JSON serializable
+        body_copy = make_json_serializable(body)
+
         uids = [int(u) for u in uids]
         chunk_dict = {str(u): c for u, c in zip(uids, chunks)}
         if timings:
             timing_dict = {str(u): t for u, t in zip(uids, timings)}
         else:
             timing_dict = {}
-        payload = {"body": body, "chunks": chunk_dict, "uids": uids, "timings": timing_dict}
+        payload = {"body": body_copy, "chunks": chunk_dict, "uids": uids, "timings": timing_dict}
         scoring_item = ScoringPayload(payload=payload)
 
         async with self._scoring_lock:
