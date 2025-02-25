@@ -3,6 +3,7 @@
 import json
 import os
 from collections import defaultdict
+from functools import lru_cache
 from urllib.parse import urlparse
 
 import numpy as np
