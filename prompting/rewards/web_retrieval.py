@@ -161,7 +161,10 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             if response_relevant not in response_content:
                 return 0
 
-            return await self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant) * discount_factor
+            return (
+                await self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant)
+                * discount_factor
+            )
 
     async def score_miner_response(
         self, dataset_entry: DDGDatasetEntry, completion: str, task: BaseTextTask | None = None, uid: str | None = None
@@ -173,7 +176,10 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             # logger.warning("Miner returned multiple websites with the same URL")
             return 0
 
-        tasks = [self.score_website_result(dataset_entry, website.url, website.content, website.relevant, uid) for website in miner_websites]
+        tasks = [
+            self.score_website_result(dataset_entry, website.url, website.content, website.relevant, uid)
+            for website in miner_websites
+        ]
         scores = await asyncio.gather(*tasks)
 
         if scores:

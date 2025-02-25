@@ -1,3 +1,5 @@
+import asyncio
+import functools
 import subprocess
 import time
 import traceback
@@ -8,8 +10,7 @@ from typing import Any, Callable
 import bittensor as bt
 
 from shared.exceptions import BittensorError
-import asyncio
-import functools
+
 
 # decorator with options
 def async_lru_cache(*lru_cache_args, **lru_cache_kwargs):
