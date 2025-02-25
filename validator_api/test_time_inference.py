@@ -36,24 +36,24 @@ def parse_multiple_json(api_response):
         try:
             # Replace escaped single quotes with actual single quotes
             json_str_clean = json_str.replace("\\'", "'")
-            
+
             # Remove or replace invalid control characters
             # This regex replaces control characters (ASCII 0-31) except tabs, newlines and carriage returns
-            json_str_clean = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F]', '', json_str_clean)
-            
+            json_str_clean = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F]", "", json_str_clean)
+
             # Parse the JSON string into a dictionary
             obj = json.loads(json_str_clean)
             parsed_objects.append(obj)
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse JSON object: {e}")
-            
+
             # Try a more aggressive approach if standard cleaning failed
             try:
                 # Use a more aggressive approach to clean the JSON string
                 # This will remove all non-ASCII characters and normalize whitespace
-                clean_str = ''.join(c if ord(c) >= 32 or c in ['\n', '\r', '\t'] else ' ' for c in json_str)
-                clean_str = re.sub(r'\s+', ' ', clean_str)  # Normalize whitespace
-                
+                clean_str = "".join(c if ord(c) >= 32 or c in ["\n", "\r", "\t"] else " " for c in json_str)
+                clean_str = re.sub(r"\s+", " ", clean_str)  # Normalize whitespace
+
                 # Try to parse again
                 obj = json.loads(clean_str)
                 parsed_objects.append(obj)
@@ -67,7 +67,7 @@ def parse_multiple_json(api_response):
             f"No valid JSON objects found in the response - couldn't parse json. The miner response was: {api_response}"
         )
         return None
-    
+
     # Check if we have the required fields
     # For final answers, the next_action field might be missing
     first_obj = parsed_objects[0]
@@ -76,19 +76,21 @@ def parse_multiple_json(api_response):
             f"Invalid JSON object found in the response - required field missing. The miner response was: {api_response}"
         )
         return None
-    
+
     # If this is a final answer (title contains "Final" or "Conclusion"), next_action is optional
-    is_final_answer = "final" in first_obj.get("title", "").lower() or "conclusion" in first_obj.get("title", "").lower()
+    is_final_answer = (
+        "final" in first_obj.get("title", "").lower() or "conclusion" in first_obj.get("title", "").lower()
+    )
     if not is_final_answer and not first_obj.get("next_action"):
         logger.error(
             f"Invalid JSON object found in the response - next_action field missing for non-final answer. The miner response was: {api_response}"
         )
         return None
-    
+
     # If next_action is missing for a final answer, add it with value "final_answer"
     if is_final_answer and not first_obj.get("next_action"):
         first_obj["next_action"] = "final_answer"
-        
+
     return parsed_objects
 
 
@@ -129,7 +131,7 @@ async def make_api_call(
             if parsed_json is None or len(parsed_json) == 0:
                 logger.warning("parse_multiple_json returned None or empty list")
                 return None
-            
+
             response_dict = parsed_json[0]
             return response_dict
         except Exception as e:
@@ -173,7 +175,7 @@ async def make_api_call(
         return {
             "title": "Error: Failed to Generate Final Answer",
             "content": f"Failed to generate final answer. Error: {error_msg}. This could be due to issues with parsing the model response or connectivity problems with the miners.",
-            "next_action": "final_answer"  # Ensure this field is always present
+            "next_action": "final_answer",  # Ensure this field is always present
         }
     else:
         return {
@@ -309,9 +311,7 @@ Expected Answer:
     )
 
     start_time = time.time()
-    final_data = await make_api_call(
-        messages, model=model, is_final_answer=True, use_miners=use_miners, uids=uids
-    )
+    final_data = await make_api_call(messages, model=model, is_final_answer=True, use_miners=use_miners, uids=uids)
 
     end_time = time.time()
     thinking_time = end_time - start_time

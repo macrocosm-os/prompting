@@ -32,10 +32,11 @@ router = APIRouter()
 N_MINERS = 5
 
 
-# add deprectred protect for web retrieval request
+# add deprecated protect for web retrieval request
 @router.post("/v1/chat/completions")
-async def completions(request: CompletionsRequest, api_key: str = Depends(validate_api_key)):
+async def completions(request: CompletionsRequest, api_key: str = Depends(validate_api_key), **kwargs):
     """Main endpoint that handles both regular and mixture of miners chat completion."""
+    print(request)
     try:
         body = request.model_dump()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
@@ -132,14 +133,7 @@ async def web_retrieval(
 
 
 @router.post("/test_time_inference")
-async def test_time_inference(request: TestTimeInferenceRequest = None, **kwargs):
-    if request is None:
-        request = TestTimeInferenceRequest(
-            messages=kwargs.get("messages"),
-            model=kwargs.get("model"),
-            uids=kwargs.get("uids")
-        )
-    
+async def test_time_inference(request: TestTimeInferenceRequest, **kwargs):
     async def create_response_stream(messages):
         async for steps, total_thinking_time in generate_response(messages, model=request.model, uids=request.uids):
             if total_thinking_time is not None:
