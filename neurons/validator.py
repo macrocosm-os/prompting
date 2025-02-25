@@ -79,8 +79,17 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
             logger.debug(f"Number of tasks in Task Queue: {len(task_queue)}")
             logger.debug(f"Number of tasks in Scoring Queue: {len(scoring_queue)}")
             logger.debug(f"Number of tasks in Reward Events: {len(reward_events)}")
+    try:
+        asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events))
+    except Exception as e: 
+        logger.info(f"Terminating loop process: {e}")
+    finally:
+        logger.info("Cleaning up resources...")
 
-    asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events))
+        # Ensure wandb is closed properly
+        if settings.shared_settings.WANDB_ON:
+            wandb.finish()
+            logger.info("WandB run finished.")
 
 
 def start_api(scoring_queue, reward_events):
@@ -167,6 +176,7 @@ async def main():
             logger.error(f"Main loop error: {e}")
             raise
         finally:
+            wandb.finish(0)
             wandb.teardown()
             # Clean up processes
             for process in processes:

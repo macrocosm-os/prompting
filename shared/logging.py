@@ -117,7 +117,7 @@ def init_wandb(reinit=False, neuron: Literal["validator", "miner", "api"] = "val
         project=settings.shared_settings.WANDB_PROJECT_NAME,
         entity=settings.shared_settings.WANDB_ENTITY,
         mode="offline" if settings.shared_settings.WANDB_OFFLINE else "online",
-        dir=settings.shared_settings.SAVE_PATH,
+        # dir=settings.shared_settings.SAVE_PATH,
         tags=tags,
         notes=settings.shared_settings.WANDB_NOTES,
         config=wandb_config,
