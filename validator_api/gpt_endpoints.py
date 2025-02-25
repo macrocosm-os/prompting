@@ -41,7 +41,7 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         if body.get("uids"):
             try:
-                uids = [int(uid) for uid in body.get("uids")]
+                uids = list(map(int, body.get("uids")))
             except Exception:
                 logger.error(f"Error in uids: {body.get('uids')}")
         else:
@@ -53,8 +53,8 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
 
         # Choose between regular completion and mixture of miners.
         if body.get("test_time_inference", False):
-            return await test_time_inference(body["messages"], body.get("model", None), target_uids=body.get("uids"))
-        if body.get("mixture", False):
+            return await test_time_inference(messages=body["messages"], model=body.get("model", None), uids=uids)
+        elif body.get("mixture", False):
             return await mixture_of_miners(body, uids=uids)
         else:
             return await chat_completion(body, uids=uids)
@@ -132,7 +132,14 @@ async def web_retrieval(
 
 
 @router.post("/test_time_inference")
-async def test_time_inference(request: TestTimeInferenceRequest):
+async def test_time_inference(request: TestTimeInferenceRequest = None, **kwargs):
+    if request is None:
+        request = TestTimeInferenceRequest(
+            messages=kwargs.get("messages"),
+            model=kwargs.get("model"),
+            uids=kwargs.get("uids")
+        )
+    
     async def create_response_stream(messages):
         async for steps, total_thinking_time in generate_response(messages, model=request.model, uids=request.uids):
             if total_thinking_time is not None:
