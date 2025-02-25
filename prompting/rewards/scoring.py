@@ -21,7 +21,7 @@ class TaskScorer(AsyncLoopRunner):
 
     is_running: bool = False
     thread: threading.Thread = None
-    interval: int = 10
+    interval: int = 0
     scoring_queue: list | None = None
     reward_events: list | None = None
 

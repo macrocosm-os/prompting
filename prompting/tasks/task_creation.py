@@ -19,7 +19,7 @@ RETRIES = 3
 class TaskLoop(AsyncLoopRunner):
     is_running: bool = False
     thread: threading.Thread = None
-    interval: int = 10
+    interval: int = 0
     task_queue: list | None = []
     scoring_queue: list | None = []
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -31,10 +31,11 @@ class TaskLoop(AsyncLoopRunner):
 
     async def run_step(self):
         if len(self.task_queue) > shared_settings.TASK_QUEUE_LENGTH_THRESHOLD:
+            await asyncio.sleep(10)
             return None
         if len(self.scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
+            await asyncio.sleep(10)
             return None
-        await asyncio.sleep(0.1)
         try:
             task = None
             # Getting task and dataset
@@ -47,7 +48,6 @@ class TaskLoop(AsyncLoopRunner):
                     logger.exception(ex)
                 await asyncio.sleep(0.1)
 
-            await asyncio.sleep(0.1)
             if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
                 logger.debug(
                     f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."
@@ -69,7 +69,6 @@ class TaskLoop(AsyncLoopRunner):
         except Exception as ex:
             logger.exception(ex)
             return None
-        await asyncio.sleep(0.01)
 
 
 task_loop = TaskLoop()
