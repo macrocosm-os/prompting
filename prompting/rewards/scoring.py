@@ -76,7 +76,7 @@ class TaskScorer(AsyncLoopRunner):
 
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
-        reward_events = reward_pipeline.apply(
+        reward_events = await reward_pipeline.apply(
             response_event=scoring_config.response,
             challenge=scoring_config.task.query,
             reference=scoring_config.task.reference,

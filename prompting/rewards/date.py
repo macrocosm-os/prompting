@@ -89,7 +89,7 @@ class DateRewardModel(BaseRewardModel):
             score = 0
         return score
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
+    async def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair.
 
         Args:

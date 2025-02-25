@@ -1,5 +1,6 @@
 """Expected miner's response is a JSON object with the following keys: url, content, relevant for each website."""
 
+import asyncio
 import json
 import os
 from collections import defaultdict
@@ -85,13 +86,13 @@ class WebsiteResult(BaseModel):
 
 class WebRetrievalRewardModel(RelevanceRewardModel):
     @lru_cache(maxsize=1000)
-    def _cosine_similarity(self, content1: str, content2: str) -> float:
+    async def _cosine_similarity(self, content1: str, content2: str) -> float:
         """Calculate the cosine similarity between sentence embeddings of the reference and completions."""
         reference_emb_flatten = self.embedding_model.encode(content1, to_numpy=True).flatten()
         response_emb_flatten = self.embedding_model.encode(content2, to_numpy=True).flatten()
         return 1.0 - float(spatial.distance.cosine(reference_emb_flatten, response_emb_flatten))
 
-    def score_website_result(
+    async def score_website_result(
         self, dataset_entry: DDGDatasetEntry, response_url: str, response_content: str, response_relevant: str, uid: str
     ) -> float:
         if not response_url or not response_content or not response_relevant:
@@ -160,9 +161,9 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             if response_relevant not in response_content:
                 return 0
 
-            return self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant) * discount_factor
+            return await self._cosine_similarity(content1=dataset_entry.query, content2=response_relevant) * discount_factor
 
-    def score_miner_response(
+    async def score_miner_response(
         self, dataset_entry: DDGDatasetEntry, completion: str, task: BaseTextTask | None = None, uid: str | None = None
     ) -> float:
         scores = []
@@ -172,8 +173,8 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             # logger.warning("Miner returned multiple websites with the same URL")
             return 0
 
-        for website in miner_websites:
-            scores.append(self.score_website_result(dataset_entry, website.url, website.content, website.relevant, uid))
+        tasks = [self.score_website_result(dataset_entry, website.url, website.content, website.relevant, uid) for website in miner_websites]
+        scores = await asyncio.gather(*tasks)
 
         if scores:
             weights = np.arange(len(scores), 0, -1)
@@ -181,7 +182,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         return 0
 
     # TODO: Change base class reference type to Reference pydantic model, in order to store additional data.
-    def reward(
+    async def reward(
         self, reference: str, response_event: DendriteResponseEvent, task: BaseTextTask | None = None, **kwargs
     ) -> BatchRewardOutput:
         """Score response website content and URL based on the similarity to the search term and reference content."""
@@ -196,7 +197,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             )
 
         for completion, uid in zip(response_event.completions, response_event.uids):
-            rewards.append(self.score_miner_response(dataset_entry, completion, task=task, uid=uid))
+            rewards.append(await self.score_miner_response(dataset_entry, completion, task=task, uid=uid))
             timings.append(0)
 
         logger.debug(f"REWARDWEBRETRIEVAL: {rewards}")

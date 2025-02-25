@@ -17,8 +17,7 @@ class StreamingRewardModel(BaseRewardModel):
         super().__init__()
         self.max_tokens_per_chunk = max_tokens_per_chunk
 
-    def reward(self, _: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
-        """Compute difference scores given a completion and reference pair."""
+    async def reward(self, reference: str, response_event: DendriteResponseEvent) -> BatchRewardOutput:
         """Compute difference scores given a completion and reference pair."""
         rewards = []
         timings = []

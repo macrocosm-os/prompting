@@ -61,7 +61,7 @@ class MultiChoiceRewardModel(BaseRewardModel):
         except ValueError:
             return None
 
-    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
+    async def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         rewards = []
         timings = []
 
