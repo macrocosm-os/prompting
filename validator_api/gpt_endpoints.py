@@ -5,7 +5,7 @@ import time
 import uuid
 
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
@@ -18,6 +18,13 @@ from validator_api import scoring_queue
 from validator_api.api_management import validate_api_key
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
+from validator_api.serializers import (
+    CompletionsRequest,
+    TestTimeInferenceRequest,
+    WebRetrievalRequest,
+    WebRetrievalResponse,
+    WebSearchResult,
+)
 from validator_api.test_time_inference import generate_response
 from validator_api.utils import filter_available_uids
 
@@ -25,11 +32,12 @@ router = APIRouter()
 N_MINERS = 5
 
 
+# add deprectred protect for web retrieval request
 @router.post("/v1/chat/completions")
-async def completions(request: Request, api_key: str = Depends(validate_api_key)):
+async def completions(request: CompletionsRequest, api_key: str = Depends(validate_api_key)):
     """Main endpoint that handles both regular and mixture of miners chat completion."""
     try:
-        body = await request.json()
+        body = request.model_dump()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         if body.get("uids"):
             try:
@@ -56,24 +64,22 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         return StreamingResponse(content="Internal Server Error", status_code=500)
 
 
-@router.post("/web_retrieval")
+@router.post("/web_retrieval", response_model=WebRetrievalResponse)
 async def web_retrieval(
-    search_query: str,
-    n_miners: int = 10,
-    n_results: int = 5,
-    max_response_time: int = 10,
+    request: WebRetrievalRequest,
     api_key: str = Depends(validate_api_key),
-    target_uids: list[str] | list[int] = None,
 ):
-    if target_uids:
-        uids = target_uids
+    if request.uids:
+        uids = request.uids
         try:
-            uids = [int(uid) for uid in uids]
+            uids = list(map(int, uids))
         except Exception:
             logger.error(f"Error in uids: {uids}")
     else:
-        uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
-        uids = random.sample(uids, min(len(uids), n_miners))
+        uids = filter_available_uids(
+            task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=request.n_miners
+        )
+        uids = random.sample(uids, min(len(uids), request.n_miners))
 
     if len(uids) == 0:
         raise HTTPException(status_code=500, detail="No available miners")
@@ -82,10 +88,10 @@ async def web_retrieval(
         "seed": random.randint(0, 1_000_000),
         "sampling_parameters": shared_settings.SAMPLING_PARAMS,
         "task": "WebRetrievalTask",
-        "target_results": n_results,
-        "timeout": max_response_time,
+        "target_results": request.n_results,
+        "timeout": request.max_response_time,
         "messages": [
-            {"role": "user", "content": search_query},
+            {"role": "user", "content": request.search_query},
         ],
     }
 
@@ -115,31 +121,20 @@ async def web_retrieval(
     unique_results = []
     seen_urls = set()
 
-    # for result in flat_results:
-    #     # TODO: This is a hack to try and avoid the stringify json issue, this needs a deeper fix.
-    #     try:
-    #         if isinstance(result, str):
-    #             result = json.loads(result)
-    #         if isinstance(result, dict) and 'url' in result:
-    #             if result["url"] not in seen_urls:
-    #                 seen_urls.add(result["url"])
-    #                 unique_results.append(result)
-    #     except Exception:
-    #         logger.warning(f"Skipping invalid result: {result}")
-
-    # sometimes the results are not in the correct format, so we need to filter them out
     for result in flat_results:
         if isinstance(result, dict) and "url" in result:
             if result["url"] not in seen_urls:
                 seen_urls.add(result["url"])
-                unique_results.append(result)
-    return unique_results
+                # Convert dict to WebSearchResult
+                unique_results.append(WebSearchResult(**result))
+
+    return WebRetrievalResponse(results=unique_results)
 
 
 @router.post("/test_time_inference")
-async def test_time_inference(messages: list[dict], model: str = None, target_uids: list[str] = None):
+async def test_time_inference(request: TestTimeInferenceRequest):
     async def create_response_stream(messages):
-        async for steps, total_thinking_time in generate_response(messages, model=model, target_uids=target_uids):
+        async for steps, total_thinking_time in generate_response(messages, model=request.model, uids=request.uids):
             if total_thinking_time is not None:
                 logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
             yield steps, total_thinking_time
@@ -148,12 +143,12 @@ async def test_time_inference(messages: list[dict], model: str = None, target_ui
     async def stream_steps():
         try:
             i = 0
-            async for steps, thinking_time in create_response_stream(messages):
+            async for steps, thinking_time in create_response_stream(request.messages):
                 i += 1
                 yield "data: " + ChatCompletionChunk(
                     id=str(uuid.uuid4()),
                     created=int(time.time()),
-                    model=model or "None",
+                    model=request.model or "None",
                     object="chat.completion.chunk",
                     choices=[
                         Choice(index=i, delta=ChoiceDelta(content=f"## {steps[-1][0]}\n\n{steps[-1][1]}" + "\n\n"))
