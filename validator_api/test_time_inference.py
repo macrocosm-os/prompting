@@ -37,65 +37,34 @@ def parse_multiple_json(api_response):
             # Replace escaped single quotes with actual single quotes
             json_str_clean = json_str.replace("\\'", "'")
 
-            # Remove or replace invalid control characters
-            # This regex replaces control characters (ASCII 0-31) except tabs, newlines and carriage returns
-            json_str_clean = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F]", "", json_str_clean)
 
             # Parse the JSON string into a dictionary
             obj = json.loads(json_str_clean)
             parsed_objects.append(obj)
         except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse JSON object: {e}")
-
-            # Try a more aggressive approach if standard cleaning failed
-            try:
-                # Use a more aggressive approach to clean the JSON string
-                # This will remove all non-ASCII characters and normalize whitespace
-                clean_str = "".join(c if ord(c) >= 32 or c in ["\n", "\r", "\t"] else " " for c in json_str)
-                clean_str = re.sub(r"\s+", " ", clean_str)  # Normalize whitespace
-
-                # Try to parse again
-                obj = json.loads(clean_str)
-                parsed_objects.append(obj)
-                logger.info("Successfully parsed JSON after aggressive cleaning")
-            except json.JSONDecodeError:
-                # If still failing, log and continue
-                continue
+            print(f"Failed to parse JSON object: {e}")
+            continue
 
     if len(parsed_objects) == 0:
         logger.error(
             f"No valid JSON objects found in the response - couldn't parse json. The miner response was: {api_response}"
         )
         return None
-
-    # Check if we have the required fields
-    # For final answers, the next_action field might be missing
-    first_obj = parsed_objects[0]
-    if not first_obj.get("title") or not first_obj.get("content"):
+    if (
+        not parsed_objects[0].get("title")
+        or not parsed_objects[0].get("content")
+        or not parsed_objects[0].get("next_action")
+    ):
         logger.error(
-            f"Invalid JSON object found in the response - required field missing. The miner response was: {api_response}"
+            f"Invalid JSON object found in the response - field missing. The miner response was: {api_response}"
         )
         return None
-
-    # If this is a final answer (title contains "Final" or "Conclusion"), next_action is optional
-    is_final_answer = (
-        "final" in first_obj.get("title", "").lower() or "conclusion" in first_obj.get("title", "").lower()
-    )
-    if not is_final_answer and not first_obj.get("next_action"):
-        logger.error(
-            f"Invalid JSON object found in the response - next_action field missing for non-final answer. The miner response was: {api_response}"
-        )
-        return None
-
-    # If next_action is missing for a final answer, add it with value "final_answer"
-    if is_final_answer and not first_obj.get("next_action"):
-        first_obj["next_action"] = "final_answer"
 
     return parsed_objects
 
 
 async def make_api_call(
-    messages, model=None, is_final_answer: bool = False, use_miners: bool = True, uids: list[int] = None
+    messages, model=None, is_final_answer: bool = False, use_miners: bool = True, uids: list[str] | None = None
 ):
     async def single_attempt():
         try:
@@ -127,12 +96,7 @@ async def make_api_call(
                 )
 
             logger.debug(f"Making API call with\n\nMESSAGES: {messages}\n\nRESPONSE: {response_str}")
-            parsed_json = parse_multiple_json(response_str)
-            if parsed_json is None or len(parsed_json) == 0:
-                logger.warning("parse_multiple_json returned None or empty list")
-                return None
-
-            response_dict = parsed_json[0]
+            response_dict = parse_multiple_json(response_str)[0]
             return response_dict
         except Exception as e:
             logger.warning(f"Failed to get valid response: {e}")
@@ -173,20 +137,19 @@ async def make_api_call(
     logger.error(error_msg)
     if is_final_answer:
         return {
-            "title": "Error: Failed to Generate Final Answer",
-            "content": f"Failed to generate final answer. Error: {error_msg}. This could be due to issues with parsing the model response or connectivity problems with the miners.",
-            "next_action": "final_answer",  # Ensure this field is always present
+            "title": "Error",
+            "content": f"Failed to generate final answer. Error: {error_msg}",
         }
     else:
         return {
-            "title": "Error: Failed to Generate Step",
-            "content": f"Failed to generate step. Error: {error_msg}. This could be due to issues with parsing the model response or connectivity problems with the miners.",
+            "title": "Error",
+            "content": f"Failed to generate step. Error: {error_msg}",
             "next_action": "final_answer",
         }
 
 
 async def generate_response(
-    original_messages: list[dict[str, str]], model: str = None, uids: list[int] = None, use_miners: bool = True
+    original_messages: list[dict[str, str]], model: str = None, uids: list[int] | None = None, use_miners: bool = True
 ):
     messages = [
         {

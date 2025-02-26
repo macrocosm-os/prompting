@@ -32,11 +32,9 @@ router = APIRouter()
 N_MINERS = 5
 
 
-# add deprecated protect for web retrieval request
 @router.post("/v1/chat/completions")
-async def completions(request: CompletionsRequest, api_key: str = Depends(validate_api_key), **kwargs):
+async def completions(request: CompletionsRequest, api_key: str = Depends(validate_api_key)):
     """Main endpoint that handles both regular and mixture of miners chat completion."""
-    print(request)
     try:
         body = request.model_dump()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
@@ -52,9 +50,9 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
 
-        # Choose between regular completion and mixture of miners.
+        # Choose between regular inference, test time inference, and mixture of miners.
         if body.get("test_time_inference", False):
-            return await test_time_inference(messages=body["messages"], model=body.get("model", None), uids=uids)
+            return await test_time_inference(request)
         elif body.get("mixture", False):
             return await mixture_of_miners(body, uids=uids)
         else:
@@ -133,9 +131,10 @@ async def web_retrieval(
 
 
 @router.post("/test_time_inference")
-async def test_time_inference(request: TestTimeInferenceRequest, **kwargs):
-    async def create_response_stream(messages):
-        async for steps, total_thinking_time in generate_response(messages, model=request.model, uids=request.uids):
+async def test_time_inference(request: TestTimeInferenceRequest):
+    
+    async def create_response_stream(request):
+        async for steps, total_thinking_time in generate_response(request.messages, model=request.model, uids=request.uids):
             if total_thinking_time is not None:
                 logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
             yield steps, total_thinking_time
@@ -144,7 +143,7 @@ async def test_time_inference(request: TestTimeInferenceRequest, **kwargs):
     async def stream_steps():
         try:
             i = 0
-            async for steps, thinking_time in create_response_stream(request.messages):
+            async for steps, thinking_time in create_response_stream(request):
                 i += 1
                 yield "data: " + ChatCompletionChunk(
                     id=str(uuid.uuid4()),

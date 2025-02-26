@@ -2,6 +2,7 @@ import asyncio
 import datetime
 from collections import deque
 from typing import Any
+import json
 
 import httpx
 from loguru import logger
@@ -58,14 +59,10 @@ class ScoringQueue(AsyncLoopRunner):
         except Exception as e:
             logger.exception(f"Could not find available validator scoring endpoint: {e}")
         try:
-            # Verify payload is JSON serializable before sending
-            try:
-                import json
-
-                json.dumps(payload)
-            except TypeError as e:
-                logger.error(f"Payload is not JSON serializable: {e}")
-                return
+            if hasattr(payload, "to_dict"):
+                payload = payload.to_dict()
+            elif isinstance(payload, BaseModel):
+                payload = payload.model_dump()
 
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
             # Add required headers for signature verification
