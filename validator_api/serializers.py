@@ -22,10 +22,12 @@ class CompletionsRequest(BaseModel):
         example=42,
     )
     task: Optional[str] = Field(
-        default=None, description="Task identifier to filter available miners.", example="ChatCompletionTask"
+        default=None, description="Task identifier to choose the inference type.", example="InferenceTask"
     )
     model: Optional[str] = Field(
-        default=None, description="Model identifier to filter available miners.", example="gpt-4"
+        default=None,
+        description="Model identifier to filter available miners.",
+        example="hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
     )
     test_time_inference: bool = Field(
         default=False, description="Enable step-by-step reasoning mode that shows the model's thinking process."
@@ -36,7 +38,13 @@ class CompletionsRequest(BaseModel):
     sampling_parameters: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Parameters to control text generation, such as temperature, top_p, etc.",
-        example={"temperature": 0.7, "top_p": 0.9, "max_tokens": 1000},
+        example={
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "top_k": 50,
+            "max_new_tokens": 512,
+            "do_sample": True,
+        },
     )
 
 
@@ -51,9 +59,9 @@ class WebRetrievalRequest(BaseModel):
     search_query: str = Field(
         ..., description="The query to search for on the web.", example="latest advancements in quantum computing"
     )
-    n_miners: int = Field(default=10, description="Number of miners to query for results.", example=15, ge=1)
+    n_miners: int = Field(default=3, description="Number of miners to query for results.", example=15, ge=1)
     n_results: int = Field(
-        default=5, description="Maximum number of results to return in the response.", example=10, ge=1
+        default=1, description="Maximum number of results to return in the response.", example=5, ge=1
     )
     max_response_time: int = Field(
         default=10, description="Maximum time to wait for responses in seconds.", example=15, ge=1

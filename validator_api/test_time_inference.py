@@ -63,7 +63,7 @@ def parse_multiple_json(api_response):
 
 
 async def make_api_call(
-    messages, model=None, is_final_answer: bool = False, use_miners: bool = True, uids: list[str] | None = None
+    messages, model=None, is_final_answer: bool = False, use_miners: bool = True, uids: list[int] | None = None
 ):
     async def single_attempt():
         try:
