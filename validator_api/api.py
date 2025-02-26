@@ -33,13 +33,42 @@ async def lifespan(app: FastAPI):
         pass
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    title="Validator API",
+    description="API for interacting with the validator network and miners",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    openapi_tags=[
+        {
+            "name": "GPT Endpoints",
+            "description": "Endpoints for chat completions, web retrieval, and test time inference",
+        },
+        {
+            "name": "API Management",
+            "description": "Endpoints for API key management and validation",
+        },
+    ],
+    lifespan=lifespan
+)
 app.include_router(gpt_router, tags=["GPT Endpoints"])
 app.include_router(api_management_router, tags=["API Management"])
 
 
-@app.get("/health")
+@app.get(
+    "/health",
+    summary="Health check endpoint",
+    description="Simple endpoint to check if the API is running",
+    tags=["Health"],
+    response_description="Status of the API"
+)
 async def health():
+    """
+    Health check endpoint to verify the API is operational.
+    
+    Returns a simple JSON object with status "ok" if the API is running.
+    """
     return {"status": "ok"}
 
 
