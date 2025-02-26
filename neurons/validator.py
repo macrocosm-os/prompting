@@ -6,9 +6,9 @@ import loguru
 import netaddr
 import requests
 import torch
+import wandb
 from bittensor.core.extrinsics.serving import serve_extrinsic
 
-import wandb
 from prompting.rewards.scoring import task_scorer
 
 # ruff: noqa: E402
