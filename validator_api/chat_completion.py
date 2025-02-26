@@ -245,9 +245,19 @@ async def chat_completion(
     # Initialize chunks collection for each miner
     collected_chunks_list = [[] for _ in uids]
     timings_list = [[] for _ in uids]
-    
+
     timeout_seconds = max(
-        30, max(0, math.floor(math.log2(body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS).get("max_new_tokens", 256) / 256))) * 10 + 30
+        30,
+        max(
+            0,
+            math.floor(
+                math.log2(
+                    body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS).get("max_new_tokens", 256) / 256
+                )
+            ),
+        )
+        * 10
+        + 30,
     )
 
     if STREAM:

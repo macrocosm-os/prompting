@@ -7,9 +7,9 @@ from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
+from shared.settings import shared_settings
 from shared.uids import get_uids
 from validator_api.chat_completion import chat_completion, get_response_from_miner
-from shared.settings import shared_settings
 
 NUM_MIXTURE_MINERS = 8
 TOP_INCENTIVE_POOL = 100

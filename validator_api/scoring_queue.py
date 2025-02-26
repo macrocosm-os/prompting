@@ -2,7 +2,6 @@ import asyncio
 import datetime
 from collections import deque
 from typing import Any
-import json
 
 import httpx
 from loguru import logger

@@ -50,7 +50,7 @@ app = FastAPI(
             "description": "Endpoints for API key management and validation",
         },
     ],
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 app.include_router(gpt_router, tags=["GPT Endpoints"])
 app.include_router(api_management_router, tags=["API Management"])
@@ -61,12 +61,12 @@ app.include_router(api_management_router, tags=["API Management"])
     summary="Health check endpoint",
     description="Simple endpoint to check if the API is running",
     tags=["Health"],
-    response_description="Status of the API"
+    response_description="Status of the API",
 )
 async def health():
     """
     Health check endpoint to verify the API is operational.
-    
+
     Returns a simple JSON object with status "ok" if the API is running.
     """
     return {"status": "ok"}

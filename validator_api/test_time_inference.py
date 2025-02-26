@@ -37,7 +37,6 @@ def parse_multiple_json(api_response):
             # Replace escaped single quotes with actual single quotes
             json_str_clean = json_str.replace("\\'", "'")
 
-
             # Parse the JSON string into a dictionary
             obj = json.loads(json_str_clean)
             parsed_objects.append(obj)

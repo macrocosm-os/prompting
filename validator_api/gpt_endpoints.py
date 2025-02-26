@@ -33,7 +33,7 @@ N_MINERS = 5
 
 
 @router.post(
-    "/v1/chat/completions", 
+    "/v1/chat/completions",
     summary="Chat completions endpoint",
     description="Main endpoint that handles both regular, multi step reasoning, test time inference, and mixture of miners chat completion.",
     response_description="Streaming response with generated text",
@@ -41,26 +41,24 @@ N_MINERS = 5
     responses={
         status.HTTP_200_OK: {
             "description": "Successful response with streaming text",
-            "content": {"text/event-stream": {}}
+            "content": {"text/event-stream": {}},
         },
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "Internal server error or no available miners"
-        }
-    }
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal server error or no available miners"},
+    },
 )
 async def completions(request: CompletionsRequest, api_key: str = Depends(validate_api_key)):
     """
     Chat completions endpoint that supports different inference modes.
-    
+
     This endpoint processes chat messages and returns generated completions using
     different inference strategies based on the request parameters.
-    
+
     ## Inference Modes:
     - Regular chat completion
     - Multi Step Reasoning
     - Test time inference
     - Mixture of miners
-    
+
     ## Request Parameters:
     - **uids** (List[int], optional): Specific miner UIDs to query. If not provided, miners will be selected automatically.
     - **messages** (List[dict]): List of message objects with 'role' and 'content' keys. Required.
@@ -70,10 +68,10 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
     - **test_time_inference** (bool, default=False): Enable step-by-step reasoning mode.
     - **mixture** (bool, default=False): Enable mixture of miners mode.
     - **sampling_parameters** (dict, optional): Parameters to control text generation.
-    
+
     The endpoint selects miners based on the provided UIDs or filters available miners
     based on task and model requirements.
-    
+
     Example request:
     ```json
     {
@@ -114,7 +112,7 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
 
 
 @router.post(
-    "/web_retrieval", 
+    "/web_retrieval",
     response_model=WebRetrievalResponse,
     summary="Web retrieval endpoint",
     description="Retrieves information from the web based on a search query using multiple miners.",
@@ -123,12 +121,12 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
     responses={
         status.HTTP_200_OK: {
             "description": "Successful response with web search results",
-            "model": WebRetrievalResponse
+            "model": WebRetrievalResponse,
         },
         status.HTTP_500_INTERNAL_SERVER_ERROR: {
             "description": "Internal server error, no available miners, or no successful miner responses"
-        }
-    }
+        },
+    },
 )
 async def web_retrieval(
     request: WebRetrievalRequest,
@@ -136,23 +134,23 @@ async def web_retrieval(
 ):
     """
     Web retrieval endpoint that queries multiple miners to search the web.
-    
+
     This endpoint distributes a search query to multiple miners, which perform web searches
     and return relevant results. The results are deduplicated based on URLs before being returned.
-    
+
     ## Request Parameters:
     - **search_query** (str): The query to search for on the web. Required.
     - **n_miners** (int, default=10): Number of miners to query for results.
     - **n_results** (int, default=5): Maximum number of results to return in the response.
     - **max_response_time** (int, default=10): Maximum time to wait for responses in seconds.
     - **uids** (List[int], optional): Optional list of specific miner UIDs to query.
-    
+
     ## Response:
     Returns a list of unique web search results, each containing:
     - **url** (str): The URL of the web page
     - **content** (str, optional): The relevant content from the page
     - **relevant** (str, optional): Information about why this result is relevant
-    
+
     Example request:
     ```json
     {
@@ -233,33 +231,31 @@ async def web_retrieval(
     responses={
         status.HTTP_200_OK: {
             "description": "Successful streaming response with reasoning steps",
-            "content": {"text/event-stream": {}}
+            "content": {"text/event-stream": {}},
         },
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "Internal server error during streaming"
-        }
-    }
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal server error during streaming"},
+    },
 )
 async def test_time_inference(request: TestTimeInferenceRequest):
     """
     Test time inference endpoint that provides step-by-step reasoning.
-    
+
     This endpoint streams the thinking process and reasoning steps during inference,
     allowing visibility into how the model arrives at its conclusions. Each step of
     the reasoning process is streamed as it becomes available.
-    
+
     ## Request Parameters:
     - **messages** (List[dict]): List of message objects with 'role' and 'content' keys. Required.
     - **model** (str, optional): Optional model identifier to use for inference.
     - **uids** (List[int], optional): Optional list of specific miner UIDs to query.
-    
+
     ## Response:
     The response is streamed as server-sent events (SSE) with each step of reasoning.
     Each event contains:
     - A step title/heading
     - The content of the reasoning step
     - Timing information (debug only)
-    
+
     Example request:
     ```json
     {
@@ -270,8 +266,11 @@ async def test_time_inference(request: TestTimeInferenceRequest):
     }
     ```
     """
+
     async def create_response_stream(request):
-        async for steps, total_thinking_time in generate_response(request.messages, model=request.model, uids=request.uids):
+        async for steps, total_thinking_time in generate_response(
+            request.messages, model=request.model, uids=request.uids
+        ):
             if total_thinking_time is not None:
                 logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
             yield steps, total_thinking_time
