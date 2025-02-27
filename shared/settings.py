@@ -92,7 +92,7 @@ class SharedSettings(BaseSettings):
     # Scoring request rate limit in seconds.
     SCORING_RATE_LIMIT_SEC: float = Field(5, env="SCORING_RATE_LIMIT_SEC")
     # Scoring queue threshold when rate-limit start to kick in, used to query validator API with scoring requests.
-    SCORING_QUEUE_API_THRESHOLD: int = Field(1, env="SCORING_QUEUE_API_THRESHOLD")
+    SCORING_QUEUE_API_THRESHOLD: int = Field(0, env="SCORING_QUEUE_API_THRESHOLD")
     API_TEST_MODE: bool = Field(False, env="API_TEST_MODE")
 
     # Validator scoring API (.env.validator).

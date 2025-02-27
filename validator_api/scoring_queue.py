@@ -93,6 +93,7 @@ class ScoringQueue(AsyncLoopRunner):
                 logger.error(
                     f"Error while forwarding response from {scoring_payload.date} after {scoring_payload.retries} "
                     f"retries: {e}")
+        await asyncio.sleep(0.1)
 
     async def append_response(
         self, uids: list[int], body: dict[str, Any], chunks: list[list[str]], timings: list[list[float]] | None = None
