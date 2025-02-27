@@ -20,6 +20,7 @@ shared_settings = settings.shared_settings
 class ScoringPayload(BaseModel):
     payload: dict[str, Any]
     retries: int = 0
+    date: datetime.datetime | None = None
 
 
 class ScoringQueue(AsyncLoopRunner):
@@ -27,9 +28,10 @@ class ScoringQueue(AsyncLoopRunner):
 
     interval: float = shared_settings.SCORING_RATE_LIMIT_SEC
     scoring_queue_threshold: int = shared_settings.SCORING_QUEUE_API_THRESHOLD
-    max_scoring_retries: int = 3
+    max_scoring_retries: int = 2
     _scoring_lock = asyncio.Lock()
     _scoring_queue: deque[ScoringPayload] = deque()
+    _queue_maxlen: int = 20
 
     async def wait_for_next_execution(self, last_run_time) -> datetime.datetime:
         """If scoring queue is small, execute immediately, otherwise wait until the next execution time."""
@@ -50,7 +52,10 @@ class ScoringQueue(AsyncLoopRunner):
             scoring_payload = self._scoring_queue.popleft()
             payload = scoring_payload.payload
             uids = payload["uids"]
-            logger.info(f"Received new organic for scoring, uids: {uids}")
+            logger.info(
+                f"Trying to score organic from {scoring_payload.date}, uids: {uids}. "
+                f"Queue size: {len(self._scoring_queue)}"
+            )
         try:
             vali_uid, vali_axon, vali_hotkey = validator_registry.get_available_axon()
             # get_available_axon() will return None if it cannot find an available validator, which will fail to unpack
@@ -80,9 +85,14 @@ class ScoringQueue(AsyncLoopRunner):
                 scoring_payload.retries += 1
                 async with self._scoring_lock:
                     self._scoring_queue.appendleft(scoring_payload)
-                logger.error(f"Tried to forward response to {url} for uids {uids}. Exception: {e}. Queued for retry")
+                logger.error(
+                    f"Tried to forward response from {scoring_payload.date} to {url} for uids {uids}. "
+                    f"Queue size: {len(self._scoring_queue)}. Exception: {e}. Queued for retry"
+                )
             else:
-                logger.exception(f"Error while forwarding response after {scoring_payload.retries} retries: {e}")
+                logger.exception(
+                    f"Error while forwarding response from {scoring_payload.date} after {scoring_payload.retries} "
+                    f"retries: {e}")
 
     async def append_response(
         self, uids: list[int], body: dict[str, Any], chunks: list[list[str]], timings: list[list[float]] | None = None
@@ -104,6 +114,9 @@ class ScoringQueue(AsyncLoopRunner):
         scoring_item = ScoringPayload(payload=payload)
 
         async with self._scoring_lock:
+            if len(self._scoring_queue) >= self._queue_maxlen:
+                scoring_payload = self._scoring_queue.popleft()
+                logger.info(f"Dropping oldest organic from {scoring_payload.date} for uids {uids}")
             self._scoring_queue.append(scoring_item)
 
     @property
