@@ -28,7 +28,7 @@ def normalize_timing(timing: float, timings: float) -> float:
 
 
 class ExactMatchRewardModel(BaseRewardModel):
-    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
+    async def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         """
         Calculates rewards based on an exact match of the response with the reference string.
 

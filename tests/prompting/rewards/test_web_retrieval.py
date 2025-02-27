@@ -38,7 +38,7 @@ def test_parse_response(completion, expected_url, expected_content, expected_rel
         assert response[0].relevant == expected_relevant
 
 
-def test_cosine_similarity_identical_embeddings():
+async def test_cosine_similarity_identical_embeddings():
     # Mock identical embeddings.
     mock_embedding_model = MagicMock()
     mock_embedding_model.encode.return_value = np.array([1, 2, 3])
@@ -46,11 +46,11 @@ def test_cosine_similarity_identical_embeddings():
     model = WebRetrievalRewardModel()
     model.embedding_model = mock_embedding_model
 
-    similarity = model._cosine_similarity("content1", "content1")
+    similarity = await model._cosine_similarity("content1", "content1")
     assert similarity == pytest.approx(1.0)
 
 
-def test_cosine_similarity_orthogonal_embeddings():
+async def test_cosine_similarity_orthogonal_embeddings():
     # Mock orthogonal embeddings.
     def encode_mock(text, to_numpy):
         return np.array([1, 0]) if text == "content1" else np.array([0, 1])
@@ -61,7 +61,7 @@ def test_cosine_similarity_orthogonal_embeddings():
     model = WebRetrievalRewardModel()
     model.embedding_model = mock_embedding_model
 
-    similarity = model._cosine_similarity("content1", "content2")
+    similarity = await model._cosine_similarity("content1", "content2")
     assert similarity == pytest.approx(0.0)
 
 

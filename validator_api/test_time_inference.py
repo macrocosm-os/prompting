@@ -37,12 +37,27 @@ def parse_multiple_json(api_response):
             # Replace escaped single quotes with actual single quotes
             json_str_clean = json_str.replace("\\'", "'")
 
+            # Remove or replace invalid control characters
+            json_str_clean = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F]", "", json_str_clean)
+
             # Parse the JSON string into a dictionary
             obj = json.loads(json_str_clean)
             parsed_objects.append(obj)
         except json.JSONDecodeError as e:
-            print(f"Failed to parse JSON object: {e}")
-            continue
+            logger.warning(f"Failed to parse JSON object: {e}")
+
+            # Try a more aggressive approach if standard cleaning failed
+            try:
+                clean_str = "".join(c if ord(c) >= 32 or c in ["\n", "\r", "\t"] else " " for c in json_str)
+                clean_str = re.sub(r"\s+", " ", clean_str)  # Normalize whitespace
+
+                # Try to parse again
+                obj = json.loads(clean_str)
+                parsed_objects.append(obj)
+                logger.info("Successfully parsed JSON after aggressive cleaning")
+            except json.JSONDecodeError:
+                # If still failing, log and continue
+                continue
 
     if len(parsed_objects) == 0:
         logger.error(

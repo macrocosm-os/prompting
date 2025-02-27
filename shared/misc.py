@@ -1,3 +1,5 @@
+import asyncio
+import functools
 import subprocess
 import time
 import traceback
@@ -8,6 +10,19 @@ from typing import Any, Callable
 import bittensor as bt
 
 from shared.exceptions import BittensorError
+
+
+# decorator with options
+def async_lru_cache(*lru_cache_args, **lru_cache_kwargs):
+    def async_lru_cache_decorator(async_function):
+        @functools.lru_cache(*lru_cache_args, **lru_cache_kwargs)
+        def cached_async_function(*args, **kwargs):
+            coroutine = async_function(*args, **kwargs)
+            return asyncio.ensure_future(coroutine)
+
+        return cached_async_function
+
+    return async_lru_cache_decorator
 
 
 class classproperty:

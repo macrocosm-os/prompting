@@ -5,7 +5,7 @@ from shared.dendrite import DendriteResponseEvent
 
 
 class InferenceRewardModel(BaseRewardModel):
-    def reward(
+    async def reward(
         self,
         reference: str,
         response_event: DendriteResponseEvent,
