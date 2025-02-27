@@ -85,12 +85,12 @@ class ScoringQueue(AsyncLoopRunner):
                 scoring_payload.retries += 1
                 async with self._scoring_lock:
                     self._scoring_queue.appendleft(scoring_payload)
-                logger.error(
+                logger.warning(
                     f"Tried to forward response from {scoring_payload.date} to {url} for uids {uids}. "
                     f"Queue size: {len(self._scoring_queue)}. Exception: {e}. Queued for retry"
                 )
             else:
-                logger.exception(
+                logger.error(
                     f"Error while forwarding response from {scoring_payload.date} after {scoring_payload.retries} "
                     f"retries: {e}")
 
@@ -111,7 +111,7 @@ class ScoringQueue(AsyncLoopRunner):
         else:
             timing_dict = {}
         payload = {"body": body, "chunks": chunk_dict, "uids": uids, "timings": timing_dict}
-        scoring_item = ScoringPayload(payload=payload)
+        scoring_item = ScoringPayload(payload=payload, date=datetime.datetime.now().replace(microsecond=0))
 
         async with self._scoring_lock:
             if len(self._scoring_queue) >= self._queue_maxlen:
