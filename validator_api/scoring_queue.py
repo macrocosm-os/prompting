@@ -32,12 +32,14 @@ class ScoringQueue(AsyncLoopRunner):
     _scoring_lock = asyncio.Lock()
     _scoring_queue: deque[ScoringPayload] = deque()
     _queue_maxlen: int = 20
+    _min_wait_time: float = 1
 
     async def wait_for_next_execution(self, last_run_time) -> datetime.datetime:
         """If scoring queue is small, execute immediately, otherwise wait until the next execution time."""
         async with self._scoring_lock:
             if self.scoring_queue_threshold < self.size > 0:
-                # If scoring queue is small and non-empty, score immediately.
+                # If scoring queue is small and non-empty, score more frequently.
+                await asyncio.sleep(self._min_wait_time)
                 return datetime.datetime.now()
 
         return await super().wait_for_next_execution(last_run_time)
