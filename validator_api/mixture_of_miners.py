@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
+from shared.settings import shared_settings
 from shared.uids import get_uids
 from validator_api.chat_completion import chat_completion, get_response_from_miner
 
@@ -45,6 +46,7 @@ async def mixture_of_miners(body: dict[str, any], uids: list[int]) -> tuple | St
     if len(uids) == 0:
         raise HTTPException(status_code=503, detail="No available miners found")
 
+    body["sampling_parameters"] = body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS)
     # Concurrently collect responses from all miners.
     timeout_seconds = max(
         30, max(0, math.floor(math.log2(body["sampling_parameters"].get("max_new_tokens", 256) / 256))) * 10 + 30

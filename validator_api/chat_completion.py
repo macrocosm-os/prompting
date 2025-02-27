@@ -98,6 +98,7 @@ async def stream_from_first_response(
 ) -> AsyncGenerator[str, None]:
     first_valid_response = None
     response_start_time = time.monotonic()
+
     try:
         # Keep looping until we find a valid response or run out of tasks
         while responses and first_valid_response is None:
@@ -245,11 +246,20 @@ async def chat_completion(
     collected_chunks_list = [[] for _ in uids]
     timings_list = [[] for _ in uids]
 
-    if not body.get("sampling_parameters"):
-        raise HTTPException(status_code=422, detail="Sampling parameters are required")
     timeout_seconds = max(
-        30, max(0, math.floor(math.log2(body["sampling_parameters"].get("max_new_tokens", 256) / 256))) * 10 + 30
+        30,
+        max(
+            0,
+            math.floor(
+                math.log2(
+                    body.get("sampling_parameters", shared_settings.SAMPLING_PARAMS).get("max_new_tokens", 256) / 256
+                )
+            ),
+        )
+        * 10
+        + 30,
     )
+
     if STREAM:
         # Create tasks for all miners
         response_tasks = [
@@ -297,7 +307,7 @@ async def chat_completion(
             raise HTTPException(status_code=502, detail="No valid response received")
 
         asyncio.create_task(
-            collect_remainin_nonstream_responses(
+            collect_remaining_nonstream_responses(
                 pending=pending,
                 collected_responses=collected_responses,
                 body=body,
@@ -308,7 +318,7 @@ async def chat_completion(
         return first_valid_response[0]  # Return only the response object, not the chunks
 
 
-async def collect_remainin_nonstream_responses(
+async def collect_remaining_nonstream_responses(
     pending: set[asyncio.Task],
     collected_responses: list,
     body: dict,
@@ -316,6 +326,7 @@ async def collect_remainin_nonstream_responses(
     timings_list: list,
 ):
     """Wait for all pending miner tasks to complete and append their responses to the scoring queue."""
+
     try:
         # Wait for all remaining tasks; allow exceptions to be returned.
         remaining_responses = await asyncio.gather(*pending, return_exceptions=True)

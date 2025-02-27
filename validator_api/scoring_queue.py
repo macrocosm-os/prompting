@@ -58,6 +58,11 @@ class ScoringQueue(AsyncLoopRunner):
         except Exception as e:
             logger.exception(f"Could not find available validator scoring endpoint: {e}")
         try:
+            if hasattr(payload, "to_dict"):
+                payload = payload.to_dict()
+            elif isinstance(payload, BaseModel):
+                payload = payload.model_dump()
+
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
             # Add required headers for signature verification
 
@@ -94,7 +99,7 @@ class ScoringQueue(AsyncLoopRunner):
             # logger.debug(f"Skipping forwarding for non-inference/web retrieval task: {body.get('task')}")
             return
 
-        uids = [int(u) for u in uids]
+        uids = list(map(int, uids))
         chunk_dict = {str(u): c for u, c in zip(uids, chunks)}
         if timings:
             timing_dict = {str(u): t for u, t in zip(uids, timings)}

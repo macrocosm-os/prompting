@@ -5,7 +5,7 @@ import time
 import uuid
 
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
@@ -18,6 +18,13 @@ from validator_api import scoring_queue
 from validator_api.api_management import validate_api_key
 from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
+from validator_api.serializers import (
+    CompletionsRequest,
+    TestTimeInferenceRequest,
+    WebRetrievalRequest,
+    WebRetrievalResponse,
+    WebSearchResult,
+)
 from validator_api.test_time_inference import generate_response
 from validator_api.utils import filter_available_uids
 
@@ -25,15 +32,63 @@ router = APIRouter()
 N_MINERS = 5
 
 
-@router.post("/v1/chat/completions")
-async def completions(request: Request, api_key: str = Depends(validate_api_key)):
-    """Main endpoint that handles both regular and mixture of miners chat completion."""
+@router.post(
+    "/v1/chat/completions",
+    summary="Chat completions endpoint",
+    description="Main endpoint that handles both regular, multi step reasoning, test time inference, and mixture of miners chat completion.",
+    response_description="Streaming response with generated text",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_200_OK: {
+            "description": "Successful response with streaming text",
+            "content": {"text/event-stream": {}},
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal server error or no available miners"},
+    },
+)
+async def completions(request: CompletionsRequest, api_key: str = Depends(validate_api_key)):
+    """
+    Chat completions endpoint that supports different inference modes.
+
+    This endpoint processes chat messages and returns generated completions using
+    different inference strategies based on the request parameters.
+
+    ## Inference Modes:
+    - Regular chat completion
+    - Multi Step Reasoning
+    - Test time inference
+    - Mixture of miners
+
+    ## Request Parameters:
+    - **uids** (List[int], optional): Specific miner UIDs to query. If not provided, miners will be selected automatically.
+    - **messages** (List[dict]): List of message objects with 'role' and 'content' keys. Required.
+    - **seed** (int, optional): Random seed for reproducible results.
+    - **task** (str, optional): Task identifier to filter available miners.
+    - **model** (str, optional): Model identifier to filter available miners.
+    - **test_time_inference** (bool, default=False): Enable step-by-step reasoning mode.
+    - **mixture** (bool, default=False): Enable mixture of miners mode.
+    - **sampling_parameters** (dict, optional): Parameters to control text generation.
+
+    The endpoint selects miners based on the provided UIDs or filters available miners
+    based on task and model requirements.
+
+    Example request:
+    ```json
+    {
+      "messages": [
+        {"role": "user", "content": "Tell me about neural networks"}
+      ],
+      "model": "gpt-4",
+      "seed": 42
+    }
+    ```
+    """
     try:
-        body = await request.json()
+        body = request.model_dump()
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         if body.get("uids"):
             try:
-                uids = [int(uid) for uid in body.get("uids")]
+                uids = list(map(int, body.get("uids")))
             except Exception:
                 logger.error(f"Error in uids: {body.get('uids')}")
         else:
@@ -43,10 +98,10 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
 
-        # Choose between regular completion and mixture of miners.
+        # Choose between regular inference, test time inference, and mixture of miners.
         if body.get("test_time_inference", False):
-            return await test_time_inference(body["messages"], body.get("model", None), target_uids=body.get("uids"))
-        if body.get("mixture", False):
+            return await test_time_inference(request)
+        elif body.get("mixture", False):
             return await mixture_of_miners(body, uids=uids)
         else:
             return await chat_completion(body, uids=uids)
@@ -56,24 +111,66 @@ async def completions(request: Request, api_key: str = Depends(validate_api_key)
         return StreamingResponse(content="Internal Server Error", status_code=500)
 
 
-@router.post("/web_retrieval")
+@router.post(
+    "/web_retrieval",
+    response_model=WebRetrievalResponse,
+    summary="Web retrieval endpoint",
+    description="Retrieves information from the web based on a search query using multiple miners.",
+    response_description="List of unique web search results",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_200_OK: {
+            "description": "Successful response with web search results",
+            "model": WebRetrievalResponse,
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "description": "Internal server error, no available miners, or no successful miner responses"
+        },
+    },
+)
 async def web_retrieval(
-    search_query: str,
-    n_miners: int = 10,
-    n_results: int = 5,
-    max_response_time: int = 10,
+    request: WebRetrievalRequest,
     api_key: str = Depends(validate_api_key),
-    target_uids: list[str] | list[int] = None,
 ):
-    if target_uids:
-        uids = target_uids
+    """
+    Web retrieval endpoint that queries multiple miners to search the web.
+
+    This endpoint distributes a search query to multiple miners, which perform web searches
+    and return relevant results. The results are deduplicated based on URLs before being returned.
+
+    ## Request Parameters:
+    - **search_query** (str): The query to search for on the web. Required.
+    - **n_miners** (int, default=10): Number of miners to query for results.
+    - **n_results** (int, default=5): Maximum number of results to return in the response.
+    - **max_response_time** (int, default=10): Maximum time to wait for responses in seconds.
+    - **uids** (List[int], optional): Optional list of specific miner UIDs to query.
+
+    ## Response:
+    Returns a list of unique web search results, each containing:
+    - **url** (str): The URL of the web page
+    - **content** (str, optional): The relevant content from the page
+    - **relevant** (str, optional): Information about why this result is relevant
+
+    Example request:
+    ```json
+    {
+      "search_query": "latest advancements in quantum computing",
+      "n_miners": 15,
+      "n_results": 10
+    }
+    ```
+    """
+    if request.uids:
+        uids = request.uids
         try:
-            uids = [int(uid) for uid in uids]
+            uids = list(map(int, uids))
         except Exception:
             logger.error(f"Error in uids: {uids}")
     else:
-        uids = filter_available_uids(task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=n_miners)
-        uids = random.sample(uids, min(len(uids), n_miners))
+        uids = filter_available_uids(
+            task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=request.n_miners
+        )
+        uids = random.sample(uids, min(len(uids), request.n_miners))
 
     if len(uids) == 0:
         raise HTTPException(status_code=500, detail="No available miners")
@@ -82,10 +179,10 @@ async def web_retrieval(
         "seed": random.randint(0, 1_000_000),
         "sampling_parameters": shared_settings.SAMPLING_PARAMS,
         "task": "WebRetrievalTask",
-        "target_results": n_results,
-        "timeout": max_response_time,
+        "target_results": request.n_results,
+        "timeout": request.max_response_time,
         "messages": [
-            {"role": "user", "content": search_query},
+            {"role": "user", "content": request.search_query},
         ],
     }
 
@@ -115,31 +212,65 @@ async def web_retrieval(
     unique_results = []
     seen_urls = set()
 
-    # for result in flat_results:
-    #     # TODO: This is a hack to try and avoid the stringify json issue, this needs a deeper fix.
-    #     try:
-    #         if isinstance(result, str):
-    #             result = json.loads(result)
-    #         if isinstance(result, dict) and 'url' in result:
-    #             if result["url"] not in seen_urls:
-    #                 seen_urls.add(result["url"])
-    #                 unique_results.append(result)
-    #     except Exception:
-    #         logger.warning(f"Skipping invalid result: {result}")
-
-    # sometimes the results are not in the correct format, so we need to filter them out
     for result in flat_results:
         if isinstance(result, dict) and "url" in result:
             if result["url"] not in seen_urls:
                 seen_urls.add(result["url"])
-                unique_results.append(result)
-    return unique_results
+                # Convert dict to WebSearchResult
+                unique_results.append(WebSearchResult(**result))
+
+    return WebRetrievalResponse(results=unique_results)
 
 
-@router.post("/test_time_inference")
-async def test_time_inference(messages: list[dict], model: str = None, target_uids: list[str] = None):
-    async def create_response_stream(messages):
-        async for steps, total_thinking_time in generate_response(messages, model=model, target_uids=target_uids):
+@router.post(
+    "/test_time_inference",
+    summary="Test time inference endpoint",
+    description="Provides step-by-step reasoning and thinking process during inference.",
+    response_description="Streaming response with reasoning steps",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_200_OK: {
+            "description": "Successful streaming response with reasoning steps",
+            "content": {"text/event-stream": {}},
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal server error during streaming"},
+    },
+)
+async def test_time_inference(request: TestTimeInferenceRequest):
+    """
+    Test time inference endpoint that provides step-by-step reasoning.
+
+    This endpoint streams the thinking process and reasoning steps during inference,
+    allowing visibility into how the model arrives at its conclusions. Each step of
+    the reasoning process is streamed as it becomes available.
+
+    ## Request Parameters:
+    - **messages** (List[dict]): List of message objects with 'role' and 'content' keys. Required.
+    - **model** (str, optional): Optional model identifier to use for inference.
+    - **uids** (List[int], optional): Optional list of specific miner UIDs to query.
+
+    ## Response:
+    The response is streamed as server-sent events (SSE) with each step of reasoning.
+    Each event contains:
+    - A step title/heading
+    - The content of the reasoning step
+    - Timing information (debug only)
+
+    Example request:
+    ```json
+    {
+      "messages": [
+        {"role": "user", "content": "Solve the equation: 3x + 5 = 14"}
+      ],
+      "model": "gpt-4"
+    }
+    ```
+    """
+
+    async def create_response_stream(request):
+        async for steps, total_thinking_time in generate_response(
+            request.messages, model=request.model, uids=request.uids
+        ):
             if total_thinking_time is not None:
                 logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
             yield steps, total_thinking_time
@@ -148,12 +279,12 @@ async def test_time_inference(messages: list[dict], model: str = None, target_ui
     async def stream_steps():
         try:
             i = 0
-            async for steps, thinking_time in create_response_stream(messages):
+            async for steps, thinking_time in create_response_stream(request):
                 i += 1
                 yield "data: " + ChatCompletionChunk(
                     id=str(uuid.uuid4()),
                     created=int(time.time()),
-                    model=model or "None",
+                    model=request.model or "None",
                     object="chat.completion.chunk",
                     choices=[
                         Choice(index=i, delta=ChoiceDelta(content=f"## {steps[-1][0]}\n\n{steps[-1][1]}" + "\n\n"))

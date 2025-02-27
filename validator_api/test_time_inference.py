@@ -73,11 +73,12 @@ def parse_multiple_json(api_response):
             f"Invalid JSON object found in the response - field missing. The miner response was: {api_response}"
         )
         return None
+
     return parsed_objects
 
 
 async def make_api_call(
-    messages, model=None, is_final_answer: bool = False, use_miners: bool = True, target_uids: list[str] = None
+    messages, model=None, is_final_answer: bool = False, use_miners: bool = True, uids: list[int] | None = None
 ):
     async def single_attempt():
         try:
@@ -96,7 +97,7 @@ async def make_api_call(
                         "seed": random.randint(0, 1000000),
                     },
                     num_miners=3,
-                    uids=target_uids,
+                    uids=uids,
                 )
                 response_str = response.choices[0].message.content
             else:
@@ -162,7 +163,7 @@ async def make_api_call(
 
 
 async def generate_response(
-    original_messages: list[dict[str, str]], model: str = None, target_uids: list[str] = None, use_miners: bool = True
+    original_messages: list[dict[str, str]], model: str = None, uids: list[int] | None = None, use_miners: bool = True
 ):
     messages = [
         {
@@ -251,7 +252,7 @@ Expected Answer:
 
     for _ in range(MAX_THINKING_STEPS):
         with Timer() as timer:
-            step_data = await make_api_call(messages, model=model, use_miners=use_miners, target_uids=target_uids)
+            step_data = await make_api_call(messages, model=model, use_miners=use_miners, uids=uids)
         thinking_time = timer.final_time
         total_thinking_time += thinking_time
 
@@ -287,9 +288,7 @@ Expected Answer:
     )
 
     start_time = time.time()
-    final_data = await make_api_call(
-        messages, model=model, is_final_answer=True, use_miners=use_miners, target_uids=target_uids
-    )
+    final_data = await make_api_call(messages, model=model, is_final_answer=True, use_miners=use_miners, uids=uids)
 
     end_time = time.time()
     thinking_time = end_time - start_time
