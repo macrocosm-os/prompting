@@ -129,7 +129,15 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
     },
 )
 async def web_retrieval(
+<<<<<<< Updated upstream
     request: WebRetrievalRequest,
+=======
+    search_query: str,
+    n_miners: int = 10,
+    n_results: int = 5,
+    max_response_time: int = 10,
+    target_uids: list[str] | list[int] = None,
+>>>>>>> Stashed changes
     api_key: str = Depends(validate_api_key),
 ):
     """

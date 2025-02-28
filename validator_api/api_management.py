@@ -57,7 +57,7 @@ def create_api_key(rate_limit: int, admin_key: str = Depends(validate_admin_key)
     return {"message": "API key created", "api_key": new_api_key}
 
 
-@router.put("/modify-api-key/{api_key}")
+@router.patch("/modify-api-key/{api_key}")
 def modify_api_key(api_key: str, rate_limit: int, admin_key: str = Depends(validate_admin_key)):
     """Modifies the rate limit of an existing API key."""
     if api_key not in _keys:

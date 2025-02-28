@@ -1,0 +1,25 @@
+from shared.base import BaseDataset, Context
+from typing import ClassVar
+import random
+
+dataset_entry_queue: list[Context] = []
+
+class MSRDiscrimintaorDatasetEntry(BaseModel):
+    miner_response: str
+    validator_reference: str
+    miner_uid: int
+
+class MSRDiscriminatorDataset(BaseDataset):
+    name: ClassVar[str] = "msr_discriminator"
+
+    def random(self) -> Context:
+        return random.choice(dataset_entry_queue)
+    
+    @classmethod
+    def add_entry(cls, miner_response: str, validator_reference: str, miner_uid: int):
+        dataset_entry_queue.append(MSRDiscrimintaorDatasetEntry(
+            miner_response=miner_response,
+            validator_reference=validator_reference,
+            miner_uid=miner_uid
+        ))
+    
