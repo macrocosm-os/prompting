@@ -28,14 +28,6 @@ torch.multiprocessing.set_start_method("spawn", force=True)
 NEURON_SAMPLE_SIZE = 100  # TODO: Should add this to constants.py
 
 
-# def cleanup():
-#     logger.info("Shutting down wandb before exit.")
-#     wandb.teardown()
-
-
-# atexit.register(cleanup)
-
-
 def create_loop_process(task_queue, scoring_queue, reward_events):
     settings.shared_settings = settings.SharedSettings.load(mode="validator")
     if settings.shared_settings.WANDB_ON:
