@@ -49,6 +49,7 @@ class BatchRewardOutput(BaseModel):
     threshold: float | None = None
     extra_info: dict = {}
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    uids: list[float] | None = None
 
     @model_validator(mode="after")
     def validate_rewards_and_timings(cls, v):
@@ -97,7 +98,7 @@ class BaseRewardModel(ABC, BaseModel):
             threshold=batch_rewards_output.threshold,
             timings=batch_rewards_output.timings,
             extra_info=kwargs,
-            uids=response_event.uids,
+            uids=batch_rewards_output.uids or response_event.uids,
         )
 
 

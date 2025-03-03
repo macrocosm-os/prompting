@@ -17,6 +17,7 @@ from prompting.tasks.multi_step_reasoning import MultiStepReasoningRewardConfig,
 from prompting.tasks.programming_task import ProgrammingRewardConfig, ProgrammingTask
 from prompting.tasks.qa import QARewardConfig, WebQuestionAnsweringTask, WikiQuestionAnsweringTask
 from prompting.tasks.web_retrieval import WebRetrievalRewardConfig, WebRetrievalTask
+from prompting.tasks.msr_task_v2 import MultiStepReasoningTaskDiscriminator, MultiStepReasoningDiscriminatorRewardConfig, MultiStepReasoningTaskGenerator, MultiStepReasoningGeneratorRewardConfig
 from shared.base import BaseDataset
 
 
@@ -35,6 +36,19 @@ class TaskConfig(BaseModel):
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
         TaskConfig(
+            task=MultiStepReasoningTaskGenerator,
+            probability=0.1,
+            datasets=[DDGDataset],
+            reward_model=MultiStepReasoningGeneratorRewardConfig,
+        ),
+        # We don't need to actively generate discriminators, they are generated automatically by the generator task
+        TaskConfig(
+            task=MultiStepReasoningTaskDiscriminator,
+            probability=0,
+            datasets=[DDGDataset],
+            reward_model=MultiStepReasoningDiscriminatorRewardConfig,
+        ),
+        TaskConfig(
             task=WikiQuestionAnsweringTask, probability=0.05, datasets=[WikiDataset], reward_model=QARewardConfig
         ),
         TaskConfig(task=WebQuestionAnsweringTask, probability=0.15, datasets=[DDGDataset], reward_model=QARewardConfig),
@@ -46,7 +60,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=MultiChoiceTask,
-            probability=0.2,
+            probability=0.1,
             datasets=[WikiDataset],
             reward_model=MultiChoiceRewardConfig,
         ),
