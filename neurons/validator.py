@@ -1,5 +1,6 @@
 import asyncio
 import multiprocessing as mp
+import sys
 
 import loguru
 import netaddr
@@ -173,6 +174,7 @@ async def main():
                 if process.is_alive():
                     process.terminate()
                     process.join()
+            sys.exit(1)
 
 
 # The main function parses the configuration and runs the validator.
