@@ -82,20 +82,23 @@ SYSTEM_ACCEPTANCE_PROMPT = textwrap.dedent(
 
 FINAL_ANSWER_PROMPT = textwrap.dedent(
     """\
-    Based on your thorough analysis, please provide your final answer. Your response should:
+    Review your previous reasoning steps and synthesize them into a final answer. 
+    Your response should:
 
-    1. Clearly state your conclusion
-    2. Summarize the key supporting evidence
-    3. Acknowledge any remaining uncertainties
-    4. Include relevant caveats or limitations
-    5. Synthesis & Refinement
+    1. Clearly state your final conclusion.
+    2. Summarize the key reasoning and evidence from previous steps.
+    3. Address any remaining uncertainties or alternative perspectives.
+    4. Note any relevant caveats or limitations to your conclusion.
 
-    Ensure your response uses the correct json format as follows:
+    Ensure the response is concise, well-structured, and avoids unnecessary repetition. 
+    Do not include explicit confidence levels or probabilities.
+
+    Format your response as valid JSON:
     {{
         "title": "Final Answer",
-        "content": "Conclusion and detailed explanation of your answer",
+        "content": "Your synthesized conclusion and explanation here."
     }}
-"""
+    """
 ).strip()
 
 
