@@ -4,12 +4,13 @@ from typing import ClassVar
 
 from loguru import logger
 
-from prompting.datasets.msr_v2_dataset import MSRDiscrimintaorDatasetEntry
+from prompting.datasets.msr_v2_dataset import MSRDiscriminatorDatasetEntry
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.discriminator import DiscriminatorRewardModel
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningTask, MultiStepReasoningRewardConfig
 from shared.base import Context
 from validator_api.test_time_inference import generate_response
+from prompting.rewards.msr_reward_v2 import MSRv2GeneratorRewardModel
 
 MAX_THINKING_STEPS = 10
 
@@ -23,7 +24,9 @@ def execute_multi_step_reasoning(user_query: str):
 
 class MultiStepReasoningGeneratorRewardConfig(MultiStepReasoningRewardConfig):
     """The reward config for the generator task is the same as for the normal msr task"""
-    pass
+    reward_definitions: ClassVar[list[BaseRewardModel]] = [
+        MSRv2GeneratorRewardModel(weight=1),
+    ]
 
 class MultiStepReasoningDiscriminatorRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[BaseRewardModel]] = [
@@ -50,7 +53,7 @@ class MultiStepReasoningTaskDiscriminator(MultiStepReasoningTask):
     correct_answer: str | None = None
     original_miner_uid: int | None = None
 
-    def make_query(self, dataset_entry: MSRDiscrimintaorDatasetEntry):
+    def make_query(self, dataset_entry: MSRDiscriminatorDatasetEntry):
         options = [self.original_reference, self.miner_response]
         random.shuffle(options)
         option_a, option_b = options

@@ -82,6 +82,7 @@ class TaskScorer(AsyncLoopRunner):
             reference=scoring_config.task.reference,
             model_id=scoring_config.task.llm_model,
             task=scoring_config.task,
+            scoring_queue=self.scoring_queue,
         )
         self.reward_events.append(reward_events)
 

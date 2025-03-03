@@ -5,7 +5,7 @@ from prompting.tasks.msr_task_v2 import MultiStepReasoningTaskDiscriminator
 import numpy as np
 
 class DiscriminatorRewardModel(BaseRewardModel):
-    async def reward(self, reference: str, response_event: DendriteResponseEvent, task: MultiStepReasoningTaskDiscriminator , **kwargs) -> BatchRewardOutput:
+    async def reward(self, reference: str, response_event: DendriteResponseEvent, task: MultiStepReasoningTaskDiscriminator , scoring_queue: list, **kwargs) -> BatchRewardOutput:
         completions: list[str] = response_event.completions
         task.original_miner_uid
         rewards: list[float] = []

@@ -4,7 +4,7 @@ import random
 
 dataset_entry_queue: list[Context] = []
 
-class MSRDiscrimintaorDatasetEntry(BaseModel):
+class MSRDiscriminatorDatasetEntry(BaseModel):
     miner_response: str
     validator_reference: str
     miner_uid: int
@@ -17,7 +17,7 @@ class MSRDiscriminatorDataset(BaseDataset):
     
     @classmethod
     def add_entry(cls, miner_response: str, validator_reference: str, miner_uid: int):
-        dataset_entry_queue.append(MSRDiscrimintaorDatasetEntry(
+        dataset_entry_queue.append(MSRDiscriminatorDatasetEntry(
             miner_response=miner_response,
             validator_reference=validator_reference,
             miner_uid=miner_uid
