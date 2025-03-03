@@ -82,7 +82,7 @@ SYSTEM_ACCEPTANCE_PROMPT = textwrap.dedent(
 
 FINAL_ANSWER_PROMPT = textwrap.dedent(
     """\
-    Review your previous reasoning steps and synthesize them into a final answer. 
+    Review your previous reasoning steps and synthesize them into a final answer.
     Your response should:
 
     1. Clearly state your final conclusion.
@@ -90,7 +90,7 @@ FINAL_ANSWER_PROMPT = textwrap.dedent(
     3. Address any remaining uncertainties or alternative perspectives.
     4. Note any relevant caveats or limitations to your conclusion.
 
-    Ensure the response is concise, well-structured, and avoids unnecessary repetition. 
+    Ensure the response is concise, well-structured, and avoids unnecessary repetition.
     Do not include explicit confidence levels or probabilities.
 
     Format your response as valid JSON:

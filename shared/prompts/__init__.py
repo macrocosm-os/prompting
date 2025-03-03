@@ -26,7 +26,7 @@ def get_prompt(inference_type: str, format_type: str) -> dict | str:
     # Input validation
     if not isinstance(inference_type, str) or not isinstance(format_type, str):
         raise TypeError("Both inference_type and format_type must be strings")
-    
+
     if not inference_type or not format_type:
         raise ValueError("Both inference_type and format_type must be non-empty strings")
 
