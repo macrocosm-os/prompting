@@ -96,7 +96,8 @@ FINAL_ANSWER_PROMPT = textwrap.dedent(
     Format your response as valid JSON:
     {{
         "title": "Final Answer",
-        "content": "Your synthesized conclusion and explanation here."
+        "content": "Your synthesized conclusion and explanation here.",
+        "next_action": "final_answer"
     }}
     """
 ).strip()
