@@ -51,9 +51,13 @@ N_PAST_URLS = 200
 
 # Load the past_websites dictionary and top domains
 try:
-    # Load top domains
-    top_domains_df = pd.read_csv(TOP_DOMAINS_FILE)
-    TOP_DOMAINS = set(top_domains_df["Domain"].str.lower().values)
+    # Check and load top domains if file exists and is not empty
+    if os.path.exists(TOP_DOMAINS_FILE) and os.path.getsize(TOP_DOMAINS_FILE) > 0:
+        top_domains_df = pd.read_csv(TOP_DOMAINS_FILE)
+        TOP_DOMAINS = set(top_domains_df["Domain"].str.lower().values)
+    else:
+        logger.warning(f"Top domains file {TOP_DOMAINS_FILE} is empty or does not exist. Setting TOP_DOMAINS to an empty set.")
+        TOP_DOMAINS = set()
 
     # Load past websites
     if os.path.exists(PAST_WEBSITES_FILE):
