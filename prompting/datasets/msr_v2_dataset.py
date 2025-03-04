@@ -22,8 +22,3 @@ class MSRDiscriminatorDataset(BaseDataset):
             validator_reference=validator_reference,
             miner_uid=miner_uid
         ))
-
-    @classmethod
-    def get_entry(cls, miner_uid: int) -> MSRDiscriminatorDatasetEntry:
-        return next((entry for entry in dataset_entry_queue if entry.miner_uid == miner_uid), None)
-    

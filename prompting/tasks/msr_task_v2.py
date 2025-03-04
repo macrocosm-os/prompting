@@ -84,7 +84,7 @@ class MSRv2GeneratorRewardModel(BaseRewardModel):
         for completion, uid in zip(completions, response_event.uids):
             MSRDiscriminatorDataset.add_entry(miner_response=completion, validator_reference=reference, miner_uid=uid)
             scoring_queue.append(MultiStepReasoningTaskDiscriminator(
-                dataset_entry=MSRDiscriminatorDataset.get_entry(uid),
+                dataset_entry=MSRDiscriminatorDataset.random(uid),
             ))
         # Check if there is a discriminator task in the scoring queue
         return BatchRewardOutput(
