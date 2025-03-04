@@ -46,6 +46,7 @@ class CompletionsRequest(BaseModel):
             "do_sample": True,
         },
     )
+    json_format: bool = Field(default=False, description="Enable JSON format for the response.", example=True)
 
 
 class WebRetrievalRequest(BaseModel):
@@ -107,6 +108,7 @@ class TestTimeInferenceRequest(BaseModel):
         example=[{"role": "user", "content": "Solve the equation: 3x + 5 = 14"}],
     )
     model: Optional[str] = Field(default=None, description="Model identifier to use for inference.", example="gpt-4")
+    json_format: bool = Field(default=False, description="Enable JSON format for the response.", example=True)
 
     def to_dict(self):
         return self.model_dump().update({"messages": [m.model_dump() for m in self.messages]})

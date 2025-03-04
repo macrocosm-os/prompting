@@ -80,6 +80,8 @@ class ScoringQueue(AsyncLoopRunner):
                     # Raise an exception so that the retry logic in the except block handles it.
                     raise Exception(f"Non-200 response: {response.status_code} for uids {uids}")
                 logger.debug(f"Forwarding response completed with status {response.status_code}")
+        except httpx.ConnectError as e:
+            logger.warning(f"Couldn't connect to validator {url} for Scoring {uids}. Exception: {e}")
         except Exception as e:
             if scoring_payload.retries < self.max_scoring_retries:
                 scoring_payload.retries += 1

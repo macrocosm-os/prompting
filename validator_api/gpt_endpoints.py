@@ -100,7 +100,13 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
 
         # Choose between regular inference, test time inference, and mixture of miners.
         if body.get("test_time_inference", False):
-            return await test_time_inference(request)
+            test_time_request = TestTimeInferenceRequest(
+                messages=request.messages,
+                model=request.model,
+                uids=uids if uids else None,
+                json_format=request.json_format,
+            )
+            return await test_time_inference(test_time_request)
         elif body.get("mixture", False):
             return await mixture_of_miners(body, uids=uids)
         else:
@@ -230,20 +236,6 @@ async def web_retrieval(
     return WebRetrievalResponse(results=unique_results)
 
 
-@router.post(
-    "/test_time_inference",
-    summary="Test time inference endpoint",
-    description="Provides step-by-step reasoning and thinking process during inference.",
-    response_description="Streaming response with reasoning steps",
-    status_code=status.HTTP_200_OK,
-    responses={
-        status.HTTP_200_OK: {
-            "description": "Successful streaming response with reasoning steps",
-            "content": {"text/event-stream": {}},
-        },
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal server error during streaming"},
-    },
-)
 async def test_time_inference(request: TestTimeInferenceRequest):
     """
     Test time inference endpoint that provides step-by-step reasoning.
@@ -289,14 +281,16 @@ async def test_time_inference(request: TestTimeInferenceRequest):
             i = 0
             async for steps, thinking_time in create_response_stream(request):
                 i += 1
+                if request.json_format:
+                    choice = Choice(index=i, delta=ChoiceDelta(content=json.dumps(steps[-1])))
+                else:
+                    choice = Choice(index=i, delta=ChoiceDelta(content=f"## {steps[-1][0]}\n\n{steps[-1][1]}" + "\n\n"))
                 yield "data: " + ChatCompletionChunk(
                     id=str(uuid.uuid4()),
                     created=int(time.time()),
                     model=request.model or "None",
                     object="chat.completion.chunk",
-                    choices=[
-                        Choice(index=i, delta=ChoiceDelta(content=f"## {steps[-1][0]}\n\n{steps[-1][1]}" + "\n\n"))
-                    ],
+                    choices=[choice],
                 ).model_dump_json() + "\n\n"
         except Exception as e:
             logger.exception(f"Error during streaming: {e}")
