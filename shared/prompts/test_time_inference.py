@@ -1,12 +1,13 @@
 import textwrap
 
+
 def intro_prompt() -> str:
     """
     Returns the intro prompt.
     """
 
     intro = textwrap.dedent(
-    """\
+        """\
     You are a world-class expert in analytical reasoning and problem-solving. Your task is to break down complex problems through rigorous step-by-step analysis, carefully examining each aspect before moving forward. For each reasoning step:
 
     OUTPUT FORMAT:
@@ -79,18 +80,20 @@ def intro_prompt() -> str:
 
     return intro
 
+
 def system_acceptance_prompt() -> str:
     """
     Returns the system acceptance prompt.
     """
 
     system_acceptance = textwrap.dedent(
-    """\
+        """\
     I understand. I will now analyze the problem systematically, following the structured reasoning process while maintaining high standards of analytical rigor and self-criticism.
     """
     ).strip()
 
     return system_acceptance
+
 
 def final_answer_prompt() -> str:
     """

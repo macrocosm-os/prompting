@@ -1,5 +1,5 @@
-import pytest
-from shared.prompts.test_time_inference import intro_prompt, system_acceptance_prompt, final_answer_prompt
+from shared.prompts.test_time_inference import final_answer_prompt, intro_prompt, system_acceptance_prompt
+
 
 def test_intro_prompt():
     """Test that intro_prompt returns the correct prompt."""
@@ -11,11 +11,13 @@ def test_intro_prompt():
     assert "REQUIREMENTS:" in prompt
     assert "CRITICAL THINKING CHECKLIST:" in prompt
 
+
 def test_system_acceptance_prompt():
     """Test that system_acceptance_prompt returns the correct prompt."""
     prompt = system_acceptance_prompt()
     assert isinstance(prompt, str)
     assert "I understand. I will now analyze the problem systematically" in prompt
+
 
 def test_final_answer_prompt():
     """Test that final_answer_prompt returns the correct prompt."""
