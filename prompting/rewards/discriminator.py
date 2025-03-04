@@ -1,11 +1,14 @@
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from shared.dendrite import DendriteResponseEvent
 from prompting.tasks.base_task import BaseTask
-from prompting.tasks.msr_task_v2 import MultiStepReasoningTaskDiscriminator
 import numpy as np
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from prompting.tasks.msr_task_v2 import MultiStepReasoningTaskDiscriminator
 
 class DiscriminatorRewardModel(BaseRewardModel):
-    async def reward(self, reference: str, response_event: DendriteResponseEvent, task: MultiStepReasoningTaskDiscriminator , scoring_queue: list, **kwargs) -> BatchRewardOutput:
+    async def reward(self, reference: str, response_event: DendriteResponseEvent, task: "MultiStepReasoningTaskDiscriminator" , **kwargs) -> BatchRewardOutput:
         completions: list[str] = response_event.completions
         task.original_miner_uid
         rewards: list[float] = []

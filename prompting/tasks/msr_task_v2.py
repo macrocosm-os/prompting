@@ -10,7 +10,6 @@ from prompting.rewards.discriminator import DiscriminatorRewardModel
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningTask, MultiStepReasoningRewardConfig
 from shared.base import Context
 from validator_api.test_time_inference import generate_response
-from prompting.rewards.msr_reward_v2 import MSRv2GeneratorRewardModel
 
 MAX_THINKING_STEPS = 10
 
@@ -22,16 +21,6 @@ def execute_multi_step_reasoning(user_query: str):
     return steps, total_thinking_time
 
 
-class MultiStepReasoningGeneratorRewardConfig(MultiStepReasoningRewardConfig):
-    """The reward config for the generator task is the same as for the normal msr task"""
-    reward_definitions: ClassVar[list[BaseRewardModel]] = [
-        MSRv2GeneratorRewardModel(weight=1),
-    ]
-
-class MultiStepReasoningDiscriminatorRewardConfig(BaseRewardConfig):
-    reward_definitions: ClassVar[list[BaseRewardModel]] = [
-        DiscriminatorRewardModel(weight=1),
-    ]
 
 
 
@@ -39,14 +28,12 @@ class MultiStepReasoningDiscriminatorRewardConfig(BaseRewardConfig):
 class MultiStepReasoningTaskGenerator(MultiStepReasoningTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
-
-    name: ClassVar[str] = "multi_step_reasoning_v2"
+    name: ClassVar[str] = "MultiStepReasoningTaskGenerator"
 
 class MultiStepReasoningTaskDiscriminator(MultiStepReasoningTask):
     name: ClassVar[str] = "multi_step_reasoning_discriminator"
     augmentation_system_prompt: ClassVar[str] = ""
     query: str | None = None
-    query_system_prompt: str = QUERY_SYSTEM_PROMPT
     reference: str | None = None
     original_reference: str | None = None
     miner_response: str | None = None
@@ -74,4 +61,51 @@ class MultiStepReasoningTaskDiscriminator(MultiStepReasoningTask):
         self.reference = self.correct_answer
         return self.reference
 
+########## REWARDS ##########
 
+
+
+from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
+from shared.dendrite import DendriteResponseEvent
+from prompting.rewards.reward import BatchRewardOutput
+from prompting.datasets.msr_v2_dataset import MSRDiscriminatorDataset
+import time
+import numpy as np
+from prompting.tasks.msr_task_v2 import MultiStepReasoningTaskGenerator, MultiStepReasoningTaskDiscriminator
+
+
+
+class MSRv2GeneratorRewardModel(BaseRewardModel):
+    async def reward(self, reference: str, response_event: DendriteResponseEvent, task: MultiStepReasoningTaskGenerator, scoring_queue: list, **kwargs) -> BatchRewardOutput:
+        """Compute ROUGE scores given a completion and reference pair."""
+        completions: list[str] = response_event.completions
+
+        # There should only be one completion
+        for completion, uid in zip(completions, response_event.uids):
+            MSRDiscriminatorDataset.add_entry(miner_response=completion, validator_reference=reference, miner_uid=uid)
+            scoring_queue.append(MultiStepReasoningTaskDiscriminator(
+                dataset_entry=MSRDiscriminatorDataset.get_entry(uid),
+            ))
+        # Check if there is a discriminator task in the scoring queue
+        return BatchRewardOutput(
+            rewards=np.array([]),
+            timings=np.array([]),
+            uids=[],
+        )
+            
+class MSRv2DiscriminatorRewardModel(BaseRewardModel):
+    async def reward(self, reference: str, response_event: DendriteResponseEvent, task: MultiStepReasoningTaskDiscriminator, **kwargs) -> BatchRewardOutput:
+        """Compute ROUGE scores given a completion and reference pair."""
+        completions: list[str] = response_event.completions
+        task.original_reference
+
+class MultiStepReasoningGeneratorRewardConfig(MultiStepReasoningRewardConfig):
+    """The reward config for the generator task is the same as for the normal msr task"""
+    reward_definitions: ClassVar[list[BaseRewardModel]] = [
+        MSRv2GeneratorRewardModel(weight=1),
+    ]
+
+class MultiStepReasoningDiscriminatorRewardConfig(BaseRewardConfig):
+    reward_definitions: ClassVar[list[BaseRewardModel]] = [
+        DiscriminatorRewardModel(weight=1),
+    ]

@@ -154,7 +154,7 @@ async def main():
                 step += 1
 
         except Exception as e:
-            logger.error(f"Main loop error: {e}")
+            logger.exception(f"Main loop error: {e}")
             raise
         finally:
             wandb.teardown()

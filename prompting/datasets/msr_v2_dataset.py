@@ -1,10 +1,10 @@
-from shared.base import BaseDataset, Context
+from shared.base import BaseDataset, Context, DatasetEntry
 from typing import ClassVar
 import random
 
 dataset_entry_queue: list[Context] = []
 
-class MSRDiscriminatorDatasetEntry(BaseModel):
+class MSRDiscriminatorDatasetEntry(DatasetEntry):
     miner_response: str
     validator_reference: str
     miner_uid: int

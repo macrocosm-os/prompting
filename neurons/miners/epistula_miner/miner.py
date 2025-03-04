@@ -1,5 +1,6 @@
 # ruff: noqa: E402
 from shared import settings
+import random
 
 settings.shared_settings = settings.SharedSettings.load(mode="miner")
 shared_settings = settings.shared_settings
@@ -76,11 +77,19 @@ class OpenAIMiner:
 
         return StreamingResponse(word_stream(body, headers), media_type="text/event-stream")
 
+    async def create_discriminator_completion(self, request: Request):
+        async def choose_random():
+            data = {"choices": [{"delta": {"content": random.choice(["A", "B"])}, "index": 0, "finish_reason": None}]}
+            yield f"data: {json.dumps(data)}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(choose_random(), media_type="text/event-stream")
     async def create_chat_completion(self, request: Request):
         data = await request.json()
         headers = request.headers
         if self.llm and request.headers.get("task", None) == "inference":
             return await self.create_inference_completion(request)
+        if request.headers.get("task", None) == "MultiStepReasoningTaskDiscriminator":
+            return await self.create_discriminator_completion(request)
         if request.headers.get("task", None) == "WebRetrievalTask":
             return await self.stream_web_retrieval(data, headers)
         req = self.client.build_request("POST", "chat/completions", json=await self.format_openai_query(request))
