@@ -56,14 +56,14 @@ try:
     TOP_DOMAINS = set(top_domains_df["Domain"].str.lower().values)
 
     # Load past websites
-    if os.path.exists(PAST_WEBSITES_FILE):
+    if os.path.exists(PAST_WEBSITES_FILE) and os.path.getsize(PAST_WEBSITES_FILE) > 0:
         past_websites_df = pd.read_csv(PAST_WEBSITES_FILE)
         past_websites = defaultdict(list)
         # Group by uid and take only the last N_PAST_URLS entries
         for uid, group in past_websites_df.groupby("uid"):
             past_websites[uid] = group["domain"].tolist()[-N_PAST_URLS:]
     else:
-        logger.warning(f"Past websites file {PAST_WEBSITES_FILE} does not exist, creating new dictionary")
+        logger.warning(f"Past websites file {PAST_WEBSITES_FILE} does not exist or empty, creating new dictionary")
         past_websites = defaultdict(list)
 except Exception as e:
     logger.exception(f"Failed to load domains data: {e}")

@@ -348,58 +348,37 @@ tests-mypy = ["mypy (>=1.11.1)", "pytest-mypy-plugins"]
 
 [[package]]
 name = "autoawq"
-version = "0.2.0"
+version = "0.2.8"
 description = "AutoAWQ implements the AWQ algorithm for 4-bit quantization with a 2x speedup during inference."
 optional = true
 python-versions = ">=3.8.0"
 groups = ["main"]
 markers = "extra == \"validator\""
-files = [
-    {file = "autoawq-0.2.0-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:4c9c4db6fbf23cd625a9cb5b5495777555659dc12aa7e0aba733f20c51f10005"},
-    {file = "autoawq-0.2.0-cp310-cp310-win_amd64.whl", hash = "sha256:9cfefc8e8c4d92b9b78f2f1bff61d6bb413138d2ab221029587251344d65007c"},
-    {file = "autoawq-0.2.0-cp311-cp311-manylinux2014_x86_64.whl", hash = "sha256:ee68699fec949c4440374b402558400efe83c359e7f85a5a7979608c5eec0da3"},
-    {file = "autoawq-0.2.0-cp311-cp311-win_amd64.whl", hash = "sha256:4d6080539bb386a5754cc76b5081b112a93df1ee38f4c2f82e2773e9f098470b"},
-    {file = "autoawq-0.2.0-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:74d2c49780aaa7c7ba0fa4e1f196ac2dc4bdceba27e780115e7dfb32f1ba3c0a"},
-    {file = "autoawq-0.2.0-cp38-cp38-win_amd64.whl", hash = "sha256:43651382592e348c8f44bdc6796b9fa6fc5bd398f58908410376f0b7aaa2b3b3"},
-    {file = "autoawq-0.2.0-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:a40c12fc4ddeabec6f04a2179e720e79563bfe29646ddf9c130bce0bcb51a760"},
-    {file = "autoawq-0.2.0-cp39-cp39-win_amd64.whl", hash = "sha256:3c5dd45bcf23d8a0de2d79a04baf65fb2208249babeb729274c97df6218d48ae"},
-]
+files = []
+develop = false
 
 [package.dependencies]
 accelerate = "*"
-autoawq-kernels = "*"
-datasets = "*"
+datasets = ">=2.20"
+huggingface_hub = ">=0.26.5"
 tokenizers = ">=0.12.1"
-torch = ">=2.0.1"
-transformers = ">=4.35.0"
-typing-extensions = ">=4.8.0"
+torch = "*"
+transformers = ">=4.45.0"
+triton = "*"
+typing_extensions = ">=4.8.0"
 zstandard = "*"
 
 [package.extras]
+cpu = ["intel-extension-for-pytorch (>=2.4.0)"]
 dev = ["black", "griffe-typingdoc", "mkdocs-material", "mkdocstrings-python"]
-eval = ["evaluate", "lm-eval (>=0.4.0)", "protobuf", "scipy", "tabulate"]
+eval = ["evaluate", "lm_eval (==0.4.1)", "protobuf", "scipy", "tabulate"]
+kernels = ["autoawq-kernels", "flash-attn (>=2.2.0)"]
 
-[[package]]
-name = "autoawq-kernels"
-version = "0.0.9"
-description = "AutoAWQ Kernels implements the AWQ kernels."
-optional = true
-python-versions = ">=3.8.0"
-groups = ["main"]
-markers = "extra == \"validator\""
-files = [
-    {file = "autoawq_kernels-0.0.9-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:ed8f4d744df21beae445efb1de54061bffc5fccbfefc8ae65c1dc10d08f90052"},
-    {file = "autoawq_kernels-0.0.9-cp310-cp310-win_amd64.whl", hash = "sha256:cd7d3db501068b3a12094a07921d985a57e640725cdda1252d4b135ed6aeaa65"},
-    {file = "autoawq_kernels-0.0.9-cp311-cp311-manylinux2014_x86_64.whl", hash = "sha256:fe800a6538691afaa77abe7c8b2b0a121351843f048d54e11d617d604dcba48f"},
-    {file = "autoawq_kernels-0.0.9-cp311-cp311-win_amd64.whl", hash = "sha256:8c7f2404b3aa448ff77872dd6ba2963ce8b685d8aa73ef65fd1b8bc85d92b17d"},
-    {file = "autoawq_kernels-0.0.9-cp312-cp312-manylinux2014_x86_64.whl", hash = "sha256:4c41a71af1d5a75e52c9833b9c48237b04d3b0eee26d712fc1b074af9135afc8"},
-    {file = "autoawq_kernels-0.0.9-cp312-cp312-win_amd64.whl", hash = "sha256:f259e7c60b11fa0689bb337dd4456319787256cbd2a8e4a491f01b51bb6c43d1"},
-    {file = "autoawq_kernels-0.0.9-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:b6baf039c22deb02f2ae194fdd77551b3c85c8f8a77b749f7caa17dacf986adb"},
-    {file = "autoawq_kernels-0.0.9-cp39-cp39-win_amd64.whl", hash = "sha256:6ad12dd68b0932182678f2f9fbee87452707b81f0e8dad242d23af018358f030"},
-]
-
-[package.dependencies]
-torch = ">=2.5.1"
+[package.source]
+type = "git"
+url = "https://github.com/jiqing-feng/AutoAWQ.git"
+reference = "ae782a99df2f72a2c28764452844cb2d65bd8ffc"
+resolved_reference = "ae782a99df2f72a2c28764452844cb2d65bd8ffc"
 
 [[package]]
 name = "babel"
@@ -6161,7 +6140,7 @@ description = "A language and compiler for custom Deep Learning operations"
 optional = true
 python-versions = "*"
 groups = ["main"]
-markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\" and extra == \"validator\""
+markers = "extra == \"validator\""
 files = [
     {file = "triton-3.1.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b0dd10a925263abbe9fa37dcde67a5e9b2383fc269fdf59f5657cac38c5d1d8"},
     {file = "triton-3.1.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0f34f6e7885d1bf0eaaf7ba875a5f0ce6f3c13ba98f9503651c1e6dc6757ed5c"},
@@ -6944,4 +6923,4 @@ validator = ["accelerate", "angle-emb", "autoawq", "bs4", "datasets", "duckduckg
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10 <3.11"
-content-hash = "a5ab8c52b01171ddf48e09a9b09994d25773431614c91da05b0e281b2d90d264"
+content-hash = "5010601e1a0caa162dfd6fb96f143f5e49de524fcbaf1ca15c4073190bad14fa"
