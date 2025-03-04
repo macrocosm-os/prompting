@@ -56,7 +56,9 @@ try:
         top_domains_df = pd.read_csv(TOP_DOMAINS_FILE)
         TOP_DOMAINS = set(top_domains_df["Domain"].str.lower().values)
     else:
-        logger.warning(f"Top domains file {TOP_DOMAINS_FILE} is empty or does not exist. Setting TOP_DOMAINS to an empty set.")
+        logger.warning(
+            f"Top domains file {TOP_DOMAINS_FILE} is empty or does not exist. Setting TOP_DOMAINS to an empty set."
+        )
         TOP_DOMAINS = set()
 
     # Load past websites
