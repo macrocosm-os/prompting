@@ -8,7 +8,7 @@ from loguru import logger
 
 from prompting.llms.apis.llm_messages import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
-from shared.prompts import get_prompt
+from shared.prompts.test_time_inference import intro_prompt, system_acceptance_prompt, final_answer_prompt
 from shared.timer import Timer
 from validator_api.chat_completion import chat_completion
 
@@ -169,14 +169,14 @@ async def generate_response(
     messages = [
         {
             "role": "system",
-            "content": get_prompt("test_time_inference", "intro_prompt"),
+            "content": intro_prompt(),
         }
     ]
     messages += original_messages
     messages += [
         {
             "role": "assistant",
-            "content": get_prompt("test_time_inference", "system_acceptance_prompt"),
+            "content": system_acceptance_prompt(),
         }
     ]
 
@@ -199,7 +199,7 @@ async def generate_response(
         step_count += 1
         yield steps, None
 
-    final_answer_prompt = get_prompt("test_time_inference", "final_answer_prompt")
+    final_answer_prompt = final_answer_prompt()
 
     messages.append(
         {

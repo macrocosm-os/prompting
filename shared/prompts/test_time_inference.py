@@ -1,6 +1,11 @@
 import textwrap
 
-INTRO_PROMPT = textwrap.dedent(
+def intro_prompt() -> str:
+    """
+    Returns the intro prompt.
+    """
+
+    intro = textwrap.dedent(
     """\
     You are a world-class expert in analytical reasoning and problem-solving. Your task is to break down complex problems through rigorous step-by-step analysis, carefully examining each aspect before moving forward. For each reasoning step:
 
@@ -69,42 +74,49 @@ INTRO_PROMPT = textwrap.dedent(
         "content": "To estimate the number of piano tuners in NYC, we need to break down the problem into core components. Key factors include the total population of NYC, the number of households with pianos, the average number of pianos per household, and the frequency of piano tuning. We should also consider the number of professional piano tuners and their workload.",
         "next_action": "continue"
     }}
-"""
-).strip()
+    """
+    ).strip()
 
+    return intro
 
-SYSTEM_ACCEPTANCE_PROMPT = textwrap.dedent(
+def system_acceptance_prompt() -> str:
+    """
+    Returns the system acceptance prompt.
+    """
+
+    system_acceptance = textwrap.dedent(
     """\
     I understand. I will now analyze the problem systematically, following the structured reasoning process while maintaining high standards of analytical rigor and self-criticism.
-"""
-).strip()
-
-
-FINAL_ANSWER_PROMPT = textwrap.dedent(
-    """\
-    Review your previous reasoning steps and synthesize them into a final answer.
-    Your response should:
-
-    1. Clearly state your final conclusion.
-    2. Summarize the key reasoning and evidence from previous steps.
-    3. Address any remaining uncertainties or alternative perspectives.
-    4. Note any relevant caveats or limitations to your conclusion.
-
-    Ensure the response is concise, well-structured, and avoids unnecessary repetition.
-    Do not include explicit confidence levels or probabilities.
-
-    Format your response as valid JSON:
-    {{
-        "title": "Final Answer",
-        "content": "Your synthesized conclusion and explanation here.",
-        "next_action": "final_answer"
-    }}
     """
-).strip()
+    ).strip()
 
+    return system_acceptance
 
-RESPONSE_FORMATS = {
-    "intro_prompt": INTRO_PROMPT,
-    "system_acceptance_prompt": SYSTEM_ACCEPTANCE_PROMPT,
-    "final_answer_prompt": FINAL_ANSWER_PROMPT,
-}
+def final_answer_prompt() -> str:
+    """
+    Returns the final answer prompt.
+    """
+
+    final_answer = textwrap.dedent(
+        """\
+        Review your previous reasoning steps and synthesize them into a final answer.
+        Your response should:
+
+        1. Clearly state your final conclusion.
+        2. Summarize the key reasoning and evidence from previous steps.
+        3. Address any remaining uncertainties or alternative perspectives.
+        4. Note any relevant caveats or limitations to your conclusion.
+
+        Ensure the response is concise, well-structured, and avoids unnecessary repetition.
+        Do not include explicit confidence levels or probabilities.
+
+        Format your response as valid JSON:
+        {{
+            "title": "Final Answer",
+            "content": "Your synthesized conclusion and explanation here.",
+            "next_action": "final_answer"
+        }}
+        """
+    ).strip()
+
+    return final_answer
