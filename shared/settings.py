@@ -279,8 +279,7 @@ try:
         shared_settings = SharedSettings.load(mode="validator")
     else:
         shared_settings = SharedSettings.load(mode="mock")
-    pass
+    logger.info(f"Shared settings loaded in mode {shared_settings.mode}.")
 except Exception as e:
-    logger.exception(f"Error loading settings: {e}")
+    logger.error(f"Error loading settings: {e}, setting settings to None")
     shared_settings = None
-logger.info("Shared settings loaded.")

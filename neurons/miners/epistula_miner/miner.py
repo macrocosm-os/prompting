@@ -1,7 +1,9 @@
 # ruff: noqa: E402
 from shared import settings
 import random
+from loguru import logger
 
+logger.info("Loading settings as miner")
 settings.shared_settings = settings.SharedSettings.load(mode="miner")
 shared_settings = settings.shared_settings
 
@@ -16,10 +18,9 @@ import uvicorn
 from bittensor.core.axon import FastAPIThreadedServer
 from bittensor.core.extrinsics.serving import serve_extrinsic
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
-from loguru import logger
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
-from web_retrieval import get_websites_with_similarity
+from neurons.miners.epistula_miner.web_retrieval import get_websites_with_similarity
 
 from prompting.llms.hf_llm import ReproducibleHF
 from shared.epistula import verify_signature

@@ -80,12 +80,12 @@ class BaseRewardModel(ABC, BaseModel):
         challenge: str | None = None,
         reward_type: Literal["reward", "penalty"] = "reward",
         task: BaseTextTask | None = None,
-        scoring_queue: list = None,
+        task_queue: list = None,
         **kwargs,
     ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
-        batch_rewards_output: BatchRewardOutput = await self.reward(comparator, response_event, task=task, scoring_queue=scoring_queue, **kwargs)
+        batch_rewards_output: BatchRewardOutput = await self.reward(comparator, response_event, task=task, task_queue=task_queue, **kwargs)
         batch_rewards_time = time.time() - t0
 
         return WeightedRewardEvent(
@@ -145,7 +145,7 @@ class BaseRewardConfig(ABC, BaseModel):
         challenge: str | None = None,
         model_id: str | None = None,
         task: BaseTextTask | None = None,
-        scoring_queue: list = None,
+        task_queue: list = None,
     ) -> list[WeightedRewardEvent]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
@@ -157,7 +157,7 @@ class BaseRewardConfig(ABC, BaseModel):
                     reward_type="reward",
                     model_id=model_id,
                     task=task,
-                    scoring_queue=scoring_queue,
+                    task_queue=task_queue,
                 ),
             )
         return reward_events

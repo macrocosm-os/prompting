@@ -24,12 +24,14 @@ class TaskScorer(AsyncLoopRunner):
     interval: int = 0
     scoring_queue: list | None = None
     reward_events: list | None = None
+    task_queue: list | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def start(self, scoring_queue, reward_events, name: str | None = None):
+    async def start(self, scoring_queue, reward_events, task_queue, name: str | None = None):
         self.scoring_queue = scoring_queue
         self.reward_events = reward_events
+        self.task_queue = task_queue
         return await super().start(name=name)
 
     def add_to_queue(
@@ -82,7 +84,7 @@ class TaskScorer(AsyncLoopRunner):
             reference=scoring_config.task.reference,
             model_id=scoring_config.task.llm_model,
             task=scoring_config.task,
-            scoring_queue=self.scoring_queue,
+            task_queue=self.task_queue,
         )
         self.reward_events.append(reward_events)
 
