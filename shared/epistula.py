@@ -121,11 +121,18 @@ async def query_miners(
     try:
         tasks = []
         for uid in uids:
-            tasks.append(
-                asyncio.create_task(
-                    make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, timeout_seconds, body, uid)
+            try:
+                response = asyncio.wait_for(
+                    asyncio.create_task(
+                        make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, timeout_seconds, body, uid)
+                    ),
+                    timeout=timeout_seconds,
                 )
-            )
+            except asyncio.TimeoutError:
+                logger.error(f"Timeout exceeded while querying miner {uid}")
+                response = Exception(f"Timeout exceeded while querying miner {uid}")
+            tasks.append(response)
+
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Show exceptions from responses
