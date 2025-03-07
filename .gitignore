@@ -15,6 +15,7 @@ prompting/storage/
 # local testing notebooks
 local/
 notebooks/
+dr_logs/
 
 # Distribution / packaging
 .Python

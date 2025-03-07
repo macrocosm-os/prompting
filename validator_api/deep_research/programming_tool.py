@@ -2,6 +2,8 @@ import io
 import contextlib
 import re
 from validator_api.deep_research.shared_resources import client
+from loguru import logger
+
 async def execute_code(code_string):
     """
     Execute a string containing Python code and return the output.
@@ -54,6 +56,7 @@ async def generate_and_execute_code(query, max_attempts=5):
                 Write Python code that does the following:
                 {query}
                 
+                Your code should ALWAYS contain at least one test case/example at the end that shows the code working.
                 Return only the executable Python code without any explanations or markdown formatting. It should NOT be wrapped in any code blocks and should be directly executable.
                 """
                 system_message = "You are a Python programming assistant. Generate only executable Python code without explanations."
@@ -102,16 +105,16 @@ async def generate_and_execute_code(query, max_attempts=5):
             # Check if there was an error
             if "Error executing code:" in execution_output:
                 error_message = execution_output
-                print(f"\n\n\n\nCode Execution Attempt {attempt+1} failed: \n\nORIGINAL CODE:{original_code}\n\nGENERATED CODE:{generated_code}\n\nERROR:{error_message}. Trying again...")
+                logger.warning(f"Code Execution Attempt {attempt+1} failed: \n\nORIGINAL CODE:{original_code}\n\nGENERATED CODE:{generated_code}\n\nERROR:{error_message}. Trying again...")
             else:
                 # No error, code executed successfully
                 success = True
-                print(f"Code executed successfully on attempt {attempt+1}!")
+                logger.info(f"Code executed successfully on attempt {attempt+1}!")
                 break
                 
         except Exception as e:
             error_message = f"Error generating or executing code: {str(e)}"
-            print(f"Attempt {attempt+1} failed with exception: {str(e)}")
+            logger.error(f"Attempt {attempt+1} failed with exception: {str(e)}")
             attempts_log.append({
                 "attempt": attempt + 1,
                 "code": generated_code,

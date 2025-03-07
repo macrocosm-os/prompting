@@ -1,4 +1,5 @@
 from validator_api.deep_research.shared_resources import client
+from loguru import logger
 
 async def reasoning_tool(query: str, context: str = "") -> str:
     """
@@ -33,5 +34,5 @@ Each thinking step should be distinct with a title (What are you thinking about?
         )
         return response.choices[0].message.content
     except Exception as e:
-        print(f"Reasoning error: {e}")
+        logger.error(f"Reasoning error: {e}")
         return f"Error during reasoning: {str(e)}"

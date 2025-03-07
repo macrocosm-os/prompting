@@ -48,7 +48,7 @@ async def execute_tool(tool_request: ToolRequest, query: str, state_context: str
             tool_output=f"Unknown tool: {tool_request.tool_name}"
         )
 
-async def plan_research(state: OrchestratorState) -> dict:
+async def plan_research(state: OrchestratorState, is_final_step: bool = False) -> dict:
     """
     First step: Plan research by creating or updating the todo list based on past work
     """
@@ -59,7 +59,7 @@ async def plan_research(state: OrchestratorState) -> dict:
         history += f"Output: {step['output'][:300]}..." if len(step['output']) > 300 else f"Output: {step['output']}\n"
     
     # Create todo list status
-    todo_status = "\nTODO list:\n"
+    todo_status = "\nCURRENT TODO list:\n"
     if state.todo_list:
         for i, task in enumerate(state.todo_list):
             todo_status += f"{i+1}. [ ] {task}\n"
@@ -123,9 +123,11 @@ Now, let me think through this query carefully and exhaustively...
 
 Based on the current state of research, decide on ONE of the following:
 
-A) Create or update the todo list with specific research tasks.
+A) Create or update the todo list with specific research tasks. Mark all to-do items that have been completed (based on the 'STEPS TAKEN SO FAR' section) as [✓].
 
 B) Provide a final answer if you have completed all tasks and have enough information to respond to the query.
+
+{"IMPORTANT: This is the final step - you MUST provide a final answer synthesizing all research done so far." if is_final_step else ""}
 
 If choosing option A, return your decision as JSON:
 {{"decision": "update_plan", "plan_update": "Your updated research plan here...", "todo_list": ["Task 1", "Task 2", ...], "completed_tasks": ["Task X"]}}
@@ -133,7 +135,7 @@ If choosing option A, return your decision as JSON:
 If choosing option B, return your decision as JSON:
 {{"decision": "final_answer", "plan_summary": "Summary of how the research plan was executed...", "answer": "Your comprehensive answer here..."}}
 
-IMPORTANT: Your todo list should be extensive and ambitious. Challenge yourself to go very deep into the research by:
+IMPORTANT: Your todo list should be have around 5-10 steps initially. Make sure you only extend it if it actually contributes to the research. Challenge yourself to go very deep into the research by:
 1. Looking for conflicting viewpoints and information
 2. Exploring multiple angles and perspectives on the topic
 3. Investigating edge cases and exceptions
@@ -154,6 +156,8 @@ If you choose option B (final_answer), your answer should be exhaustive and well
 6. A conclusion summarizing the findings
 7. Any limitations or considerations for future work
 
+Make sure you do not duplicate any tasks and have everything that has been completed marked as [✓].
+
 Your final answer should be comprehensive, educational, and professionally formatted.
 """
 
@@ -173,6 +177,8 @@ Your final answer should be comprehensive, educational, and professionally forma
         )
         
         result = json.loads(response.choices[0].message.content)
+        logger.debug(f"PLANNER PROMPT: {json_prompt}")
+        logger.debug(f"RESULT FROM PLANNER: {result}")
         
         if result.get("decision") == "update_plan":
             # Update todo list and completed tasks
@@ -190,7 +196,7 @@ Your final answer should be comprehensive, educational, and professionally forma
         return result
     
     except Exception as e:
-        print(f"Planning error: {e}")
+        logger.error(f"Planning error: {e}")
         return {"decision": "error", "error": str(e)}
 
 async def execute_research(state: OrchestratorState) -> list[ToolRequest]:
@@ -280,7 +286,7 @@ Remember you can use multiple tools in parallel for more efficient research.
         ) for tool in result.get("tools", [])]
     
     except Exception as e:
-        print(f"Execution error: {e}")
+        logger.error(f"Execution error: {e}")
         return []
 
 async def deep_research_agent(query: str, max_steps: int = 7) -> OrchestratorState:  # Increased max_steps
@@ -294,16 +300,18 @@ async def deep_research_agent(query: str, max_steps: int = 7) -> OrchestratorSta
         logger.info(f"Starting research step {step+1}/{max_steps}")
         
         # Step 1: Plan research by creating/updating todo list
-        plan_result = await plan_research(state)
+        logger.debug(f"Executed tasks: {len(state.steps_taken)}")
+        is_final_step = step == max_steps - 1
+        plan_result = await plan_research(state, is_final_step)
         
         if plan_result.get("decision") == "final_answer":
             # Include the plan summary in the final answer
             if "plan_summary" in plan_result:
                 plan_summary = f"\n\n## Research Approach\n{plan_result['plan_summary']}\n\n"
-                final_answer = plan_result.get("answer", "Unable to determine final answer.")
+                final_answer = plan_result.get("answer", "")
                 state.current_context = plan_summary + final_answer
             else:
-                state.current_context = plan_result.get("answer", "Unable to determine final answer.")
+                state.current_context = plan_result.get("answer", "")
             logger.info("Research complete - final answer reached")
             return state
         
@@ -335,6 +343,15 @@ async def deep_research_agent(query: str, max_steps: int = 7) -> OrchestratorSta
             state.current_context += f"Results:\n{tool_response.tool_output}\n"
             state.current_context += "="*50 + "\n"
     
-    logger.warning(f"Research reached maximum steps ({max_steps}) without final answer")
+    # Force a final answer if we've reached max steps
+    final_plan_result = await plan_research(state, True)
+    if "plan_summary" in final_plan_result:
+        plan_summary = f"\n\n## Research Approach\n{final_plan_result['plan_summary']}\n\n"
+        final_answer = final_plan_result.get("answer", "")
+        state.current_context = plan_summary + final_answer
+    else:
+        state.current_context = final_plan_result.get("answer", "")
+    
+    logger.info("Research complete after reaching maximum steps")
     return state
 

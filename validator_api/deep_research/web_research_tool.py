@@ -1,10 +1,31 @@
 from validator_api.deep_research.shared_resources import client
 from loguru import logger
 from typing import List
-from duckduckgo_search import DDGS
+from prompting.base.duckduckgo_patch import PatchedDDGS as DDGS
 import trafilatura
+import asyncio
 from validator_api.deep_research.shared_resources import SearchResult
 # ================== Web Search Tool ==================
+async def fetch_and_extract_content(url: str, title: str) -> SearchResult | None:
+    """
+    Fetch and extract content from a URL using Trafilatura
+    """
+    try:
+        downloaded = trafilatura.fetch_url(url)
+        if downloaded:
+            text = trafilatura.extract(downloaded, include_links=True, include_images=True,
+                                     include_tables=True, no_fallback=False)
+            if text:
+                result = SearchResult(
+                    url=url,
+                    title=title,
+                    content=text
+                )
+                logger.info(f"Successfully processed URL: {url}")
+                return result
+    except Exception as e:
+        logger.error(f"Error processing {url}: {e}")
+    return None
 
 async def web_search_tool(query: str, num_results: int = 5) -> List[SearchResult]:
     """
@@ -13,29 +34,19 @@ async def web_search_tool(query: str, num_results: int = 5) -> List[SearchResult
     logger.info(f"Starting web search for: {query}")
     
     try:
-        async with DDGS() as ddgs:
-            search_results = await ddgs.text(query, max_results=num_results)
+        with DDGS() as ddgs:
+            search_results = ddgs.text(query, max_results=num_results)
             logger.debug(f"Found {len(search_results)} search results")
             
-            results = []
-            for result in search_results:
-                url = result['href']
-                try:
-                    downloaded = await trafilatura.fetch_url(url)
-                    if downloaded:
-                        text = await trafilatura.extract(downloaded, include_links=True, include_images=True,
-                                                         include_tables=True, no_fallback=False)
-                        if text:
-                            results.append(SearchResult(
-                                url=url,
-                                title=result['title'],
-                                content=text
-                            ))
-                            logger.info(f"Successfully processed URL: {url}")
-                except Exception as e:
-                    logger.error(f"Error processing {url}: {e}")
-        
-        return results
+            # Create tasks for fetching content from each URL
+            tasks = [
+                fetch_and_extract_content(result['href'], result['title'])
+                for result in search_results
+            ]
+            
+            # Run tasks concurrently and filter out None results
+            results = [r for r in await asyncio.gather(*tasks) if r is not None]
+            return results
     
     except Exception as e:
         logger.error(f"Search error: {e}")
