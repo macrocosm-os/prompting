@@ -82,7 +82,6 @@ class OpenAIMiner:
 
         async def choose_random():
             data = {"choices": [{"delta": {"content": random.choice(["A", "B"])}, "index": 0, "finish_reason": None}]}
-            logger.error(f"Choosing random: {data}")
             yield f"data: {json.dumps(data)}\n\n"
             yield "data: [DONE]\n\n"
 
