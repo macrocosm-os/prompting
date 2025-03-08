@@ -5,9 +5,10 @@ import random
 dataset_entry_queue: list[Context] = []
 
 class MSRDiscriminatorDatasetEntry(DatasetEntry):
-    miner_response: str
+    miner_response: str | None = None
     validator_reference: str
     miner_uid: int
+    source: str | None = None
 
 class MSRDiscriminatorDataset(BaseDataset):
     name: ClassVar[str] = "msr_discriminator"

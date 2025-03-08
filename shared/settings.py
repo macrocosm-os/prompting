@@ -273,13 +273,14 @@ class SharedSettings(BaseSettings):
         logger.info(f"Instantiating dendrite with wallet: {self.WALLET}")
         return bt.dendrite(wallet=self.WALLET)
 
+# shared_settings = SharedSettings.load(mode="mock")
 
-try:
-    if is_cuda_available():
-        shared_settings = SharedSettings.load(mode="validator")
-    else:
-        shared_settings = SharedSettings.load(mode="mock")
-    logger.info(f"Shared settings loaded in mode {shared_settings.mode}.")
-except Exception as e:
-    logger.error(f"Error loading settings: {e}, setting settings to None")
-    shared_settings = None
+# # try:
+#     if is_cuda_available():
+#         shared_settings = SharedSettings.load(mode="validator")
+#     else:
+#         shared_settings = SharedSettings.load(mode="mock")
+#     logger.info(f"Shared settings loaded in mode {shared_settings.mode}.")
+# except Exception as e:
+#     logger.error(f"Error loading settings: {e}, setting settings to None")
+#     shared_settings = None

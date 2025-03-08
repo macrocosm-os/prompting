@@ -39,23 +39,58 @@ class MultiStepReasoningTaskDiscriminator(MultiStepReasoningTask):
     miner_response: str | None = None
     correct_answer: str | None = None
     original_miner_uid: int | None = None
+    generator_task_id: str | None = None  # Track which Generator created this Discriminator
 
-    def make_query(self, dataset_entry: MSRDiscriminatorDatasetEntry):
+    def __init__(self, dataset_entry: MSRDiscriminatorDatasetEntry, generator_task_id: str | None = None, **kwargs):
+        super().__init__(**kwargs)
+        self.dataset_entry = dataset_entry
+        self.generator_task_id = generator_task_id
+        self.make_query(dataset_entry)
+
+    def make_query(self, dataset_entry: MSRDiscriminatorDatasetEntry) -> str:
+        """Creates a query by randomly shuffling the validator reference and miner response.
+        
+        Args:
+            dataset_entry: Dataset entry containing validator reference and miner response
+            
+        Returns:
+            JSON string containing the shuffled options as a query
+            
+        Raises:
+            ValueError: If dataset entry is missing required fields
+        """
+        # Validate input
+        if not dataset_entry.validator_reference:
+            logger.error(f"Dataset entry missing required validator_reference: {dataset_entry.validator_reference}")
+        if not dataset_entry.miner_response:
+            logger.error(f"Dataset entry missing required miner_response: {dataset_entry.miner_response}")
+
+        # Store the original values
+        self.original_reference = dataset_entry.validator_reference
+        self.miner_response = dataset_entry.miner_response
+        self.original_miner_uid = dataset_entry.miner_uid
+        
+        # Create and shuffle options
         options = [self.original_reference, self.miner_response]
         random.shuffle(options)
         option_a, option_b = options
         
         # Track which option is the correct answer
         self.correct_answer = "A" if option_a == self.original_reference else "B"
-        self.original_miner_uid = dataset_entry.miner_uid
         
-        json_question = {
+        # Create query message
+        query_content = {
             "option_a": option_a,
             "option_b": option_b,
         }
-        self.messages = [{"role": "user", "content": json.dumps(json_question)}]
-        self.query = self.messages[-1]["content"]
-        return self.query
+        
+        try:
+            query_json = json.dumps(query_content)
+            self.messages = [{"role": "user", "content": query_json}]
+            self.query = self.messages[-1]["content"]
+            return self.query
+        except (TypeError, ValueError) as e:
+            raise ValueError(f"Failed to create Descriminator JSON query: {str(e)}")
 
     async def make_reference(self, dataset_entry: Context):
         self.reference = self.correct_answer
@@ -82,11 +117,14 @@ class MSRv2GeneratorRewardModel(BaseRewardModel):
 
         # There should only be one completion
         for completion, uid in zip(completions, response_event.uids):
-            MSRDiscriminatorDataset.add_entry(miner_response=completion, validator_reference=reference, miner_uid=uid)
-            task_queue.append(MultiStepReasoningTaskDiscriminator(
-                dataset_entry=MSRDiscriminatorDataset.random(uid),
-            ))
-        # Check if there is a discriminator task in the scoring queue
+            if completion and reference:
+                MSRDiscriminatorDataset.add_entry(miner_response=completion, validator_reference=reference, miner_uid=uid)
+                task_queue.append(MultiStepReasoningTaskDiscriminator(
+                    dataset_entry=MSRDiscriminatorDataset.random(uid),
+                    generator_task_id=task.task_id  # Pass the Generator's task_id
+                ))
+            else:
+                logger.debug(f"Completion or reference is None: {completion} {reference}")
         return BatchRewardOutput(
             rewards=np.array([]),
             timings=np.array([]),

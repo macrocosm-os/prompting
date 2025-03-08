@@ -1,3 +1,6 @@
+from shared import settings
+settings.shared_settings = settings.SharedSettings.load(mode="validator")
+
 import asyncio
 import multiprocessing as mp
 import sys
@@ -12,10 +15,7 @@ from bittensor.core.extrinsics.serving import serve_extrinsic
 from prompting.rewards.scoring import task_scorer
 
 # ruff: noqa: E402
-from shared import settings
 from shared.logging import init_wandb
-
-settings.shared_settings = settings.SharedSettings.load(mode="validator")
 
 
 from prompting.llms.utils import GPUInfo
