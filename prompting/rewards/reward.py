@@ -85,7 +85,9 @@ class BaseRewardModel(ABC, BaseModel):
     ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
-        batch_rewards_output: BatchRewardOutput = await self.reward(comparator, response_event, task=task, task_queue=task_queue, **kwargs)
+        batch_rewards_output: BatchRewardOutput = await self.reward(
+            comparator, response_event, task=task, task_queue=task_queue, **kwargs
+        )
         batch_rewards_time = time.time() - t0
 
         return WeightedRewardEvent(

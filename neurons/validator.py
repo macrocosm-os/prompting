@@ -1,4 +1,5 @@
 from shared import settings
+
 settings.shared_settings = settings.SharedSettings.load(mode="validator")
 
 import asyncio
@@ -12,13 +13,11 @@ import torch
 import wandb
 from bittensor.core.extrinsics.serving import serve_extrinsic
 
+from prompting.llms.utils import GPUInfo
 from prompting.rewards.scoring import task_scorer
 
 # ruff: noqa: E402
 from shared.logging import init_wandb
-
-
-from prompting.llms.utils import GPUInfo
 
 # Add a handler to write logs to a file
 loguru.logger.add("logfile.log", rotation="1000 MB", retention="10 days", level="DEBUG")

@@ -18,7 +18,7 @@ from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
-from shared.misc import cached_property_with_expiration, is_cuda_available
+from shared.misc import cached_property_with_expiration
 
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -272,6 +272,7 @@ class SharedSettings(BaseSettings):
     def DENDRITE(self) -> bt.dendrite:
         logger.info(f"Instantiating dendrite with wallet: {self.WALLET}")
         return bt.dendrite(wallet=self.WALLET)
+
 
 # shared_settings = SharedSettings.load(mode="mock")
 
