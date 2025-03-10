@@ -135,13 +135,6 @@ async def query_miners(
 
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Show exceptions from responses
-        exceptions = [resp for resp in responses if isinstance(resp, Exception)]
-        if exceptions:
-            for exc in exceptions:
-                logger.debug(f"Error in make_openai_query: {exc}")
-
-        # 'responses' is a list of SynapseStreamResult objects
         results = []
         for response, uid in zip(responses, uids):
             if isinstance(response, Exception):

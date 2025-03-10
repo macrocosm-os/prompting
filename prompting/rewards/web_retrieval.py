@@ -135,14 +135,10 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             if domain in TOP_DOMAINS:
                 # if the domain is in the top 100k, we allow 10 occurrences in the last 200 URLs before penalising
                 discount_factor *= 1.0 / (max(1, domain_count - 10))
-                logger.debug(f"Domain {domain} is in top 100k domains, not applying penalty")
             else:
                 # Count how many times this domain has been used by this miner
                 discount_factor *= 1.0 / max(1, domain_count)
-                if domain in past_websites[uid]:
-                    logger.debug(
-                        f"Already used domain {domain} for this UID, applying ( discount ) factor {discount_factor}"
-                    )
+
             _append_to_past_websites(uid, domain)
 
             # Content scraped from the URL provided in the completion.
