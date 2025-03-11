@@ -22,6 +22,7 @@ from .web_retrieval import get_websites_with_similarity
 
 from prompting.llms.hf_llm import ReproducibleHF
 from shared.epistula import verify_signature
+import openai
 
 MODEL_ID: str = "gpt-3.5-turbo"
 NEURON_MAX_TOKENS: int = 256
@@ -34,7 +35,7 @@ SHOULD_SERVE_LLM: bool = False
 LOCAL_MODEL_ID = "casperhansen/llama-3-8b-instruct-awq"
 
 
-class OpenAIMiner:
+class CompetitiveMiner:
     def __init__(self):
         self.should_exit = False
         self.client = httpx.AsyncClient(
@@ -43,6 +44,11 @@ class OpenAIMiner:
                 "Authorization": f"Bearer {shared_settings.OPENAI_API_KEY}",
                 "Content-Type": "application/json",
             },
+        )
+        # Initialize local LLM client for inference
+        self.local_client = openai.OpenAI(
+            base_url="http://localhost:8000/v1",
+            api_key="dummy"
         )
         if SHOULD_SERVE_LLM:
             self.llm = ReproducibleHF(model_id=LOCAL_MODEL_ID)
@@ -89,18 +95,31 @@ class OpenAIMiner:
 
     async def create_inference_completion(self, request: Request):
         async def word_stream():
-            inference = await self.run_inference(request)
-            words = inference.split()
-            print(words)
-            for word in words:
-                # Simulate the OpenAI streaming response format
-                data = {"choices": [{"delta": {"content": word + " "}, "index": 0, "finish_reason": None}]}
+            try:
+                data = await request.json()
+                completion = self.local_client.chat.completions.create(
+                    model=LOCAL_MODEL_ID,
+                    messages=data.get("messages"),
+                    temperature=data.get("sampling_parameters", {}).get("temperature", 0.7),
+                    max_tokens=data.get("sampling_parameters", {}).get("max_tokens", 100),
+                    stream=True
+                )
+                
+                for chunk in completion:
+                    if chunk.choices[0].delta.content is not None:
+                        data = {"choices": [{"delta": {"content": chunk.choices[0].delta.content}, "index": 0, "finish_reason": None}]}
+                        yield f"data: {json.dumps(data)}\n\n"
+                        await asyncio.sleep(0.1)
+                
+                # Indicate the end of the stream
+                data = {"choices": [{"delta": {}, "index": 0, "finish_reason": "stop"}]}
                 yield f"data: {json.dumps(data)}\n\n"
-                await asyncio.sleep(0.1)  # Simulate a delay between words
-            # Indicate the end of the stream
-            data = {"choices": [{"delta": {}, "index": 0, "finish_reason": "stop"}]}
-            yield f"data: {json.dumps(data)}\n\n"
-            yield "data: [DONE]\n\n"
+                yield "data: [DONE]\n\n"
+            except Exception as e:
+                logger.error(f"Error in inference completion: {str(e)}")
+                error_data = {"choices": [{"delta": {"content": str(e)}, "index": 0, "finish_reason": "error"}]}
+                yield f"data: {json.dumps(error_data)}\n\n"
+                yield "data: [DONE]\n\n"
 
         return StreamingResponse(word_stream(), media_type="text/event-stream")
 
@@ -226,6 +245,6 @@ class OpenAIMiner:
 
 
 if __name__ == "__main__":
-    miner = OpenAIMiner()
+    miner = CompetitiveMiner()
     miner.run()
     logger.warning("Ending miner...")

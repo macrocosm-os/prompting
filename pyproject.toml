@@ -147,7 +147,7 @@ pillow = "^11.0.0"
 torch = { version = "2.5.1", optional = true }
 # TODO: Switch to original repo when this PR to fix setup gets merged: https://github.com/casper-hansen/AutoAWQ/pull/715
 autoawq = { git = "https://github.com/jiqing-feng/AutoAWQ.git", rev = "ae782a99df2f72a2c28764452844cb2d65bd8ffc", optional = true }
-transformers = { version = "<=4.47.1", optional = true }
+transformers = "4.48.3"
 torchvision = { version = ">=0.20.1", optional = true }
 accelerate = { version = ">=1.1.1", optional = true }
 angle-emb = { version = "0.4.3", optional = true }
@@ -165,6 +165,7 @@ nltk = { version = ">=3.8.1", optional = true }
 thefuzz = { version = ">=0.22.1", optional = true }
 wandb = { version = ">=0.19.4", optional = true }
 substrate-interface = "^1.7.11"
+peft = "0.14.0"
 
 [tool.poetry.extras]
 validator = [
