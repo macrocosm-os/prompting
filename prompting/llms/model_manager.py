@@ -65,9 +65,9 @@ class ModelManager(BaseModel):
             GPUInfo.log_gpu_info()
 
             model = ReproducibleHF(
-                model=model_config.llm_model_id,
-                gpu_memory_utilization=model_config.min_ram / GPUInfo.free_memory,
-                max_model_len=settings.shared_settings.LLM_MAX_MODEL_LEN,
+                model_id=model_config.llm_model_id,
+                device=settings.NEURON_DEVICE,
+                sampling_params=settings.SAMPLING_PARAMS,
             )
 
             self.active_models[model_config] = model
