@@ -66,7 +66,7 @@ try:
         logger.warning(f"Past websites file {PAST_WEBSITES_FILE} does not exist or empty, creating new dictionary")
         past_websites = defaultdict(list)
 except Exception as e:
-    logger.exception(f"Failed to load domains data: {e}")
+    logger.error(f"Failed to load domains data: {e}")
     TOP_DOMAINS = set()
     past_websites = defaultdict(list)
 
