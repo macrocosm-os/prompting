@@ -7,11 +7,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, p
 
 class ReproducibleHF:
     def __init__(
-            self,
-            model_id: str = "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
-            device: str = "cuda:0",
-            sampling_params: dict[str, str | float | int | bool] | None = None,
-        ):
+        self,
+        model_id: str = "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
+        device: str = "cuda:0",
+        sampling_params: dict[str, str | float | int | bool] | None = None,
+    ):
         """Deterministic HuggingFace model."""
         self._device = device
         self.sampling_params = {} if sampling_params is None else sampling_params
@@ -30,11 +30,11 @@ class ReproducibleHF:
 
     @torch.inference_mode()
     def generate(
-            self,
-            messages: list[str] | list[dict[str, str]],
-            sampling_params: dict[str, str | float | int | bool] | None = None,
-            seed: int | None = None,
-        ) -> str:
+        self,
+        messages: list[str] | list[dict[str, str]],
+        sampling_params: dict[str, str | float | int | bool] | None = None,
+        seed: int | None = None,
+    ) -> str:
         """Generate text with optimized performance."""
         self.set_random_seeds(seed)
 
