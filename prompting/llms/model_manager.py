@@ -66,8 +66,8 @@ class ModelManager(BaseModel):
 
             model = ReproducibleHF(
                 model_id=model_config.llm_model_id,
-                device=settings.NEURON_DEVICE,
-                sampling_params=settings.SAMPLING_PARAMS,
+                device=settings.shared_settings.NEURON_DEVICE,
+                sampling_params=settings.shared_settings.SAMPLING_PARAMS,
             )
 
             self.active_models[model_config] = model
