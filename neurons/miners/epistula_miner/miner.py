@@ -45,7 +45,11 @@ class OpenAIMiner:
             },
         )
         if SHOULD_SERVE_LLM:
-            self.llm = ReproducibleHF(model_id=LOCAL_MODEL_ID)
+            self.llm = ReproducibleHF(
+                model_id=LOCAL_MODEL_ID,
+                device=settings.NEURON_DEVICE,
+                sampling_params=settings.SAMPLING_PARAMS,
+            )
         else:
             self.llm = None
 
