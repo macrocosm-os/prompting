@@ -6,7 +6,7 @@ from loguru import logger
 from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
-from prompting.tasks.qa import WikiQuestionAnsweringTask
+from prompting.tasks.qa import WebQuestionAnsweringTask
 from shared.base import Context
 from validator_api.test_time_inference import generate_response
 
@@ -71,7 +71,7 @@ SAMPLE_SYSTEM_PROMPTS = [
 ]
 
 
-class MultiStepReasoningTask(WikiQuestionAnsweringTask):
+class MultiStepReasoningTask(WebQuestionAnsweringTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
 
