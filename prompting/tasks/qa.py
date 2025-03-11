@@ -46,6 +46,7 @@ class QARewardConfig(BaseRewardConfig):
     ]
     penalty_definition: ClassVar[list[BaseRewardModel]] = [RougeRewardModel(weight=0.5)]
 
+
 class WebQuestionAnsweringTask(BaseTextTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
