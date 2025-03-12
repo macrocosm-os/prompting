@@ -47,24 +47,6 @@ class MSRv2GeneratorRewardModel(BaseRewardModel):
         )
 
 
-class MSRv2DiscriminatorRewardModel(BaseRewardModel):
-    async def reward(
-        self, reference: str, response_event: DendriteResponseEvent, task: MultiStepReasoningTaskDiscriminator, **kwargs
-    ) -> BatchRewardOutput:
-        """
-        Compute ROUGE scores given a completion and reference pair.
-
-        TODO: This needs to be implemented
-        """
-        # completions: list[str] = response_event.completions
-        task.original_reference = reference
-        return BatchRewardOutput(
-            rewards=np.array([]),
-            timings=np.array([]),
-            uids=[],
-        )
-
-
 class MultiStepReasoningGeneratorRewardConfig(MultiStepReasoningRewardConfig):
     """The reward config for the generator task is the same as for the normal msr task"""
 
