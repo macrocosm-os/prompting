@@ -54,13 +54,13 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         asyncio.create_task(task_sender.start(task_queue, scoring_queue))
 
         logger.info("Starting TaskLoop...")
-        asyncio.create_task(task_loop.start(task_queue, scoring_queue, simultaneous_loops=2))
+        asyncio.create_task(task_loop.start(task_queue, scoring_queue, simultaneous_loops=1))
         # -------------------------------------------------
 
         logger.info("Starting ModelScheduler...")
         asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
         logger.info("Starting TaskScorer...")
-        asyncio.create_task(task_scorer.start(scoring_queue, reward_events, simultaneous_loops=5), name="TaskScorer"),
+        asyncio.create_task(task_scorer.start(scoring_queue, reward_events, simultaneous_loops=1), name="TaskScorer"),
         logger.info("Starting WeightSetter...")
         asyncio.create_task(weight_setter.start(reward_events))
 

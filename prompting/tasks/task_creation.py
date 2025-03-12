@@ -10,6 +10,7 @@ from shared import settings
 
 # from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
+from shared.timer import Timer
 
 shared_settings = settings.shared_settings
 
@@ -58,10 +59,11 @@ class TaskLoop(AsyncLoopRunner):
                 logger.warning(f"Dataset for task {task.__class__.__name__} returned None. Skipping step.")
                 return None
 
-            # Generate the query and reference for the task
-            if not task.query:
-                logger.debug(f"Generating query for task: {task.__class__.__name__}.")
-                task.make_query(dataset_entry=dataset_entry)
+            # Generate the query for the task
+            with Timer(label=f"Generating query for task: {task.__class__.__name__}") as timer:
+                if not task.query:
+                    logger.debug(f"Generating query for task: {task.__class__.__name__}.")
+                    task.make_query(dataset_entry=dataset_entry)
                 logger.debug(f"Generated Messages: {task.task_messages}")
 
             logger.debug(f"Appending task: {task.__class__.__name__} to task queue.")

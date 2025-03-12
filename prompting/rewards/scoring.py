@@ -12,6 +12,7 @@ from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.logging import RewardLoggingEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
+from shared.timer import Timer
 
 
 class TaskScorer(AsyncLoopRunner):
@@ -76,13 +77,14 @@ class TaskScorer(AsyncLoopRunner):
 
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
-        reward_events = await reward_pipeline.apply(
-            response_event=scoring_config.response,
-            challenge=scoring_config.task.query,
-            reference=scoring_config.task.reference,
-            model_id=scoring_config.task.llm_model,
-            task=scoring_config.task,
-        )
+        with Timer(label=f"Scoring {scoring_config.task.__class__.__name__}") as timer:
+            reward_events = await reward_pipeline.apply(
+                response_event=scoring_config.response,
+                challenge=scoring_config.task.query,
+                reference=scoring_config.task.reference,
+                model_id=scoring_config.task.llm_model,
+                task=scoring_config.task,
+            )
         self.reward_events.append(reward_events)
 
         # TODO: Remove this once we have a better way to handle organic tasks

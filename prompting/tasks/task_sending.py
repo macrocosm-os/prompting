@@ -145,7 +145,7 @@ class TaskSender(AsyncLoopRunner):
             task = self.task_queue.pop(0)
 
             # send the task to the miners and collect the responses
-            with Timer() as timer:
+            with Timer(label=f"Sending {task.__class__.__name__}") as timer:
                 response_event = await collect_responses(task=task)
             if response_event is None:
                 return
