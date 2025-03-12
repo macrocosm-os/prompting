@@ -22,7 +22,7 @@ class CompletionsRequest(BaseModel):
         example=42,
     )
     task: Optional[str] = Field(
-        default=None, description="Task identifier to choose the inference type.", example="InferenceTask"
+        default="InferenceTask", description="Task identifier to choose the inference type.", example="InferenceTask"
     )
     model: Optional[str] = Field(
         default=None,
