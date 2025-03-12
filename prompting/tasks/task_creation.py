@@ -24,10 +24,10 @@ class TaskLoop(AsyncLoopRunner):
     scoring_queue: list | None = []
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def start(self, task_queue, scoring_queue):
+    async def start(self, task_queue, scoring_queue, **kwargs):
         self.task_queue = task_queue
         self.scoring_queue = scoring_queue
-        await super().start()
+        await super().start(**kwargs)
 
     async def run_step(self):
         if len(self.task_queue) > shared_settings.TASK_QUEUE_LENGTH_THRESHOLD:

@@ -86,13 +86,13 @@ class TaskSender(AsyncLoopRunner):
     class Config:
         arbitrary_types_allowed = True
 
-    async def start(self, task_queue, scoring_queue):
+    async def start(self, task_queue, scoring_queue, **kwargs):
         self.task_queue = task_queue
         self.scoring_queue = scoring_queue
 
         # shared_settings is not initialised inside this process, meaning it cannot access any non-constants from here
         self.subtensor = bt.subtensor(network=shared_settings.SUBTENSOR_NETWORK)
-        return await super().start()
+        return await super().start(**kwargs)
 
     @property
     def block(self):

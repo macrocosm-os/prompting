@@ -2,6 +2,7 @@ import asyncio
 import datetime
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from typing import List
 
 import aiohttp
 from loguru import logger
@@ -17,6 +18,7 @@ class AsyncLoopRunner(BaseModel, ABC):
     time_server_url: str = "http://worldtimeapi.org/api/ip"
     name: str | None = None
     step: int = 0
+    _tasks: List[asyncio.Task] = []
 
     @model_validator(mode="after")
     def validate_name(self):
@@ -89,20 +91,33 @@ class AsyncLoopRunner(BaseModel, ABC):
                 logger.error(f"Fatal error in loop: {e}")
         self.running = False
 
-    async def start(self, name: str | None = None):
-        """Start the loop."""
+    async def start(self, name: str | None = None, simultaneous_loops: int = 1, **kwargs):
+        """Start the loop with optional multiple simultaneous instances.
+        
+        Args:
+            name: Optional name for the loop tasks
+            simultaneous_loops: Number of simultaneous loop instances to run (default: 1)
+        """
         if self.running:
             logger.warning("Loop is already running.")
             return
+        
         self.running = True
-        self._task = asyncio.create_task(self.run_loop(), name=name)
+        self._tasks = []
+        
+        for i in range(simultaneous_loops):
+            task_name = f"{name}_{i}" if name else f"{self.name}_{i}"
+            task = asyncio.create_task(self.run_loop(), name=task_name)
+            self._tasks.append(task)
 
     async def stop(self):
-        """Stop the loop."""
+        """Stop all running loops."""
         self.running = False
-        if self._task:
-            self._task.cancel()
+        if self._tasks:
+            for task in self._tasks:
+                task.cancel()
             try:
-                await self._task
+                await asyncio.gather(*self._tasks, return_exceptions=True)
             except asyncio.CancelledError:
-                logger.debug("Loop task was cancelled.")
+                logger.debug("Loop tasks were cancelled.")
+        self._tasks = []

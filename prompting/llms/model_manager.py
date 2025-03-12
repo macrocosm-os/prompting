@@ -158,9 +158,9 @@ class AsyncModelScheduler(AsyncLoopRunner):
     interval: int = 14400
     scoring_queue: list | None = None
 
-    async def start(self, scoring_queue: list, name: str | None = None):
+    async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
         self.scoring_queue = scoring_queue
-        return await super().start(name=name)
+        return await super().start(name=name, **kwargs)
 
     async def initialise_loop(self):
         model_manager.load_always_active_models()
