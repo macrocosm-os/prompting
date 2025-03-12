@@ -64,6 +64,7 @@ def validate_api_key(
 
     raise HTTPException(status_code=403, detail="Missing API key")
 
+
 @router.post("/create-api-key/")
 def create_api_key(rate_limit: int, admin_key: str = Depends(validate_admin_key)):
     """Creates a new API key with a specified rate limit."""
