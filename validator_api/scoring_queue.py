@@ -42,6 +42,7 @@ class ScoringQueue(AsyncLoopRunner):
 
     async def run_step(self):
         """Perform organic scoring: pop queued payload, forward to the validator API."""
+        logger.debug("Running scoring step")
         async with self._scoring_lock:
             if not self._scoring_queue:
                 return
@@ -57,6 +58,11 @@ class ScoringQueue(AsyncLoopRunner):
         except Exception as e:
             logger.exception(f"Could not find available validator scoring endpoint: {e}")
         try:
+            if hasattr(payload, "to_dict"):
+                payload = payload.to_dict()
+            elif isinstance(payload, BaseModel):
+                payload = payload.model_dump()
+
             timeout = httpx.Timeout(timeout=120.0, connect=60.0, read=30.0, write=30.0, pool=5.0)
             # Add required headers for signature verification
 
@@ -74,6 +80,8 @@ class ScoringQueue(AsyncLoopRunner):
                     # Raise an exception so that the retry logic in the except block handles it.
                     raise Exception(f"Non-200 response: {response.status_code} for uids {uids}")
                 logger.debug(f"Forwarding response completed with status {response.status_code}")
+        except httpx.ConnectError as e:
+            logger.warning(f"Couldn't connect to validator {url} for Scoring {uids}. Exception: {e}")
         except Exception as e:
             if scoring_payload.retries < self.max_scoring_retries:
                 scoring_payload.retries += 1
@@ -93,7 +101,7 @@ class ScoringQueue(AsyncLoopRunner):
             # logger.debug(f"Skipping forwarding for non-inference/web retrieval task: {body.get('task')}")
             return
 
-        uids = [int(u) for u in uids]
+        uids = list(map(int, uids))
         chunk_dict = {str(u): c for u, c in zip(uids, chunks)}
         if timings:
             timing_dict = {str(u): t for u, t in zip(uids, timings)}

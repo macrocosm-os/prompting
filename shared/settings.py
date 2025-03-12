@@ -125,7 +125,7 @@ class SharedSettings(BaseSettings):
     )
     TEST_MINER_IDS: list[int] = Field([], env="TEST_MINER_IDS")
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
-    MAX_ALLOWED_VRAM_GB: int = Field(62, env="MAX_ALLOWED_VRAM_GB")
+    MAX_ALLOWED_VRAM_GB: float = Field(62, env="MAX_ALLOWED_VRAM_GB")
     LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
     PROXY_URL: Optional[str] = Field(None, env="PROXY_URL")
     LLM_MODEL: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")

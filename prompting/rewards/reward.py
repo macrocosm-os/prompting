@@ -69,10 +69,10 @@ class BaseRewardModel(ABC, BaseModel):
     weight: float = 1.0
 
     @abstractmethod
-    def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
+    async def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         raise NotImplementedError("You must implement the reward method")
 
-    def apply(
+    async def apply(
         self,
         response_event: DendriteResponseEvent,
         reference: str | None = None,
@@ -83,7 +83,7 @@ class BaseRewardModel(ABC, BaseModel):
     ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
-        batch_rewards_output: BatchRewardOutput = self.reward(comparator, response_event, task=task, **kwargs)
+        batch_rewards_output: BatchRewardOutput = await self.reward(comparator, response_event, task=task, **kwargs)
         batch_rewards_time = time.time() - t0
 
         return WeightedRewardEvent(
@@ -136,7 +136,7 @@ class BaseRewardConfig(ABC, BaseModel):
         return cls.sum_rewards(reward_events)
 
     @classmethod
-    def apply(
+    async def apply(
         cls,
         response_event: DendriteResponseEvent,
         reference: str,
@@ -147,7 +147,7 @@ class BaseRewardConfig(ABC, BaseModel):
         reward_events = []
         for weighted_reward in cls.reward_definitions:
             reward_events.append(
-                weighted_reward.apply(
+                await weighted_reward.apply(
                     reference=reference,
                     response_event=response_event,
                     challenge=challenge,
