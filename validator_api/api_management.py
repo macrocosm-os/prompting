@@ -39,12 +39,30 @@ def validate_admin_key(admin_key: str = Header(...)):
         raise HTTPException(status_code=403, detail="Invalid admin key")
 
 
-# Dependency to validate API keys
-def validate_api_key(api_key: str = Header(...)):
-    if api_key not in _keys:
-        raise HTTPException(status_code=403, detail="Invalid API key")
-    return _keys[api_key]
+def validate_api_key(
+    api_key: str | None = Header(None),
+    authorization: str | None = Header(None),
+):
+    """
+    1) If 'api_key' header exists (the old style), validate it.
+    2) Else, if 'Authorization' header exists and starts with Bearer, extract token and validate.
+    3) Otherwise, raise a 403.
+    """
 
+    if api_key:
+        if api_key not in _keys:
+            raise HTTPException(status_code=403, detail="Invalid API key")
+        return _keys[api_key]
+
+    if authorization:
+        scheme, _, token = authorization.partition(" ")
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=403, detail="Invalid authorization scheme")
+        if token not in _keys:
+            raise HTTPException(status_code=403, detail="Invalid API key")
+        return _keys[token]
+
+    raise HTTPException(status_code=403, detail="Missing API key")
 
 @router.post("/create-api-key/")
 def create_api_key(rate_limit: int, admin_key: str = Depends(validate_admin_key)):
