@@ -46,6 +46,11 @@ class CompletionsRequest(BaseModel):
             "do_sample": True,
         },
     )
+    inference_mode: Optional[str] = Field(
+        default=None,
+        description="Inference mode to use for the task.",
+        example="Reasoning-Fast",
+    )
     json_format: bool = Field(default=False, description="Enable JSON format for the response.", example=True)
 
 
