@@ -22,7 +22,7 @@ class CompletionsRequest(BaseModel):
         example=42,
     )
     task: Optional[str] = Field(
-        default=None, description="Task identifier to choose the inference type.", example="InferenceTask"
+        default="InferenceTask", description="Task identifier to choose the inference type.", example="InferenceTask"
     )
     model: Optional[str] = Field(
         default=None,
@@ -36,7 +36,13 @@ class CompletionsRequest(BaseModel):
         default=False, description="Enable mixture of miners mode that combines responses from multiple miners."
     )
     sampling_parameters: Optional[Dict[str, Any]] = Field(
-        default=None,
+        default={
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "top_k": 50,
+            "max_new_tokens": 1024,
+            "do_sample": True,
+        },
         description="Parameters to control text generation, such as temperature, top_p, etc.",
         example={
             "temperature": 0.7,
@@ -45,6 +51,11 @@ class CompletionsRequest(BaseModel):
             "max_new_tokens": 512,
             "do_sample": True,
         },
+    )
+    inference_mode: Optional[str] = Field(
+        default=None,
+        description="Inference mode to use for the task.",
+        example="Reasoning-Fast",
     )
     json_format: bool = Field(default=False, description="Enable JSON format for the response.", example=True)
 
