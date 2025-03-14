@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import ClassVar, List, Union
 
 import numpy as np
 from loguru import logger
@@ -18,20 +18,31 @@ class ModelConfig(BaseModel):
 
 
 class ModelZoo:
-    # Currently, we are only using one single model - the one the validator is running
-    models_configs: ClassVar[list[ModelConfig]] = [
-        ModelConfig(
-            llm_model_id=settings.shared_settings.LLM_MODEL,
-            reward=1,
-            min_ram=settings.shared_settings.MAX_ALLOWED_VRAM_GB,
-        ),
-    ]
-
-    # Code below can be uncommended for testing purposes and demonstrates how we rotate multiple LLMs in the future
-    # models_configs: ClassVar[list[ModelConfig]] = [
-    # ModelConfig(model_id="casperhansen/mistral-nemo-instruct-2407-awq", reward=0.1, min_ram=24),
-    # ModelConfig(model_id="casperhansen/qwen2-0.5b-instruct-awq", reward=0.1, min_ram=10),
-    # ]
+    # Dynamically create model configs from the list of models in settings
+    models_configs: ClassVar[list[ModelConfig]] = []
+    
+    @classmethod
+    def _initialize_models(cls):
+        # Clear existing models
+        cls.models_configs = []
+        
+        # Handle both string and list configurations
+        models = settings.shared_settings.LLM_MODEL
+        if isinstance(models, str):
+            models = [models]
+            
+        # Add each model from settings to the configs
+        for model in models:
+            cls.models_configs.append(
+                ModelConfig(
+                    llm_model_id=model,
+                    reward=1/len(models),
+                    min_ram=settings.shared_settings.MAX_ALLOWED_VRAM_GB,
+                )
+            )
+    
+    # Initialize models when module is loaded
+    _initialize_models()
 
     @classmethod
     def get_all_models(cls) -> list[str]:
