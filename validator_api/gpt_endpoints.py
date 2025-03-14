@@ -20,7 +20,7 @@ from validator_api.chat_completion import chat_completion
 from validator_api.mixture_of_miners import mixture_of_miners
 from validator_api.serializers import (
     CompletionsRequest,
-    TestTimeInferenceRequest,
+    InferenceRequest,
     WebRetrievalRequest,
     WebRetrievalResponse,
     WebSearchResult,
@@ -104,7 +104,7 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
             raise HTTPException(status_code=500, detail="No available miners")
 
         if body.get("test_time_inference", False) or body.get("inference_mode", None) == "Chain-of-Thought":
-            test_time_request = TestTimeInferenceRequest(
+            test_time_request = InferenceRequest(
                 messages=request.messages,
                 model=request.model,
                 uids=uids if uids else None,
@@ -232,7 +232,8 @@ async def web_retrieval(
     return WebRetrievalResponse(results=unique_results)
 
 
-async def test_time_inference(request: TestTimeInferenceRequest):
+@router.post("/test_time_inference")
+async def test_time_inference(request: InferenceRequest):
     """
     Test time inference endpoint that provides step-by-step reasoning.
 
