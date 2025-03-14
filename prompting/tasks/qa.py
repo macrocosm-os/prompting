@@ -1,5 +1,6 @@
 from typing import ClassVar
 
+from prompting.datasets.random_website import DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel
@@ -80,12 +81,12 @@ class WebQuestionAnsweringTask(BaseTextTask):
     query: str | None = None
     reference: str | None = None
 
-    def make_query(self, dataset_entry: Context):
+    def make_query(self, dataset_entry: DDGDatasetEntry):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.website_content)
         self.query = self.generate_query(messages=[query_prompt])
         return self.query
 
-    async def make_reference(self, dataset_entry: Context):
+    async def make_reference(self, dataset_entry: DDGDatasetEntry):
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.website_content, question=self.query)
         self.reference = self.generate_reference(messages=[{"role": "user", "content": reference_prompt}])
         return self.reference

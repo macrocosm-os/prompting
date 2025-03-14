@@ -18,10 +18,10 @@ class DatasetEntry(BaseModel):
 
 
 class ChatEntry(DatasetEntry):
-    messages: list[dict]
+    messages: list[dict[str, str]]
     organic: bool
     source: str | None = None
-    query: str | None = None
+    query: dict[str, str] | None = None
 
     @model_validator(mode="after")
     def check_query(self) -> "ChatEntry":

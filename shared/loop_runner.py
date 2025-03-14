@@ -65,8 +65,7 @@ class AsyncLoopRunner(BaseModel, ABC):
             next_run = last_run_time + timedelta(seconds=self.interval)
 
         wait_time = (next_run - current_time).total_seconds()
-        if wait_time > 0:
-            await asyncio.sleep(wait_time)
+        await asyncio.sleep(max(0.01, wait_time))
         return next_run
 
     async def run_loop(self):

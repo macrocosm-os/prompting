@@ -39,7 +39,7 @@ class WebRetrievalTask(BaseTextTask):
     augmentation_system_prompt: ClassVar[str] = ""
     query_system_prompt: ClassVar[Optional[str]] = QUERY_SYSTEM_PROMPT
     target_results: int = Field(default_factory=lambda: random.randint(1, 10))
-    timeout: int = Field(default_factory=lambda: random.randint(3, 20))
+    timeout: int = Field(default_factory=lambda: random.randint(5, 20))
 
     def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
         self.query = self.generate_query(

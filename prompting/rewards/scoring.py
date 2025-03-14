@@ -21,7 +21,7 @@ class TaskScorer(AsyncLoopRunner):
 
     is_running: bool = False
     thread: threading.Thread = None
-    interval: int = 10
+    interval: int = 0
     scoring_queue: list | None = None
     reward_events: list | None = None
 
@@ -76,7 +76,7 @@ class TaskScorer(AsyncLoopRunner):
 
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
-        reward_events = reward_pipeline.apply(
+        reward_events = await reward_pipeline.apply(
             response_event=scoring_config.response,
             challenge=scoring_config.task.query,
             reference=scoring_config.task.reference,

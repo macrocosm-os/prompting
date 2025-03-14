@@ -5,7 +5,7 @@ from shared.dendrite import DendriteResponseEvent
 
 
 class InferenceRewardModel(BaseRewardModel):
-    def reward(
+    async def reward(
         self,
         reference: str,
         response_event: DendriteResponseEvent,
@@ -14,5 +14,5 @@ class InferenceRewardModel(BaseRewardModel):
     ) -> BatchRewardOutput:
         """Gives an exact reward of 1 if the response matches the reference, 0 otherwise"""
         if model_id:
-            return ExactMatchRewardModel().reward(reference, response_event)
-        return RelevanceRewardModel().reward(reference, response_event)
+            return await ExactMatchRewardModel().reward(reference, response_event)
+        return await RelevanceRewardModel().reward(reference, response_event)

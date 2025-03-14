@@ -33,7 +33,7 @@ test_cases = [
 
 
 @pytest.mark.parametrize("response, reference, expected", test_cases)
-def test_logit_scoring(response, reference, expected):
+async def test_logit_scoring(response, reference, expected):
     model = MultiChoiceRewardModel(json_penalty=JSON_PENALTY)
-    result = model.reward(reference, DendriteResponseEvent(completions=[response])).rewards[0]
+    result = await model.reward(reference, DendriteResponseEvent(completions=[response])).rewards[0]
     assert result == pytest.approx(expected), f"Failed for input: {response}, reference: {reference}"
