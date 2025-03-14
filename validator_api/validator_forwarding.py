@@ -55,7 +55,6 @@ class ValidatorRegistry(BaseModel):
     @model_validator(mode="after")
     def create_validator_list(cls, v: "ValidatorRegistry", metagraph=shared_settings.METAGRAPH) -> "ValidatorRegistry":
         validator_uids = np.where(metagraph.stake >= 100000)[0].tolist()
-        print(f"uids: {validator_uids}")
         validator_axons = [metagraph.axons[uid].ip_str().split("/")[2] for uid in validator_uids]
         validator_stakes = [metagraph.stake[uid] for uid in validator_uids]
         validator_hotkeys = [metagraph.hotkeys[uid] for uid in validator_uids]

@@ -55,9 +55,7 @@ def get_task_scorer(request: Request):
 async def score_response(
     request: Request, api_key_data: dict = Depends(verify_scoring_signature), task_scorer=Depends(get_task_scorer)
 ):
-    logger.debug("Scoring Request received!!!!!!!!!!!!!!!!")
     model = None
-    logger.debug("Setted Model to None")
     payload: dict[str, Any] = await request.json()
     logger.debug(f"Awaited body: {payload}")
     body = payload.get("body")
