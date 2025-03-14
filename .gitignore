@@ -184,3 +184,4 @@ wandb
 **/api_keys.json
 weights.csv
 past_websites.csv
+timer_logs*

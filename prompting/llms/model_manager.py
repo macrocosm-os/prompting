@@ -129,7 +129,7 @@ class ModelManager(BaseModel):
         composed_prompt.append(role_template["end"])
         return "".join(composed_prompt)
 
-    def generate(
+    async def generate(
         self,
         messages: list[str],
         roles: list[str] | None = None,
@@ -148,7 +148,7 @@ class ModelManager(BaseModel):
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
         model_instance: ReproducibleHF = self.get_model(model)
-        responses = model_instance.generate(messages=[dict_messages], sampling_params=sampling_params, seed=seed)
+        responses = await model_instance.generate(messages=[dict_messages], sampling_params=sampling_params, seed=seed)
 
         return responses
 

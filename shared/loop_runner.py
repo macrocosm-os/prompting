@@ -88,12 +88,12 @@ class AsyncLoopRunner(BaseModel, ABC):
                 logger.info("Loop was stopped.")
                 self.running = False
             except Exception as e:
-                logger.error(f"Fatal error in loop: {e}")
+                logger.exception(f"Fatal error in loop: {e}")
         self.running = False
 
     async def start(self, name: str | None = None, simultaneous_loops: int = 1, **kwargs):
         """Start the loop with optional multiple simultaneous instances.
-        
+
         Args:
             name: Optional name for the loop tasks
             simultaneous_loops: Number of simultaneous loop instances to run (default: 1)
@@ -101,10 +101,10 @@ class AsyncLoopRunner(BaseModel, ABC):
         if self.running:
             logger.warning("Loop is already running.")
             return
-        
+
         self.running = True
         self._tasks = []
-        
+
         for i in range(simultaneous_loops):
             task_name = f"{name}_{i}" if name else f"{self.name}_{i}"
             task = asyncio.create_task(self.run_loop(), name=task_name)

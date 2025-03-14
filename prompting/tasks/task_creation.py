@@ -63,7 +63,7 @@ class TaskLoop(AsyncLoopRunner):
             with Timer(label=f"Generating query for task: {task.__class__.__name__}") as timer:
                 if not task.query:
                     logger.debug(f"Generating query for task: {task.__class__.__name__}.")
-                    task.make_query(dataset_entry=dataset_entry)
+                    await task.make_query(dataset_entry=dataset_entry)
                 logger.debug(f"Generated Messages: {task.task_messages}")
 
             logger.debug(f"Appending task: {task.__class__.__name__} to task queue.")

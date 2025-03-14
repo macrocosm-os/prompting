@@ -41,8 +41,8 @@ class WebRetrievalTask(BaseTextTask):
     target_results: int = Field(default_factory=lambda: random.randint(1, 10))
     timeout: int = Field(default_factory=lambda: random.randint(5, 20))
 
-    def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
-        self.query = self.generate_query(
+    async def make_query(self, dataset_entry: DDGDatasetEntry) -> str:
+        self.query = await self.generate_query(
             messages=[MESSAGE_TEMPLATE.format(website_content=dataset_entry.website_content)]
         )
         return self.query
