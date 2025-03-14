@@ -5,7 +5,7 @@ import time
 import bittensor as bt
 from loguru import logger
 
-from prompting.miner_availability.miner_availability import miner_availabilities
+from prompting.miner_availability.miner_availability import MinerAvailabilities
 
 # from prompting.rewards.scoring import task_scorer
 from prompting.rewards.scoring_config import ScoringConfig
@@ -40,9 +40,11 @@ def log_stream_results(stream_results):
     logger.debug(f"Total of failed responses: ({len(failed_responses)})")
 
 
-async def collect_responses(task: BaseTextTask) -> DendriteResponseEvent | None:
+async def collect_responses(task: BaseTextTask, miners_dict: dict) -> DendriteResponseEvent | None:
     # Get the list of uids and their axons to query for this step.
-    uids = miner_availabilities.get_available_miners(task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE)
+    uids = MinerAvailabilities.get_available_miners(
+        miners=miners_dict, task=task, model=task.llm_model_id, k=NEURON_SAMPLE_SIZE
+    )
     if len(uids) == 0:
         logger.warning("No available miners. This should already have been caught earlier.")
         return
@@ -86,9 +88,10 @@ class TaskSender(AsyncLoopRunner):
     class Config:
         arbitrary_types_allowed = True
 
-    async def start(self, task_queue, scoring_queue, **kwargs):
+    async def start(self, task_queue, scoring_queue, miners_dict, **kwargs):
         self.task_queue = task_queue
         self.scoring_queue = scoring_queue
+        self.miners_dict = miners_dict
 
         # shared_settings is not initialised inside this process, meaning it cannot access any non-constants from here
         self.subtensor = bt.subtensor(network=shared_settings.SUBTENSOR_NETWORK)
@@ -134,7 +137,7 @@ class TaskSender(AsyncLoopRunner):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        # logger.info(f"Checking for tasks to be sent...")
+        logger.info(f"Checking for tasks to be sent...")
         while len(self.scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
             await asyncio.sleep(1)
         while len(self.task_queue) == 0:
@@ -146,7 +149,7 @@ class TaskSender(AsyncLoopRunner):
 
             # send the task to the miners and collect the responses
             with Timer(label=f"Sending {task.__class__.__name__}") as timer:
-                response_event = await collect_responses(task=task)
+                response_event = await collect_responses(task=task, miners_dict=self.miners_dict)
             if response_event is None:
                 return
 

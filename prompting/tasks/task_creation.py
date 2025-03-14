@@ -4,7 +4,7 @@ import threading
 from loguru import logger
 from pydantic import ConfigDict
 
-from prompting.miner_availability.miner_availability import miner_availabilities
+from prompting.miner_availability.miner_availability import MinerAvailabilities
 from prompting.tasks.task_registry import TaskRegistry
 from shared import settings
 
@@ -25,9 +25,10 @@ class TaskLoop(AsyncLoopRunner):
     scoring_queue: list | None = []
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def start(self, task_queue, scoring_queue, **kwargs):
+    async def start(self, task_queue, scoring_queue, miners_dict, **kwargs):
         self.task_queue = task_queue
         self.scoring_queue = scoring_queue
+        self.miners_dict = miners_dict
         await super().start(**kwargs)
 
     async def run_step(self):
@@ -49,7 +50,14 @@ class TaskLoop(AsyncLoopRunner):
                     logger.exception(ex)
                 await asyncio.sleep(0.1)
 
-            if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
+            if (
+                len(
+                    MinerAvailabilities.get_available_miners(
+                        miners=self.miners_dict, task=task, model=task.llm_model_id
+                    )
+                )
+                == 0
+            ):
                 logger.debug(
                     f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."
                 )

@@ -48,7 +48,7 @@ class AsyncLoopRunner(BaseModel, ABC):
             logger.warning(f"Could not get time from server: {ex}. Falling back to local time.")
             return datetime.datetime.now(datetime.timezone.utc)
 
-    def next_sync_point(self, current_time):
+    async def next_sync_point(self, current_time):
         """Calculate the next sync point based on the current time and interval."""
         epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
         time_since_epoch = current_time - epoch
@@ -62,7 +62,7 @@ class AsyncLoopRunner(BaseModel, ABC):
         if last_run_time.tzinfo is None:
             last_run_time = last_run_time.replace(tzinfo=current_time.tzinfo)
         if self.sync:
-            next_run = self.next_sync_point(current_time)
+            next_run = await self.next_sync_point(current_time)
         else:
             next_run = last_run_time + timedelta(seconds=self.interval)
 
@@ -98,17 +98,20 @@ class AsyncLoopRunner(BaseModel, ABC):
             name: Optional name for the loop tasks
             simultaneous_loops: Number of simultaneous loop instances to run (default: 1)
         """
-        if self.running:
-            logger.warning("Loop is already running.")
-            return
+        try:
+            if self.running:
+                logger.warning("Loop is already running.")
+                return
 
-        self.running = True
-        self._tasks = []
+            self.running = True
+            self._tasks = []
 
-        for i in range(simultaneous_loops):
-            task_name = f"{name}_{i}" if name else f"{self.name}_{i}"
-            task = asyncio.create_task(self.run_loop(), name=task_name)
-            self._tasks.append(task)
+            for i in range(simultaneous_loops):
+                task_name = f"{name}_{i}" if name else f"{self.name}_{i}"
+                task = asyncio.create_task(self.run_loop(), name=task_name)
+                self._tasks.append(task)
+        except Exception as e:
+            logger.exception(f"Error in start method: {e}")
 
     async def stop(self):
         """Stop all running loops."""

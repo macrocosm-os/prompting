@@ -1,5 +1,7 @@
 import asyncio
-import multiprocessing as mp
+
+# import multiprocessing as mp
+import torch.multiprocessing as mp
 import sys
 
 import loguru
@@ -29,15 +31,16 @@ torch.multiprocessing.set_start_method("spawn", force=True)
 NEURON_SAMPLE_SIZE = 100  # TODO: Should add this to constants.py
 
 
-def create_loop_process(task_queue, scoring_queue, reward_events):
+def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
     settings.shared_settings = settings.SharedSettings.load(mode="validator")
     if settings.shared_settings.WANDB_ON:
         init_wandb(neuron="validator")
 
-    async def spawn_loops(task_queue, scoring_queue, reward_events):
+    async def spawn_loops(task_queue, scoring_queue, reward_events, miners_dict):
         # ruff: noqa: E402
         from prompting.llms.model_manager import model_scheduler
-        from prompting.miner_availability.miner_availability import availability_checking_loop
+
+        # from prompting.miner_availability.miner_availability import availability_checking_loop
         from prompting.tasks.task_creation import task_loop
         from prompting.tasks.task_sending import task_sender
         from prompting.weight_setting.weight_setter import weight_setter
@@ -47,14 +50,14 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         asyncio.create_task(profiler.print_stats(), name="Profiler"),
 
         # -------- Duplicate of create_task_loop ----------
-        logger.info("Starting AvailabilityCheckingLoop...")
-        asyncio.create_task(availability_checking_loop.start())
+        # logger.info("Starting AvailabilityCheckingLoop...")
+        # asyncio.create_task(availability_checking_loop.start(miners_dict))
 
         logger.info("Starting TaskSender...")
-        asyncio.create_task(task_sender.start(task_queue, scoring_queue))
+        asyncio.create_task(task_sender.start(task_queue, scoring_queue, miners_dict))
 
         logger.info("Starting TaskLoop...")
-        asyncio.create_task(task_loop.start(task_queue, scoring_queue, simultaneous_loops=1))
+        asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=1))
         # -------------------------------------------------
 
         logger.info("Starting ModelScheduler...")
@@ -73,7 +76,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
             logger.debug(f"Number of tasks in Reward Events: {len(reward_events)}")
 
     try:
-        asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events))
+        asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events, miners_dict))
     except Exception as e:
         logger.info(f"Terminating loop process: {e}")
     finally:
@@ -85,15 +88,13 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
             logger.info("WandB run finished.")
 
 
-def start_api(scoring_queue, reward_events):
+def start_api(scoring_queue, reward_events, miners_dict):
     async def start():
         from prompting.api.api import start_scoring_api  # noqa: F401
 
-        # TODO: We should not use 2 availability loops for each process, in reality
-        # we should only be sharing the miner availability data between processes.
-        from prompting.miner_availability.miner_availability import availability_checking_loop
+        # from prompting.miner_availability.miner_availability import availability_checking_loop
 
-        asyncio.create_task(availability_checking_loop.start())
+        # asyncio.create_task(availability_checking_loop.start(miners_dict))
 
         try:
             external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
@@ -111,7 +112,7 @@ def start_api(scoring_queue, reward_events):
             logger.debug(f"Serve success: {serve_success}")
         except Exception as e:
             logger.warning(f"Failed to serve scoring api to chain: {e}")
-        await start_scoring_api(task_scorer, scoring_queue, reward_events)
+        await start_scoring_api(task_scorer, scoring_queue, reward_events, miners_dict)
 
         while True:
             await asyncio.sleep(10)
@@ -119,29 +120,68 @@ def start_api(scoring_queue, reward_events):
     asyncio.run(start())
 
 
+def start_availability_checking_loop(miners_dict: dict):
+    async def spawn_loops(miners_dict: dict):
+        from prompting.miner_availability.miner_availability import availability_checking_loop
+
+        logger.info("Starting availability checking loop in validator2...")
+        asyncio.create_task(availability_checking_loop.start(miners_dict))
+        while True:
+            await asyncio.sleep(5)
+            logger.debug("Availability checking loop is running")
+
+    try:
+        logger.info("Starting availability checking loop in validator...")
+        asyncio.run(spawn_loops(miners_dict))
+
+    except Exception as e:
+        logger.exception(f"Availability checking loop error: {e}")
+        raise
+
+
 async def main():
+    from prompting.tasks.task_registry import TaskRegistry
+    from prompting.llms.model_zoo import ModelZoo
+
     # will start checking the availability of miners at regular intervals, needed for API and Validator
     with torch.multiprocessing.Manager() as manager:
         reward_events = manager.list()
         scoring_queue = manager.list()
         task_queue = manager.list()
+        miners_dict = manager.dict()
+        # mp_task_config = manager.dict(
+        #     {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
+        # )
+        # mp_model_config = manager.dict({conf.llm_model_id: False for conf in ModelZoo.models_configs})
 
         # Create process pool for managed processes
         processes = []
 
         try:
-            # # Start checking the availability of miners at regular intervals
+            # Start checking the availability of miners at regular intervals
             if settings.shared_settings.DEPLOY_SCORING_API:
                 # Use multiprocessing to bypass API blocking issue
-                api_process = mp.Process(target=start_api, args=(scoring_queue, reward_events), name="API_Process")
+                api_process = mp.Process(
+                    target=start_api, args=(scoring_queue, reward_events, miners_dict), name="API_Process"
+                )
                 api_process.start()
                 processes.append(api_process)
 
-            loop_process = mp.Process(
-                target=create_loop_process, args=(task_queue, scoring_queue, reward_events), name="LoopProcess"
+            availability_process = mp.Process(
+                target=start_availability_checking_loop,
+                args=(miners_dict,),
+                name="AvailabilityProcess",
             )
+            availability_process.start()
+            processes.append(availability_process)
 
+            loop_process = mp.Process(
+                target=create_loop_process,
+                args=(task_queue, scoring_queue, reward_events, miners_dict),
+                name="LoopProcess",
+            )
             loop_process.start()
+
             processes.append(loop_process)
             GPUInfo.log_gpu_info()
 
