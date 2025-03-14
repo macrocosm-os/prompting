@@ -21,28 +21,21 @@ class ModelZoo:
     # Dynamically create model configs from the list of models in settings
     models_configs: ClassVar[list[ModelConfig]] = []
 
-    @classmethod
-    def _initialize_models(cls):
-        # Clear existing models
-        cls.models_configs = []
+    # Initialize models directly in the class
+    # Handle both string and list configurations
+    models = settings.shared_settings.LLM_MODEL
+    if isinstance(models, str):
+        models = [models]
 
-        # Handle both string and list configurations
-        models = settings.shared_settings.LLM_MODEL
-        if isinstance(models, str):
-            models = [models]
-
-        # Add each model from settings to the configs
-        for model in models:
-            cls.models_configs.append(
-                ModelConfig(
-                    llm_model_id=model,
-                    reward=1 / len(models),
-                    min_ram=settings.shared_settings.MAX_ALLOWED_VRAM_GB,
-                )
+    # Add each model from settings to the configs
+    for model in models:
+        models_configs.append(
+            ModelConfig(
+                llm_model_id=model,
+                reward=1 / len(models),
+                min_ram=settings.shared_settings.MAX_ALLOWED_VRAM_GB,
             )
-
-    # Initialize models when module is loaded
-    _initialize_models()
+        )
 
     @classmethod
     def get_all_models(cls) -> list[str]:
