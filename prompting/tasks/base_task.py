@@ -80,7 +80,7 @@ class BaseTextTask(BaseTask):
 
     def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
-        self.reference = model_manager.get_model(settings.shared_settings.LLM_MODEL).generate(
+        self.reference = model_manager.get_model(settings.shared_settings.LLM_MODEL[0]).generate(
             messages=messages
         )  # This should be a list of dict
         if self.reference is None:

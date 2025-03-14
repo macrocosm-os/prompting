@@ -83,13 +83,67 @@ class ModelManager(BaseModel):
             return
 
         try:
-            del self.active_models[model_config].llm.llm_engine.model_executor.driver_worker
+            # Get the model instance
+            model_instance = self.active_models[model_config]
+            
+            # Different model implementations have different structures
+            # Handle vLLM-based models
+            if hasattr(model_instance, 'llm') and hasattr(model_instance.llm, 'llm_engine'):
+                if hasattr(model_instance.llm.llm_engine, 'model_executor') and hasattr(model_instance.llm.llm_engine.model_executor, 'driver_worker'):
+                    del model_instance.llm.llm_engine.model_executor.driver_worker
+            
+            # Handle pipeline-based models with a hybrid approach
+            if hasattr(model_instance, 'llm'):
+                # Try to move model to CPU first if it's a PyTorch model
+                if hasattr(model_instance.llm, 'model'):
+                    try:
+                        # Check if it's a PyTorch model with a 'to' method
+                        if hasattr(model_instance.llm.model, 'to'):
+                            logger.debug(f"Moving model {model_config.llm_model_id} to CPU before deletion")
+                            model_instance.llm.model.to('cpu')
+                            # Small delay to allow memory transfer
+                            import time
+                            time.sleep(0.1)
+                    except Exception as e:
+                        logger.debug(f"Could not move model to CPU: {str(e)}, proceeding with direct deletion")
+                    
+                    # Delete the model reference
+                    del model_instance.llm.model
+                
+                # Handle tokenizer
+                if hasattr(model_instance.llm, 'tokenizer'):
+                    del model_instance.llm.tokenizer
+                
+                # Delete the llm object itself
+                del model_instance.llm
+            
+            # Remove the model from active models dictionary
             del self.active_models[model_config]
+            
+            # Force Python garbage collection multiple times to ensure cleanup
+            gc.collect()
+            gc.collect()
+            
+            # Clear CUDA cache
+            torch.cuda.empty_cache()
+            
+            # Additional memory cleanup for PyTorch
+            if torch.cuda.is_available():
+                # Reset peak memory stats
+                torch.cuda.reset_peak_memory_stats()
+                # Synchronize CUDA to ensure operations are complete
+                torch.cuda.synchronize()
+            
+            logger.info(f"Successfully unloaded model {model_config.llm_model_id}")
+            
         except Exception as ex:
             logger.error(f"Failed to unload model {model_config.llm_model_id}. Error: {str(ex)}")
-        gc.collect()
+        
+        # Update used RAM tracking
         self.used_ram -= model_config.min_ram
-        torch.cuda.empty_cache()
+        
+        # Log current memory state
+        GPUInfo.log_gpu_info()
 
     def get_or_load_model(self, llm_model_id: str) -> ReproducibleHF:
         model_config = ModelZoo.get_model_by_id(llm_model_id)
