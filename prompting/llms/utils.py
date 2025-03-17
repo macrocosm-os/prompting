@@ -4,6 +4,9 @@ import numpy as np
 import torch
 from loguru import logger
 
+from prompting.llms.hf_llm import ReproducibleHF
+from prompting.llms.hf_text import HFTextGeneration
+from prompting.llms.hf_text_image import HFTextImageToText
 from shared.misc import classproperty
 
 
@@ -112,3 +115,10 @@ class GPUInfo:
     @classproperty
     def gpu_utilization(cls):
         return cls.used_memory / cls.total_memory
+
+
+def model_factory(model_name: str) -> type[ReproducibleHF]:
+    if model_name == "google/gemma-3-27b-it":
+        return HFTextImageToText
+    else:
+        return HFTextGeneration

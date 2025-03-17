@@ -17,6 +17,7 @@ from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from substrateinterface import Keypair
 
+from prompting.llms.utils import model_factory
 from shared import settings
 from shared.dendrite import SynapseStreamResult
 
@@ -224,6 +225,7 @@ async def make_openai_query(
         ),
     )
     extra_body = {k: v for k, v in body.items() if k not in ["messages", "model"]}
+    body["messages"] = model_factory(body.get("model")).format_messages(body["messages"])
     start_time = time.perf_counter()
     chat = await miner.chat.completions.create(
         # model=None,
