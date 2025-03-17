@@ -30,6 +30,7 @@ class ReproducibleHF:
                 device_map=self._device,
             )
             self.tokenizer = AutoTokenizer.from_pretrained(model_id)
+            self.message_formater = lambda messages: messages
         elif settings.shared_settings.LLM_TYPE.get(model_id) == "image-text-to-text":
             self.model: AutoModelForImageTextToText = AutoModelForImageTextToText.from_pretrained(
                 model_id,
@@ -38,12 +39,38 @@ class ReproducibleHF:
                 device_map=self._device,
             )
             self.tokenizer = AutoProcessor.from_pretrained(model_id)
+            self.message_formater = self.gemma_format
         else:
             raise ValueError(f"Model type {settings.shared_settings.LLM_TYPE.get(model_id)} not supported")
 
         self.valid_generation_params = set(
             self.model.generation_config.to_dict().keys()
         )
+
+    def gemma_format(self, messages: list[str] | list[dict[str, str]]) -> list[dict[str, str | list[dict[str, str]]]]:
+        """Format the messages for the gemma model.
+        
+        Converts message content strings to dictionaries with type and text fields.
+        Example:
+        Input: [{"role": "user", "content": "Hello"}]
+        Output: [{"role": "user", "content": [{"type": "text", "text": "Hello"}]}]
+        """
+        formatted_messages = []
+        for message in messages:
+            if isinstance(message, dict) and "content" in message:
+                # If content is a string, convert it to a list with a dictionary
+                if isinstance(message["content"], str):
+                    formatted_message = message.copy()
+                    formatted_message["content"] = [{"type": "text", "text": message["content"]}]
+                    formatted_messages.append(formatted_message)
+                else:
+                    # If content is already in the correct format, keep it as is
+                    formatted_messages.append(message)
+            else:
+                # Handle other message formats if needed
+                formatted_messages.append(message)
+        
+        return formatted_messages
 
     @torch.inference_mode()
     def generate(
@@ -56,7 +83,7 @@ class ReproducibleHF:
         self.set_random_seeds(seed)
 
         inputs = self.tokenizer.apply_chat_template(
-            messages,
+            self.message_formater(messages),
             tokenize=True,
             add_generation_prompt=True,
             return_tensors="pt",
