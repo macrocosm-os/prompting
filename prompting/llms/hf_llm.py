@@ -22,7 +22,7 @@ class ReproducibleHF:
         """Deterministic HuggingFace model."""
         self._device = device
         self.sampling_params = {} if sampling_params is None else sampling_params
-        if settings.shared_settings.LLM_TYPE.get(model_id) == "llama":
+        if settings.shared_settings.LLM_TYPE.get(model_id) == "text-generation":
             self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
                 model_id,
                 torch_dtype=torch.float16,
