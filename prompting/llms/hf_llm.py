@@ -91,13 +91,3 @@ class ReproducibleHF:
                 torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
-
-
-# Example usage in __main__:
-# if __name__ == "__main__":
-#     async def main():
-#         llm = ReproducibleHF(model="Qwen/Qwen2-0.5B", tensor_parallel_size=1, seed=42)
-#         result = await llm.generate({"role": "user", "content": "Hello, world!"})
-#         print(result)
-#
-#     asyncio.run(main())

@@ -49,16 +49,8 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
         logger.info("Starting Profiler...")
         asyncio.create_task(profiler.print_stats(), name="Profiler"),
 
-        # -------- Duplicate of create_task_loop ----------
-        # logger.info("Starting AvailabilityCheckingLoop...")
-        # asyncio.create_task(availability_checking_loop.start(miners_dict))
-
-        # logger.info("Starting TaskSender...")
-        # asyncio.create_task(task_sender.start(task_queue, scoring_queue, miners_dict))
-
         logger.info("Starting TaskLoop...")
         asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=4))
-        # -------------------------------------------------
 
         logger.info("Starting ModelScheduler...")
         asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
@@ -91,10 +83,6 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
 def start_api(scoring_queue, reward_events, miners_dict):
     async def start():
         from prompting.api.api import start_scoring_api  # noqa: F401
-
-        # from prompting.miner_availability.miner_availability import availability_checking_loop
-
-        # asyncio.create_task(availability_checking_loop.start(miners_dict))
 
         try:
             external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
@@ -168,12 +156,6 @@ async def main():
         scoring_queue = manager.list()
         task_queue = manager.list()
         miners_dict = manager.dict()
-        # mp_task_config = manager.dict(
-        #     {str(task_config.task.__name__): True for task_config in TaskRegistry.task_configs}
-        # )
-        # mp_model_config = manager.dict({conf.llm_model_id: False for conf in ModelZoo.models_configs})
-
-        # Create process pool for managed processes
         processes = []
 
         try:
