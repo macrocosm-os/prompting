@@ -131,6 +131,10 @@ class SharedSettings(BaseSettings):
     LLM_MODEL: list[str] = Field(
         ["hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", "google/gemma-3-27b-it"], env="LLM_MODEL"
     )
+    LLM_TYPE: dict[str, str] = {
+        "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4": "text-generation",
+        "google/gemma-3-27b-it": "image-text-to-text",
+    }
     SAMPLING_PARAMS: dict[str, Any] = {
         "temperature": 0.7,
         "top_p": 0.95,

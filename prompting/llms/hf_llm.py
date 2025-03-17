@@ -2,8 +2,15 @@ import random
 
 import numpy as np
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel, pipeline
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForImageTextToText,
+    AutoProcessor,
+    AutoTokenizer,
+    PreTrainedModel,
+)
 
+from shared import settings
 
 class ReproducibleHF:
     def __init__(
@@ -15,16 +22,27 @@ class ReproducibleHF:
         """Deterministic HuggingFace model."""
         self._device = device
         self.sampling_params = {} if sampling_params is None else sampling_params
-        self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
-            model_id,
-            torch_dtype=torch.float16,
-            low_cpu_mem_usage=True,
-            device_map=self._device,
-        )
+        if settings.shared_settings.LLM_TYPE.get(model_id) == "llama":
+            self.model: PreTrainedModel = AutoModelForCausalLM.from_pretrained(
+                model_id,
+                torch_dtype=torch.float16,
+                low_cpu_mem_usage=True,
+                device_map=self._device,
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(model_id)
+        elif settings.shared_settings.LLM_TYPE.get(model_id) == "image-text-to-text":
+            self.model: AutoModelForImageTextToText = AutoModelForImageTextToText.from_pretrained(
+                model_id,
+                torch_dtype=torch.float16,
+                low_cpu_mem_usage=True,
+                device_map=self._device,
+            )
+            self.tokenizer = AutoProcessor.from_pretrained(model_id)
+        else:
+            raise ValueError(f"Model type {settings.shared_settings.LLM_TYPE.get(model_id)} not supported")
 
-        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
         self.valid_generation_params = set(
-            AutoModelForCausalLM.from_pretrained(model_id).generation_config.to_dict().keys()
+            self.model.generation_config.to_dict().keys()
         )
 
     @torch.inference_mode()
@@ -71,8 +89,3 @@ class ReproducibleHF:
                 torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
-
-
-# if __name__ == "__main__":
-#     llm = ReproducibleHF(model="Qwen/Qwen2-0.5B", tensor_parallel_size=1, seed=42)
-#     llm.generate({"role": "user", "content": "Hello, world!"})
