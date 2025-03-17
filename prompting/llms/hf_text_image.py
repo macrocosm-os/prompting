@@ -20,7 +20,7 @@ class HFTextImageToText(ReproducibleHF):
         self.valid_generation_params = set(
             self.model.generation_config.to_dict().keys()
         )
-        self.message_formater = self.format_messages
+        self.message_formater = HFTextImageToText.format_messages
 
     @staticmethod
     def format_messages(messages: list[str] | list[dict[str, str]]) -> list[dict[str, str | list[dict[str, str]]]]:
@@ -32,6 +32,9 @@ class HFTextImageToText(ReproducibleHF):
         Output: [{"role": "user", "content": [{"type": "text", "text": "Hello"}]}]
         """
         formatted_messages = []
+        # Check if the message is a list of only one element and that element is a list
+        if isinstance(messages, list) and len(messages) == 1 and isinstance(messages[0], list):
+            messages = messages[0]
         for message in messages:
             if isinstance(message, dict) and "content" in message:
                 # If content is a string, convert it to a list with a dictionary
