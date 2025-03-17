@@ -52,6 +52,7 @@ class SharedSettings(BaseSettings):
     # Logging.
     LOGGING_DONT_SAVE_EVENTS: bool = Field(True, env="LOGGING_DONT_SAVE_EVENTS")
     LOG_WEIGHTS: bool = Field(False, env="LOG_WEIGHTS")
+    LOG_TIMINGS: bool = Field(False, env="LOG_TIMINGS")
 
     # Neuron parameters.
     NEURON_TIMEOUT: int = Field(20, env="NEURON_TIMEOUT")

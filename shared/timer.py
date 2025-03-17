@@ -1,9 +1,8 @@
 import time
 import csv
+from shared.settings import shared_settings
 import os
 from datetime import datetime
-
-LOG_TIMINGS = True
 
 # Create log file name when module is loaded
 STARTUP_TIME = datetime.now().strftime("%Y-%m-%d_%H-%M")
@@ -33,7 +32,7 @@ class Timer:
         self.end_time = time.perf_counter()
         self.final_time = self.end_time - self.start_time
 
-        if LOG_TIMINGS:
+        if shared_settings.LOG_TIMINGS:
             with open(LOG_FILE, "a", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow([self.start_datetime.isoformat(), self.label, self.final_time, str(self.metadata)])

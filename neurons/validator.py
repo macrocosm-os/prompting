@@ -43,7 +43,6 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
         # from prompting.miner_availability.miner_availability import availability_checking_loop
         from prompting.tasks.task_creation import task_loop
         from prompting.tasks.task_sending import task_sender
-        from prompting.weight_setting.weight_setter import weight_setter
         from shared.profiling import profiler
 
         logger.info("Starting Profiler...")
@@ -56,8 +55,6 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
         asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
         logger.info("Starting TaskScorer...")
         asyncio.create_task(task_scorer.start(scoring_queue, reward_events, simultaneous_loops=4), name="TaskScorer"),
-        logger.info("Starting WeightSetter...")
-        asyncio.create_task(weight_setter.start(reward_events))
 
         while True:
             await asyncio.sleep(5)
@@ -146,6 +143,25 @@ def start_availability_checking_loop(miners_dict: dict):
         raise
 
 
+def start_weight_setter_loop(reward_events):
+    async def spawn_loops(reward_events):
+        from prompting.weight_setting.weight_setter import weight_setter
+
+        logger.info("Starting weight setter loop in validator2...")
+        asyncio.create_task(weight_setter.start(reward_events))
+        while True:
+            await asyncio.sleep(5)
+            logger.debug("Weight setter loop is running")
+
+    try:
+        logger.info("Starting weight setter loop in validator...")
+        asyncio.run(spawn_loops(reward_events))
+
+    except Exception as e:
+        logger.exception(f"Weight setter loop error: {e}")
+        raise
+
+
 async def main():
     from prompting.tasks.task_registry import TaskRegistry
     from prompting.llms.model_zoo import ModelZoo
@@ -190,6 +206,14 @@ async def main():
             )
             task_sending_process.start()
             processes.append(task_sending_process)
+
+            weight_setter_process = mp.Process(
+                target=start_weight_setter_loop,
+                args=(reward_events,),
+                name="WeightSetterProcess",
+            )
+            weight_setter_process.start()
+            processes.append(weight_setter_process)
 
             processes.append(loop_process)
             GPUInfo.log_gpu_info()
