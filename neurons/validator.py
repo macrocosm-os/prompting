@@ -53,17 +53,17 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
         # logger.info("Starting AvailabilityCheckingLoop...")
         # asyncio.create_task(availability_checking_loop.start(miners_dict))
 
-        logger.info("Starting TaskSender...")
-        asyncio.create_task(task_sender.start(task_queue, scoring_queue, miners_dict))
+        # logger.info("Starting TaskSender...")
+        # asyncio.create_task(task_sender.start(task_queue, scoring_queue, miners_dict))
 
         logger.info("Starting TaskLoop...")
-        asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=1))
+        asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=4))
         # -------------------------------------------------
 
         logger.info("Starting ModelScheduler...")
         asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
         logger.info("Starting TaskScorer...")
-        asyncio.create_task(task_scorer.start(scoring_queue, reward_events, simultaneous_loops=1), name="TaskScorer"),
+        asyncio.create_task(task_scorer.start(scoring_queue, reward_events, simultaneous_loops=4), name="TaskScorer"),
         logger.info("Starting WeightSetter...")
         asyncio.create_task(weight_setter.start(reward_events))
 
@@ -78,7 +78,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
     try:
         asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events, miners_dict))
     except Exception as e:
-        logger.info(f"Terminating loop process: {e}")
+        logger.exception(f"Terminating loop process: {e}")
     finally:
         logger.info("Cleaning up resources...")
 
@@ -118,6 +118,25 @@ def start_api(scoring_queue, reward_events, miners_dict):
             await asyncio.sleep(10)
 
     asyncio.run(start())
+
+
+def start_task_sending_loop(task_queue, scoring_queue, miners_dict: dict):
+    async def spawn_loops(task_queue, scoring_queue, miners_dict: dict):
+        from prompting.tasks.task_sending import task_sender
+
+        logger.info("Starting task sending loop in validator2...")
+        asyncio.create_task(task_sender.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=10))
+        while True:
+            await asyncio.sleep(5)
+            logger.debug("Task sending loop is running")
+
+    try:
+        logger.info("Starting task sending loop in validator...")
+        asyncio.run(spawn_loops(task_queue, scoring_queue, miners_dict))
+
+    except Exception as e:
+        logger.exception(f"Task sending loop error: {e}")
+        raise
 
 
 def start_availability_checking_loop(miners_dict: dict):
@@ -181,6 +200,14 @@ async def main():
                 name="LoopProcess",
             )
             loop_process.start()
+
+            task_sending_process = mp.Process(
+                target=start_task_sending_loop,
+                args=(task_queue, scoring_queue, miners_dict),
+                name="TaskSendingProcess",
+            )
+            task_sending_process.start()
+            processes.append(task_sending_process)
 
             processes.append(loop_process)
             GPUInfo.log_gpu_info()

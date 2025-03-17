@@ -84,6 +84,7 @@ class TaskSender(AsyncLoopRunner):
     task_queue: list | None = None
     scoring_queue: list | None = None
     subtensor: bt.Subtensor | None = None
+    miners_dict: dict | None = None
 
     class Config:
         arbitrary_types_allowed = True

@@ -23,6 +23,7 @@ class TaskLoop(AsyncLoopRunner):
     interval: int = 0
     task_queue: list | None = []
     scoring_queue: list | None = []
+    miners_dict: dict | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def start(self, task_queue, scoring_queue, miners_dict, **kwargs):
