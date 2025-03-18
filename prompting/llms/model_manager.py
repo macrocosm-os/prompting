@@ -12,7 +12,6 @@ from prompting.llms.utils import GPUInfo, model_factory
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
 
-
 # This maintains a list of tasks for which we need to generate references. Since
 # we can only generate the references, when the correct model is loaded, we work
 # through the tasks based on the currently loaded model.

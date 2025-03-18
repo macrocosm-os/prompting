@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 from shared import settings
 
+
 class ModelConfig(BaseModel):
     llm_model_id: str
     reward: float

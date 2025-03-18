@@ -3,7 +3,6 @@ from abc import abstractmethod
 
 import numpy as np
 from loguru import logger
-from pydantic import BaseModel
 
 try:
     import torch
@@ -12,7 +11,6 @@ except ImportError:
 
 
 class ReproducibleHF:
-
     def __init__(self, model_id: str, device: str, sampling_params: dict[str, str | float | int | bool] | None = None):
         self.model_id = model_id
         self._device = device
@@ -66,5 +64,3 @@ class ReproducibleHF:
                 torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
-
-
