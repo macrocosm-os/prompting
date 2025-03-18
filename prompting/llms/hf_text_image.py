@@ -2,7 +2,7 @@ from loguru import logger
 
 try:
     import torch
-    from transformers import AutoProcessor, AutoModelForImageTextToText
+    from transformers import AutoModelForImageTextToText, AutoProcessor
 except ImportError:
     logger.warning("Transformers or torch is not installed. This module will not be available.")
 
