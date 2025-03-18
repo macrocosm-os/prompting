@@ -1,5 +1,6 @@
 import asyncio
 import gc
+import time
 from typing import Dict
 
 import torch
@@ -8,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 from prompting.llms.hf_llm import ReproducibleHF
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
-from prompting.llms.utils import GPUInfo
+from prompting.llms.utils import GPUInfo, model_factory
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
 
@@ -50,6 +51,14 @@ class ModelManager(BaseModel):
                     GPUInfo.log_gpu_info()
                     break
 
+            # If no active models remain but GPU is still showing significant usage,
+            # perform emergency cleanup
+            if len(self.active_models) == 0 and GPUInfo.gpu_utilization > 0.25:  # More than 25% still in use
+                logger.warning(
+                    "GPU still showing high utilization after unloading all models. Performing emergency cleanup."
+                )
+                self._emergency_gpu_cleanup()
+
         if self.used_ram + model_config.min_ram > self.total_ram or GPUInfo.free_memory < model_config.min_ram:
             if not force:
                 logger.warning(f"Not enough RAM to load model {model_config.llm_model_id}.")
@@ -64,7 +73,7 @@ class ModelManager(BaseModel):
         try:
             GPUInfo.log_gpu_info()
 
-            model = ReproducibleHF(
+            model = model_factory(model_config.llm_model_id)(
                 model_id=model_config.llm_model_id,
                 device=settings.shared_settings.NEURON_DEVICE,
                 sampling_params=settings.shared_settings.SAMPLING_PARAMS,
@@ -77,19 +86,112 @@ class ModelManager(BaseModel):
         except Exception as e:
             logger.exception(f"Failed to load model {model_config.llm_model_id}. Error: {str(e)}")
 
+    def _cleanup_pytorch_model(self, model_instance, model_config: ModelConfig):
+        """Handle cleanup specifically for PyTorch-based models."""
+        if hasattr(model_instance.llm, "model"):
+            try:
+                # Check if it's a PyTorch model with a 'to' method
+                if hasattr(model_instance.llm.model, "to"):
+                    logger.debug(f"Moving model {model_config.llm_model_id} to CPU before deletion")
+                    model_instance.llm.model.to("cpu")
+                    time.sleep(0.1)
+
+                    # Explicitly set requires_grad to False for all parameters if possible
+                    if hasattr(model_instance.llm.model, "parameters"):
+                        for param in model_instance.llm.model.parameters():
+                            if hasattr(param, "requires_grad"):
+                                param.requires_grad = False
+
+            except Exception as e:
+                logger.debug(f"Could not move model to CPU: {str(e)}, proceeding with direct deletion")
+
+            # Delete the model reference and any cached states
+            if hasattr(model_instance.llm.model, "_clear_cache"):
+                model_instance.llm.model._clear_cache()
+
+            # Explicitly delete model components if available
+            if hasattr(model_instance.llm.model, "modules"):
+                for module in list(model_instance.llm.model.modules()):
+                    del module
+
+            # Final deletion of model
+            del model_instance.llm.model
+
     def unload_model(self, model_config: ModelConfig):
         if model_config not in self.active_models:
             logger.warning("Couldn't find model to unload.")
             return
 
         try:
-            del self.active_models[model_config].llm.llm_engine.model_executor.driver_worker
+            # Get the model instance
+            model_instance = self.active_models[model_config]
+
+            # Record initial memory state for debugging
+            initial_free_memory = GPUInfo.free_memory
+            logger.debug(f"Initial free GPU memory before unloading: {initial_free_memory} GB")
+
+            # Different model implementations have different structures
+            # Handle vLLM-based models
+            if hasattr(model_instance, "llm") and hasattr(model_instance.llm, "llm_engine"):
+                if hasattr(model_instance.llm.llm_engine, "model_executor") and hasattr(
+                    model_instance.llm.llm_engine.model_executor, "driver_worker"
+                ):
+                    del model_instance.llm.llm_engine.model_executor.driver_worker
+
+            # Handle pipeline-based models with a hybrid approach
+            if hasattr(model_instance, "llm"):
+                # Try to move model to CPU first if it's a PyTorch model
+                self._cleanup_pytorch_model(model_instance, model_config)
+
+                # Handle tokenizer
+                if hasattr(model_instance.llm, "tokenizer"):
+                    del model_instance.llm.tokenizer
+
+                # Delete the llm object itself
+                del model_instance.llm
+
+            # Remove the model from active models dictionary
             del self.active_models[model_config]
+
+            # Force Python garbage collection multiple times to ensure cleanup
+            gc.collect()
+            torch.cuda.empty_cache()
+            gc.collect()
+
+            # Additional memory cleanup for PyTorch
+            if torch.cuda.is_available():
+                # Reset peak memory stats
+                torch.cuda.reset_peak_memory_stats()
+                # Synchronize CUDA to ensure operations are complete
+                torch.cuda.synchronize()
+
+                # Force additional cleanup with multiple empty_cache calls
+                torch.cuda.empty_cache()
+
+                # Wait a bit longer to ensure memory is released back to the system
+                import time
+
+                time.sleep(0.5)
+                torch.cuda.empty_cache()
+
+                # Additional synchronization point
+                torch.cuda.synchronize()
+
+            # One final garbage collection
+            gc.collect()
+
+            # Report memory change
+            memory_freed = GPUInfo.free_memory - initial_free_memory
+            logger.info(f"Successfully unloaded model {model_config.llm_model_id}. Memory freed: {memory_freed:.2f} GB")
+
         except Exception as ex:
             logger.error(f"Failed to unload model {model_config.llm_model_id}. Error: {str(ex)}")
-        gc.collect()
+
+        # Update used RAM tracking
         self.used_ram -= model_config.min_ram
-        torch.cuda.empty_cache()
+
+        # Log current memory state
+        GPUInfo.log_gpu_info()
 
     def get_or_load_model(self, llm_model_id: str) -> ReproducibleHF:
         model_config = ModelZoo.get_model_by_id(llm_model_id)
@@ -151,6 +253,47 @@ class ModelManager(BaseModel):
         responses = model_instance.generate(messages=[dict_messages], sampling_params=sampling_params, seed=seed)
 
         return responses
+
+    def _emergency_gpu_cleanup(self):
+        """
+        Perform an emergency cleanup of GPU memory when standard unloading
+        doesn't free up expected memory.
+        """
+        logger.info("Performing emergency GPU cleanup")
+
+        # Reset model tracking state
+        self.active_models = {}
+        self.used_ram = 0.0
+
+        # Run aggressive cleanup sequence
+        import time
+
+        # Multiple rounds of garbage collection
+        for _ in range(3):
+            gc.collect()
+            torch.cuda.empty_cache()
+            time.sleep(0.1)
+
+        # Force CUDA synchronization
+        torch.cuda.synchronize()
+
+        # Reset all CUDA cached memory
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
+        torch.cuda.reset_accumulated_memory_stats()
+
+        # Try to release all unreachable objects
+        gc.collect(generation=2)
+
+        # Delay to allow OS to reclaim memory
+        time.sleep(1.0)
+
+        # Final cache clear
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+
+        logger.info(f"Emergency cleanup complete. Current GPU utilization: {GPUInfo.gpu_utilization * 100:.2f}%")
+        GPUInfo.log_gpu_info()
 
 
 class AsyncModelScheduler(AsyncLoopRunner):

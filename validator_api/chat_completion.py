@@ -141,6 +141,7 @@ async def stream_from_first_response(
 
             chunks_received = True
             timings_list[0].append(time.monotonic() - response_start_time)
+
             collected_chunks_list[0].append(content)
             yield f"data: {json.dumps(chunk.model_dump())}\n\n"
 
@@ -150,6 +151,8 @@ async def stream_from_first_response(
 
         yield "data: [DONE]\n\n"
 
+        if timings_list and timings_list[0]:
+            logger.info(f"Response completion time: {timings_list[0][-1]:.2f}s")
         # Continue collecting remaining responses in background for scoring
         remaining = asyncio.gather(*pending, return_exceptions=True)
         remaining_tasks = asyncio.create_task(

@@ -38,9 +38,12 @@ class SN13Dataset(BaseDataset):
             raise self.exception
         # Randomly select a sample from the dataset.
         messages = []
-        for _ in range(4):
+        for i in range(4):
             sample_idx = random.randint(0, len(self.dataset) - 1)
             if message := self.dataset[sample_idx]["text"]:
-                messages.append({"role": random.choice(["user", "assistant"]), "content": message})
+                if i % 2 == 0:
+                    messages.append({"role": "user", "content": message})
+                else:
+                    messages.append({"role": "assistant", "content": message})
 
         return ChatEntry(messages=messages, organic=False, source=self._url)
