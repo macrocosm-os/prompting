@@ -1,5 +1,5 @@
-import random
 import asyncio
+import random
 from functools import partial
 
 import numpy as np

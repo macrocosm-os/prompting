@@ -1,15 +1,18 @@
-import time
 import csv
-from shared.settings import shared_settings
 import os
+import time
 from datetime import datetime
+
+from shared import settings
+
+shared_settings = settings.shared_settings
 
 # Create log file name when module is loaded
 STARTUP_TIME = datetime.now().strftime("%Y-%m-%d_%H-%M")
 LOG_FILE = f"timer_logs_{STARTUP_TIME}.csv"
 
 # Create CSV file with headers if it doesn't exist
-if LOG_TIMINGS and not os.path.exists(LOG_FILE):
+if shared_settings.LOG_TIMINGS and not os.path.exists(LOG_FILE):
     with open(LOG_FILE, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["timestamp", "label", "duration_seconds", "metadata"])

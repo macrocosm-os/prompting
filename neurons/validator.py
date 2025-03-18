@@ -1,13 +1,13 @@
 import asyncio
-
-# import multiprocessing as mp
-import torch.multiprocessing as mp
 import sys
 
 import loguru
 import netaddr
 import requests
 import torch
+
+# import multiprocessing as mp
+import torch.multiprocessing as mp
 import wandb
 from bittensor.core.extrinsics.serving import serve_extrinsic
 
@@ -42,7 +42,6 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
 
         # from prompting.miner_availability.miner_availability import availability_checking_loop
         from prompting.tasks.task_creation import task_loop
-        from prompting.tasks.task_sending import task_sender
         from shared.profiling import profiler
 
         logger.info("Starting Profiler...")
@@ -163,9 +162,6 @@ def start_weight_setter_loop(reward_events):
 
 
 async def main():
-    from prompting.tasks.task_registry import TaskRegistry
-    from prompting.llms.model_zoo import ModelZoo
-
     # will start checking the availability of miners at regular intervals, needed for API and Validator
     with torch.multiprocessing.Manager() as manager:
         reward_events = manager.list()
