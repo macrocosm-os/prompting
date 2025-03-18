@@ -120,5 +120,7 @@ class GPUInfo:
 def model_factory(model_name: str) -> type[ReproducibleHF]:
     if model_name == "google/gemma-3-27b-it":
         return HFTextImageToText
+    elif model_name == "mistralai/Mistral-Small-3.1-24B-Instruct-2503":
+        return HFTextImageToText
     else:
         return HFTextGeneration

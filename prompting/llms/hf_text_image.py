@@ -2,7 +2,7 @@ from loguru import logger
 
 try:
     import torch
-    from transformers import AutoProcessor, Gemma3ForConditionalGeneration
+    from transformers import AutoProcessor, AutoModelForImageTextToText
 except ImportError:
     logger.warning("Transformers or torch is not installed. This module will not be available.")
 
@@ -17,7 +17,7 @@ class HFTextImageToText(ReproducibleHF):
         sampling_params: dict[str, str | float | int | bool] | None = None,
     ):
         super().__init__(model_id, device, sampling_params)
-        self.model: Gemma3ForConditionalGeneration = Gemma3ForConditionalGeneration.from_pretrained(
+        self.model: AutoModelForImageTextToText = AutoModelForImageTextToText.from_pretrained(
             model_id,
             torch_dtype=torch.bfloat16,
             device_map=self._device,
