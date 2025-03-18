@@ -127,7 +127,7 @@ class SharedSettings(BaseSettings):
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
     MAX_ALLOWED_VRAM_GB: float = Field(62, env="MAX_ALLOWED_VRAM_GB")
     PROXY_URL: Optional[str] = Field(None, env="PROXY_URL")
-    LLM_MODEL: list[str] = ["hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", "google/gemma-3-27b-it"]
+    LLM_MODEL: list[str] = ["hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", "mrfakename/mistral-small-3.1-24b-instruct-2503-hf"]
     SAMPLING_PARAMS: dict[str, Any] = {
         "temperature": 0.7,
         "top_p": 0.95,
