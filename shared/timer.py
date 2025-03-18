@@ -1,8 +1,9 @@
-import time
 import csv
-from shared.settings import shared_settings
 import os
+import time
 from datetime import datetime
+
+from shared.settings import LOG_TIMINGS, shared_settings
 
 # Create log file name when module is loaded
 STARTUP_TIME = datetime.now().strftime("%Y-%m-%d_%H-%M")

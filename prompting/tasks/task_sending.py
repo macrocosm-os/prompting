@@ -138,7 +138,7 @@ class TaskSender(AsyncLoopRunner):
             timeout (float): The timeout for the queries.
             exclude (list, optional): The list of uids to exclude from the query. Defaults to [].
         """
-        logger.info(f"Checking for tasks to be sent...")
+        logger.info("Checking for tasks to be sent...")
         while len(self.scoring_queue) > shared_settings.SCORING_QUEUE_LENGTH_THRESHOLD:
             await asyncio.sleep(1)
         while len(self.task_queue) == 0:

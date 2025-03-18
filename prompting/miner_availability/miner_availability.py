@@ -4,7 +4,6 @@ from typing import Dict
 
 import numpy as np
 from loguru import logger
-from pydantic import BaseModel
 
 from prompting.llms.model_zoo import ModelZoo
 from prompting.tasks.base_task import BaseTask
