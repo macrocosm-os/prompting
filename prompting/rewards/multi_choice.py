@@ -40,6 +40,9 @@ class MultiChoiceRewardModel(BaseRewardModel):
             self.choice_map[k.lower()]: float(v) for k, v in predictions.items() if k.lower() in self.choice_map
         }
 
+        if any(v < 0 for v in valid_choices.values()):
+            raise ValueError(f"Negative values are not allowed: {valid_choices}")
+
         total = sum(valid_choices.values())
         if np.isclose(total, 0.0):
             raise ValueError(f"Values sum up to 0, total={total}")
