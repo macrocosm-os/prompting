@@ -33,6 +33,7 @@ class SharedSettings(BaseSettings):
     MOCK: bool = False
     NO_BACKGROUND_THREAD: bool = True
     SAVE_PATH: Optional[str] = Field("./storage", env="SAVE_PATH")
+    GEMMA_API_KEY: Optional[str] = Field(None, env="GEMMA_API_KEY")
 
     # W&B.
     WANDB_ON: bool = Field(True, env="WANDB_ON")
