@@ -1,3 +1,7 @@
+from shared import settings
+
+settings.shared_settings = settings.SharedSettings.load(mode="validator")
+
 import asyncio
 import multiprocessing as mp
 import sys
@@ -9,16 +13,11 @@ import torch
 import wandb
 from bittensor.core.extrinsics.serving import serve_extrinsic
 
+from prompting.llms.utils import GPUInfo
 from prompting.rewards.scoring import task_scorer
 
 # ruff: noqa: E402
-from shared import settings
 from shared.logging import init_wandb
-
-settings.shared_settings = settings.SharedSettings.load(mode="validator")
-
-
-from prompting.llms.utils import GPUInfo
 
 # Add a handler to write logs to a file
 loguru.logger.add("logfile.log", rotation="1000 MB", retention="10 days", level="DEBUG")
@@ -60,7 +59,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         logger.info("Starting ModelScheduler...")
         asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
         logger.info("Starting TaskScorer...")
-        asyncio.create_task(task_scorer.start(scoring_queue, reward_events), name="TaskScorer"),
+        asyncio.create_task(task_scorer.start(scoring_queue, reward_events, task_queue), name="TaskScorer"),
         logger.info("Starting WeightSetter...")
         asyncio.create_task(weight_setter.start(reward_events))
 
@@ -166,7 +165,7 @@ async def main():
         except KeyboardInterrupt:
             logger.info("KeyboardInterrupt detected. Shutting down gracefully...")
         except Exception as e:
-            logger.error(f"Main loop error: {e}")
+            logger.exception(f"Main loop error: {e}")
             raise
         finally:
             # Clean up processes
