@@ -107,7 +107,7 @@ class SharedSettings(BaseSettings):
     # TODO: Choose this dynamically from the network
     VALIDATOR_API: str = Field("184.105.5.17:8094", env="VALIDATOR_API")  # Used for availability
     # Default SN1 API address
-    DEFAULT_SN1_API: str = Field("http://sn1.api.macrocosmos.ai:11198/v1", env="DEFAULT_SN1_API")
+    DEFAULT_SN1_API: str = Field("https://sn1.api.macrocosmos.ai/v1", env="DEFAULT_SN1_API")
     # File with keys used to access API.
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
     # Admin key used to generate API keys.
@@ -129,7 +129,10 @@ class SharedSettings(BaseSettings):
     MAX_ALLOWED_VRAM_GB: float = Field(62, env="MAX_ALLOWED_VRAM_GB")
     LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
     PROXY_URL: Optional[str] = Field(None, env="PROXY_URL")
-    LLM_MODEL: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")
+     LLM_MODEL: list[str] = [
+        "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
+        "mrfakename/mistral-small-3.1-24b-instruct-2503-hf",
+    ]
     SAMPLING_PARAMS: dict[str, Any] = {
         "temperature": 0.7,
         "top_p": 0.95,
