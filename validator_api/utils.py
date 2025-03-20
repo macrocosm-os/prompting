@@ -20,7 +20,8 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
             str(uid): {
                 "task_availabilities": defaultdict(lambda: True),
                 "llm_model_availabilities": defaultdict(lambda: True),
-            } for uid in uids
+            }
+            for uid in uids
         }
 
     def _try_get_uids(self) -> list[int]:

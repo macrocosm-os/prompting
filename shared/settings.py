@@ -12,9 +12,9 @@ import os
 from functools import cached_property
 from typing import Any, Literal, Optional
 
-from bittensor.core.metagraph import Metagraph
 import bittensor as bt
 import dotenv
+from bittensor.core.metagraph import Metagraph
 from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
