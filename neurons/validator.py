@@ -8,9 +8,9 @@ import torch
 
 # import multiprocessing as mp
 import torch.multiprocessing as mp
-import wandb
 from bittensor.core.extrinsics.serving import serve_extrinsic
 
+import wandb
 from prompting.rewards.scoring import task_scorer
 
 # ruff: noqa: E402

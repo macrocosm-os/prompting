@@ -24,7 +24,7 @@ class HFTextImageToText(ReproducibleHF):
         )
         self.tokenizer = AutoProcessor.from_pretrained(model_id)
         self.valid_generation_params = set(self.model.generation_config.to_dict().keys())
-        self.message_formater = HFTextImageToText.format_messages
+        self.message_formatter = HFTextImageToText.format_messages
 
     @staticmethod
     def format_messages(messages: list[str] | list[dict[str, str]]) -> list[dict[str, str | list[dict[str, str]]]]:
