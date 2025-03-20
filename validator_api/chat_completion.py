@@ -89,6 +89,52 @@ async def peek_first_chunk(
     return first_chunk, reconstructed_response()
 
 
+async def find_first_valid_response(responses: List[asyncio.Task]) -> Optional[AsyncGenerator]:
+    """Find the first valid response from a list of response tasks."""
+    while responses:
+        done, pending = await asyncio.wait(responses, return_when=asyncio.FIRST_COMPLETED)
+
+        for task in done:
+            responses.remove(task)
+            try:
+                response = await task
+                if not response or isinstance(response, Exception):
+                    continue
+
+                first_chunk, rebuilt_generator = await peek_until_valid_chunk(response, is_valid_chunk)
+                if first_chunk is not None:
+                    return rebuilt_generator, pending
+
+            except Exception as e:
+                logger.exception(f"Error in miner response: {e}")
+
+    return None
+
+
+async def stream_response(
+    generator: AsyncGenerator,
+    collected_chunks_list: List[List[str]],
+    timings_list: List[List[float]],
+    response_start_time: float,
+) -> bool:
+    """Stream the response and collect chunks and timings."""
+    chunks_received = False
+    async for chunk in generator:
+        if not chunk.choices or not chunk.choices[0].delta:
+            continue
+
+        content = getattr(chunk.choices[0].delta, "content", None)
+        if content is None:
+            continue
+
+        chunks_received = True
+        timings_list[0].append(time.monotonic() - response_start_time)
+        collected_chunks_list[0].append(content)
+        yield f"data: {json.dumps(chunk.model_dump())}\n\n"
+
+    return chunks_received
+
+
 async def stream_from_first_response(
     responses: List[asyncio.Task],
     collected_chunks_list: List[List[str]],
@@ -96,54 +142,21 @@ async def stream_from_first_response(
     uids: List[int],
     timings_list: List[List[float]],
 ) -> AsyncGenerator[str, None]:
-    first_valid_response = None
+    """Stream from the first valid response and handle remaining responses."""
     response_start_time = time.monotonic()
 
     try:
-        # Keep looping until we find a valid response or run out of tasks
-        while responses and first_valid_response is None:
-            done, pending = await asyncio.wait(responses, return_when=asyncio.FIRST_COMPLETED)
-
-            for task in done:
-                responses.remove(task)
-                try:
-                    response = await task  # This is (presumably) an async generator
-
-                    if not response or isinstance(response, Exception):
-                        continue
-                    # Peak at the first chunk
-                    first_chunk, rebuilt_generator = await peek_until_valid_chunk(response, is_valid_chunk)
-                    if first_chunk is None:
-                        continue
-
-                    first_valid_response = rebuilt_generator
-                    break
-
-                except Exception as e:
-                    logger.exception(f"Error in miner response: {e}")
-                    # just skip and continue to the next task
-
+        # Find first valid response
+        first_valid_response, pending = await find_first_valid_response(responses)
         if first_valid_response is None:
             logger.error("No valid response received from any miner")
             yield 'data: {"error": "502 - No valid response received"}\n\n'
             return
 
-        # Stream the first valid response
-        chunks_received = False
-        async for chunk in first_valid_response:
-            # Safely handle the chunk
-            if not chunk.choices or not chunk.choices[0].delta:
-                continue
-
-            content = getattr(chunk.choices[0].delta, "content", None)
-            if content is None:
-                continue
-
-            chunks_received = True
-            timings_list[0].append(time.monotonic() - response_start_time)
-
-            collected_chunks_list[0].append(content)
-            yield f"data: {json.dumps(chunk.model_dump())}\n\n"
+        # Stream the response
+        chunks_received = await stream_response(
+            first_valid_response, collected_chunks_list, timings_list, response_start_time
+        )
 
         if not chunks_received:
             logger.error("Stream is empty: No chunks were received")
@@ -153,7 +166,8 @@ async def stream_from_first_response(
 
         if timings_list and timings_list[0]:
             logger.info(f"Response completion time: {timings_list[0][-1]:.2f}s")
-        # Continue collecting remaining responses in background for scoring
+
+        # Handle remaining responses
         remaining = asyncio.gather(*pending, return_exceptions=True)
         remaining_tasks = asyncio.create_task(
             collect_remaining_responses(
@@ -166,6 +180,8 @@ async def stream_from_first_response(
             )
         )
         await remaining_tasks
+
+        # Queue for scoring
         asyncio.create_task(
             scoring_queue.scoring_queue.append_response(
                 uids=uids, body=body, chunks=collected_chunks_list, timings=timings_list
@@ -180,6 +196,99 @@ async def stream_from_first_response(
     except Exception as e:
         logger.exception(f"Error during streaming: {e}")
         yield 'data: {"error": "Internal server Error"}\n\n'
+
+
+# async def stream_from_first_response(
+#     responses: List[asyncio.Task],
+#     collected_chunks_list: List[List[str]],
+#     body: dict[str, any],
+#     uids: List[int],
+#     timings_list: List[List[float]],
+# ) -> AsyncGenerator[str, None]:
+#     first_valid_response = None
+#     response_start_time = time.monotonic()
+
+#     try:
+#         # Keep looping until we find a valid response or run out of tasks
+#         while responses and first_valid_response is None:
+#             done, pending = await asyncio.wait(responses, return_when=asyncio.FIRST_COMPLETED)
+
+#             for task in done:
+#                 responses.remove(task)
+#                 try:
+#                     response = await task  # This is (presumably) an async generator
+
+#                     if not response or isinstance(response, Exception):
+#                         continue
+#                     # Peak at the first chunk
+#                     first_chunk, rebuilt_generator = await peek_until_valid_chunk(response, is_valid_chunk)
+#                     if first_chunk is None:
+#                         continue
+
+#                     first_valid_response = rebuilt_generator
+#                     break
+
+#                 except Exception as e:
+#                     logger.exception(f"Error in miner response: {e}")
+#                     # just skip and continue to the next task
+
+#         if first_valid_response is None:
+#             logger.error("No valid response received from any miner")
+#             yield 'data: {"error": "502 - No valid response received"}\n\n'
+#             return
+
+#         # Stream the first valid response
+#         chunks_received = False
+#         async for chunk in first_valid_response:
+#             # Safely handle the chunk
+#             if not chunk.choices or not chunk.choices[0].delta:
+#                 continue
+
+#             content = getattr(chunk.choices[0].delta, "content", None)
+#             if content is None:
+#                 continue
+
+#             chunks_received = True
+#             timings_list[0].append(time.monotonic() - response_start_time)
+
+#             collected_chunks_list[0].append(content)
+#             yield f"data: {json.dumps(chunk.model_dump())}\n\n"
+
+#         if not chunks_received:
+#             logger.error("Stream is empty: No chunks were received")
+#             yield 'data: {"error": "502 - Response is empty"}\n\n'
+
+#         yield "data: [DONE]\n\n"
+
+#         if timings_list and timings_list[0]:
+#             logger.info(f"Response completion time: {timings_list[0][-1]:.2f}s")
+#         # Continue collecting remaining responses in background for scoring
+#         remaining = asyncio.gather(*pending, return_exceptions=True)
+#         remaining_tasks = asyncio.create_task(
+#             collect_remaining_responses(
+#                 remaining=remaining,
+#                 collected_chunks_list=collected_chunks_list,
+#                 body=body,
+#                 uids=uids,
+#                 timings_list=timings_list,
+#                 response_start_time=response_start_time,
+#             )
+#         )
+#         await remaining_tasks
+#         asyncio.create_task(
+#             scoring_queue.scoring_queue.append_response(
+#                 uids=uids, body=body, chunks=collected_chunks_list, timings=timings_list
+#             )
+#         )
+
+#     except asyncio.CancelledError:
+#         logger.info("Client disconnected, streaming cancelled")
+#         for task in responses:
+#             task.cancel()
+#         raise
+#     except Exception as e:
+#         logger.exception(f"Error during streaming: {e}")
+#         yield 'data: {"error": "Internal server Error"}\n\n'
 
 
 async def collect_remaining_responses(

@@ -1,7 +1,7 @@
 import asyncio
 import random
-from functools import partial
 from abc import abstractmethod
+from functools import partial
 
 import numpy as np
 from loguru import logger
