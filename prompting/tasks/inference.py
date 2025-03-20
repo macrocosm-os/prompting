@@ -65,7 +65,7 @@ class InferenceTask(BaseTextTask):
             self.llm_model = ModelZoo.get_model_by_id(self.llm_model_id)
         return self
 
-    def make_query(self, dataset_entry: ChatEntry) -> str:
+    async def make_query(self, dataset_entry: ChatEntry) -> str:
         if self.query:
             return self.query
         system_prompt = random.choice(SYSTEM_PROMPTS)
@@ -76,7 +76,7 @@ class InferenceTask(BaseTextTask):
         return self.query
 
     async def make_reference(self, dataset_entry: ChatEntry) -> str:
-        self.reference = model_manager.generate(
+        self.reference = await model_manager.generate(
             messages=self.messages,
             model=self.llm_model,
             seed=self.seed,

@@ -12,6 +12,7 @@ from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.logging import RewardLoggingEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
+from shared.timer import Timer
 
 
 class TaskScorer(AsyncLoopRunner):
@@ -27,10 +28,10 @@ class TaskScorer(AsyncLoopRunner):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def start(self, scoring_queue, reward_events, name: str | None = None):
+    async def start(self, scoring_queue, reward_events, name: str | None = None, **kwargs):
         self.scoring_queue = scoring_queue
         self.reward_events = reward_events
-        return await super().start(name=name)
+        return await super().start(name=name, **kwargs)
 
     def add_to_queue(
         self,
@@ -70,19 +71,21 @@ class TaskScorer(AsyncLoopRunner):
         scoring_config: ScoringConfig = scorable.pop(0)
 
         # here we generate the actual reference
-        await scoring_config.task.make_reference(
-            dataset_entry=scoring_config.dataset_entry,
-        )
+        with Timer(label=f"Generating reference for {scoring_config.task.__class__.__name__}"):
+            await scoring_config.task.make_reference(
+                dataset_entry=scoring_config.dataset_entry,
+            )
 
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
-        reward_events = await reward_pipeline.apply(
-            response_event=scoring_config.response,
-            challenge=scoring_config.task.query,
-            reference=scoring_config.task.reference,
-            model_id=scoring_config.task.llm_model,
-            task=scoring_config.task,
-        )
+        with Timer(label=f"Scoring {scoring_config.task.__class__.__name__}"):
+            reward_events = await reward_pipeline.apply(
+                response_event=scoring_config.response,
+                challenge=scoring_config.task.query,
+                reference=scoring_config.task.reference,
+                model_id=scoring_config.task.llm_model,
+                task=scoring_config.task,
+            )
         self.reward_events.append(reward_events)
 
         # TODO: Remove this once we have a better way to handle organic tasks
