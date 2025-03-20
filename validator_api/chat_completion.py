@@ -89,6 +89,45 @@ async def peek_first_chunk(
     return first_chunk, reconstructed_response()
 
 
+async def stream_chunks(
+    first_valid_response: AsyncGenerator,
+    collected_chunks_list: List[List[str]],
+    timings_list: List[List[float]],
+    response_start_time: float,
+) -> AsyncGenerator[str, None]:
+    """Stream chunks from a valid response and collect timing data.
+
+    Args:
+        first_valid_response: The async generator containing response chunks
+        collected_chunks_list: List to collect response chunks
+        timings_list: List to collect timing data
+        response_start_time: Start time of the response for timing calculations
+    """
+    chunks_received = False
+    async for chunk in first_valid_response:
+        # Safely handle the chunk
+        if not chunk.choices or not chunk.choices[0].delta:
+            continue
+
+        content = getattr(chunk.choices[0].delta, "content", None)
+        if content is None:
+            continue
+
+        chunks_received = True
+        timings_list[0].append(time.monotonic() - response_start_time)
+        collected_chunks_list[0].append(content)
+        yield f"data: {json.dumps(chunk.model_dump())}\n\n"
+
+    if not chunks_received:
+        logger.error("Stream is empty: No chunks were received")
+        yield 'data: {"error": "502 - Response is empty"}\n\n'
+
+    yield "data: [DONE]\n\n"
+
+    if timings_list and timings_list[0]:
+        logger.info(f"Response completion time: {timings_list[0][-1]:.2f}s")
+
+
 async def stream_from_first_response(
     responses: List[asyncio.Task],
     collected_chunks_list: List[List[str]],
@@ -129,30 +168,11 @@ async def stream_from_first_response(
             return
 
         # Stream the first valid response
-        chunks_received = False
-        async for chunk in first_valid_response:
-            # Safely handle the chunk
-            if not chunk.choices or not chunk.choices[0].delta:
-                continue
+        async for chunk_data in stream_chunks(
+            first_valid_response, collected_chunks_list, timings_list, response_start_time
+        ):
+            yield chunk_data
 
-            content = getattr(chunk.choices[0].delta, "content", None)
-            if content is None:
-                continue
-
-            chunks_received = True
-            timings_list[0].append(time.monotonic() - response_start_time)
-
-            collected_chunks_list[0].append(content)
-            yield f"data: {json.dumps(chunk.model_dump())}\n\n"
-
-        if not chunks_received:
-            logger.error("Stream is empty: No chunks were received")
-            yield 'data: {"error": "502 - Response is empty"}\n\n'
-
-        yield "data: [DONE]\n\n"
-
-        if timings_list and timings_list[0]:
-            logger.info(f"Response completion time: {timings_list[0][-1]:.2f}s")
         # Continue collecting remaining responses in background for scoring
         remaining = asyncio.gather(*pending, return_exceptions=True)
         remaining_tasks = asyncio.create_task(

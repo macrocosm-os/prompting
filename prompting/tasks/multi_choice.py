@@ -92,16 +92,16 @@ class MultiChoiceTask(BaseTextTask):
     # Specific pattern (semi-flexible) which detects multiple choices.
     choices_pattern: ClassVar[str] = r"\n\s*(\*?\s*\W?[A-D]\W?)\s*(.*)"
 
-    def make_query(self, dataset_entry: Context) -> tuple[str, str]:
+    async def make_query(self, dataset_entry: Context) -> tuple[str, str]:
         query_prompt = QUERY_PROMPT_TEMPLATE.format(
             source=dataset_entry.source, title=dataset_entry.title, context=dataset_entry.content
         )
-        query_with_choices = self.generate_query(messages=[query_prompt])
-        self.query, self.reference = self.extract_query_and_reference(query_with_choices)
-        self.query = self.post_process_qa(self.query)
+        query_with_choices = await self.generate_query(messages=[query_prompt])
+        self.query, self.reference = await self.extract_query_and_reference(query_with_choices)
+        self.query = await self.post_process_qa(self.query)
         return self.query
 
-    def post_process_qa(self, query: str) -> str:
+    async def post_process_qa(self, query: str) -> str:
         options = query.split("?")[2].split("\n")
         cleaned_options = [item.strip() for item in options if item.strip() and item.strip() != "Answer:"]
         letter_to_index = {"A": 0, "B": 1, "C": 2, "D": 3}
@@ -129,7 +129,7 @@ class MultiChoiceTask(BaseTextTask):
     async def make_reference(self, dataset_entry: Context) -> str:
         return self.reference
 
-    def extract_query_and_reference(self, query_with_choices: str) -> tuple[str, str]:
+    async def extract_query_and_reference(self, query_with_choices: str) -> tuple[str, str]:
         """
         Detects JSON within a string, parses it into a dictionary,
         and validates that the dictionary contains the required fields:
@@ -146,7 +146,7 @@ class MultiChoiceTask(BaseTextTask):
         """
 
         # Regular expression pattern to match JSON object in the string.
-        def extract_json_from_string(string: str):
+        async def extract_json_from_string(string: str):
             start = string.find("{")
             end = string.rfind("}") + 1
             if start != -1 and end != -1:
@@ -157,7 +157,7 @@ class MultiChoiceTask(BaseTextTask):
                     pass
             return None
 
-        quiz_data = extract_json_from_string(query_with_choices)
+        quiz_data = await extract_json_from_string(query_with_choices)
         if not quiz_data:
             raise TaskCreationError(f"No JSON object could be found in the provided string: {query_with_choices}.")
 

@@ -231,7 +231,7 @@ class ModelManager(BaseModel):
         composed_prompt.append(role_template["end"])
         return "".join(composed_prompt)
 
-    def generate(
+    async def generate(
         self,
         messages: list[str],
         roles: list[str] | None = None,
@@ -250,7 +250,7 @@ class ModelManager(BaseModel):
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
         model_instance: ReproducibleHF = self.get_model(model)
-        responses = model_instance.generate(messages=[dict_messages], sampling_params=sampling_params, seed=seed)
+        responses = await model_instance.generate(messages=[dict_messages], sampling_params=sampling_params, seed=seed)
 
         return responses
 
@@ -301,9 +301,9 @@ class AsyncModelScheduler(AsyncLoopRunner):
     interval: int = 14400
     scoring_queue: list | None = None
 
-    async def start(self, scoring_queue: list, name: str | None = None):
+    async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
         self.scoring_queue = scoring_queue
-        return await super().start(name=name)
+        return await super().start(name=name, **kwargs)
 
     async def initialise_loop(self):
         model_manager.load_always_active_models()
