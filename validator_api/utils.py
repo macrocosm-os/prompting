@@ -29,7 +29,7 @@ class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
             self._previous_uids = uids
         except BaseException as e:
             logger.error(f"Error while getting miner UIDs from subtensor, using all UIDs: {e}")
-            uids = self._previous_uids or shared_settings.TEST_MINER_IDS or list(range(1024))
+            uids = self._previous_uids or settings.shared_settings.TEST_MINER_IDS or list(range(1024))
         return uids
 
     async def run_step(self):
