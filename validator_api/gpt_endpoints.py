@@ -85,6 +85,11 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
     """
     try:
         body = request.model_dump()
+        if body.get("inference_mode") == "Reasoning-Fast":
+            body["task"] = "MultiStepReasoningTask"
+        if body.get("model") == "Default":
+            # By setting default, we are allowing a user to use whatever model we define as the standard, could also set to None.
+            body["model"] = "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4"
         body["seed"] = int(body.get("seed") or random.randint(0, 1000000))
         if body.get("uids"):
             try:
@@ -98,8 +103,7 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
         if not uids:
             raise HTTPException(status_code=500, detail="No available miners")
 
-        # Choose between regular inference, test time inference, and mixture of miners.
-        if body.get("test_time_inference", False):
+        if body.get("test_time_inference", False) or body.get("inference_mode", None) == "Chain-of-Thought":
             test_time_request = TestTimeInferenceRequest(
                 messages=request.messages,
                 model=request.model,
@@ -107,7 +111,7 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
                 json_format=request.json_format,
             )
             return await test_time_inference(test_time_request)
-        elif body.get("mixture", False):
+        elif body.get("mixture", False) or body.get("inference_mode", None) == "Mixture-of-Agents":
             return await mixture_of_miners(body, uids=uids)
         else:
             return await chat_completion(body, uids=uids)

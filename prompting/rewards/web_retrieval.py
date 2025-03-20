@@ -4,7 +4,6 @@ import asyncio
 import json
 import os
 from collections import defaultdict
-from functools import lru_cache
 from urllib.parse import urlparse
 
 import numpy as np
@@ -19,6 +18,7 @@ from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BatchRewardOutput
 from prompting.tasks.base_task import BaseTextTask
 from shared.dendrite import DendriteResponseEvent
+from shared.misc import async_lru_cache
 
 MIN_RELEVANT_CHARS = 300
 MIN_MATCH_THRESHOLD = 98
@@ -66,7 +66,7 @@ try:
         logger.warning(f"Past websites file {PAST_WEBSITES_FILE} does not exist or empty, creating new dictionary")
         past_websites = defaultdict(list)
 except Exception as e:
-    logger.exception(f"Failed to load domains data: {e}")
+    logger.error(f"Failed to load domains data: {e}")
     TOP_DOMAINS = set()
     past_websites = defaultdict(list)
 
@@ -89,7 +89,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         # Use the id of the object as its hash
         return hash(self.model_dump_json)
 
-    @lru_cache(maxsize=1000)
+    @async_lru_cache(maxsize=1000)
     async def _cosine_similarity(self, content1: str, content2: str) -> float:
         """Calculate the cosine similarity between sentence embeddings of the reference and completions."""
         reference_emb_flatten = self.embedding_model.encode(content1, to_numpy=True).flatten()
