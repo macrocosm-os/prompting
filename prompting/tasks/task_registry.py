@@ -11,6 +11,7 @@ from prompting.datasets.sn13 import SN13Dataset
 from prompting.datasets.wiki import WikiDataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
+from prompting.tasks.MSRv2_task import MSRv2RewardConfig, MSRv2Task
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
 from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTask
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningRewardConfig, MultiStepReasoningTask
@@ -34,40 +35,41 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
-        TaskConfig(
-            task=WikiQuestionAnsweringTask, probability=0.05, datasets=[WikiDataset], reward_model=QARewardConfig
-        ),
-        TaskConfig(task=WebQuestionAnsweringTask, probability=0.15, datasets=[DDGDataset], reward_model=QARewardConfig),
-        TaskConfig(
-            task=InferenceTask,
-            probability=0.3,
-            datasets=[SN13Dataset],
-            reward_model=InferenceRewardConfig,
-        ),
-        TaskConfig(
-            task=MultiChoiceTask,
-            probability=0.2,
-            datasets=[WikiDataset],
-            reward_model=MultiChoiceRewardConfig,
-        ),
-        TaskConfig(
-            task=ProgrammingTask,
-            probability=0.10,
-            datasets=[HuggingFaceGithubDataset],
-            reward_model=ProgrammingRewardConfig,
-        ),
-        TaskConfig(
-            task=WebRetrievalTask,
-            probability=0.1,
-            datasets=[DDGDataset],
-            reward_model=WebRetrievalRewardConfig,
-        ),
-        TaskConfig(
-            task=MultiStepReasoningTask,
-            probability=0.1,
-            datasets=[DDGDataset],
-            reward_model=MultiStepReasoningRewardConfig,
-        ),
+        TaskConfig(task=MSRv2Task, probability=1.0, datasets=[DDGDataset], reward_model=MSRv2RewardConfig),
+        # TaskConfig(
+        #     task=WikiQuestionAnsweringTask, probability=0.05, datasets=[WikiDataset], reward_model=QARewardConfig
+        # ),
+        # TaskConfig(task=WebQuestionAnsweringTask, probability=0.15, datasets=[DDGDataset], reward_model=QARewardConfig),
+        # TaskConfig(
+        #     task=InferenceTask,
+        #     probability=0.3,
+        #     datasets=[SN13Dataset],
+        #     reward_model=InferenceRewardConfig,
+        # ),
+        # TaskConfig(
+        #     task=MultiChoiceTask,
+        #     probability=0.2,
+        #     datasets=[WikiDataset],
+        #     reward_model=MultiChoiceRewardConfig,
+        # ),
+        # TaskConfig(
+        #     task=ProgrammingTask,
+        #     probability=0.10,
+        #     datasets=[HuggingFaceGithubDataset],
+        #     reward_model=ProgrammingRewardConfig,
+        # ),
+        # TaskConfig(
+        #     task=WebRetrievalTask,
+        #     probability=0.1,
+        #     datasets=[DDGDataset],
+        #     reward_model=WebRetrievalRewardConfig,
+        # ),
+        # TaskConfig(
+        #     task=MultiStepReasoningTask,
+        #     probability=0.1,
+        #     datasets=[DDGDataset],
+        #     reward_model=MultiStepReasoningRewardConfig,
+        # ),
     ]
 
     @classmethod
