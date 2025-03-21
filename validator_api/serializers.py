@@ -1,8 +1,8 @@
 from typing import Any, Dict, List, Optional, Union
 
-from validator_api.messages import Messages
 from pydantic import BaseModel, Field, field_validator
 
+from validator_api.messages import Message, Messages
 
 
 class CompletionsRequest(BaseModel):
@@ -16,7 +16,15 @@ class CompletionsRequest(BaseModel):
     messages: Union[List[Dict[str, Any]], Messages] = Field(
         ...,
         description="List of message objects with 'role' and 'content' keys. Content can be a string or a list of ContentItems for multimodal inputs.",
-        example=[{"role": "user", "content": [{"type": "text", "text": "Tell me about this image"}, {"type": "image", "image_url": {"url": "https://example.com/image.jpg"}}]}],
+        example=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Tell me about this image"},
+                    {"type": "image", "image_url": {"url": "https://example.com/image.jpg"}},
+                ],
+            }
+        ],
     )
     seed: Optional[int] = Field(
         default=None,
@@ -74,43 +82,42 @@ class CompletionsRequest(BaseModel):
                     if isinstance(msg, dict) and "role" in msg and "content" in msg:
                         # If content is a string, convert to new format
                         if isinstance(msg["content"], str):
-                            msg = {
-                                "role": msg["role"],
-                                "content": [{"type": "text", "text": msg["content"]}]
-                            }
+                            msg = {"role": msg["role"], "content": [{"type": "text", "text": msg["content"]}]}
                     processed_messages.append(msg)
                 obj["messages"] = Messages(messages=processed_messages)
             elif isinstance(obj["messages"], dict):
                 obj["messages"] = Messages.from_dict(obj["messages"])
         return super().model_validate(obj, *args, **kwargs)
-    
+
     def get_legacy_messages(self) -> List[Dict[str, str]]:
         """Get messages in legacy format."""
         if isinstance(self.messages, Messages):
             return self.messages.to_legacy_format()
-        
+
         # If we have a list of messages, convert each to legacy format as needed
         legacy_messages = []
         for msg in self.messages:
             if isinstance(msg, dict) and "role" in msg and "content" in msg:
                 if isinstance(msg["content"], list):
                     # Convert content list to string (join text items)
-                    text_content = " ".join([
-                        item.get("text", "") 
-                        for item in msg["content"] 
-                        if item.get("type") == "text" and item.get("text")
-                    ])
+                    text_content = " ".join(
+                        [
+                            item.get("text", "")
+                            for item in msg["content"]
+                            if item.get("type") == "text" and item.get("text")
+                        ]
+                    )
                     legacy_messages.append({"role": msg["role"], "content": text_content})
                 else:
                     # Already in legacy format
                     legacy_messages.append(msg)
             elif isinstance(msg, Message):
                 legacy_messages.append(msg.to_legacy_format())
-                
+
         return legacy_messages
-    
+
     # Add model_validator to ensure messages are always a Messages object
-    @field_validator('messages')
+    @field_validator("messages")
     @classmethod
     def validate_messages(cls, v):
         if isinstance(v, list):
@@ -120,13 +127,11 @@ class CompletionsRequest(BaseModel):
                 if isinstance(msg, dict) and "role" in msg and "content" in msg:
                     # If content is a string, convert to new format
                     if isinstance(msg["content"], str):
-                        msg = {
-                            "role": msg["role"],
-                            "content": [{"type": "text", "text": msg["content"]}]
-                        }
+                        msg = {"role": msg["role"], "content": [{"type": "text", "text": msg["content"]}]}
                 processed_messages.append(msg)
             return Messages(messages=processed_messages)
         return v
+
 
 class WebRetrievalRequest(BaseModel):
     """Request model for the /web_retrieval endpoint."""
@@ -171,8 +176,6 @@ class WebRetrievalResponse(BaseModel):
 
     def to_dict(self):
         return self.model_dump().update({"results": [r.model_dump() for r in self.results]})
-
-
 
 
 if __name__ == "__main__":
