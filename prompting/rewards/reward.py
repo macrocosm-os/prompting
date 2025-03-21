@@ -49,6 +49,7 @@ class BatchRewardOutput(BaseModel):
     threshold: float | None = None
     extra_info: dict = {}
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    uids: list[int] | None = None
 
     @model_validator(mode="after")
     def validate_rewards_and_timings(cls, v):
@@ -79,12 +80,14 @@ class BaseRewardModel(ABC, BaseModel):
         challenge: str | None = None,
         reward_type: Literal["reward", "penalty"] = "reward",
         task: BaseTextTask | None = None,
+        task_queue: list | None = None,
         **kwargs,
     ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
-        batch_rewards_output: BatchRewardOutput = await self.reward(comparator, response_event, task=task, **kwargs)
+        batch_rewards_output: BatchRewardOutput = await self.reward(comparator, response_event, task=task, task_queue=task_queue, **kwargs)
         batch_rewards_time = time.time() - t0
+        uids = batch_rewards_output.uids if batch_rewards_output.uids is not None else response_event.uids
 
         return WeightedRewardEvent(
             weight=self.weight,
@@ -97,7 +100,7 @@ class BaseRewardModel(ABC, BaseModel):
             threshold=batch_rewards_output.threshold,
             timings=batch_rewards_output.timings,
             extra_info=kwargs,
-            uids=response_event.uids,
+            uids=uids,
         )
 
 
@@ -143,6 +146,7 @@ class BaseRewardConfig(ABC, BaseModel):
         challenge: str | None = None,
         model_id: str | None = None,
         task: BaseTextTask | None = None,
+        task_queue: list | None = None,
     ) -> list[WeightedRewardEvent]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
@@ -154,6 +158,7 @@ class BaseRewardConfig(ABC, BaseModel):
                     reward_type="reward",
                     model_id=model_id,
                     task=task,
+                    task_queue=task_queue,
                 ),
             )
         return reward_events

@@ -60,7 +60,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events):
         logger.info("Starting ModelScheduler...")
         asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
         logger.info("Starting TaskScorer...")
-        asyncio.create_task(task_scorer.start(scoring_queue, reward_events), name="TaskScorer"),
+        asyncio.create_task(task_scorer.start(task_queue, scoring_queue, reward_events), name="TaskScorer"),
         logger.info("Starting WeightSetter...")
         asyncio.create_task(weight_setter.start(reward_events))
 
