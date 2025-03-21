@@ -14,6 +14,7 @@ from typing import Any, Literal, Optional
 
 import bittensor as bt
 import dotenv
+from bittensor.core.metagraph import Metagraph
 from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
@@ -28,6 +29,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 class SharedSettings(BaseSettings):
     _instance: Optional["SharedSettings"] = None
     _instance_mode: Optional[str] = None
+    _last_metagraph: Metagraph = None
 
     mode: Literal["api", "validator", "miner", "mock"] = Field("validator", env="MODE")
     MOCK: bool = False
@@ -246,6 +248,7 @@ class SharedSettings(BaseSettings):
 
     @cached_property
     def WALLET(self):
+        # TODO: Move chain-related stuff out of settings.
         wallet_name = self.WALLET_NAME  # or config().wallet.name
         hotkey = self.HOTKEY  # or config().wallet.hotkey
         logger.info(f"Instantiating wallet with name: {wallet_name}, hotkey: {hotkey}")
@@ -253,6 +256,7 @@ class SharedSettings(BaseSettings):
 
     @cached_property
     def SUBTENSOR(self) -> bt.subtensor:
+        # TODO: Move chain-related stuff out of settings.
         subtensor_network = self.SUBTENSOR_NETWORK or os.environ.get("SUBTENSOR_NETWORK", "local")
         # bt_config = config()
         if subtensor_network.lower() == "local":
@@ -263,16 +267,30 @@ class SharedSettings(BaseSettings):
         return bt.subtensor(network=subtensor_network)
 
     @cached_property_with_expiration(expiration_seconds=1200)
-    def METAGRAPH(self) -> bt.metagraph:
+    def METAGRAPH(self) -> Metagraph:
+        # TODO: Move chain-related stuff out of settings.
         logger.info(f"Instantiating metagraph with NETUID: {self.NETUID}")
-        return self.SUBTENSOR.metagraph(netuid=self.NETUID)
+        try:
+            meta = self.SUBTENSOR.metagraph(netuid=self.NETUID)
+            self._last_metagraph = meta
+            return meta
+        except Exception as e:
+            logger.error(f"Failed to fetch new METAGRAPH for NETUID={self.NETUID}: {e}")
+            if self._last_metagraph is not None:
+                logger.warning("Falling back to the previous METAGRAPH.")
+                return self._last_metagraph
+            else:
+                logger.error("No previous METAGRAPH is available; re-raising exception.")
+                raise
 
     @cached_property
     def UID(self) -> int:
+        # TODO: Move chain-related stuff out of settings.
         return self.METAGRAPH.hotkeys.index(self.WALLET.hotkey.ss58_address)
 
     @cached_property
     def DENDRITE(self) -> bt.dendrite:
+        # TODO: Move chain-related stuff out of settings.
         logger.info(f"Instantiating dendrite with wallet: {self.WALLET}")
         return bt.dendrite(wallet=self.WALLET)
 

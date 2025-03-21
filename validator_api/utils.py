@@ -1,4 +1,5 @@
 import random
+from collections import defaultdict
 
 import requests
 from loguru import logger
@@ -8,11 +9,13 @@ from shared.loop_runner import AsyncLoopRunner
 from shared.uids import get_uids
 
 
-def read_fallback_uids() -> dict[str, dict]:
-    try:
-        from collections import defaultdict
+class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
+    interval: int = 120
+    miner_availabilities: dict[int, dict] = {}
+    _previous_availabilities: dict[str, dict[str, bool]] | None = None
+    _previous_uids: list[int] | None = None
 
-        uids = get_uids(sampling_mode="all")
+    def _fallback_availabilities(self, uids: list[int]) -> dict[str, dict[str, bool]]:
         return {
             str(uid): {
                 "task_availabilities": defaultdict(lambda: True),
@@ -20,30 +23,32 @@ def read_fallback_uids() -> dict[str, dict]:
             }
             for uid in uids
         }
-    except Exception as e2:
-        logger.error(f"Error reading miner availabilities from JSON file: {e2}")
-        return {}
 
-
-class UpdateMinerAvailabilitiesForAPI(AsyncLoopRunner):
-    interval: int = 120
-    miner_availabilities: dict[int, dict] = {}
+    def _try_get_uids(self) -> list[int]:
+        try:
+            uids = get_uids(sampling_mode="all")
+            self._previous_uids = uids
+        except BaseException as e:
+            logger.error(f"Error while getting miner UIDs from subtensor, using all UIDs: {e}")
+            uids = self._previous_uids or settings.shared_settings.TEST_MINER_IDS or list(range(1024))
+        return list(map(int, uids))
 
     async def run_step(self):
         logger.debug("Running update miner availabilities step")
         if settings.shared_settings.API_TEST_MODE:
             return
+        uids = self._try_get_uids()
         try:
             response = requests.post(
                 f"http://{settings.shared_settings.VALIDATOR_API}/miner_availabilities/miner_availabilities",
                 headers={"accept": "application/json", "Content-Type": "application/json"},
-                json=get_uids(sampling_mode="all"),
+                json=uids,
                 timeout=15,
             )
             self.miner_availabilities = response.json()
         except Exception as e:
-            logger.error(f"Failed updating miner availabilities for API, fallback to all uids: {e}")
-            self.miner_availabilities = read_fallback_uids()
+            logger.error(f"Error while getting miner availabilities from validator API, fallback to all uids: {e}")
+            self.miner_availabilities = self._fallback_availabilities(uids=uids)
         tracked_availabilities = [m for m in self.miner_availabilities.values() if m is not None]
         logger.info(f"Availabilities updated, tracked: {len(tracked_availabilities)}")
 
