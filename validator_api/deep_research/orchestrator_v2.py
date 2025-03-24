@@ -1,5 +1,6 @@
 import json
 import time
+import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any
@@ -356,25 +357,34 @@ class OrchestratorV2(BaseModel):
             raise
 
     async def execute_tools(self, tool_requests: list[ToolRequest]) -> list[ToolResult]:
-        """Executes the requested tools and records their results"""
-        results = []
-
-        for request in tool_requests:
+        """Executes the requested tools concurrently and records their results"""
+        
+        async def execute_single_tool(request: ToolRequest) -> ToolResult | None:
+            """Helper function to execute a single tool and handle exceptions"""
             logger.info(f"Executing {request.tool_name} - Purpose: {request.purpose}")
             tool = self.tools[request.tool_name]
-
+            
             try:
                 result = await tool.execute(**request.parameters)
-                tool_result = ToolResult(
-                    tool_name=request.tool_name, parameters=request.parameters, result=result, purpose=request.purpose
+                return ToolResult(
+                    tool_name=request.tool_name, 
+                    parameters=request.parameters, 
+                    result=result, 
+                    purpose=request.purpose
                 )
-                results.append(tool_result)
-                self.tool_history.append(tool_result)
-
             except Exception as e:
                 logger.error(f"Failed to execute {request.tool_name}: {e}")
-                continue
-
+                return None
+        
+        # Execute all tool requests concurrently
+        tool_results = await asyncio.gather(
+            *[execute_single_tool(request) for request in tool_requests]
+        )
+        
+        # Filter out None results (from failed executions) and record successful results
+        results = [result for result in tool_results if result is not None]
+        self.tool_history.extend(results)
+        
         return results
 
     async def run(self, messages):
