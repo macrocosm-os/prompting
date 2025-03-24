@@ -6,13 +6,11 @@ from datetime import datetime
 from typing import Any
 
 from loguru import logger
-from mistralai import Mistral
 from pydantic import BaseModel
 
 from shared.settings import shared_settings
-from validator_api.deep_research.persistent_cache import persistent_cache
 from validator_api.deep_research.utils import parse_llm_json, with_retries
-from validator_api.gpt_endpoints import WebRetrievalRequest, web_retrieval
+from validator_api.gpt_endpoints import WebRetrievalRequest, web_retrieval, completions, CompletionsRequest
 
 def make_chunk(text):
     return {
@@ -39,7 +37,6 @@ class LLMQuery(BaseModel):
     model: str  # Which model was used
 
 
-@persistent_cache(cache_file="web_search_cache.json")
 async def search_web(question: str, n_results: int = 5) -> dict:
     """
     Takes a natural language question, generates an optimized search query, performs web search,
@@ -106,15 +103,20 @@ async def search_web(question: str, n_results: int = 5) -> dict:
 
 
 @with_retries(max_retries=3)
-@persistent_cache(cache_file="mistral_cache.json")
 async def make_mistral_request(messages: list[dict], step_name: str) -> tuple[str, LLMQuery]:
     """Makes a request to Mistral API and records the query"""
 
-    model = "mistral-small-latest"
-    client = Mistral(api_key=shared_settings.GEMMA_API_KEY)
-    chat_response = client.chat.complete(model=model, messages=messages)
-    response_content = chat_response.choices[0].message.content
-
+    model = "mrfakename/mistral-small-3.1-24b-instruct-2503-hf"
+    temperature = 0.1
+    top_p = 1
+    max_tokens = 128000
+    sample_params = {
+        "top_p": top_p,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }
+    response = completions(CompletionsRequest(messages=messages, model=model, stream=False, sampling_parameters=sample_params))
+    response_content = response.choices[0].message.content
     # Record the query
     query_record = LLMQuery(
         messages=messages, raw_response=response_content, step_name=step_name, timestamp=time.time(), model=model
