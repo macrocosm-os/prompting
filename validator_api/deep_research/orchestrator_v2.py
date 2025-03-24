@@ -9,9 +9,10 @@ from mistralai import Mistral
 from pydantic import BaseModel
 
 from shared.settings import shared_settings
+from validator_api.deep_research.persistent_cache import persistent_cache
 from validator_api.deep_research.utils import parse_llm_json, with_retries
 from validator_api.gpt_endpoints import WebRetrievalRequest, web_retrieval
-from validator_api.deep_research.persistent_cache import persistent_cache
+
 
 def get_current_datetime_str() -> str:
     """Returns a nicely formatted string of the current date and time"""
@@ -27,6 +28,7 @@ class LLMQuery(BaseModel):
     step_name: str  # Name of the step that made this query
     timestamp: float  # When the query was made
     model: str  # Which model was used
+
 
 @persistent_cache(cache_file="web_search_cache.json")
 async def search_web(question: str, n_results: int = 5) -> dict:
@@ -94,8 +96,8 @@ async def search_web(question: str, n_results: int = 5) -> dict:
     }
 
 
-@persistent_cache(cache_file="mistral_cache.json")
 @with_retries(max_retries=3)
+@persistent_cache(cache_file="mistral_cache.json")
 async def make_mistral_request(messages: list[dict], step_name: str) -> tuple[str, LLMQuery]:
     """Makes a request to Mistral API and records the query"""
 
@@ -137,26 +139,26 @@ async def assess_question_suitability(question: str) -> dict:
                         # Definitions
                         ## Deep research questions typically:
                         - Seek factual information that may require up-to-date or verified data (e.g., prices, event times, current status)
-                        - Ask about complex topics with nuance
-                        - Request analysis of data or trends
-                        - Need verification or retrieval across multiple or external sources
-                        - Involve comparing different perspectives
-                        - Would reasonably require using a web search tool
+                        - Involve complex topics with nuance, such as technical processes, system design, or multi-step methodologies
+                        - Request detailed breakdowns, plans, or analysis grounded in domain-specific knowledge (e.g., engineering, AI development)
+                        - Require synthesis of information from multiple or external sources
+                        - Involve comparing different perspectives, approaches, or technologies
+                        - Would reasonably benefit from web search, expert resources, or tool use to provide a comprehensive answer
 
                         ## Questions NOT suitable for deep research include:
                         - Simple greetings or conversational remarks (e.g., "How are you?", "Hello")
-                        - Basic opinions that don't require factual research
-                        - Simple, well-known facts that don't require verification
-                        - Requests for creative content like poems or stories
-                        - Personal questions about the AI assistant
-                        - Questions with obvious or unambiguous answers that do not benefit from external tools
+                        - Basic opinions that don’t require factual grounding or research
+                        - Simple, well-known facts that don’t need verification (e.g., "The sky is blue")
+                        - Requests for purely imaginative content like poems, stories, or fictional narratives
+                        - Personal questions about the AI assistant (e.g., "What’s your favorite color?")
+                        - Questions with obvious or unambiguous answers that don’t benefit from external tools or elaboration
 
                         Response Format:
                         Format your response as a JSON object with the following structure:
                         {{
                             "is_suitable": boolean,  // true if deep research or a web search is needed, false if not
-                            "reason": "Brief explanation of why the question does or doesn't need deep research",
-                            "direct_answer": "If the question doesn't need deep research, provide a direct answer here. Otherwise, null."
+                            "reason": "Brief explanation of why the question does or doesn’t need deep research",
+                            "direct_answer": "If the question doesn’t need deep research, provide a direct answer here. Otherwise, null."
                         }}
                         """
 
