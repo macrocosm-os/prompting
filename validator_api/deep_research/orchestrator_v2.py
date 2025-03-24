@@ -11,11 +11,11 @@ from pydantic import BaseModel
 from shared.settings import shared_settings
 from validator_api.deep_research.utils import parse_llm_json, with_retries
 from validator_api.gpt_endpoints import WebRetrievalRequest, web_retrieval
-
+from validator_api.deep_research.persistent_cache import persistent_cache
 
 def get_current_datetime_str() -> str:
     """Returns a nicely formatted string of the current date and time"""
-    return datetime.now().strftime("%B %d, %Y at %H:%M:%S")
+    return datetime.now().strftime("%B %d, %Y")
 
 
 class LLMQuery(BaseModel):
@@ -28,7 +28,7 @@ class LLMQuery(BaseModel):
     timestamp: float  # When the query was made
     model: str  # Which model was used
 
-
+@persistent_cache(cache_file="web_search_cache.json")
 async def search_web(question: str, n_results: int = 5) -> dict:
     """
     Takes a natural language question, generates an optimized search query, performs web search,
@@ -94,6 +94,7 @@ async def search_web(question: str, n_results: int = 5) -> dict:
     }
 
 
+@persistent_cache(cache_file="mistral_cache.json")
 @with_retries(max_retries=3)
 async def make_mistral_request(messages: list[dict], step_name: str) -> tuple[str, LLMQuery]:
     """Makes a request to Mistral API and records the query"""
@@ -155,7 +156,7 @@ async def assess_question_suitability(question: str) -> dict:
                         {{
                             "is_suitable": boolean,  // true if deep research or a web search is needed, false if not
                             "reason": "Brief explanation of why the question does or doesn't need deep research",
-                            "direct_answer": "If the question doesn't need deep research, provide a brief direct answer here. Otherwise, null."
+                            "direct_answer": "If the question doesn't need deep research, provide a direct answer here. Otherwise, null."
                         }}
                         """
 
