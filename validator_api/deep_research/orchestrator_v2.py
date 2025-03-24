@@ -668,3 +668,12 @@ Focus on providing a helpful, accurate answer to what the user actually asked.""
         except KeyError as e:
             logger.error(f"Missing required key in final answer: {e}")
             raise
+
+
+if __name__ == "__main__":
+    # Run a sample of the orchestrator 
+    orchestrator = OrchestratorV2()
+    messages = [
+        {"role": "user", "content": "What is the capital of France?"},
+    ]
+    asyncio.run(orchestrator.run(messages))
