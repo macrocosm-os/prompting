@@ -115,7 +115,7 @@ async def make_mistral_request(messages: list[dict], step_name: str) -> tuple[st
         "max_tokens": max_tokens,
         "temperature": temperature,
     }
-    response = completions(CompletionsRequest(messages=messages, model=model, stream=False, sampling_parameters=sample_params))
+    response = await completions(CompletionsRequest(messages=messages, model=model, stream=False, sampling_parameters=sample_params))
     response_content = response.choices[0].message.content
     # Record the query
     query_record = LLMQuery(
@@ -671,9 +671,12 @@ Focus on providing a helpful, accurate answer to what the user actually asked.""
 
 
 if __name__ == "__main__":
-    # Run a sample of the orchestrator 
-    orchestrator = OrchestratorV2()
-    messages = [
-        {"role": "user", "content": "What is the capital of France?"},
-    ]
-    asyncio.run(orchestrator.run(messages))
+    async def main():   
+        orchestrator = OrchestratorV2()
+        try:
+            async for chunk in orchestrator.run(messages=[{"role": "user", "content": "How can I implement a prompt engineering project?"}]):
+                print(chunk)
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+    asyncio.run(main())

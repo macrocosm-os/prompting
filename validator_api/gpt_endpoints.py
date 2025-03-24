@@ -25,6 +25,7 @@ from validator_api.serializers import (
     WebRetrievalResponse,
     WebSearchResult,
 )
+from validator_api.deep_research.orchestrator_v2 import OrchestratorV2
 from validator_api.test_time_inference import generate_response
 from validator_api.utils import filter_available_uids
 
@@ -262,40 +263,44 @@ async def test_time_inference(request: TestTimeInferenceRequest):
     }
     ```
     """
-
+    orchestrator = OrchestratorV2()
     async def create_response_stream(request):
-        async for steps, total_thinking_time in generate_response(
-            request.messages, model=request.model, uids=request.uids
-        ):
-            if total_thinking_time is not None:
-                logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
-            yield steps, total_thinking_time
+        async for chunk in orchestrator.run(messages=request.messages, model=request.model, uids=request.uids):
+            yield chunk
+        
+    #         async def create_response_stream(request):
+    #             async for steps, total_thinking_time in generate_response(
+    #                 request.messages, model=request.model, uids=request.uids
+    #             ):
+    #                 if total_thinking_time is not None:
+    #                     logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
+    #                 yield steps, total_thinking_time
 
-    # Create a streaming response that yields each step
-    async def stream_steps():
-        try:
-            i = 0
-            async for steps, thinking_time in create_response_stream(request):
-                i += 1
-                if request.json_format:
-                    choice = Choice(index=i, delta=ChoiceDelta(content=json.dumps(steps[-1])))
-                else:
-                    choice = Choice(index=i, delta=ChoiceDelta(content=f"## {steps[-1][0]}\n\n{steps[-1][1]}" + "\n\n"))
-                yield "data: " + ChatCompletionChunk(
-                    id=str(uuid.uuid4()),
-                    created=int(time.time()),
-                    model=request.model or "None",
-                    object="chat.completion.chunk",
-                    choices=[choice],
-                ).model_dump_json() + "\n\n"
-        except Exception as e:
-            logger.exception(f"Error during streaming: {e}")
-            yield f'data: {{"error": "Internal Server Error: {str(e)}"}}\n\n'
-        finally:
-            yield "data: [DONE]\n\n"
+    #         # Create a streaming response that yields each step
+    #         async def stream_steps():
+    #             try:
+    #                 i = 0
+    #                 async for steps, thinking_time in create_response_stream(request):
+    #                     i += 1
+    #                     if request.json_format:
+    #                         choice = Choice(index=i, delta=ChoiceDelta(content=json.dumps(steps[-1])))
+    #                     else:
+    #                         choice = Choice(index=i, delta=ChoiceDelta(content=f"## {steps[-1][0]}\n\n{steps[-1][1]}" + "\n\n"))
+    #                     yield "data: " + ChatCompletionChunk(
+    #                         id=str(uuid.uuid4()),
+    #                         created=int(time.time()),
+    #                         model=request.model or "None",
+    #                         object="chat.completion.chunk",
+    #                         choices=[choice],
+    #                     ).model_dump_json() + "\n\n"
+    #             except Exception as e:
+    #                 logger.exception(f"Error during streaming: {e}")
+    #                 yield f'data: {{"error": "Internal Server Error: {str(e)}"}}\n\n'
+    #             finally:
+    #                 yield "data: [DONE]\n\n"
 
     return StreamingResponse(
-        stream_steps(),
+        create_response_stream(request),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
