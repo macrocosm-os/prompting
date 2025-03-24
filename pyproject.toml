@@ -165,7 +165,6 @@ nltk = { version = ">=3.8.1", optional = true }
 thefuzz = { version = ">=0.22.1", optional = true }
 wandb = { version = ">=0.19.4", optional = true }
 substrate-interface = "^1.7.11"
-mistralai = "^1.5.1"
 
 [tool.poetry.extras]
 validator = [
