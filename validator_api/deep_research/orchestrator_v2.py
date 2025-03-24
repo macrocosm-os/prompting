@@ -13,6 +13,14 @@ from validator_api.deep_research.persistent_cache import persistent_cache
 from validator_api.deep_research.utils import parse_llm_json, with_retries
 from validator_api.gpt_endpoints import WebRetrievalRequest, web_retrieval
 
+def make_chunk(text):
+    return {
+        "choices": [{
+            "delta": {
+                "content": text
+            }
+        }]
+    }
 
 def get_current_datetime_str() -> str:
     """Returns a nicely formatted string of the current date and time"""
@@ -147,18 +155,18 @@ async def assess_question_suitability(question: str) -> dict:
 
                         ## Questions NOT suitable for deep research include:
                         - Simple greetings or conversational remarks (e.g., "How are you?", "Hello")
-                        - Basic opinions that don’t require factual grounding or research
-                        - Simple, well-known facts that don’t need verification (e.g., "The sky is blue")
+                        - Basic opinions that don't require factual grounding or research
+                        - Simple, well-known facts that don't need verification (e.g., "The sky is blue")
                         - Requests for purely imaginative content like poems, stories, or fictional narratives
-                        - Personal questions about the AI assistant (e.g., "What’s your favorite color?")
-                        - Questions with obvious or unambiguous answers that don’t benefit from external tools or elaboration
+                        - Personal questions about the AI assistant (e.g., "What's your favorite color?")
+                        - Questions with obvious or unambiguous answers that don't benefit from external tools or elaboration
 
                         Response Format:
                         Format your response as a JSON object with the following structure:
                         {{
                             "is_suitable": boolean,  // true if deep research or a web search is needed, false if not
-                            "reason": "Brief explanation of why the question does or doesn’t need deep research",
-                            "direct_answer": "If the question doesn’t need deep research, provide a direct answer here. Otherwise, null."
+                            "reason": "Brief explanation of why the question does or doesn't need deep research",
+                            "direct_answer": "If the question doesn't need deep research, provide a direct answer here. Otherwise, null."
                         }}
                         """
 
@@ -377,45 +385,52 @@ class OrchestratorV2(BaseModel):
         question = messages[-1]["content"]
 
         # First assess if the question is suitable for deep research
-        print("Assessing question suitability..")
         question_assessment = await assess_question_suitability(question)
 
         # If the question is not suitable for deep research, return a direct answer
         if not question_assessment["is_suitable"]:
             logger.info(f"Question not suitable for deep research: {question_assessment['reason']}")
-            return {
-                "final_answer": question_assessment["direct_answer"],
-                "message": question_assessment["reason"],
-                "tool_history": self.tool_history,
-            }
+            yield make_chunk(question_assessment["direct_answer"])
+            return
 
         # Continue with deep research process
+        yield make_chunk("## Generating Research Plan\n")
         await self.generate_todo_list()
+        yield make_chunk(f"## Research Plan\n{self.todo_list}\n")
 
         for step in range(self.max_steps):
             self.current_step = step + 1
             logger.info(f"Step {step + 1}/{self.max_steps}")
 
             # Plan and execute tools for this step
+            yield make_chunk(f"\n## Step {step + 1}: Planning Tools\n")
             tool_requests = await self.plan_tool_executions()
+            
             if tool_requests:
-                await self.execute_tools(tool_requests)
+                for request in tool_requests:
+                    yield make_chunk(f"\n## Executing {request.tool_name}\n{request.purpose}\n")
+                results = await self.execute_tools(tool_requests)
+                for result in results:
+                    yield make_chunk(f"\n### Tool Results\n{result.tool_name} execution complete\n")
 
+            yield make_chunk(f"\n## Analyzing Step {step + 1}\n")
             thinking_result = await self.do_thinking()
+            yield make_chunk(f"\n## Step {step + 1} Summary\n{thinking_result.summary}\n")
 
             if thinking_result.next_step == "generate_final_answer":
                 logger.info("Generating final answer")
+                yield make_chunk("\n## Generating Final Answer\n")
                 final_answer = await self.generate_final_answer()
-                return {
-                    "final_answer": final_answer,
-                    "query_history": self.query_history,
-                    "tool_history": self.tool_history,
-                }
+                yield make_chunk(f"\n## Final Answer\n{final_answer}\n")
+                return
 
+            yield make_chunk(f"\n## Updating Research Plan\n")
             await self.update_todo_list()
+            yield make_chunk(f"\n## Research Plan Updated\n")
 
+        yield make_chunk("\n## Generating Final Answer\n")
         final_answer = await self.generate_final_answer()
-        return {"final_answer": final_answer, "query_history": self.query_history, "tool_history": self.tool_history}
+        yield make_chunk(f"\n# Final Answer\n{final_answer}\n")
 
     @with_retries(max_retries=3)
     async def generate_todo_list(self):
@@ -641,33 +656,3 @@ Focus on providing a helpful, accurate answer to what the user actually asked.""
         except KeyError as e:
             logger.error(f"Missing required key in final answer: {e}")
             raise
-
-
-# def make_gemma_request(messages):
-#     """Makes a request to the gemma LLM"""
-#     import requests
-#     import os
-#     import json
-
-#     url = "https://generativelanguage.googleapis.com/v1beta/models/gemma-3-27b-it:generateContent"
-#     headers = {
-#         "Content-Type": "application/json"
-#     }
-
-#     # Get API key from environment
-#     # Construct request payload
-#     payload = {
-#         "contents": [{
-#             "parts": [{"text": message["content"]} for message in messages]
-#         }]
-#     }
-
-#     # Make request
-#     response = requests.post(
-#         f"{url}?key={shared_settings.GEMMA_API_KEY}",
-#         headers=headers,
-#         json=payload
-#     )
-
-#     output = response.json()
-#     return output["candidates"][0]["content"]["parts"][0]["text"]
