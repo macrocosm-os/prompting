@@ -56,7 +56,7 @@ def filter_available_uids(
     model: str | None = None,
     test: bool = False,
     n_miners: int = 10,
-    n_top_incentive: int = 100,
+    n_top_incentive: int = 200,
 ) -> list[int]:
     """Filter UIDs based on task and model availability.
 
@@ -79,7 +79,7 @@ def filter_available_uids(
         # Skip if miner data is None/unavailable
         if update_miner_availabilities_for_api.miner_availabilities.get(str(uid)) is None:
             continue
-
+        logger.info(f"Miner data: {uid}, {update_miner_availabilities_for_api.miner_availabilities[str(uid)]}")
         miner_data = update_miner_availabilities_for_api.miner_availabilities[str(uid)]
 
         # Check task availability if specified
@@ -99,8 +99,10 @@ def filter_available_uids(
             "Got an empty list of available UIDs, falling back to all uids. "
             "Check VALIDATOR_API and SCORING_KEY in .env.api"
         )
-        filtered_uids = get_uids(sampling_mode="top_incentive", k=n_miners)
+        filtered_uids = get_uids(sampling_mode="top_incentive", k=n_top_incentive)
 
+    logger.info(f"Filtered UIDs: {filtered_uids}")
     filtered_uids = random.sample(filtered_uids, min(len(filtered_uids), n_miners))
 
+    logger.info(f"Filtered UIDs after sampling: {filtered_uids}")
     return filtered_uids
