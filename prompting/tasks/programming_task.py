@@ -37,7 +37,7 @@ class ProgrammingTask(BaseTextTask):
     query: str | None = None
     reference: str | None = None
 
-    def make_query(self, dataset_entry: HuggingFaceGithubDatasetEntry):
+    async def make_query(self, dataset_entry: HuggingFaceGithubDatasetEntry):
         modified_code = LLMWrapper.chat_complete(
             messages=LLMMessages(
                 LLMMessage(
