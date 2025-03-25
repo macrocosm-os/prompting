@@ -15,13 +15,14 @@ from validator_api.deep_research.utils import parse_llm_json, with_retries
 from validator_api.web_retrieval import web_retrieval
 from validator_api.serializers import CompletionsRequest, WebRetrievalRequest
 def make_chunk(text):
-    return {
+    chunk = json.dumps({
         "choices": [{
             "delta": {
                 "content": text
             }
         }]
-    }
+    })
+    return f"data: {chunk}\n\n"
 
 def get_current_datetime_str() -> str:
     """Returns a nicely formatted string of the current date and time"""
@@ -113,7 +114,7 @@ async def search_web(question: str, n_results: int = 5, completions=None) -> dic
 async def make_mistral_request(messages: list[dict], step_name: str, completions: Callable[[CompletionsRequest], Awaitable[StreamingResponse]]) -> tuple[str, LLMQuery]:
     """Makes a request to Mistral API and records the query"""
 
-    model = "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4"
+    model = "mrfakename/mistral-small-3.1-24b-instruct-2503-hf"
     temperature = 0.1
     top_p = 1
     max_tokens = 128000
@@ -427,6 +428,7 @@ class OrchestratorV2(BaseModel):
         if not question_assessment["is_suitable"]:
             logger.info(f"Question not suitable for deep research: {question_assessment['reason']}")
             yield make_chunk(question_assessment["direct_answer"])
+            yield "data: [DONE]\n\n"
             return
 
         # Continue with deep research process
@@ -467,6 +469,7 @@ class OrchestratorV2(BaseModel):
         yield make_chunk("\n## Generating Final Answer\n")
         final_answer = await self.generate_final_answer()
         yield make_chunk(f"\n# Final Answer\n{final_answer}\n")
+        yield "data: [DONE]\n\n"
 
     @with_retries(max_retries=3)
     async def generate_todo_list(self):
