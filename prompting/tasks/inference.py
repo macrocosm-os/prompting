@@ -8,7 +8,7 @@ from prompting.datasets.sn13 import ChatEntry
 from prompting.llms.model_manager import model_manager
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.rewards.inference_reward_model import InferenceRewardModel
-from prompting.rewards.penalty import PenaltyModel
+from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.tasks.base_task import BaseTextTask
 from shared import settings
@@ -19,7 +19,7 @@ shared_settings = settings.shared_settings
 class InferenceRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[BaseRewardModel]] = [
         InferenceRewardModel(weight=0.5),
-        PenaltyModel(weight=0.5),
+        RelevanceRewardModel(weight=0.5),
     ]
 
 
