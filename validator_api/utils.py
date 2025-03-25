@@ -56,7 +56,7 @@ def filter_available_uids(
     model: str | None = None,
     test: bool = False,
     n_miners: int = 10,
-    n_top_incentive: int = 200,
+    n_top_incentive: int = 400,
 ) -> list[int]:
     """Filter UIDs based on task and model availability.
 
@@ -79,7 +79,6 @@ def filter_available_uids(
         # Skip if miner data is None/unavailable
         if update_miner_availabilities_for_api.miner_availabilities.get(str(uid)) is None:
             continue
-        logger.info(f"Miner data: {uid}, {update_miner_availabilities_for_api.miner_availabilities[str(uid)]}")
         miner_data = update_miner_availabilities_for_api.miner_availabilities[str(uid)]
 
         # Check task availability if specified
