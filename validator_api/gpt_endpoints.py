@@ -155,7 +155,7 @@ async def test_time_inference(request: TestTimeInferenceRequest):
     """
     orchestrator = OrchestratorV2(completions=completions)
     async def create_response_stream(request):
-        async for chunk in orchestrator.run(messages=request.messages, model=request.model, uids=request.uids):
+        async for chunk in orchestrator.run(messages=request.messages):
             yield chunk
         
     #         async def create_response_stream(request):
