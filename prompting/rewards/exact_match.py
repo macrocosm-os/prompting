@@ -6,7 +6,7 @@ from shared import settings
 from shared.dendrite import DendriteResponseEvent
 
 shared_settings = settings.shared_settings
-INCORRECT_PENALTY = 3
+INCORRECT_PENALTY = 1
 INCOMPLETE_PENALTY = 1
 
 
