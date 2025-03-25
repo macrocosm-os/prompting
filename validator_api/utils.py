@@ -99,7 +99,7 @@ def filter_available_uids(
             "Got an empty list of available UIDs, falling back to all uids. "
             "Check VALIDATOR_API and SCORING_KEY in .env.api"
         )
-        filtered_uids = get_uids(sampling_mode="top_incentive", k=n_miners)
+        filtered_uids = get_uids(sampling_mode="top_incentive", k=n_top_incentive)
 
     filtered_uids = random.sample(filtered_uids, min(len(filtered_uids), n_miners))
 

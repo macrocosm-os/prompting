@@ -39,7 +39,6 @@ class LLMQuery(BaseModel):
     model: str  # Which model was used
 
 
-@persistent_cache(cache_file="web_search_cache.json")
 async def search_web(question: str, n_results: int = 5) -> dict:
     """
     Takes a natural language question, generates an optimized search query, performs web search,
@@ -106,7 +105,6 @@ async def search_web(question: str, n_results: int = 5) -> dict:
 
 
 @with_retries(max_retries=3)
-@persistent_cache(cache_file="mistral_cache.json")
 async def make_mistral_request(messages: list[dict], step_name: str) -> tuple[str, LLMQuery]:
     """Makes a request to Mistral API and records the query"""
 
@@ -283,6 +281,7 @@ class OrchestratorV2(BaseModel):
     query_history: list[LLMQuery] = []
     tool_history: list[ToolResult] = []
     tools: dict[str, Tool] = {"web_search": WebSearchTool()}
+    fact_vault: list[dict] = []
 
     class Config:
         arbitrary_types_allowed = True
@@ -358,6 +357,51 @@ class OrchestratorV2(BaseModel):
 
     async def execute_tools(self, tool_requests: list[ToolRequest]) -> list[ToolResult]:
         """Executes the requested tools concurrently and records their results"""
+
+        async def extract_facts_from_result(self, result: ToolResult):
+            # Pass result to LLM to extract key facts
+            prompt = f"""
+            You are extracting factual statements from a tool result. The tool was used for:
+
+            Purpose: {result.purpose}
+
+            Extract 3-5 factual claims made in the answer below. For each fact:
+            - Keep it concise and self-contained
+            - Include the **exact URL** from the references if relevant
+            - Avoid duplication
+            - Only include facts that are useful for future reasoning
+
+            Tool Answer:
+            {result.result.get("answer")}
+
+            References:
+            {json.dumps(result.result.get("references", []), indent=2)}
+
+            Format:
+            [
+            {{
+                "fact": "string",
+                "source": "https://example.com/actual-link",
+                "context": "short description of what this supports"
+            }}
+            ]
+            """
+
+            messages = [
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": "Please extract key facts."}
+            ]
+
+            raw_facts, query_record = await make_mistral_request(messages, "extract_facts")
+            try:
+                facts = parse_llm_json(raw_facts)
+                self.fact_vault.extend(facts)
+
+                # Summarize the facts from the tool results
+                return facts
+            except Exception as e:
+                logger.warning(f"Could not extract facts from result: {e}")
+
         
         async def execute_single_tool(request: ToolRequest) -> ToolResult | None:
             """Helper function to execute a single tool and handle exceptions"""
@@ -366,12 +410,16 @@ class OrchestratorV2(BaseModel):
             
             try:
                 result = await tool.execute(**request.parameters)
-                return ToolResult(
+                tool_result = ToolResult(
                     tool_name=request.tool_name, 
                     parameters=request.parameters, 
                     result=result, 
                     purpose=request.purpose
                 )
+            
+                # Extract facts from the tool result
+                await self.extract_facts_from_result(tool_result)
+
             except Exception as e:
                 logger.error(f"Failed to execute {request.tool_name}: {e}")
                 return None
