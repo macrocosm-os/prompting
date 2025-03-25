@@ -3,15 +3,17 @@ import time
 import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable, Optional, Awaitable
+from fastapi.responses import StreamingResponse
+from fastapi import Depends
+
 
 from loguru import logger
 from pydantic import BaseModel
 
-from shared.settings import shared_settings
 from validator_api.deep_research.utils import parse_llm_json, with_retries
-from validator_api.gpt_endpoints import WebRetrievalRequest, web_retrieval, completions, CompletionsRequest
-
+from validator_api.web_retrieval import web_retrieval
+from validator_api.serializers import CompletionsRequest, WebRetrievalRequest
 def make_chunk(text):
     return {
         "choices": [{
@@ -115,7 +117,7 @@ async def make_mistral_request(messages: list[dict], step_name: str) -> tuple[st
         "max_tokens": max_tokens,
         "temperature": temperature,
     }
-    response = await completions(CompletionsRequest(messages=messages, model=model, stream=False, sampling_parameters=sample_params))
+    response = await self._completions(CompletionsRequest(messages=messages, model=model, stream=False, sampling_parameters=sample_params))
     response_content = response.choices[0].message.content
     # Record the query
     query_record = LLMQuery(
@@ -285,6 +287,7 @@ class OrchestratorV2(BaseModel):
     query_history: list[LLMQuery] = []
     tool_history: list[ToolResult] = []
     tools: dict[str, Tool] = {"web_search": WebSearchTool()}
+    _completions: Optional[Callable[[CompletionsRequest], Awaitable[StreamingResponse]]] = None
 
     class Config:
         arbitrary_types_allowed = True
