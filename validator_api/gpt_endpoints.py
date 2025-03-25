@@ -1,32 +1,17 @@
-import asyncio
-import json
 import random
-import time
-import uuid
 
-import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
-from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
 
 from shared import settings
 
 shared_settings = settings.shared_settings
-from shared.epistula import SynapseStreamResult, query_miners
-from validator_api import scoring_queue
 from validator_api.api_management import validate_api_key
 from validator_api.chat_completion import chat_completion
-from validator_api.mixture_of_miners import mixture_of_miners
-from validator_api.serializers import (
-    CompletionsRequest,
-    TestTimeInferenceRequest,
-    WebRetrievalRequest,
-    WebRetrievalResponse,
-    WebSearchResult,
-)
 from validator_api.deep_research.orchestrator_v2 import OrchestratorV2
-from validator_api.test_time_inference import generate_response
+from validator_api.mixture_of_miners import mixture_of_miners
+from validator_api.serializers import CompletionsRequest, TestTimeInferenceRequest
 from validator_api.utils import filter_available_uids
 
 router = APIRouter()
@@ -122,7 +107,6 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
         return StreamingResponse(content="Internal Server Error", status_code=500)
 
 
-
 async def test_time_inference(request: TestTimeInferenceRequest):
     """
     Test time inference endpoint that provides step-by-step reasoning.
@@ -154,6 +138,7 @@ async def test_time_inference(request: TestTimeInferenceRequest):
     ```
     """
     orchestrator = OrchestratorV2(completions=completions)
+
     async def create_response_stream(request):
         async for chunk in orchestrator.run(messages=request.messages):
             yield chunk

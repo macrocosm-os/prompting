@@ -17,11 +17,10 @@ async def get_miner_availabilities(request: Request, uids: list[int] | None = No
 
 @router.get("/get_available_miners")
 async def get_available_miners(
-    request: Request,
     task: Literal[tuple([config.task.__name__ for config in TaskRegistry.task_configs])] | None = None,
     model: str | None = None,
     k: int = 10,
 ):
     task_configs = [config for config in TaskRegistry.task_configs if config.task.__name__ == task]
     task_config = task_configs[0] if task_configs else None
-    return miner_availabilities.get_available_miners(task=task_config.task, model=model, k=k)
+    return MinerAvailabilities.get_available_miners(task=task_config.task, model=model, k=k)

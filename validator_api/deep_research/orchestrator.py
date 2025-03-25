@@ -1,12 +1,14 @@
-from pydantic import BaseModel
-from validator_api.deep_research.utils import convert_to_gemma_messages, with_retries, parse_llm_json
-from validator_api.gpt_endpoints import web_retrieval, WebRetrievalRequest, WebSearchResult
-from shared.settings import shared_settings
-from mistralai import Mistral
-from loguru import logger
 import json
-from typing import Any, Literal
 from abc import ABC, abstractmethod
+from typing import Any
+
+from loguru import logger
+from mistralai import Mistral
+from pydantic import BaseModel
+
+from shared.settings import shared_settings
+from validator_api.deep_research.utils import parse_llm_json, with_retries
+from validator_api.gpt_endpoints import WebRetrievalRequest, web_retrieval
 
 
 class LLMQuery(BaseModel):
@@ -47,16 +49,16 @@ async def search_web(question: str, n_results: int = 5) -> dict:
     # Generate referenced answer
     answer_prompt = f"""Based on the provided search results, generate a comprehensive answer to the question.
     Include inline references to sources using markdown format [n] where n is the source number.
-    
+
     Question: {question}
-    
+
     Search Results:
     {json.dumps([{
         'index': i + 1,
         'content': result.content,
         'url': result.url
     } for i, result in enumerate(search_results.results)], indent=2)}
-    
+
     Format your response as a JSON object with the following structure:
     {{
         "answer": "Your detailed answer with inline references [n]",
@@ -157,7 +159,7 @@ class WebSearchTool(Tool):
         Input parameters:
         - question: The natural language question to answer
         - n_results: (optional) Number of search results to use (default: 5)
-        
+
         Returns a dictionary containing:
         - question: Original question asked
         - optimized_query: Search query used
@@ -414,7 +416,7 @@ Find the first unchecked item in the todo list (items without a ✓) and analyze
         """Uses mistral LLM to update the todo list based on the steps taken"""
         logger.info("Updating todo list")
 
-        prompt = f"""You are responsible for reviewing and updating the todo list based on the latest thinking step. 
+        prompt = f"""You are responsible for reviewing and updating the todo list based on the latest thinking step.
 
 Current todo list:
 {self.todo_list}

@@ -3,18 +3,22 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from shared import settings
 
 shared_settings = settings.shared_settings
+import asyncio
+import json
+import random
+
+import numpy as np
+from loguru import logger
+
 from shared.epistula import SynapseStreamResult, query_miners
 from validator_api import scoring_queue
 from validator_api.api_management import validate_api_key
 from validator_api.serializers import WebRetrievalRequest, WebRetrievalResponse, WebSearchResult
 from validator_api.utils import filter_available_uids
-from loguru import logger
-import random
-import json
-import asyncio
-import numpy as np
 
 router = APIRouter()
+
+
 @router.post(
     "/web_retrieval",
     response_model=WebRetrievalResponse,
