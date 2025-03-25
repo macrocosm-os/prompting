@@ -298,7 +298,7 @@ async def chat_completion(
             for task in done:
                 try:
                     response = await task
-                    if response and isinstance(response, tuple):
+                    if response and isinstance(response, tuple) and response[0].choices and response[0].choices[0]:
                         if first_valid_response is None:
                             first_valid_response = response
                         collected_responses.append(response)
