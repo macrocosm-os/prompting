@@ -23,4 +23,4 @@ async def get_available_miners(
 ):
     task_configs = [config for config in TaskRegistry.task_configs if config.task.__name__ == task]
     task_config = task_configs[0] if task_configs else None
-    return miner_availabilities.get_available_miners(task=task_config, model=model, k=k)
+    return miner_availabilities.get_available_miners(task=task_config.task, model=model, k=k)
