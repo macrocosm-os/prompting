@@ -2,6 +2,7 @@ import asyncio
 import datetime
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from typing import List
 
 import aiohttp
 from loguru import logger
@@ -17,6 +18,7 @@ class AsyncLoopRunner(BaseModel, ABC):
     time_server_url: str = "http://worldtimeapi.org/api/ip"
     name: str | None = None
     step: int = 0
+    _tasks: List[asyncio.Task] = []
 
     @model_validator(mode="after")
     def validate_name(self):
@@ -46,7 +48,7 @@ class AsyncLoopRunner(BaseModel, ABC):
             logger.warning(f"Could not get time from server: {ex}. Falling back to local time.")
             return datetime.datetime.now(datetime.timezone.utc)
 
-    def next_sync_point(self, current_time):
+    async def next_sync_point(self, current_time):
         """Calculate the next sync point based on the current time and interval."""
         epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
         time_since_epoch = current_time - epoch
@@ -60,7 +62,7 @@ class AsyncLoopRunner(BaseModel, ABC):
         if last_run_time.tzinfo is None:
             last_run_time = last_run_time.replace(tzinfo=current_time.tzinfo)
         if self.sync:
-            next_run = self.next_sync_point(current_time)
+            next_run = await self.next_sync_point(current_time)
         else:
             next_run = last_run_time + timedelta(seconds=self.interval)
 
@@ -86,23 +88,39 @@ class AsyncLoopRunner(BaseModel, ABC):
                 logger.info("Loop was stopped.")
                 self.running = False
             except Exception as e:
-                logger.error(f"Fatal error in loop: {e}")
+                logger.exception(f"Fatal error in loop: {e}")
         self.running = False
 
-    async def start(self, name: str | None = None):
-        """Start the loop."""
-        if self.running:
-            logger.warning("Loop is already running.")
-            return
-        self.running = True
-        self._task = asyncio.create_task(self.run_loop(), name=name)
+    async def start(self, name: str | None = None, simultaneous_loops: int = 1, **kwargs):
+        """Start the loop with optional multiple simultaneous instances.
+
+        Args:
+            name: Optional name for the loop tasks
+            simultaneous_loops: Number of simultaneous loop instances to run (default: 1)
+        """
+        try:
+            if self.running:
+                logger.warning("Loop is already running.")
+                return
+
+            self.running = True
+            self._tasks = []
+
+            for i in range(simultaneous_loops):
+                task_name = f"{name}_{i}" if name else f"{self.name}_{i}"
+                task = asyncio.create_task(self.run_loop(), name=task_name)
+                self._tasks.append(task)
+        except Exception as e:
+            logger.exception(f"Error in start method: {e}")
 
     async def stop(self):
-        """Stop the loop."""
+        """Stop all running loops."""
         self.running = False
-        if self._task:
-            self._task.cancel()
+        if self._tasks:
+            for task in self._tasks:
+                task.cancel()
             try:
-                await self._task
+                await asyncio.gather(*self._tasks, return_exceptions=True)
             except asyncio.CancelledError:
-                logger.debug("Loop task was cancelled.")
+                logger.debug("Loop tasks were cancelled.")
+        self._tasks = []

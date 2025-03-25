@@ -142,7 +142,7 @@ class WeightSetter(AsyncLoopRunner):
     class Config:
         arbitrary_types_allowed = True
 
-    async def start(self, reward_events, name: str | None = None):
+    async def start(self, reward_events, name: str | None = None, **kwargs):
         self.reward_events = reward_events
         global PAST_WEIGHTS
 
@@ -154,7 +154,7 @@ class WeightSetter(AsyncLoopRunner):
             PAST_WEIGHTS = []
         except Exception as ex:
             logger.error(f"Couldn't load weights from file: {ex}")
-        return await super().start(name=name)
+        return await super().start(name=name, **kwargs)
 
     async def run_step(self):
         await asyncio.sleep(0.01)
