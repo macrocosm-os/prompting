@@ -75,8 +75,9 @@ class ModelManager(BaseModel):
                     # Terminate main process immediately.
                     # TODO: Use sys.exit(1) instead and catch/propagate SystemExit in the main process.
                     import os
+                    import signal
 
-                    os._exit(1)
+                    os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
                 retry_counter += 1
                 retry_delay += retry_counter
                 self._vram_cleanup()
