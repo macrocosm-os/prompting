@@ -27,6 +27,8 @@ class RelevanceRewardModel(BaseRewardModel):
         This is usually around 0.35. We also clip the rewards between 0 and 1.
         The maximum effective score is around 0.65.
         """
+        if not reference:
+            raise Exception("Reference is empty - something went wrong during the reference generation")
         reference_embedding = self.embedding_model.encode(reference, to_numpy=True)
         reference_emb_flatten = reference_embedding.flatten()
         rewards: list[float] = []

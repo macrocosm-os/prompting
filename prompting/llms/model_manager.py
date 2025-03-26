@@ -148,7 +148,7 @@ class ModelManager(BaseModel):
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
         model_instance: ReproducibleVLLM = self.get_model(model)
-        responses = model_instance.generate(messages=[dict_messages], sampling_params=sampling_params, seed=seed)
+        responses = model_instance.generate(messages=dict_messages, sampling_params=sampling_params, seed=seed)
 
         return responses
 

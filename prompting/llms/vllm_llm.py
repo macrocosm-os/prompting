@@ -18,13 +18,14 @@ class ReproducibleVLLM:
         self.sampling_params = {} if sampling_params else sampling_params
         
         # VLLM specific initialization
-        gpu_memory_utilization = 0.9  # Default high utilization since VLLM is memory efficient
+        # gpu_memory_utilization = 0.9  # Default high utilization since VLLM is memory efficient
         self.model = LLM(
             model=model_id,
             tensor_parallel_size=1,  # Single GPU by default
-            gpu_memory_utilization=gpu_memory_utilization,
             dtype="float16",
             trust_remote_code=True,
+            gpu_memory_utilization=0.3,
+            max_model_len=1000,
         )
         
         # Store tokenizer from VLLM for consistency
@@ -45,9 +46,9 @@ class ReproducibleVLLM:
             try:
                 # Try using the tokenizer's chat template
                 prompt = self.tokenizer.apply_chat_template(
-                    messages,
+                    conversation=messages,
                     tokenize=False,
-                    add_generation_prompt=True,
+                    add_generation_prompt=not continue_last_message,
                     continue_final_message=continue_last_message,
                 )
             except (AttributeError, NotImplementedError) as e:

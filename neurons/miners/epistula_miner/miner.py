@@ -32,7 +32,9 @@ NEURON_TOP_P: float = 0.95
 NEURON_STREAMING_BATCH_SIZE: int = 12
 NEURON_STOP_ON_FORWARD_EXCEPTION: bool = False
 SHOULD_SERVE_LLM: bool = True 
-LOCAL_MODEL_ID = "casperhansen/llama-3-8b-instruct-awq"
+LOCAL_MODEL_ID = "casperhansen/llama-3.2-3b-instruct-awq"
+# LOCAL_MODEL_ID = "casperhansen/tinyllama-1.1b-chat-smoothquant"
+# LOCAL_MODEL_ID = "casperhansen/qwen2-0.5b-instruct-awq"
 
 def get_token_logprobs(llm, prompt, sampling_params):
     """Get logprobs and chosen tokens for text generation."""
@@ -93,7 +95,7 @@ class OpenAIMiner:
             self.llm = LLM(
                 model=LOCAL_MODEL_ID,
                 gpu_memory_utilization=0.3,
-                max_model_len=2048
+                max_model_len=1000
             )
             self.tokenizer = self.llm.get_tokenizer()
         else:
