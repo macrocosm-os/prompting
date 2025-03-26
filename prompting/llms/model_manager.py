@@ -1,6 +1,7 @@
 import asyncio
 import gc
 import time
+import psutil
 
 import torch
 from loguru import logger
@@ -71,12 +72,11 @@ class ModelManager(BaseModel):
                 if retry_counter > retries_max:
                     logger.error(f"Failed to load model after {retries_max}. Terminating process...")
                     import os
-                    import signal
-
                     # Terminate main process immediately.
                     # TODO: Use sys.exit(1) instead and catch/propagate SystemExit in the main process.
-                    os.kill(os.getpid(), signal.SIGTERM)
+                    os._exit(1)
                 retry_counter += 1
+                retry_delay += retry_counter
                 self._vram_cleanup()
                 retry_delay = 10
                 logger.exception(
@@ -86,22 +86,28 @@ class ModelManager(BaseModel):
                 logger.debug(f"Current active models: {self.active_models}")
                 time.sleep(retry_delay)
 
-    def _cleanup_model(self, model_instance: ReproducibleHF):
+    def _cleanup_model(self, model_instance: ReproducibleHF, cpu_offload: bool = False):
         """Free VRAM from given model."""
-        try:
-            model_instance.model = model_instance.model.to("cpu")
-        except NotImplementedError as e:
-            logger.exception(f"Standard move to CPU failed: {str(e)}")
+        if cpu_offload:
             try:
-                # Fallback for meta tensors.
-                model_instance.model = model_instance.model.to_empty("cpu")
-            except Exception as fallback_e:
-                logger.exception(f"Could not move meta model to CPU, proceeding with generic GC: {str(fallback_e)}")
-        except Exception as e:
-            logger.exception(f"Unexpected error when moving model to CPU: {str(e)}")
+                model_instance.model = model_instance.model.to("cpu")
+            except NotImplementedError as e:
+                logger.exception(f"Standard move to CPU failed: {str(e)}")
+                try:
+                    # Fallback for meta tensors.
+                    model_instance.model = model_instance.model.to_empty("cpu")
+                except Exception as fallback_e:
+                    logger.exception(f"Could not move meta model to CPU, proceeding with generic GC: {str(fallback_e)}")
+            except Exception as e:
+                logger.exception(f"Unexpected error when moving model to CPU: {str(e)}")
 
         model_instance.model = None
         model_instance.tokenizer = None
+        try:
+            del model_instance.model
+            del model_instance.tokenizer
+        except BaseException as e:
+            logger.exception(f"Error deleting model attributes: {str(e)}")
         del model_instance
 
     def _unload_model(self, model_config: ModelConfig):
@@ -117,7 +123,12 @@ class ModelManager(BaseModel):
             initial_free_memory = GPUInfo.free_memory
             logger.debug(f"Initial free GPU memory before unloading: {initial_free_memory} GB")
 
-            self._cleanup_model(model_instance)
+            # Check if system has enough RAM. Offloading model to CPU is more reliable to clean up VRAM.
+            available_ram_gb = psutil.virtual_memory().available / 1024**3
+            cpu_offload = available_ram_gb > model_config.min_ram
+            if not cpu_offload:
+                logger.warning(f"Cannot offload model to CPU, not enough RAM: {available_ram_gb:.2f} GB")
+            self._cleanup_model(model_instance, cpu_offload=cpu_offload)
 
             # Remove the model from active models dictionary
             del self.active_models[model_config]
@@ -190,7 +201,7 @@ class ModelManager(BaseModel):
         gc.collect(generation=2)
         time.sleep(1.0)
 
-        logger.info(f"VRAM clean-up complete. Current GPU usage: {GPUInfo.gpu_utilization * 100:.2f}%")
+        logger.info(f"VRAM clean-up completed. Current GPU usage: {GPUInfo.gpu_utilization * 100:.2f}%")
         GPUInfo.log_gpu_info()
 
 
