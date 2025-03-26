@@ -53,6 +53,7 @@ class ModelManager(BaseModel):
 
         retries_max = 10
         retry_counter = 0
+        retry_delay = 10
         while True:
             try:
                 GPUInfo.log_gpu_info()
@@ -72,14 +73,12 @@ class ModelManager(BaseModel):
                 if retry_counter > retries_max:
                     logger.error(f"Failed to load model after {retries_max}. Terminating process...")
                     import os
-
                     # Terminate main process immediately.
                     # TODO: Use sys.exit(1) instead and catch/propagate SystemExit in the main process.
                     os._exit(1)
                 retry_counter += 1
                 retry_delay += retry_counter
                 self._vram_cleanup()
-                retry_delay = 10
                 logger.exception(
                     f"Failed to load model {model_config.llm_model_id}. Retrying in {retry_delay} seconds. "
                     f"Error: {str(e)}"
