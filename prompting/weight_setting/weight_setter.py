@@ -12,7 +12,6 @@ from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.task_registry import TaskConfig, TaskRegistry
 from shared import settings
-from shared.logging import WeightSetEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
 from shared.misc import ttl_get_block
 
