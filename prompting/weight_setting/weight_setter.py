@@ -12,7 +12,6 @@ from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.task_registry import TaskConfig, TaskRegistry
 from shared import settings
-from shared.logging import WeightSetEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
 from shared.misc import ttl_get_block
 
@@ -50,7 +49,6 @@ def set_weights(
     """
     Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
     """
-    log_event(WeightSetEvent(weight_set_event=list(weights)))
     # Check if self.scores contains any NaN values and log a warning if it does.
     try:
         if any(np.isnan(weights).flatten()):
