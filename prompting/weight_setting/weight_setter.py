@@ -50,7 +50,6 @@ def set_weights(
     """
     Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
     """
-    log_event(WeightSetEvent(weight_set_event=list(weights)))
     # Check if self.scores contains any NaN values and log a warning if it does.
     try:
         if any(np.isnan(weights).flatten()):
