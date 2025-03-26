@@ -71,11 +71,10 @@ class ModelManager(BaseModel):
                 return model
             except BaseException as e:
                 if retry_counter > retries_max:
-                    logger.error(f"Failed to load model after {retries_max}. Terminating process...")
-                    import os
-
+                    logger.error(f"Failed to load model after {retries_max} retries. Terminating process...")
                     # Terminate main process immediately.
                     # TODO: Use sys.exit(1) instead and catch/propagate SystemExit in the main process.
+                    import os
                     os._exit(1)
                 retry_counter += 1
                 retry_delay += retry_counter
