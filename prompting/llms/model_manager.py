@@ -70,7 +70,9 @@ class ModelManager(BaseModel):
             except BaseException as e:
                 if retry_counter > retries_max:
                     logger.error(f"Failed to load model after {retries_max}. Terminating process...")
-                    import os, signal
+                    import os
+                    import signal
+
                     # Terminate main process immediately.
                     # TODO: Use sys.exit(1) instead and catch/propagate SystemExit in the main process.
                     os.kill(os.getpid(), signal.SIGTERM)
@@ -182,7 +184,7 @@ class ModelManager(BaseModel):
             torch.cuda.reset_accumulated_memory_stats()
             time.sleep(1.0)
         else:
-            logger.warning(f"CUDA is not available")
+            logger.warning("CUDA is not available")
 
         gc.collect()
         gc.collect(generation=2)
@@ -194,8 +196,7 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    # interval: int = 14400
-    interval: int = 30
+    interval: int = 14400
     scoring_queue: list | None = None
 
     async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
