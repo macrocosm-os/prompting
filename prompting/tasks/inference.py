@@ -79,7 +79,8 @@ class InferenceTask(BaseTextTask):
         # With logits scoring there is no reference, and instead we need to generate the logits based
         # on the miner's completions.
         if self.llm_model or self.llm_model_id:
-            return
+            self.reference = ""
+            return self.reference
             
         self.reference = model_manager.generate(
             messages=self.messages,

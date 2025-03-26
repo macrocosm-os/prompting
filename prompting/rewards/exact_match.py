@@ -37,66 +37,82 @@ def normalize_timing(timing: float, timings: float) -> float:
 def verify_single_logit(original_logits, verification_logits):
     """
     Verify logits by computing cosine similarity between original and verification logits.
-    
+
     Args:
         original_logits: Original model logits
         verification_logits: Verification model logits
-        
+
     Returns:
         float: Cosine similarity score
     """
     # Create aligned vectors with same token ordering
     all_tokens = set(original_logits.keys()) | set(verification_logits.keys())
-    
+
     orig_vec = []
     verif_vec = []
     for token in all_tokens:
         orig_vec.append(original_logits.get(token, -100.0))
         verif_vec.append(verification_logits.get(token, -100.0))
-        
+
     orig_vec = np.array(orig_vec)
     verif_vec = np.array(verif_vec)
-    
+
     # Apply softmax to convert logprobs to probabilities
     orig_vec = np.exp(orig_vec) / np.sum(np.exp(orig_vec))
     verif_vec = np.exp(verif_vec) / np.sum(np.exp(verif_vec))
-    
+
     # Calculate cosine similarity
     orig_vec = orig_vec / np.linalg.norm(orig_vec)
     verif_vec = verif_vec / np.linalg.norm(verif_vec)
     return np.dot(orig_vec, verif_vec)
 
+
 # def verify_logits(chunk_dicts_raw: list[ChatCompletionChunk], model_id: str):
-    # placeholder
-    # model_id.query_model.
+# placeholder
+# model_id.query_model.
 
 
 class LogitsRewardModel(BaseRewardModel):
-    async def reward(self, reference: str, response_event: DendriteResponseEvent, task: BaseTextTask, **kwargs) -> BatchRewardOutput:
+    async def reward(
+        self, reference: str, response_event: DendriteResponseEvent, task: BaseTextTask, **kwargs
+    ) -> BatchRewardOutput:
         """
         Calculates rewards based on the logits of the response and verifies them.
         """
+
         all_chunks: list[list[str]] = response_event.stream_results_all_chunks
         all_chunk_dicts_raw: list[list[ChatCompletionChunk]] = response_event.stream_results_all_chunk_dicts_raw
         all_timings: list[list[float]] = response_event.stream_results_all_chunks_timings
         completions: list[str] = response_event.completions
         timeout: float = response_event.timeout
         sampling_parameters: dict = task.sampling_params
+        PENALIZE_ALL = BatchRewardOutput(
+            rewards=np.array([-INCORRECT_PENALTY] * len(completions)),
+            timings=np.array([0.0] * len(completions)),
+        )
 
+        if not any(chunks for chunks in all_chunks):
+            logger.debug("NO CHUNKS TO VERIFY, PENALIZING ALL")
+            return PENALIZE_ALL
         if timeout <= 0:
             logger.error("Timeout must be greater than 0. Received timeout: {}", timeout)
             raise ValueError("Timeout must be greater than 0.")
 
         timing_outputs, rewards = [], []
-        
+
         # Find longest completion for verification indices
         max_length = max(len(chunks) for chunks in all_chunks) if all_chunks else 0
+        if max_length == 0:
+            logger.debug("MAX LENGTH IS 0, PENALIZING ALL")
+            return PENALIZE_ALL
         num_verify = max(1, int(max_length * VERIFICATION_RATIO))
         verify_indices = random.sample(range(max_length), num_verify)
         verify_indices.sort()
 
         # Iterate over each response event
-        for chunks, timings, completion, chunk_dicts_raw in zip(all_chunks, all_timings, completions, all_chunk_dicts_raw):
+
+        for chunks, timings, chunk_dicts_raw in zip(all_chunks, all_timings, all_chunk_dicts_raw):
+            logger.debug(f"CHECKING CHUNKS: {chunks}")
             # If no response is provided, apply full penalty
             if not chunks:
                 rewards.append(-INCORRECT_PENALTY)
@@ -106,21 +122,28 @@ class LogitsRewardModel(BaseRewardModel):
             # Verify logits for selected indices
             verification_scores = []
             completion_length = len(chunks)
-            
+
+            logger.debug(f"VERIFY INDICES: {verify_indices}")
+            logger.debug(f"CHUNKS TO VERIFY: {[chunks[i] for i in verify_indices]}")
             for idx in verify_indices:
                 check_idx = min(idx, completion_length - 1)
-                if not chunk_dicts_raw[check_idx].choices[0].logprobs:
+                if not chunk_dicts_raw[check_idx].choices[0].delta.logprobs:
+                    logger.debug(f"NO LOGPROBS FOR CHUNK: {chunk_dicts_raw[check_idx]}")
+                    logger.debug(f"LOGPROBS: {chunk_dicts_raw[check_idx].choices[0].logprobs}")
                     continue
-                
+
                 original_logits = {
                     token: logprob
-                    for token, logprob in zip(chunk_dicts_raw[check_idx].choices[0].logprobs["top_tokens"], chunk_dicts_raw[check_idx].choices[0].logprobs["top_logprobs"])
+                    for token, logprob in zip(
+                        chunk_dicts_raw[check_idx].choices[0].logprobs["top_tokens"],
+                        chunk_dicts_raw[check_idx].choices[0].logprobs["top_logprobs"],
+                    )
                 }
 
                 verification_output = model_manager.get_model(task.llm_model_id).generate_logits(
-                    messages=task.task_messages+[{"role": "assistant", "content": "".join(chunks[:check_idx])}],
+                    messages=task.task_messages + [{"role": "assistant", "content": "".join(chunks[:check_idx])}],
                     sampling_parameters=sampling_parameters,
-                    continue_last_message=True
+                    continue_last_message=True,
                 )
                 logit_score = verify_single_logit(original_logits, verification_output)
                 verification_scores.append(logit_score)
@@ -130,7 +153,6 @@ class LogitsRewardModel(BaseRewardModel):
                     break
             final_score = np.mean(verification_scores)
 
-
             # Compute timing reward
             valid_chunks = []
             for chunk, timing in zip(chunks, timings):
@@ -139,8 +161,11 @@ class LogitsRewardModel(BaseRewardModel):
 
             timing_reward = np.mean(valid_chunks) if valid_chunks else 0.0
 
-            rewards.append(float(final_score))
+            rewards.append(float(final_score > VERIFICATION_THRESHOLD) * timing_reward)
             timing_outputs.append(np.array(valid_chunks).mean())
+            logger.info(
+                f"FINAL SCORE: {final_score}\n\nVERIFICATION SCORES: {verification_scores}\n\nTIMING REWARD: {timing_reward}\n\nREWARDS: {rewards}\n\n"
+            )
 
         return BatchRewardOutput(
             rewards=np.array(rewards),

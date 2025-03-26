@@ -16,7 +16,7 @@ class ReproducibleVLLM:
         self._device = device
         self.model_id = model_id
         self.sampling_params = {} if sampling_params else sampling_params
-        
+
         # VLLM specific initialization
         # gpu_memory_utilization = 0.9  # Default high utilization since VLLM is memory efficient
         self.model = LLM(
@@ -24,10 +24,10 @@ class ReproducibleVLLM:
             tensor_parallel_size=1,  # Single GPU by default
             dtype="float16",
             trust_remote_code=True,
-            gpu_memory_utilization=0.3,
+            gpu_memory_utilization=0.7,
             max_model_len=1000,
         )
-        
+
         # Store tokenizer from VLLM for consistency
         self.tokenizer = self.model.get_tokenizer()
 
@@ -82,10 +82,10 @@ class ReproducibleVLLM:
 
         # Generate using VLLM
         outputs = self.model.generate(prompt, vllm_params)
-        
+
         if not outputs:
             return ""
-            
+
         # Return just the generated text without the prompt
         result = outputs[0].outputs[0].text
         return result
@@ -100,14 +100,14 @@ class ReproducibleVLLM:
     ) -> dict[str, float]:
         """
         Generate logits for the next token prediction.
-        
+
         Args:
             messages: Input messages or text
             top_n: Number of top logits to return (default: 10)
             sampling_params: Generation parameters
             seed: Random seed for reproducibility
             continue_last_message: Whether to continue the last message in chat format
-            
+
         Returns:
             dict: Dictionary mapping tokens to their log probabilities
         """
@@ -149,22 +149,16 @@ class ReproducibleVLLM:
 
         # Generate using VLLM
         outputs = self.model.generate(prompt, vllm_params)
-        
+
         if not outputs or not outputs[0].outputs[0].logprobs:
             return {}
-            
+
         # Extract logprobs from the first token
         logprobs = outputs[0].outputs[0].logprobs[0]
-        
+
         # Create dictionary of token to logprob mapping
-        token_logprobs = {
-            token: logprob
-            for token, logprob in zip(
-                logprobs["top_tokens"],
-                logprobs["top_logprobs"]
-            )
-        }
-        
+        token_logprobs = {token: logprob for token, logprob in zip(logprobs["top_tokens"], logprobs["top_logprobs"])}
+
         return token_logprobs
 
     def set_random_seeds(self, seed: int | None = 42):
