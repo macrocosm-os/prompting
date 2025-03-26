@@ -127,22 +127,18 @@ class LogitsRewardModel(BaseRewardModel):
             logger.debug(f"CHUNKS TO VERIFY: {[chunks[i] for i in verify_indices]}")
             for idx in verify_indices:
                 check_idx = min(idx, completion_length - 1)
-                if not chunk_dicts_raw[check_idx].choices[0].delta.logprobs:
+                if not chunk_dicts_raw[check_idx].choices[0].logprobs:
                     logger.debug(f"NO LOGPROBS FOR CHUNK: {chunk_dicts_raw[check_idx]}")
                     logger.debug(f"LOGPROBS: {chunk_dicts_raw[check_idx].choices[0].logprobs}")
                     continue
 
                 original_logits = {
-                    token: logprob
-                    for token, logprob in zip(
-                        chunk_dicts_raw[check_idx].choices[0].logprobs["top_tokens"],
-                        chunk_dicts_raw[check_idx].choices[0].logprobs["top_logprobs"],
-                    )
+                    info.token: info.logprob for info in chunk_dicts_raw[check_idx].choices[0].logprobs.content
                 }
 
                 verification_output = model_manager.get_model(task.llm_model_id).generate_logits(
                     messages=task.task_messages + [{"role": "assistant", "content": "".join(chunks[:check_idx])}],
-                    sampling_parameters=sampling_parameters,
+                    sampling_params=sampling_parameters,
                     continue_last_message=True,
                 )
                 logit_score = verify_single_logit(original_logits, verification_output)

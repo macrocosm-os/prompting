@@ -119,7 +119,7 @@ class ReproducibleVLLM:
                 prompt = self.tokenizer.apply_chat_template(
                     messages,
                     tokenize=False,
-                    add_generation_prompt=True,
+                    add_generation_prompt=not continue_last_message,
                     continue_final_message=continue_last_message,
                 )
             except (AttributeError, NotImplementedError) as e:
@@ -144,6 +144,7 @@ class ReproducibleVLLM:
             temperature=1.0,  # Use temperature 1.0 for raw logits
             top_p=1.0,  # No filtering
             max_tokens=1,  # We only need one token for logits
+            top_k=50,
             logprobs=top_n,  # Get top_n logprobs
         )
 
@@ -156,8 +157,21 @@ class ReproducibleVLLM:
         # Extract logprobs from the first token
         logprobs = outputs[0].outputs[0].logprobs[0]
 
+        logprobs_list = [(k, v.logprob) for k, v in logprobs.items()]
+        sorted_logprobs = sorted(logprobs_list, key=lambda x: x[1], reverse=True)
+
+        top_token_ids = [x[0] for x in sorted_logprobs]
+        top_logprob_values = [x[1] for x in sorted_logprobs]
+
+        step_logprobs = {
+            "top_tokens": [self.tokenizer.decode([tid]) for tid in top_token_ids],
+            "top_logprobs": top_logprob_values,
+        }
+
         # Create dictionary of token to logprob mapping
-        token_logprobs = {token: logprob for token, logprob in zip(logprobs["top_tokens"], logprobs["top_logprobs"])}
+        token_logprobs = {
+            token: logprob for token, logprob in zip(step_logprobs["top_tokens"], step_logprobs["top_logprobs"])
+        }
 
         return token_logprobs
 
