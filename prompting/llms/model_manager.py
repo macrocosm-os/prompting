@@ -1,8 +1,8 @@
 import asyncio
 import gc
 import time
-import psutil
 
+import psutil
 import torch
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
@@ -72,6 +72,7 @@ class ModelManager(BaseModel):
                 if retry_counter > retries_max:
                     logger.error(f"Failed to load model after {retries_max}. Terminating process...")
                     import os
+
                     # Terminate main process immediately.
                     # TODO: Use sys.exit(1) instead and catch/propagate SystemExit in the main process.
                     os._exit(1)
