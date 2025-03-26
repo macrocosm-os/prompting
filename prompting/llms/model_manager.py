@@ -6,7 +6,7 @@ import torch
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
 
-from prompting.llms.hf_llm import ReproducibleHF
+from prompting.llms.vllm_llm import ReproducibleVLLM
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.llms.utils import GPUInfo
 from shared import settings
@@ -21,7 +21,7 @@ open_tasks = []
 class ModelManager(BaseModel):
     always_active_models: list[ModelConfig] = []
     total_ram: float = settings.shared_settings.LLM_MODEL_RAM
-    active_models: dict[ModelConfig, ReproducibleHF] = {}
+    active_models: dict[ModelConfig, ReproducibleVLLM] = {}
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -64,7 +64,7 @@ class ModelManager(BaseModel):
         try:
             GPUInfo.log_gpu_info()
 
-            model = ReproducibleHF(
+            model = ReproducibleVLLM(
                 model_id=model_config.llm_model_id,
                 device=settings.shared_settings.NEURON_DEVICE,
                 sampling_params=settings.shared_settings.SAMPLING_PARAMS,
@@ -91,13 +91,13 @@ class ModelManager(BaseModel):
         self.used_ram -= model_config.min_ram
         torch.cuda.empty_cache()
 
-    def get_or_load_model(self, llm_model_id: str) -> ReproducibleHF:
+    def get_or_load_model(self, llm_model_id: str) -> ReproducibleVLLM:
         model_config = ModelZoo.get_model_by_id(llm_model_id)
         if model_config not in self.active_models:
             self.load_model(model_config)
         return self.active_models[model_config]
 
-    def get_model(self, llm_model: ModelConfig | str) -> ReproducibleHF:
+    def get_model(self, llm_model: ModelConfig | str) -> ReproducibleVLLM:
         if not llm_model:
             llm_model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
         if isinstance(llm_model, str):
@@ -147,7 +147,7 @@ class ModelManager(BaseModel):
         if not model:
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
-        model_instance: ReproducibleHF = self.get_model(model)
+        model_instance: ReproducibleVLLM = self.get_model(model)
         responses = model_instance.generate(messages=[dict_messages], sampling_params=sampling_params, seed=seed)
 
         return responses

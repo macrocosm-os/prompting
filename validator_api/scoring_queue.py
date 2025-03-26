@@ -106,7 +106,7 @@ class ScoringQueue(AsyncLoopRunner):
         await asyncio.sleep(0.1)
 
     async def append_response(
-        self, uids: list[int], body: dict[str, Any], chunks: list[list[str]], timings: list[list[float]] | None = None
+        self, uids: list[int], body: dict[str, Any], chunks: list[list[str]],  chunk_dicts_raw: list, timings: list[list[float]] | None = None,
     ):
         if not shared_settings.SCORE_ORGANICS:
             return
@@ -117,11 +117,12 @@ class ScoringQueue(AsyncLoopRunner):
 
         uids = list(map(int, uids))
         chunk_dict = {str(u): c for u, c in zip(uids, chunks)}
+        chunk_dict_raw = {str(u): c for u, c in zip(uids, chunk_dicts_raw)}
         if timings:
             timing_dict = {str(u): t for u, t in zip(uids, timings)}
         else:
             timing_dict = {}
-        payload = {"body": body, "chunks": chunk_dict, "uids": uids, "timings": timing_dict}
+        payload = {"body": body, "chunks": chunk_dict, "uids": uids, "timings": timing_dict, "chunk_dicts_raw": chunk_dict_raw}
         scoring_item = ScoringPayload(payload=payload, date=datetime.datetime.now().replace(microsecond=0))
 
         async with self._scoring_lock:

@@ -1,4 +1,4 @@
-from prompting.rewards.exact_match import ExactMatchRewardModel
+from prompting.rewards.exact_match import LogitsRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from shared.dendrite import DendriteResponseEvent
@@ -14,5 +14,5 @@ class InferenceRewardModel(BaseRewardModel):
     ) -> BatchRewardOutput:
         """Gives an exact reward of 1 if the response matches the reference, 0 otherwise"""
         if model_id:
-            return await ExactMatchRewardModel().reward(reference, response_event)
+            return await LogitsRewardModel().reward(reference, response_event)
         return await RelevanceRewardModel().reward(reference, response_event)

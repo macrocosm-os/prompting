@@ -7,6 +7,7 @@ shared_settings = settings.shared_settings
 import asyncio
 import json
 import time
+import numpy as np
 
 import httpx
 import netaddr
@@ -19,8 +20,8 @@ from loguru import logger
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
 from web_retrieval import get_websites_with_similarity
+from vllm import LLM, SamplingParams
 
-from prompting.llms.hf_llm import ReproducibleHF
 from shared.epistula import verify_signature
 
 MODEL_ID: str = "gpt-3.5-turbo"
@@ -30,9 +31,53 @@ NEURON_TOP_K: int = 50
 NEURON_TOP_P: float = 0.95
 NEURON_STREAMING_BATCH_SIZE: int = 12
 NEURON_STOP_ON_FORWARD_EXCEPTION: bool = False
-SHOULD_SERVE_LLM: bool = False
+SHOULD_SERVE_LLM: bool = True 
 LOCAL_MODEL_ID = "casperhansen/llama-3-8b-instruct-awq"
 
+def get_token_logprobs(llm, prompt, sampling_params):
+    """Get logprobs and chosen tokens for text generation."""
+    outputs = llm.generate(prompt, sampling_params)
+
+    
+    if not outputs:
+        return None
+        
+    output = outputs[0].outputs[0]
+    generated_text = output.text
+    logprobs_sequence = output.logprobs
+    generated_tokens = output.token_ids
+    
+    if logprobs_sequence is None:
+        return None
+        
+    token_logprobs = []
+    for i, logprobs in enumerate(logprobs_sequence):
+        if logprobs is None:
+            continue
+            
+        # Convert to list and sort by logprob value
+        logprobs_list = [(k, v.logprob) for k, v in logprobs.items()]
+        sorted_logprobs = sorted(logprobs_list, key=lambda x: x[1], reverse=True)
+        
+        # Get top tokens and logprobs
+        top_token_ids = [x[0] for x in sorted_logprobs]
+        top_logprob_values = [x[1] for x in sorted_logprobs]
+        
+        # Store the actual chosen token from generation
+        chosen_token = llm.get_tokenizer().decode([generated_tokens[i]])
+        
+        # Store logprobs for this step
+        step_logprobs = {
+            'token': chosen_token,
+            'top_tokens': [llm.get_tokenizer().decode([tid]) for tid in top_token_ids],
+            'top_logprobs': top_logprob_values
+        }
+        token_logprobs.append(step_logprobs)
+            
+    return {
+        'text': generated_text,
+        'token_logprobs': token_logprobs
+    }
 
 class OpenAIMiner:
     def __init__(self):
@@ -45,11 +90,12 @@ class OpenAIMiner:
             },
         )
         if SHOULD_SERVE_LLM:
-            self.llm = ReproducibleHF(
-                model_id=LOCAL_MODEL_ID,
-                device=shared_settings.NEURON_DEVICE,
-                sampling_params=shared_settings.SAMPLING_PARAMS,
+            self.llm = LLM(
+                model=LOCAL_MODEL_ID,
+                gpu_memory_utilization=0.3,
+                max_model_len=2048
             )
+            self.tokenizer = self.llm.get_tokenizer()
         else:
             self.llm = None
 
@@ -83,7 +129,7 @@ class OpenAIMiner:
     async def create_chat_completion(self, request: Request):
         data = await request.json()
         headers = request.headers
-        if self.llm and request.headers.get("task", None) == "inference":
+        if self.llm and request.headers.get("task", None) == "InferenceTask":
             return await self.create_inference_completion(request)
         if request.headers.get("task", None) == "WebRetrievalTask":
             return await self.stream_web_retrieval(data, headers)
@@ -93,14 +139,53 @@ class OpenAIMiner:
 
     async def create_inference_completion(self, request: Request):
         async def word_stream():
-            inference = await self.run_inference(request)
-            words = inference.split()
-            print(words)
-            for word in words:
-                # Simulate the OpenAI streaming response format
-                data = {"choices": [{"delta": {"content": word + " "}, "index": 0, "finish_reason": None}]}
+            data = await request.json()
+            messages = data.get("messages", [])
+            sampling_params = SamplingParams(
+                max_tokens=NEURON_MAX_TOKENS,
+                temperature=NEURON_TEMPERATURE,
+                top_k=NEURON_TOP_K,
+                top_p=NEURON_TOP_P,
+                logprobs=10
+            )
+            
+            # Format messages into a prompt
+            # prompt = "\n".join([msg["content"] for msg in messages])
+            prompt = self.tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            
+            # Get generation with logprobs
+            result = get_token_logprobs(self.llm, prompt, sampling_params)
+            if not result:
+                yield f"data: {json.dumps({'error': 'Generation failed'})}\n\n"
+                return
+                
+            # Stream tokens and their logprobs
+            for step in result['token_logprobs']:
+                logger.info(step)
+                token = step['token']
+                logprobs_info = {
+                    'top_tokens': step['top_tokens'],
+                    'top_logprobs': step['top_logprobs']
+                }
+                
+                # Format in OpenAI streaming style but include logprobs
+                data = {
+                    "choices": [{
+                        "delta": {
+                            "content": token,
+                            "logprobs": logprobs_info
+                        },
+                        "index": 0,
+                        "finish_reason": None
+                    }]
+                }
                 yield f"data: {json.dumps(data)}\n\n"
-                await asyncio.sleep(0.1)  # Simulate a delay between words
+                await asyncio.sleep(0.1)
+            
             # Indicate the end of the stream
             data = {"choices": [{"delta": {}, "index": 0, "finish_reason": "stop"}]}
             yield f"data: {json.dumps(data)}\n\n"
@@ -187,7 +272,7 @@ class OpenAIMiner:
         router.add_api_route(
             "/v1/chat/completions",
             self.create_chat_completion,
-            dependencies=[Depends(self.verify_request)],
+            # dependencies=[Depends(self.verify_request)],
             methods=["POST"],
         )
         router.add_api_route(
