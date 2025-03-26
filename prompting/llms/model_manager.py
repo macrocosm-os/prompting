@@ -72,12 +72,12 @@ class ModelManager(BaseModel):
             except BaseException as e:
                 if retry_counter > retries_max:
                     logger.error(f"Failed to load model after {retries_max} retries. Terminating process...")
-                    # Terminate main process immediately.
+                    # Terminate main process immediately by sending KeyboardInterrupt to all processes.
                     # TODO: Use sys.exit(1) instead and catch/propagate SystemExit in the main process.
                     import os
                     import signal
 
-                    os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
+                    os.killpg(os.getpgid(os.getpid()), signal.SIGINT)
                 retry_counter += 1
                 retry_delay += retry_counter
                 self._vram_cleanup()
