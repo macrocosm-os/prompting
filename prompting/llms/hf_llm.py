@@ -13,11 +13,23 @@ except ImportError:
 
 
 class ReproducibleHF:
+    """Base class for HuggingFace model.
+    
+    The following fields must be implemented:
+        model: Torch model.
+        tokenizer: Model's tokenizer.
+    
+    The following methods must be implemented:
+        format_messages: Formats messages list or dict into the model's supported format.
+    """
     def __init__(self, model_id: str, device: str, sampling_params: dict[str, str | float | int | bool] | None = None):
         self.model_id = model_id
         self._device = device
         self.sampling_params = sampling_params if sampling_params else {}
         self.message_formatter = ReproducibleHF.format_messages
+        # Implement the following fields in the child class:
+        self.model = None
+        self.tokenizer = None
 
     @staticmethod
     @abstractmethod
