@@ -75,6 +75,7 @@ class ModelManager(BaseModel):
                     # Terminate main process immediately.
                     # TODO: Use sys.exit(1) instead and catch/propagate SystemExit in the main process.
                     import os
+
                     os._exit(1)
                 retry_counter += 1
                 retry_delay += retry_counter
