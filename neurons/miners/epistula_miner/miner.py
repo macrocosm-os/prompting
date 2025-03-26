@@ -160,21 +160,11 @@ class OpenAIMiner:
                 return
 
             # Stream tokens and their logprobs
-<<<<<<< Updated upstream
             for step in result["token_logprobs"]:
                 logger.info(step)
                 token = step["token"]
                 logprobs_info = {"top_tokens": step["top_tokens"], "top_logprobs": step["top_logprobs"]}
 
-=======
-            for step in result['token_logprobs']:
-                token = step['token']
-                logprobs_info = {
-                    'top_tokens': step['top_tokens'],
-                    'top_logprobs': step['top_logprobs']
-                }
-                
->>>>>>> Stashed changes
                 # Format in OpenAI streaming style but include logprobs
                 data = {
                     "choices": [
