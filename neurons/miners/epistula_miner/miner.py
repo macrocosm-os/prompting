@@ -199,7 +199,7 @@ class OpenAIMiner:
 
         # Set all model availabilities to False (openai will not be able to handle seeded inference)
         model_response = {key: key == LOCAL_MODEL_ID for key in llm_model_availabilities}
-
+        print(model_response)
         response = {"task_availabilities": task_response, "llm_model_availabilities": model_response}
 
         return response
@@ -247,14 +247,14 @@ class OpenAIMiner:
                 logger.error("Failed to get external IP")
 
         logger.info(
-            f"Serving miner endpoint {external_ip}:{shared_settings.AXON_PORT} on network: {shared_settings.SUBTENSOR_NETWORK} with netuid: {shared_settings.NETUID}"
+            f"Serving miner endpoint {external_ip}:{11175} on network: {shared_settings.SUBTENSOR_NETWORK} with netuid: {shared_settings.NETUID}"
         )
 
         serve_success = serve_extrinsic(
             subtensor=shared_settings.SUBTENSOR,
             wallet=shared_settings.WALLET,
             ip=external_ip,
-            port=shared_settings.AXON_PORT,
+            port=11175,
             protocol=4,
             netuid=shared_settings.NETUID,
         )
@@ -279,7 +279,8 @@ class OpenAIMiner:
         fast_config = uvicorn.Config(
             app,
             host="0.0.0.0",
-            port=shared_settings.AXON_PORT,
+            # port=shared_settings.AXON_PORT,
+            port=11175,
             log_level="info",
             loop="asyncio",
             workers=4,
