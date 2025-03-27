@@ -26,11 +26,6 @@ from prompting.llms.utils import GPUInfo
 loguru.logger.add("logfile.log", rotation="1000 MB", retention="10 days", level="WARNING")
 from loguru import logger
 
-# logger.remove()
-# logger.add(sys.stderr, level="WARNING")
-# logger.info("This is INFO - it should not appear.")
-# logger.warning("This is WARNING - it should appear.")
-# logger.error("This is ERROR - it should appear.")
 
 torch.multiprocessing.set_start_method("spawn", force=True)
 

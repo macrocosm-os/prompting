@@ -230,8 +230,7 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    # interval: int = 14400
-    interval: int = 120
+    interval: int = 14400
     scoring_queue: list | None = None
     # TODO: Refactor it during refactor to get rid of global vars.
     event_restart: Optional[mp.Event] = None
