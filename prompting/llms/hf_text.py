@@ -23,6 +23,7 @@ class HFTextGeneration(ReproducibleHF):
             low_cpu_mem_usage=True,
             device_map=self._device,
         )
+        self.model = self.model.to(self._device)
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
         self.valid_generation_params = set(self.model.generation_config.to_dict().keys())
         self.message_formatter = self.format_messages

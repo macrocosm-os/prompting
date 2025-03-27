@@ -1,11 +1,13 @@
 import asyncio
 import gc
+import multiprocessing as mp
 import time
+from typing import Optional
 
 import psutil
 import torch
 from loguru import logger
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, PrivateAttr
 
 from prompting.llms.hf_llm import ReproducibleHF
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
@@ -20,10 +22,13 @@ class ModelManager(BaseModel):
     active_models: dict[ModelConfig, ReproducibleHF] = {}
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    _mp_lock = PrivateAttr(default_factory=torch.multiprocessing.Lock)
+    # TODO: Refactor it during refactor to get rid of global vars.
+    event_restart: Optional[mp.Event] = None
 
     def load_always_active_models(self):
         for model_config in self.always_active_models:
-            self.load_model(model_config)
+            self.load_model(model_config=model_config)
 
     def load_model(self, model_config: ModelConfig, force: bool = True):
         """Load model into GPU.
@@ -35,7 +40,14 @@ class ModelManager(BaseModel):
             force: If enabled, will unload all other models.
         """
         logger.info(f"Loading {model_config.llm_model_id} model")
-        torch.cuda.empty_cache()
+        try:
+            with self._mp_lock:
+                torch.cuda.synchronize()
+                gc.collect()
+                torch.cuda.empty_cache()
+        except BaseException as e:
+            logger.error(f"Error during CUDA empty cache: {e}")
+
         if model_config in self.active_models.keys():
             print(f"Model {model_config.llm_model_id} is already loaded.")
             return
@@ -48,21 +60,21 @@ class ModelManager(BaseModel):
                 logger.debug(f"Unloading {active_model.llm_model_id} to make room for {model_config.llm_model_id}")
                 self._unload_model(active_model)
 
-            if len(self.active_models) == 0:
-                self._vram_cleanup()
+            self._vram_cleanup()
 
-        retries_max = 10
+        retries_max = 3
         retry_counter = 0
-        retry_delay = 10
+        retry_delay = 30
         while True:
             try:
                 GPUInfo.log_gpu_info()
-                model = model_factory(model_config.llm_model_id)(
-                    model_id=model_config.llm_model_id,
-                    device=settings.shared_settings.NEURON_DEVICE,
-                    sampling_params=settings.shared_settings.SAMPLING_PARAMS,
-                )
-                self.active_models[model_config] = model
+                with self._mp_lock:
+                    model = model_factory(model_config.llm_model_id)(
+                        model_id=model_config.llm_model_id,
+                        device=settings.shared_settings.NEURON_DEVICE,
+                        sampling_params=settings.shared_settings.SAMPLING_PARAMS,
+                    )
+                    self.active_models[model_config] = model
                 self.used_ram += model_config.min_ram
                 logger.info(
                     f"Model {model_config.llm_model_id} has been successfully loaded. "
@@ -71,13 +83,9 @@ class ModelManager(BaseModel):
                 return model
             except BaseException as e:
                 if retry_counter > retries_max:
-                    logger.error(f"Failed to load model after {retries_max} retries. Terminating process...")
-                    # Terminate main process immediately by sending KeyboardInterrupt to all processes.
-                    # TODO: Use sys.exit(1) instead and catch/propagate SystemExit in the main process.
-                    import os
-                    import signal
-
-                    os.killpg(os.getpgid(os.getpid()), signal.SIGINT)
+                    logger.error(f"Failed to load model after {retries_max} retries. Terminating process")
+                    # Fire an event to terminate the process.
+                    self.event_restart.set()
                 retry_counter += 1
                 retry_delay += retry_counter
                 self._vram_cleanup()
@@ -90,27 +98,30 @@ class ModelManager(BaseModel):
 
     def _cleanup_model(self, model_instance: ReproducibleHF, cpu_offload: bool = False):
         """Free VRAM from given model."""
-        if cpu_offload:
-            try:
-                model_instance.model = model_instance.model.to("cpu")
-            except NotImplementedError as e:
-                logger.exception(f"Standard move to CPU failed: {str(e)}")
+        with self._mp_lock:
+            if cpu_offload:
                 try:
-                    # Fallback for meta tensors.
-                    model_instance.model = model_instance.model.to_empty("cpu")
-                except Exception as fallback_e:
-                    logger.exception(f"Could not move meta model to CPU, proceeding with generic GC: {str(fallback_e)}")
-            except Exception as e:
-                logger.exception(f"Unexpected error when moving model to CPU: {str(e)}")
+                    model_instance.model = model_instance.model.to("cpu")
+                except NotImplementedError as e:
+                    logger.exception(f"Standard move to CPU failed: {str(e)}")
+                    try:
+                        # Fallback for meta tensors.
+                        model_instance.model = model_instance.model.to_empty("cpu")
+                    except Exception as fallback_e:
+                        logger.exception(
+                            f"Could not move meta model to CPU, proceeding with generic GC: {str(fallback_e)}"
+                        )
+                except Exception as e:
+                    logger.exception(f"Unexpected error when moving model to CPU: {str(e)}")
 
-        model_instance.model = None
-        model_instance.tokenizer = None
-        try:
-            del model_instance.model
-            del model_instance.tokenizer
-        except BaseException as e:
-            logger.exception(f"Error deleting model attributes: {str(e)}")
-        del model_instance
+            model_instance.model = None
+            model_instance.tokenizer = None
+            try:
+                del model_instance.model
+                del model_instance.tokenizer
+            except BaseException as e:
+                logger.exception(f"Error deleting model attributes: {str(e)}")
+            del model_instance
 
     def _unload_model(self, model_config: ModelConfig):
         if model_config not in self.active_models:
@@ -173,6 +184,8 @@ class ModelManager(BaseModel):
             dict_messages = messages
         else:
             dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
+        
+        logger.info(f"Inferencing {dict_messages}")
 
         if isinstance(model, str):
             model = ModelZoo.get_model_by_id(model)
@@ -180,22 +193,34 @@ class ModelManager(BaseModel):
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
         model_instance: ReproducibleHF = self.get_model(model)
-        responses = await model_instance.generate(messages=[dict_messages], sampling_params=sampling_params, seed=seed)
+        with self._mp_lock:
+            responses = await model_instance.generate(
+                messages=[dict_messages], sampling_params=sampling_params, seed=seed
+            )
 
         return responses
 
     def _vram_cleanup(self):
         """Perform VRAM clean-up."""
+        for config, model in self.active_models.items():
+            del model.model
+            del model
+
         self.active_models = {}
         self.used_ram = 0.0
 
         if torch.cuda.is_available():
             # Reset all CUDA cached memory.
-            torch.cuda.synchronize()
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats()
-            torch.cuda.reset_accumulated_memory_stats()
-            time.sleep(1.0)
+            try:
+                with self._mp_lock:
+                    torch.cuda.synchronize()
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    torch.cuda.reset_peak_memory_stats()
+                    torch.cuda.reset_accumulated_memory_stats()
+                time.sleep(1.0)
+            except BaseException as e:
+                logger.error(f"Error during CUDA empty cache: {e}")
         else:
             logger.warning("CUDA is not available")
 

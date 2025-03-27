@@ -24,6 +24,7 @@ from prompting.llms.utils import GPUInfo
 
 # Add a handler to write logs to a file
 loguru.logger.add("logfile.log", rotation="1000 MB", retention="10 days", level="DEBUG")
+loguru.logger.add("err.log", rotation="1000 MB", retention="10 days", level="WARNING")
 from loguru import logger
 
 torch.multiprocessing.set_start_method("spawn", force=True)
@@ -31,7 +32,7 @@ torch.multiprocessing.set_start_method("spawn", force=True)
 NEURON_SAMPLE_SIZE = 100  # TODO: Should add this to constants.py
 
 
-def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
+def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict, event_restart: mp.Event):
     settings.shared_settings = settings.SharedSettings.load(mode="validator")
     if settings.shared_settings.WANDB_ON:
         init_wandb(neuron="validator")
@@ -39,6 +40,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
     async def spawn_loops(task_queue, scoring_queue, reward_events, miners_dict):
         # ruff: noqa: E402
         from prompting.llms.model_manager import model_scheduler
+        model_scheduler.llm_model_manager.event_restart = event_restart
 
         # from prompting.miner_availability.miner_availability import availability_checking_loop
         from prompting.tasks.task_creation import task_loop
@@ -51,7 +53,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
         asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=4))
 
         logger.info("Starting ModelScheduler...")
-        asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
+        asyncio.create_task(model_scheduler.start(scoring_queue, event_restart), name="ModelScheduler"),
         logger.info("Starting TaskScorer...")
         asyncio.create_task(task_scorer.start(scoring_queue, reward_events, simultaneous_loops=4), name="TaskScorer"),
 
@@ -62,6 +64,9 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
             logger.debug(f"Number of tasks in Task Queue: {len(task_queue)}")
             logger.debug(f"Number of tasks in Scoring Queue: {len(scoring_queue)}")
             logger.debug(f"Number of tasks in Reward Events: {len(reward_events)}")
+            if event_restart.is_set():
+                logger.warning("LoopProcess: Detected restart event. Exiting.")
+                break
 
     try:
         asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events, miners_dict))
@@ -74,6 +79,24 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
         if settings.shared_settings.WANDB_ON:
             wandb.finish()
             logger.info("WandB run finished.")
+
+
+async def _health_check_loop_process(loop_process, task_queue, scoring_queue, reward_events, miners_dict, event_restart):
+    """Check LoopProcess for any critical issues and restarts the process if any."""
+    if event_restart.is_set():
+        # Event is set in case of emergency OOM.
+        logger.warning("Restart event detected. Restarting LoopProcess...")
+        if loop_process.is_alive():
+            loop_process.terminate()
+            loop_process.join()
+        # Clear the event so it can be used again.
+        event_restart.clear()
+        loop_process = mp.Process(
+            target=create_loop_process,
+            args=(task_queue, scoring_queue, reward_events, miners_dict, event_restart),
+            name="LoopProcess",
+        )
+        loop_process.start()
 
 
 def start_api(scoring_queue, reward_events, miners_dict):
@@ -168,6 +191,7 @@ async def main():
         scoring_queue = manager.list()
         task_queue = manager.list()
         miners_dict = manager.dict()
+        event_restart = mp.Event()
         processes = []
 
         try:
@@ -190,7 +214,7 @@ async def main():
 
             loop_process = mp.Process(
                 target=create_loop_process,
-                args=(task_queue, scoring_queue, reward_events, miners_dict),
+                args=(task_queue, scoring_queue, reward_events, miners_dict, event_restart),
                 name="LoopProcess",
             )
             loop_process.start()
@@ -217,6 +241,8 @@ async def main():
             step = 0
             while True:
                 await asyncio.sleep(30)
+                await _health_check_loop_process(loop_process, task_queue, scoring_queue, reward_events, miners_dict, event_restart)
+
                 if (
                     settings.shared_settings.SUBTENSOR.get_current_block()
                     - settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID]
