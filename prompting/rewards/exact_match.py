@@ -106,7 +106,10 @@ class LogitsRewardModel(BaseRewardModel):
             logger.debug("MAX LENGTH IS 0, PENALIZING ALL")
             return PENALIZE_ALL
         num_verify = max(1, int(max_length * VERIFICATION_RATIO))
-        verify_indices = random.sample(range(max_length), num_verify)
+        verify_indices = random.sample(
+            range(max_length - 1), num_verify - 1
+        )  # Sample one less to save room for last index
+        verify_indices.append(max_length - 1)  # Always verify the last index
         verify_indices.sort()
 
         # Iterate over each response event
@@ -130,6 +133,7 @@ class LogitsRewardModel(BaseRewardModel):
                 if not chunk_dicts_raw[check_idx].choices[0].logprobs:
                     logger.debug(f"NO LOGPROBS FOR CHUNK: {chunk_dicts_raw[check_idx]}")
                     logger.debug(f"LOGPROBS: {chunk_dicts_raw[check_idx].choices[0].logprobs}")
+                    verification_scores.append(0.0)
                     continue
 
                 original_logits = {
@@ -141,6 +145,8 @@ class LogitsRewardModel(BaseRewardModel):
                     sampling_params=sampling_parameters,
                     continue_last_message=True,
                 )
+                logger.debug(f"VERIFICATION OUTPUT: {verification_output}")
+                logger.debug(f"ORIGINAL LOGITS: {original_logits}")
                 logit_score = verify_single_logit(original_logits, verification_output)
                 verification_scores.append(logit_score)
 

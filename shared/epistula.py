@@ -214,9 +214,7 @@ async def make_openai_query(
     body["seed"] = body.get("seed", random.randint(0, 1000000))
     axon_info = metagraph.axons[uid]
     miner = openai.AsyncOpenAI(
-        # TODO: REVERT THIS
-        # base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
-        base_url="http://38.147.83.16:11175/v1",
+        base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
         api_key="Apex",
         max_retries=0,
         timeout=Timeout(timeout_seconds, connect=5, read=timeout_seconds - 5),

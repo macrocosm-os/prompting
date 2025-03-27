@@ -140,12 +140,10 @@ class ReproducibleVLLM:
 
         # Set up sampling parameters for logit generation
         params = sampling_params if sampling_params else self.sampling_params
+        params["max_tokens"] = 1
+        params["logprobs"] = 10
         vllm_params = SamplingParams(
-            temperature=1.0,  # Use temperature 1.0 for raw logits
-            top_p=1.0,  # No filtering
-            max_tokens=1,  # We only need one token for logits
-            top_k=50,
-            logprobs=top_n,  # Get top_n logprobs
+            **params,
         )
 
         # Generate using VLLM
