@@ -72,8 +72,3 @@ class ReproducibleHF:
                 torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
-
-
-# if __name__ == "__main__":
-#     llm = ReproducibleHF(model="Qwen/Qwen2-0.5B", tensor_parallel_size=1, seed=42)
-#     llm.generate({"role": "user", "content": "Hello, world!"})

@@ -76,6 +76,12 @@ class InferenceTask(BaseTextTask):
         return self.query
 
     async def make_reference(self, dataset_entry: ChatEntry) -> str:
+        # With logits scoring there is no reference, and instead we need to generate the logits based
+        # on the miner's completions.
+        if self.llm_model or self.llm_model_id:
+            self.reference = ""
+            return self.reference
+            
         self.reference = model_manager.generate(
             messages=self.messages,
             model=self.llm_model,

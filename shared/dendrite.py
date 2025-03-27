@@ -1,6 +1,9 @@
 import numpy as np
 from pydantic import BaseModel, ConfigDict, model_validator
 
+# from openai.types import ChatCompletionChunk
+from openai.types.chat import ChatCompletionChunk
+
 from shared.misc import serialize_exception_to_string
 
 
@@ -10,6 +13,7 @@ class SynapseStreamResult(BaseModel):
     accumulated_chunks: list[str] | None = None
     accumulated_chunks_timings: list[float] | None = None
     tokens_per_chunk: list[int] | None = None
+    accumulated_chunk_dicts_raw: list[ChatCompletionChunk] | None = None
     status_code: int = 200
     status_message: str = ""
 
@@ -45,6 +49,7 @@ class DendriteResponseEvent(BaseModel):
     stream_results_uids: list[int] = []
     stream_results_exceptions: list[str] = []
     stream_results_all_chunks: list[list[str]] = []
+    stream_results_all_chunk_dicts_raw: list[ChatCompletionChunk] = []
     stream_results_all_chunks_timings: list[list[float]] = []
     stream_results_all_tokens_per_chunk: list[list[int]] = []
 
@@ -81,4 +86,5 @@ class DendriteResponseEvent(BaseModel):
             self.stream_results_exceptions.append(serialize_exception_to_string(stream_result.exception))
             self.stream_results_all_chunks.append(stream_result.accumulated_chunks)
             self.stream_results_all_chunks_timings.append(stream_result.accumulated_chunks_timings)
+            self.stream_results_all_chunk_dicts_raw.append(stream_result.accumulated_chunk_dicts_raw)
         return self

@@ -19,7 +19,7 @@ RETRIES = 3
 class TaskLoop(AsyncLoopRunner):
     is_running: bool = False
     thread: threading.Thread = None
-    interval: int = 0
+    interval: int = 20
     task_queue: list | None = []
     scoring_queue: list | None = []
     model_config = ConfigDict(arbitrary_types_allowed=True)
