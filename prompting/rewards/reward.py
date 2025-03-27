@@ -1,6 +1,7 @@
 import time
 from abc import ABC, abstractmethod
 from typing import ClassVar, Literal
+from angle_emb import AnglE
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -143,6 +144,7 @@ class BaseRewardConfig(ABC, BaseModel):
         challenge: str | None = None,
         model_id: str | None = None,
         task: BaseTextTask | None = None,
+        angle_model: AnglE | None = None,
     ) -> list[WeightedRewardEvent]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
@@ -154,6 +156,7 @@ class BaseRewardConfig(ABC, BaseModel):
                     reward_type="reward",
                     model_id=model_id,
                     task=task,
+                    angle_model=angle_model,
                 ),
             )
         return reward_events

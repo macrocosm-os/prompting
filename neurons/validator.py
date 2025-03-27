@@ -1,4 +1,5 @@
 import asyncio
+from typing import ClassVar
 import sys
 
 import loguru
@@ -39,6 +40,12 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
     async def spawn_loops(task_queue, scoring_queue, reward_events, miners_dict):
         # ruff: noqa: E402
         from prompting.llms.model_manager import model_scheduler
+        from angle_emb import AnglE
+
+        shared_settings = settings.shared_settings
+        embedding_model: ClassVar[AnglE] = AnglE.from_pretrained(
+            "WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=shared_settings.NEURON_DEVICE
+        ).to(shared_settings.NEURON_DEVICE)
 
         # from prompting.miner_availability.miner_availability import availability_checking_loop
         from prompting.tasks.task_creation import task_loop
@@ -53,7 +60,10 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
         logger.info("Starting ModelScheduler...")
         asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
         logger.info("Starting TaskScorer...")
-        asyncio.create_task(task_scorer.start(scoring_queue, reward_events, simultaneous_loops=4), name="TaskScorer"),
+        asyncio.create_task(
+            task_scorer.start(scoring_queue, reward_events, angle_model=embedding_model, simultaneous_loops=4),
+            name="TaskScorer",
+        ),
 
         while True:
             await asyncio.sleep(5)

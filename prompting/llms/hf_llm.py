@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import random
 from abc import abstractmethod
 from functools import partial
@@ -31,6 +32,8 @@ class ReproducibleHF:
         # Implement the following fields in the child class:
         self.model = None
         self.tokenizer = None
+        # Initialize device lock as instance variable
+        self._device_lock = threading.Lock()
 
     @staticmethod
     @abstractmethod
@@ -59,7 +62,10 @@ class ReproducibleHF:
                     return_dict=True,
                 ),
             )
-            inputs = inputs.to(self._device)
+
+            # Move inputs to device with lock protection
+            with self._device_lock:
+                inputs = inputs.to(self._device)
 
             params = sampling_params if sampling_params else self.sampling_params
             filtered_params = {k: v for k, v in params.items() if k in self.valid_generation_params}

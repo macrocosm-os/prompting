@@ -1,5 +1,6 @@
 import asyncio
 import threading
+from angle_emb import AnglE
 
 from loguru import logger
 from pydantic import ConfigDict
@@ -25,12 +26,16 @@ class TaskScorer(AsyncLoopRunner):
     interval: int = 0
     scoring_queue: list | None = None
     reward_events: list | None = None
+    angle_model: AnglE | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def start(self, scoring_queue, reward_events, name: str | None = None, **kwargs):
+    async def start(
+        self, scoring_queue, reward_events, angle_model: AnglE | None = None, name: str | None = None, **kwargs
+    ):
         self.scoring_queue = scoring_queue
         self.reward_events = reward_events
+        self.angle_model = angle_model
         return await super().start(name=name, **kwargs)
 
     def add_to_queue(
@@ -85,6 +90,7 @@ class TaskScorer(AsyncLoopRunner):
                 reference=scoring_config.task.reference,
                 model_id=scoring_config.task.llm_model,
                 task=scoring_config.task,
+                angle_model=self.angle_model,
             )
         self.reward_events.append(reward_events)
 
