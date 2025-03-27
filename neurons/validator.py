@@ -23,7 +23,8 @@ settings.shared_settings = settings.SharedSettings.load(mode="validator")
 from prompting.llms.utils import GPUInfo
 
 # Add a handler to write logs to a file
-loguru.logger.add("logfile.log", rotation="1000 MB", retention="10 days", level="WARNING")
+loguru.logger.add("logfile.log", rotation="1000 MB", retention="10 days", level="DEBUG")
+loguru.logger.add("err.log", rotation="1000 MB", retention="10 days", level="WARNING")
 from loguru import logger
 
 torch.multiprocessing.set_start_method("spawn", force=True)
@@ -212,7 +213,7 @@ async def main():
 
             loop_process = mp.Process(
                 target=create_loop_process,
-                args=(task_queue, scoring_queue, reward_events, miners_dict),
+                args=(task_queue, scoring_queue, reward_events, miners_dict, event_restart),
                 name="LoopProcess",
             )
             loop_process.start()

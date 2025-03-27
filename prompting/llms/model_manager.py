@@ -182,6 +182,8 @@ class ModelManager(BaseModel):
             dict_messages = messages
         else:
             dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
+        
+        logger.info(f"Inferencing {dict_messages}")
 
         if isinstance(model, str):
             model = ModelZoo.get_model_by_id(model)
