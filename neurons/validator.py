@@ -26,7 +26,6 @@ from prompting.llms.utils import GPUInfo
 loguru.logger.add("logfile.log", rotation="1000 MB", retention="10 days", level="WARNING")
 from loguru import logger
 
-
 torch.multiprocessing.set_start_method("spawn", force=True)
 
 NEURON_SAMPLE_SIZE = 100  # TODO: Should add this to constants.py

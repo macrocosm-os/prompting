@@ -1,11 +1,11 @@
 import asyncio
 import gc
+import multiprocessing as mp
 import time
 from typing import Optional
 
 import psutil
 import torch
-import multiprocessing as mp
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 
