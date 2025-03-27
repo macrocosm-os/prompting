@@ -1,4 +1,5 @@
 import sys
+import time
 
 # Need to delete logging from modules and load in standard python logging
 if "logging" in sys.modules:
@@ -30,6 +31,7 @@ class SharedSettings(BaseSettings):
     _instance: Optional["SharedSettings"] = None
     _instance_mode: Optional[str] = None
     _last_metagraph: Metagraph = None
+    _last_update_time: float = 0
 
     mode: Literal["api", "validator", "miner", "mock"] = Field("validator", env="MODE")
     MOCK: bool = False
@@ -267,22 +269,25 @@ class SharedSettings(BaseSettings):
         logger.info(f"Instantiating subtensor with network: {subtensor_network}")
         return bt.subtensor(network=subtensor_network)
 
-    @cached_property_with_expiration(expiration_seconds=1200)
+    @property
     def METAGRAPH(self) -> Metagraph:
-        # TODO: Move chain-related stuff out of settings.
-        logger.info(f"Instantiating metagraph with NETUID: {self.NETUID}")
-        try:
-            meta = self.SUBTENSOR.metagraph(netuid=self.NETUID)
-            self._last_metagraph = meta
-            return meta
-        except Exception as e:
-            logger.error(f"Failed to fetch new METAGRAPH for NETUID={self.NETUID}: {e}")
-            if self._last_metagraph is not None:
-                logger.warning("Falling back to the previous METAGRAPH.")
-                return self._last_metagraph
-            else:
-                logger.error("No previous METAGRAPH is available; re-raising exception.")
-                raise
+        if time.time() - self._last_update_time > 1200:
+            try:
+                logger.info(f"Fetching new METAGRAPH for NETUID={self.NETUID}")
+                meta = self.SUBTENSOR.metagraph(netuid=self.NETUID)
+                self._last_metagraph = meta
+                self._last_update_time = time.time()
+                return meta
+            except Exception as e:
+                logger.error(f"Failed to fetch new METAGRAPH for NETUID={self.NETUID}: {e}")
+                if self._last_metagraph is not None:
+                    logger.warning("Falling back to the previous METAGRAPH.")
+                    return self._last_metagraph
+                else:
+                    logger.error("No previous METAGRAPH is available; re-raising exception.")
+                    raise
+        else:
+            return self._last_metagraph
 
     @cached_property
     def UID(self) -> int:
