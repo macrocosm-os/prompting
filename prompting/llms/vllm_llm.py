@@ -25,7 +25,7 @@ class ReproducibleVLLM:
             dtype="float16",
             trust_remote_code=True,
             gpu_memory_utilization=0.7,
-            max_model_len=1000,
+            max_model_len=100_000,
         )
 
         # Store tokenizer from VLLM for consistency
