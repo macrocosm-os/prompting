@@ -40,6 +40,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict, e
     async def spawn_loops(task_queue, scoring_queue, reward_events, miners_dict):
         # ruff: noqa: E402
         from prompting.llms.model_manager import model_scheduler
+        model_scheduler.llm_model_manager.event_restart = event_restart
 
         # from prompting.miner_availability.miner_availability import availability_checking_loop
         from prompting.tasks.task_creation import task_loop

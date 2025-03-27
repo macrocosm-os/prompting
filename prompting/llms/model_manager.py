@@ -23,12 +23,14 @@ class ModelManager(BaseModel):
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)
     _mp_lock = PrivateAttr(default_factory=torch.multiprocessing.Lock)
+    # TODO: Refactor it during refactor to get rid of global vars.
+    event_restart: Optional[mp.Event] = None
 
-    def load_always_active_models(self, event_restart: mp.Event):
+    def load_always_active_models(self):
         for model_config in self.always_active_models:
-            self.load_model(model_config=model_config, event_restart=event_restart)
+            self.load_model(model_config=model_config)
 
-    def load_model(self, model_config: ModelConfig, event_restart: mp.Event, force: bool = True):
+    def load_model(self, model_config: ModelConfig, force: bool = True):
         """Load model into GPU.
 
         Warning: This operation will block execution until the model is successfully loaded into VRAM.
@@ -83,7 +85,7 @@ class ModelManager(BaseModel):
                 if retry_counter > retries_max:
                     logger.error(f"Failed to load model after {retries_max} retries. Terminating process")
                     # Fire an event to terminate the process.
-                    event_restart.set()
+                    self.event_restart.set()
                 retry_counter += 1
                 retry_delay += retry_counter
                 self._vram_cleanup()
@@ -234,17 +236,13 @@ class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
     interval: int = 14400
     scoring_queue: list | None = None
-    # TODO: Refactor it during refactor to get rid of global vars.
-    event_restart: Optional[mp.Event] = None
 
-    async def start(self, scoring_queue: list, event_restart: mp.Event, name: str | None = None, **kwargs):
+    async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
         self.scoring_queue = scoring_queue
-        self.event_restart = event_restart
         return await super().start(name=name, **kwargs)
 
     async def initialise_loop(self):
-        assert self.event_restart is not None, f"Restart event must be set before starting {self.__class__.__name__}"
-        model_manager.load_always_active_models(self.event_restart)
+        model_manager.load_always_active_models()
 
     async def run_step(self):
         """This method is called periodically according to the interval."""
@@ -261,7 +259,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
         logger.debug(f"Active models: {self.llm_model_manager.active_models.keys()}")
         # Load the selected model
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, self.llm_model_manager.load_model, selected_model, self.event_restart)
+        await loop.run_in_executor(None, self.llm_model_manager.load_model, selected_model)
         await asyncio.sleep(0.01)
 
 
