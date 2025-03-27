@@ -1,9 +1,11 @@
 import asyncio
 import gc
 import time
+from typing import Optional
 
 import psutil
 import torch
+import multiprocessing as mp
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 
@@ -22,19 +24,11 @@ class ModelManager(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     _mp_lock = PrivateAttr(default_factory=torch.multiprocessing.Lock)
 
-    def load_always_active_models(self):
+    def load_always_active_models(self, event_restart: mp.Event):
         for model_config in self.always_active_models:
-            self.load_model(model_config)
+            self.load_model(model_config=model_config, event_restart=event_restart)
 
-    def _try_device_reset(self):
-        """Try to reset all ongoing GPU operations."""
-        try:
-            with self._mp_lock:
-                torch.cuda.device_reset()
-        except BaseException as fallback_e:
-            logger.error(f"Error during CUDA device reset: {fallback_e}")
-
-    def load_model(self, model_config: ModelConfig, force: bool = True):
+    def load_model(self, model_config: ModelConfig, event_restart: mp.Event, force: bool = True):
         """Load model into GPU.
 
         Warning: This operation will block execution until the model is successfully loaded into VRAM.
@@ -47,10 +41,10 @@ class ModelManager(BaseModel):
         try:
             with self._mp_lock:
                 torch.cuda.synchronize()
+                gc.collect()
                 torch.cuda.empty_cache()
         except BaseException as e:
-            logger.error(f"Error during CUDA empty cache, performing emergency CUDA reset: {e}")
-            self._try_device_reset()
+            logger.error(f"Error during CUDA empty cache: {e}")
 
         if model_config in self.active_models.keys():
             print(f"Model {model_config.llm_model_id} is already loaded.")
@@ -64,12 +58,11 @@ class ModelManager(BaseModel):
                 logger.debug(f"Unloading {active_model.llm_model_id} to make room for {model_config.llm_model_id}")
                 self._unload_model(active_model)
 
-            if len(self.active_models) == 0:
-                self._vram_cleanup()
+            self._vram_cleanup()
 
-        retries_max = 10
+        retries_max = 3
         retry_counter = 0
-        retry_delay = 10
+        retry_delay = 30
         while True:
             try:
                 GPUInfo.log_gpu_info()
@@ -88,17 +81,12 @@ class ModelManager(BaseModel):
                 return model
             except BaseException as e:
                 if retry_counter > retries_max:
-                    logger.error(f"Failed to load model after {retries_max} retries. Terminating process...")
-                    # Terminate main process immediately by sending KeyboardInterrupt to all processes.
-                    # TODO: Use sys.exit(1) instead and catch/propagate SystemExit in the main process.
-                    import os
-                    import signal
-
-                    os.killpg(os.getpgid(os.getpid()), signal.SIGINT)
+                    logger.error(f"Failed to load model after {retries_max} retries. Terminating process")
+                    # Fire an event to terminate the process.
+                    event_restart.set()
                 retry_counter += 1
                 retry_delay += retry_counter
                 self._vram_cleanup()
-                self._try_device_reset()
                 logger.exception(
                     f"Failed to load model {model_config.llm_model_id}. Retrying in {retry_delay} seconds. "
                     f"Error: {str(e)}"
@@ -210,6 +198,10 @@ class ModelManager(BaseModel):
 
     def _vram_cleanup(self):
         """Perform VRAM clean-up."""
+        for config, model in self.active_models.items():
+            del model.model
+            del model
+
         self.active_models = {}
         self.used_ram = 0.0
 
@@ -218,6 +210,7 @@ class ModelManager(BaseModel):
             try:
                 with self._mp_lock:
                     torch.cuda.synchronize()
+                    gc.collect()
                     torch.cuda.empty_cache()
                     torch.cuda.reset_peak_memory_stats()
                     torch.cuda.reset_accumulated_memory_stats()
@@ -237,15 +230,20 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    interval: int = 14400
+    # interval: int = 14400
+    interval: int = 120
     scoring_queue: list | None = None
+    # TODO: Refactor it during refactor to get rid of global vars.
+    event_restart: Optional[mp.Event] = None
 
-    async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
+    async def start(self, scoring_queue: list, event_restart: mp.Event, name: str | None = None, **kwargs):
         self.scoring_queue = scoring_queue
+        self.event_restart = event_restart
         return await super().start(name=name, **kwargs)
 
     async def initialise_loop(self):
-        model_manager.load_always_active_models()
+        assert self.event_restart is not None, f"Restart event must be set before starting {self.__class__.__name__}"
+        model_manager.load_always_active_models(self.event_restart)
 
     async def run_step(self):
         """This method is called periodically according to the interval."""
@@ -262,7 +260,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
         logger.debug(f"Active models: {self.llm_model_manager.active_models.keys()}")
         # Load the selected model
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, self.llm_model_manager.load_model, selected_model)
+        await loop.run_in_executor(None, self.llm_model_manager.load_model, selected_model, self.event_restart)
         await asyncio.sleep(0.01)
 
 
