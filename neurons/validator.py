@@ -81,7 +81,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict, e
             logger.info("WandB run finished.")
 
 
-async def _health_check_loop_process(task_queue, scoring_queue, reward_events, miners_dict, event_restart):
+async def _health_check_loop_process(loop_process, task_queue, scoring_queue, reward_events, miners_dict, event_restart):
     """Check LoopProcess for any critical issues and restarts the process if any."""
     if event_restart.is_set():
         # Event is set in case of emergency OOM.
@@ -241,7 +241,7 @@ async def main():
             step = 0
             while True:
                 await asyncio.sleep(30)
-                await _health_check_loop_process(task_queue, scoring_queue, reward_events, miners_dict, event_restart)
+                await _health_check_loop_process(loop_process, task_queue, scoring_queue, reward_events, miners_dict, event_restart)
 
                 if (
                     settings.shared_settings.SUBTENSOR.get_current_block()
