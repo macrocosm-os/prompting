@@ -99,10 +99,10 @@ def filter_available_uids(
         filtered_uids.append(uid)
 
     if len(filtered_uids) == 0:
-        # logger.error(
-        #     "Got an empty list of available UIDs, falling back to all uids. "
-        #     "Check VALIDATOR_API and SCORING_KEY in .env.api"
-        # )
+        logger.error(
+            "Got an empty list of available UIDs, falling back to all uids. "
+            "Check VALIDATOR_API and SCORING_KEY in .env.api"
+        )
         filtered_uids = get_uids(sampling_mode="top_incentive", k=n_top_incentive)
 
     logger.info(f"Filtered UIDs: {filtered_uids}")

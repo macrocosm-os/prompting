@@ -248,6 +248,7 @@ class OrchestratorV2(BaseModel):
     completions: Optional[Callable[[CompletionsRequest], Awaitable[StreamingResponse]]] = None
     tools: dict[str, Tool] = {}
     debug: bool = False
+    fact_vault: list[dict] = []
 
     class Config:
         arbitrary_types_allowed = True
@@ -401,28 +402,94 @@ class OrchestratorV2(BaseModel):
             raise
 
     async def execute_tools(self, tool_requests: list[ToolRequest]) -> list[ToolResult]:
-        """Executes the requested tools concurrently and records their results"""
+        """Executes the requested tools and records their results"""
+        results = []
 
         async def execute_single_tool(request: ToolRequest) -> ToolResult | None:
-            """Helper function to execute a single tool and handle exceptions"""
             logger.info(f"Executing {request.tool_name} - Purpose: {request.purpose}")
             tool = self.tools[request.tool_name]
 
             try:
                 result = await tool.execute(**request.parameters)
-                return ToolResult(
-                    tool_name=request.tool_name, parameters=request.parameters, result=result, purpose=request.purpose
+                tool_result = ToolResult(
+                    tool_name=request.tool_name,
+                    parameters=request.parameters,
+                    result=result,
+                    purpose=request.purpose,
                 )
+                results.append(tool_result)
+                self.tool_history.append(tool_result)
+                return tool_result
+
             except Exception as e:
                 logger.error(f"Failed to execute {request.tool_name}: {e}")
                 return None
 
-        # Execute all tool requests concurrently
+        async def extract_facts_from_result(self, result: ToolResult | None = None):
+            """Extract key facts from a tool result and store them in the fact vault"""
+            if result is None:
+                return
+            prompt = f"""Given the result of a tool execution, extract key facts and insights.
+
+            Tool: {result.tool_name}
+            Purpose: {result.purpose}
+            Result: {json.dumps(result.result, indent=2)}
+
+            Format your response as a JSON array of fact objects, where each fact has:
+            - statement: A clear, concise statement of the fact
+            - confidence: A number between 0 and 1 indicating confidence in this fact
+            - source: Where this fact came from (e.g. specific URL or tool output)
+            - context: Any important context or caveats about this fact
+
+            Example:
+            [
+                {{
+                    "statement": "The Great Pyramid was built around 2560 BCE",
+                    "confidence": 0.95,
+                    "source": "https://example.com/pyramids",
+                    "context": "Date based on archaeological evidence and historical records"
+                }}
+            ]"""
+
+            messages = [
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": "Please extract key facts from the tool result."},
+            ]
+
+            facts_output, query_record = await make_mistral_request(
+                messages, f"extract_facts_{result.tool_name}", completions=self.completions, debug=self.debug
+            )
+
+            try:
+                facts = parse_llm_json(facts_output)
+                query_record.parsed_response = facts
+                self.query_history.append(query_record)
+                self.fact_vault.extend(facts)
+                logger.info(f"Extracted {len(facts)} facts from {result.tool_name} result")
+            except Exception as e:
+                logger.error(f"Failed to parse facts from {result.tool_name}: {e}")
+
+            # Execute all tool requests concurrently
+            tool_results = await asyncio.gather(*[execute_single_tool(request) for request in tool_requests])
+
+            # Filter out None results (from failed executions) and record successful results
+            results = [result for result in tool_results if result is not None]
+            self.tool_history.extend(results)
+
+            return results
+
+        # 🔄 Step 1: Run tools concurrently
         tool_results = await asyncio.gather(*[execute_single_tool(request) for request in tool_requests])
 
-        # Filter out None results (from failed executions) and record successful results
+        # ✅ Step 2: Keep only successful ones
         results = [result for result in tool_results if result is not None]
         self.tool_history.extend(results)
+
+        # 🧠 Step 3: Extract facts from successful tool results
+        if results:
+            for result in results:
+                await self.extract_facts_from_result(result)
+                # look into returning the extracted facts instead
 
         return results
 
@@ -661,12 +728,8 @@ TODO list (✓ marks completed steps):
 Completed thinking steps:
 {self.completed_steps}
 
-Tool execution history:
-{json.dumps([{
-    'tool': result.tool_name,
-    'purpose': result.purpose,
-    'result': result.result
-} for result in self.tool_history], indent=2)}
+Key extracted facts:
+{json.dumps(self.fact_vault, indent=2)}
 
 Your task is to:
 1. Review all the information gathered
