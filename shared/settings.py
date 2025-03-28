@@ -36,6 +36,7 @@ class SharedSettings(BaseSettings):
     NO_BACKGROUND_THREAD: bool = True
     SAVE_PATH: Optional[str] = Field("./storage", env="SAVE_PATH")
     GEMMA_API_KEY: Optional[str] = Field(None, env="GEMMA_API_KEY")
+    MISTRAL_API_KEY: Optional[str] = Field(None, env="MISTRAL_API_KEY")
 
     # W&B.
     WANDB_ON: bool = Field(True, env="WANDB_ON")
@@ -110,7 +111,7 @@ class SharedSettings(BaseSettings):
     # TODO: Choose this dynamically from the network
     VALIDATOR_API: str = Field("0.0.0.0:8094", env="VALIDATOR_API")
     # Default SN1 API address
-    DEFAULT_SN1_API: str = Field("http://0.0.0.0:8005/v1", env="DEFAULT_SN1_API")
+    DEFAULT_SN1_API: str = Field("http://sn1.api.macrocosmos.ai/", env="DEFAULT_SN1_API")
     # File with keys used to access API.
     API_KEYS_FILE: str = Field("api_keys.json", env="API_KEYS_FILE")
     # Admin key used to generate API keys.
@@ -144,7 +145,6 @@ class SharedSettings(BaseSettings):
     }
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
-    OPENAI_API_KEY: str | None = Field(None, env="OPENAI_API_KEY")
     SN19_API_KEY: str | None = Field(None, env="SN19_API_KEY")
     SN19_API_URL: str | None = Field(None, env="SN19_API_URL")
     GPT_MODEL_CONFIG: dict[str, dict[str, Any]] = {

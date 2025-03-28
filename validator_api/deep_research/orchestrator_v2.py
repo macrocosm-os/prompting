@@ -7,12 +7,16 @@ from typing import Any, Awaitable, Callable, Optional
 
 from fastapi.responses import StreamingResponse
 from loguru import logger
+from mistralai import Mistral
 from pydantic import BaseModel
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from shared.settings import SharedSettings
 from validator_api.deep_research.utils import parse_llm_json, with_retries
 from validator_api.serializers import CompletionsRequest, WebRetrievalRequest
 from validator_api.web_retrieval import web_retrieval
+
+shared_settings = SharedSettings.load(mode="validator")
 
 
 def make_chunk(text):
@@ -36,7 +40,7 @@ class LLMQuery(BaseModel):
     model: str  # Which model was used
 
 
-async def search_web(question: str, n_results: int = 5, completions=None) -> dict:
+async def search_web(question: str, n_results: int = 5, completions=None, debug=False) -> dict:
     """
     Takes a natural language question, generates an optimized search query, performs web search,
     and returns a referenced answer based on the search results.
@@ -57,7 +61,7 @@ async def search_web(question: str, n_results: int = 5, completions=None) -> dic
     messages = [{"role": "system", "content": query_prompt}, {"role": "user", "content": question}]
 
     optimized_query, query_record = await make_mistral_request(
-        messages, "optimize_search_query", completions=completions
+        messages, "optimize_search_query", completions=completions, debug=debug
     )
 
     # Perform web search
@@ -108,7 +112,10 @@ async def search_web(question: str, n_results: int = 5, completions=None) -> dic
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=15), retry=retry_if_exception_type())
 async def make_mistral_request(
-    messages: list[dict], step_name: str, completions: Callable[[CompletionsRequest], Awaitable[StreamingResponse]]
+    messages: list[dict],
+    step_name: str,
+    completions: Callable[[CompletionsRequest], Awaitable[StreamingResponse]] | None = None,
+    debug: bool = False,
 ) -> tuple[str, LLMQuery]:
     """Makes a request to Mistral API and records the query"""
 
@@ -122,11 +129,20 @@ async def make_mistral_request(
         "temperature": temperature,
         "do_sample": False,
     }
-    logger.info(f"Making request to Mistral API with model: {model}")
-    response = await completions(
-        CompletionsRequest(messages=messages, model=model, stream=False, sampling_parameters=sample_params)
-    )
-    response_content = response.choices[0].message.content
+
+    # Always use direct Mistral API in debug mode or if completions is None
+    if debug or completions is None:
+        logger.info(f"Making direct request to Mistral API with model: {model}")
+        model = "mistral-small-latest"
+        client = Mistral(api_key=shared_settings.GEMMA_API_KEY)
+        chat_response = client.chat.complete(model=model, messages=messages)
+        response_content = chat_response.choices[0].message.content
+    else:
+        response = await completions(
+            CompletionsRequest(messages=messages, model=model, stream=False, sampling_parameters=sample_params)
+        )
+        response_content = response.choices[0].message.content
+
     # Record the query
     query_record = LLMQuery(
         messages=messages, raw_response=response_content, step_name=step_name, timestamp=time.time(), model=model
@@ -231,22 +247,20 @@ class OrchestratorV2(BaseModel):
     tool_history: list[ToolResult] = []
     completions: Optional[Callable[[CompletionsRequest], Awaitable[StreamingResponse]]] = None
     tools: dict[str, Tool] = {}
+    debug: bool = False
 
     class Config:
         arbitrary_types_allowed = True
 
-    def __init__(self, **data):
+    def __init__(self, debug: bool = False, **data):
         super().__init__(**data)
         # Initialize tools with the completions function
         self.tools = {"web_search": WebSearchTool(completions=self.completions)}
+        self.debug = debug
 
     async def assess_question_suitability(
-        self, question: str, completions: Callable[[CompletionsRequest], Awaitable[StreamingResponse]] = None
+        self, question: str, completions: Callable[[CompletionsRequest], Awaitable[StreamingResponse]] | None = None
     ) -> dict:
-        logger.info(f"assess_question_suitability: {question}")
-        logger.info(f"completions: {completions}")
-        logger.info(f"self.completions: {self.completions}")
-
         """
         Assesses whether a question is suitable for deep research or if it can be answered directly.
 
