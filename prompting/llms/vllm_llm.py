@@ -25,7 +25,7 @@ class ReproducibleVLLM:
             dtype="float16",
             trust_remote_code=True,
             gpu_memory_utilization=0.7,
-            max_model_len=100_000,
+            max_model_len=1000,
         )
 
         # Store tokenizer from VLLM for consistency
@@ -44,6 +44,14 @@ class ReproducibleVLLM:
         # Convert chat messages to prompt string using tokenizer's chat template
         if isinstance(messages, list) and isinstance(messages[0], dict):
             try:
+                # Extract any trailing whitespace before applying template
+                trailing_space = ""
+                if continue_last_message and messages[-1]["content"]:
+                    content = messages[-1]["content"]
+                    stripped = content.rstrip()
+                    if len(content) > len(stripped):
+                        trailing_space = content[len(stripped) :]
+
                 # Try using the tokenizer's chat template
                 prompt = self.tokenizer.apply_chat_template(
                     conversation=messages,
@@ -51,20 +59,12 @@ class ReproducibleVLLM:
                     add_generation_prompt=not continue_last_message,
                     continue_final_message=continue_last_message,
                 )
+
+                # Append back just the trailing whitespace if it was stripped
+                if trailing_space:
+                    prompt += trailing_space
             except (AttributeError, NotImplementedError) as e:
-                # Fallback for tokenizers without chat template support
-                logger.warning(f"Chat template not supported for model {self.model_id}, using default format")
-                prompt = ""
-                for msg in messages:
-                    role = msg.get("role", "").lower()
-                    content = msg.get("content", "")
-                    if role == "system":
-                        prompt += f"System: {content}\n"
-                    elif role == "user":
-                        prompt += f"User: {content}\n"
-                    elif role == "assistant":
-                        prompt += f"Assistant: {content}\n"
-                prompt = prompt.strip()
+                raise ValueError(f"Chat template not supported for model {self.model_id}")
         else:
             prompt = messages[0] if isinstance(messages, list) else messages
 
@@ -147,6 +147,31 @@ class ReproducibleVLLM:
         )
 
         # Generate using VLLM
+        trailing_space = ""
+
+        if continue_last_message and messages[-1]["content"]:
+            content = messages[-1]["content"]
+            stripped = content.rstrip()
+            if len(content) > len(stripped):
+                trailing_space = content[len(stripped) :]
+                print(f'Trailing space: "{trailing_space}"')
+
+        if not messages[-1]["content"]:
+            continue_last_message = False
+            messages = messages[:-1]
+        bot_token_id = self.tokenizer.bos_token_id
+        if not continue_last_message:
+            messages[-1]["content"] = f"{self.tokenizer.decode([bot_token_id])}{messages[-1]['content']}"
+
+        prompt = self.tokenizer.apply_chat_template(
+            conversation=messages,
+            tokenize=False,
+            add_generation_prompt=not continue_last_message,
+            continue_final_message=continue_last_message,
+        )
+        if trailing_space:
+            prompt += trailing_space
+
         outputs = self.model.generate(prompt, vllm_params)
 
         if not outputs or not outputs[0].outputs[0].logprobs:
@@ -171,7 +196,7 @@ class ReproducibleVLLM:
             token: logprob for token, logprob in zip(step_logprobs["top_tokens"], step_logprobs["top_logprobs"])
         }
 
-        return token_logprobs
+        return token_logprobs, prompt
 
     def set_random_seeds(self, seed: int | None = 42):
         """Set random seeds for reproducibility across all relevant libraries."""
