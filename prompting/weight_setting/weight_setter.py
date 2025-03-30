@@ -164,13 +164,13 @@ class WeightSetter(AsyncLoopRunner):
             self.reward_events: list[list[WeightedRewardEvent]] = self.reward_events  # to get correct typehinting
 
             # reward_dict = {uid: 0 for uid in get_uids(sampling_mode="all")}
-            reward_dict = {uid: 0 for uid in range(1024)}
+            reward_dict = {uid: 0 for uid in range(shared_settings.METAGRAPH.n)}
             # miner_rewards is a dictionary that separates each task config into a dictionary of uids with their rewards
             # miner_rewards: dict[TaskConfig, dict[int, float]] = {
             #     config: {uid: 0 for uid in get_uids(sampling_mode="all")} for config in TaskRegistry.task_configs
             # }
             miner_rewards: dict[TaskConfig, dict[int, float]] = {
-                config: {uid: {"reward": 0, "count": 0} for uid in range(1024)} for config in TaskRegistry.task_configs
+                config: {uid: {"reward": 0, "count": 0} for uid in range(shared_settings.METAGRAPH.n)} for config in TaskRegistry.task_configs
             }
 
             inference_events: list[WeightedRewardEvent] = []
@@ -203,6 +203,19 @@ class WeightSetter(AsyncLoopRunner):
                     miner_rewards[TaskRegistry.get_task_config(InferenceTask)][uid]["reward"] += (
                         reward * model_specific_reward
                     )  # for inference 2x responses should mean 2x the reward
+
+            import json
+            def save_miner_rewards(miner_rewards, filename="miner_rewards.jsonl"):
+                with open(filename, "a") as f:
+                    for task_config, uid_rewards in miner_rewards.items():
+                        rewards_only = {uid: details["reward"] for uid, details in uid_rewards.items()}
+                        record = {
+                            "task_config": task_config.task.__name__,
+                            "rewards": rewards_only
+                        }
+                        f.write(json.dumps(record) + "\n")
+                    logger.warning(f"SAVED REWARDS TO FILE: {rewards_only}")
+            save_miner_rewards(miner_rewards)
 
             for task_config, rewards in miner_rewards.items():
                 r = np.array([x["reward"] / max(1, x["count"]) for x in list(rewards.values())])
