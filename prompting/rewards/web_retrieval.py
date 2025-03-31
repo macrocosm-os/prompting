@@ -84,6 +84,16 @@ class WebsiteResult(BaseModel):
     relevant: str | None
 
 
+import tldextract
+
+
+def extract_main_domain(url):
+    # Extract domain components
+    extracted = tldextract.extract(url)
+    # Return domain + suffix (e.g. "google.com")
+    return f"{extracted.domain}.{extracted.suffix}"
+
+
 class WebRetrievalRewardModel(RelevanceRewardModel):
     def __hash__(self):
         # Use the id of the object as its hash
@@ -103,17 +113,11 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             return 0
 
         # Extract domain from URL
-        parsed_url = urlparse(response_url)
+        netloc = extract_main_domain(response_url)
 
         if any(term in response_url for term in BLACKLISTED_TERMS):
-            logger.debug(f"Domain {parsed_url.netloc} contains blacklisted term, scoring 0")
+            logger.debug(f"Domain {response_url} contains blacklisted term, scoring 0")
             return 0
-
-        netloc = parsed_url.netloc.lower()
-
-        # Remove www. prefix if present
-        if netloc.startswith("www."):
-            netloc = netloc[4:]
 
         # Penalise a completion where the relevant section is contained in the URL (e.g. miners)
         # trying to use a search box to enter exactly the relevant section they need
@@ -172,7 +176,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         scores = []
         miner_websites: list[WebsiteResult] = self._parse_response(completion)
         unique_websites = np.unique([website.url for website in miner_websites])
-        if unique_websites.size != len(miner_websites) and unique_websites.size != task.target_results:
+        if unique_websites.size != len(miner_websites) or unique_websites.size != task.target_results:
             # logger.warning("Miner returned multiple websites with the same URL")
             return 0
 
