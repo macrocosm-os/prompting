@@ -23,10 +23,8 @@ class ModelManager(BaseModel):
     active_models: dict[ModelConfig, ReproducibleHF] = {}
     used_ram: float = 0.0
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    # _mp_lock = PrivateAttr(default_factory=torch.multiprocessing.Lock)
-    _mp_lock: asyncio.Lock = PrivateAttr(default_factory=asyncio.Lock)
-    # _mp_lock: threading.Lock = PrivateAttr(default_factory=threading.Lock)
     # TODO: Refactor it during refactor to get rid of global vars.
+    mp_lock: Optional[torch.multiprocessing.Lock] = None
     event_restart: Optional[mp.Event] = None
 
     async def load_always_active_models(self):
@@ -42,15 +40,15 @@ class ModelManager(BaseModel):
             model_config: Model config to load.
             force: If enabled, will unload all other models.
         """
-        logger.info(f"Loading {model_config.llm_model_id} model")
-        async with self._mp_lock:
-            try:
-                torch.cuda.synchronize()
-                gc.collect()
-                torch.cuda.empty_cache()
-            except BaseException as e:
-                logger.error(f"Error during CUDA empty cache: {e}")
+        try:
+            torch.cuda.synchronize()
+            gc.collect()
+            torch.cuda.empty_cache()
+        except BaseException as e:
+            logger.error(f"Error during CUDA empty cache: {e}")
 
+        logger.info(f"Loading {model_config.llm_model_id} model")
+        with self.mp_lock:
             if model_config in self.active_models.keys():
                 print(f"Model {model_config.llm_model_id} is already loaded.")
                 return
@@ -184,19 +182,19 @@ class ModelManager(BaseModel):
         seed: int = None,
         sampling_params: dict[str, float] = None,
     ) -> str:
-        async with self._mp_lock:
-            if messages and isinstance(messages[0], dict):
-                dict_messages = messages
-            else:
-                dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
-            
-            logger.info(f"Inferencing {dict_messages}")
-            if isinstance(model, str):
-                model = ModelZoo.get_model_by_id(model)
-            if not model:
-                model = ModelZoo.get_random(max_ram=self.total_ram)
+        if messages and isinstance(messages[0], dict):
+            dict_messages = messages
+        else:
+            dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
+        
+        logger.info(f"Inferencing {dict_messages}")
+        if isinstance(model, str):
+            model = ModelZoo.get_model_by_id(model)
+        if not model:
+            model = ModelZoo.get_random(max_ram=self.total_ram)
 
-            model_instance: ReproducibleHF = await self.get_model(model)
+        model_instance: ReproducibleHF = await self.get_model(model)
+        with self.mp_lock:
             responses = await model_instance.generate(
                 messages=[dict_messages], sampling_params=sampling_params, seed=seed
             )

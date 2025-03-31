@@ -32,7 +32,7 @@ torch.multiprocessing.set_start_method("spawn", force=True)
 NEURON_SAMPLE_SIZE = 100  # TODO: Should add this to constants.py
 
 
-def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict, event_restart: mp.Event):
+def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict, mp_lock, event_restart: mp.Event):
     # Clear the event so it can be used again.
     event_restart.clear()
     settings.shared_settings = settings.SharedSettings.load(mode="validator")
@@ -43,6 +43,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict, e
         # ruff: noqa: E402
         from prompting.llms.model_manager import model_scheduler
         model_scheduler.llm_model_manager.event_restart = event_restart
+        model_scheduler.llm_model_manager.mp_lock = mp_lock
         from prompting.tasks.task_creation import task_loop
         from shared.profiling import profiler
 
@@ -75,9 +76,12 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict, e
             logger.info("WandB run finished.")
 
 
-def start_api(scoring_queue, reward_events, miners_dict):
+def start_api(scoring_queue, reward_events, miners_dict, mp_lock, event_restart):
     async def start():
         from prompting.api.api import start_scoring_api  # noqa: F401
+        from prompting.llms.model_manager import model_scheduler
+        model_scheduler.llm_model_manager.event_restart = event_restart
+        model_scheduler.llm_model_manager.mp_lock = mp_lock
 
         try:
             external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
@@ -173,6 +177,7 @@ async def main(
         task_queue = manager.list(list(cache_tasks) if cache_tasks else [])
         miners_dict = manager.dict(dict(cache_miners) if cache_miners else {})
         event_restart = mp.Event()
+        mp_lock = mp.Lock()
         processes = []
 
         try:
@@ -180,7 +185,9 @@ async def main(
             if settings.shared_settings.DEPLOY_SCORING_API:
                 # Use multiprocessing to bypass API blocking issue
                 api_process = mp.Process(
-                    target=start_api, args=(scoring_queue, reward_events, miners_dict), name="API_Process"
+                    target=start_api,
+                    args=(scoring_queue, reward_events, miners_dict, mp_lock, event_restart),
+                    name="API_Process"
                 )
                 api_process.start()
                 processes.append(api_process)
@@ -195,10 +202,11 @@ async def main(
 
             loop_process = mp.Process(
                 target=create_loop_process,
-                args=(task_queue, scoring_queue, reward_events, miners_dict, event_restart),
+                args=(task_queue, scoring_queue, reward_events, miners_dict, mp_lock, event_restart),
                 name="LoopProcess",
             )
             loop_process.start()
+            processes.append(loop_process)
 
             task_sending_process = mp.Process(
                 target=start_task_sending_loop,
@@ -216,7 +224,6 @@ async def main(
             weight_setter_process.start()
             processes.append(weight_setter_process)
 
-            processes.append(loop_process)
             GPUInfo.log_gpu_info()
 
             step = 0
@@ -225,18 +232,6 @@ async def main(
                 if event_restart.is_set():
                     logger.warning("Restart event detected. Restarting LoopProcess...")
                     break
-                #     logger.warning("Restart event detected. Restarting LoopProcess...")
-                #     if loop_process.is_alive():
-                #         loop_process.terminate()
-                #         loop_process.join()
-                #     event_restart.clear()
-                #     # break
-                #     loop_process = mp.Process(
-                #         target=create_loop_process,
-                #         args=(task_queue, scoring_queue, reward_events, miners_dict, event_restart),
-                #         name="LoopProcess",
-                #     )
-                #     loop_process.start()
 
                 block = settings.shared_settings.SUBTENSOR.get_current_block()
                 if (
@@ -262,8 +257,7 @@ async def main(
                 if process.is_alive():
                     process.terminate()
                     process.join()
-            await main(reward_events, scoring_queue, task_queue, miners_dict)
-            # sys.exit(1)
+            sys.exit(1)
 
 
 # The main function parses the configuration and runs the validator.
