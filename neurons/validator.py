@@ -43,7 +43,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
         from angle_emb import AnglE
 
         shared_settings = settings.shared_settings
-        embedding_model: ClassVar[AnglE] = AnglE.from_pretrained(
+        embedding_model: AnglE = AnglE.from_pretrained(
             "WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=shared_settings.NEURON_DEVICE
         ).to(shared_settings.NEURON_DEVICE)
 
@@ -72,6 +72,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
             logger.debug(f"Number of tasks in Task Queue: {len(task_queue)}")
             logger.debug(f"Number of tasks in Scoring Queue: {len(scoring_queue)}")
             logger.debug(f"Number of tasks in Reward Events: {len(reward_events)}")
+            logger.debug(GPUInfo.log_gpu_info())
 
     try:
         asyncio.run(spawn_loops(task_queue, scoring_queue, reward_events, miners_dict))
@@ -181,14 +182,14 @@ async def main():
         processes = []
 
         try:
-            # Start checking the availability of miners at regular intervals
-            if settings.shared_settings.DEPLOY_SCORING_API:
-                # Use multiprocessing to bypass API blocking issue
-                api_process = mp.Process(
-                    target=start_api, args=(scoring_queue, reward_events, miners_dict), name="API_Process"
-                )
-                api_process.start()
-                processes.append(api_process)
+            # # Start checking the availability of miners at regular intervals
+            # if settings.shared_settings.DEPLOY_SCORING_API:
+            #     # Use multiprocessing to bypass API blocking issue
+            #     api_process = mp.Process(
+            #         target=start_api, args=(scoring_queue, reward_events, miners_dict), name="API_Process"
+            #     )
+            #     api_process.start()
+            #     processes.append(api_process)
 
             availability_process = mp.Process(
                 target=start_availability_checking_loop,
@@ -213,13 +214,13 @@ async def main():
             task_sending_process.start()
             processes.append(task_sending_process)
 
-            weight_setter_process = mp.Process(
-                target=start_weight_setter_loop,
-                args=(reward_events,),
-                name="WeightSetterProcess",
-            )
-            weight_setter_process.start()
-            processes.append(weight_setter_process)
+            # weight_setter_process = mp.Process(
+            #     target=start_weight_setter_loop,
+            #     args=(reward_events,),
+            #     name="WeightSetterProcess",
+            # )
+            # weight_setter_process.start()
+            # processes.append(weight_setter_process)
 
             processes.append(loop_process)
             GPUInfo.log_gpu_info()

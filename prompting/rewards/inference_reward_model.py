@@ -2,6 +2,7 @@ from prompting.rewards.exact_match import ExactMatchRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardModel, BatchRewardOutput
 from shared.dendrite import DendriteResponseEvent
+from angle_emb import AnglE
 
 
 class InferenceRewardModel(BaseRewardModel):
@@ -10,9 +11,10 @@ class InferenceRewardModel(BaseRewardModel):
         reference: str,
         response_event: DendriteResponseEvent,
         model_id: str | None = None,
+        angle_model: AnglE | None = None,
         **kwargs,
     ) -> BatchRewardOutput:
         """Gives an exact reward of 1 if the response matches the reference, 0 otherwise"""
         if model_id:
             return await ExactMatchRewardModel().reward(reference, response_event)
-        return await RelevanceRewardModel().reward(reference, response_event)
+        return await RelevanceRewardModel().reward(reference, response_event, angle_model=angle_model)

@@ -64,7 +64,10 @@ class TaskScorer(AsyncLoopRunner):
         scorable = [
             scoring_config
             for scoring_config in self.scoring_queue
-            if (scoring_config.task.llm_model in model_manager.active_models.keys())
+            if (
+                scoring_config.task.llm_model in model_manager.active_models.keys()
+                and scoring_config.task.llm_model not in model_manager.pending_unload
+            )
             or (scoring_config.task.llm_model is None)
         ]
         if len(scorable) == 0:

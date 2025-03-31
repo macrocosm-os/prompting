@@ -80,11 +80,14 @@ class BaseRewardModel(ABC, BaseModel):
         challenge: str | None = None,
         reward_type: Literal["reward", "penalty"] = "reward",
         task: BaseTextTask | None = None,
+        angle_model: AnglE | None = None,
         **kwargs,
     ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
-        batch_rewards_output: BatchRewardOutput = await self.reward(comparator, response_event, task=task, **kwargs)
+        batch_rewards_output: BatchRewardOutput = await self.reward(
+            comparator, response_event, task=task, angle_model=angle_model, **kwargs
+        )
         batch_rewards_time = time.time() - t0
 
         return WeightedRewardEvent(
