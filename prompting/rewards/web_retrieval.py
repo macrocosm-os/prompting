@@ -44,6 +44,7 @@ BLACKLISTED_TERMS = {
     "hastebin",
     "ghostbin",
     "privatebin",
+    "cyberblock.cc"
 }
 
 # Maximum number of past URLs to store per user
