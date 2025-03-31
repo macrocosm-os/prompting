@@ -173,7 +173,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         scores = []
         miner_websites: list[WebsiteResult] = self._parse_response(completion)
         unique_websites = np.unique([website.url for website in miner_websites])
-        if unique_websites.size != len(miner_websites) and unique_websites.size != task.target_results:
+        if unique_websites.size != len(miner_websites) or unique_websites.size != task.target_results:
             # logger.warning("Miner returned multiple websites with the same URL")
             return 0
 
