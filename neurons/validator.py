@@ -43,7 +43,7 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
         from angle_emb import AnglE
 
         shared_settings = settings.shared_settings
-        embedding_model: ClassVar[AnglE] = AnglE.from_pretrained(
+        embedding_model: AnglE = AnglE.from_pretrained(
             "WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=shared_settings.NEURON_DEVICE
         ).to(shared_settings.NEURON_DEVICE)
 
