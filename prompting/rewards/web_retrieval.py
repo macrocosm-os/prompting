@@ -4,7 +4,6 @@ import asyncio
 import json
 import os
 from collections import defaultdict
-from urllib.parse import urlparse
 
 import numpy as np
 import pandas as pd
