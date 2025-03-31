@@ -32,38 +32,31 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
+        TaskConfig(task=WebQuestionAnsweringTask, probability=0.05, datasets=[DDGDataset], reward_model=QARewardConfig),
         TaskConfig(
             task=InferenceTask,
-            probability=1.0,
+            probability=0.3,
             datasets=[SN13Dataset],
             reward_model=InferenceRewardConfig,
         ),
-
-        # TaskConfig(task=WebQuestionAnsweringTask, probability=0.05, datasets=[DDGDataset], reward_model=QARewardConfig),
-        # TaskConfig(
-        #     task=InferenceTask,
-        #     probability=0.3,
-        #     datasets=[SN13Dataset],
-        #     reward_model=InferenceRewardConfig,
-        # ),
-        # TaskConfig(
-        #     task=ProgrammingTask,
-        #     probability=0.10,
-        #     datasets=[HuggingFaceGithubDataset],
-        #     reward_model=ProgrammingRewardConfig,
-        # ),
-        # TaskConfig(
-        #     task=WebRetrievalTask,
-        #     probability=0.25,
-        #     datasets=[DDGDataset],
-        #     reward_model=WebRetrievalRewardConfig,
-        # ),
-        # TaskConfig(
-        #     task=MultiStepReasoningTask,
-        #     probability=0.3,
-        #     datasets=[DDGDataset],
-        #     reward_model=MultiStepReasoningRewardConfig,
-        # ),
+        TaskConfig(
+            task=ProgrammingTask,
+            probability=0.10,
+            datasets=[HuggingFaceGithubDataset],
+            reward_model=ProgrammingRewardConfig,
+        ),
+        TaskConfig(
+            task=WebRetrievalTask,
+            probability=0.25,
+            datasets=[DDGDataset],
+            reward_model=WebRetrievalRewardConfig,
+        ),
+        TaskConfig(
+            task=MultiStepReasoningTask,
+            probability=0.3,
+            datasets=[DDGDataset],
+            reward_model=MultiStepReasoningRewardConfig,
+        ),
     ]
 
     @classmethod

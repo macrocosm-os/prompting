@@ -122,7 +122,5 @@ def model_factory(model_name: str) -> type[ReproducibleHF]:
         return HFTextImageToText
     elif model_name == "mistralai/Mistral-Small-3.1-24B-Instruct-2503":
         return HFTextImageToText
-    elif model_name == "OPEA/Mistral-Small-3.1-24B-Instruct-2503-int4-AutoRound-awq-sym":
-        return HFTextImageToText
     else:
         return HFTextGeneration

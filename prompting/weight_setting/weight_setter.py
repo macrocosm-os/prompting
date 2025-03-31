@@ -204,19 +204,6 @@ class WeightSetter(AsyncLoopRunner):
                         reward * model_specific_reward
                     )  # for inference 2x responses should mean 2x the reward
 
-            import json
-            def save_miner_rewards(miner_rewards, filename="miner_rewards.jsonl"):
-                with open(filename, "a") as f:
-                    for task_config, uid_rewards in miner_rewards.items():
-                        rewards_only = {uid: details["reward"] for uid, details in uid_rewards.items()}
-                        record = {
-                            "task_config": task_config.task.__name__,
-                            "rewards": rewards_only
-                        }
-                        f.write(json.dumps(record) + "\n")
-                    logger.warning(f"SAVED REWARDS TO FILE: {rewards_only}")
-            save_miner_rewards(miner_rewards)
-
             for task_config, rewards in miner_rewards.items():
                 r = np.array([x["reward"] / max(1, x["count"]) for x in list(rewards.values())])
                 u = np.array(list(rewards.keys()))

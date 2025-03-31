@@ -32,7 +32,14 @@ torch.multiprocessing.set_start_method("spawn", force=True)
 NEURON_SAMPLE_SIZE = 100  # TODO: Should add this to constants.py
 
 
-def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict, mp_lock, event_restart: mp.Event):
+def create_loop_process(
+        task_queue,
+        scoring_queue,
+        reward_events,
+        miners_dict,
+        mp_lock: mp.Lock,
+        event_restart: mp.Event
+    ):
     # Clear the event so it can be used again.
     event_restart.clear()
     settings.shared_settings = settings.SharedSettings.load(mode="validator")
@@ -187,7 +194,7 @@ async def main(
                 api_process = mp.Process(
                     target=start_api,
                     args=(scoring_queue, reward_events, miners_dict, mp_lock, event_restart),
-                    name="API_Process"
+                    name="APIProcess"
                 )
                 api_process.start()
                 processes.append(api_process)
