@@ -4,7 +4,7 @@ import threading
 from loguru import logger
 from pydantic import ConfigDict
 
-from prompting.llms.model_manager import model_manager, model_scheduler
+from prompting.llms.model_manager import AsyncModelScheduler
 from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_registry import TaskRegistry
@@ -16,11 +16,13 @@ from shared.timer import Timer
 
 
 class TaskScorer(AsyncLoopRunner):
-    """The scoring manager maintains a queue of tasks & responses to score and then runs a scoring loop in a background thread.
+    """Maintains a queue of tasks and responses to score and then runs a scoring loop in a background thread.
+
     This scoring loop will score the responses once the LLM needed is loaded in the model_manager and log the rewards.
     """
 
     is_running: bool = False
+    model_scheduler: AsyncModelScheduler | None = None
     thread: threading.Thread = None
     interval: int = 0
     scoring_queue: list | None = None
@@ -28,9 +30,17 @@ class TaskScorer(AsyncLoopRunner):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def start(self, scoring_queue, reward_events, name: str | None = None, **kwargs):
+    async def start(
+            self,
+            model_scheduler: AsyncModelScheduler,
+            scoring_queue,
+            reward_events,
+            name: str | None = None,
+            **kwargs
+        ):
         self.scoring_queue = scoring_queue
         self.reward_events = reward_events
+        self.model_scheduler = model_scheduler
         return await super().start(name=name, **kwargs)
 
     def add_to_queue(
@@ -59,13 +69,13 @@ class TaskScorer(AsyncLoopRunner):
         scorable = [
             scoring_config
             for scoring_config in self.scoring_queue
-            if (scoring_config.task.llm_model in model_manager.active_models.keys())
+            if (scoring_config.task.llm_model in self.model_scheduler.llm_model_manager.active_models.keys())
             or (scoring_config.task.llm_model is None)
         ]
         if len(scorable) == 0:
             # Run a model_scheduler step to load a new model as there are no more tasks to be scored
             if len(self.scoring_queue) > 0:
-                await model_scheduler.run_step()
+                await self.model_scheduler.run_step()
             return
         self.scoring_queue.remove(scorable[0])
         scoring_config: ScoringConfig = scorable.pop(0)
@@ -74,6 +84,7 @@ class TaskScorer(AsyncLoopRunner):
         with Timer(label=f"Generating reference for {scoring_config.task.__class__.__name__}"):
             await scoring_config.task.make_reference(
                 dataset_entry=scoring_config.dataset_entry,
+                model_manager=self.model_scheduler.llm_model_manager,
             )
 
         # and there we then calculate the reward
@@ -113,10 +124,6 @@ class TaskScorer(AsyncLoopRunner):
                 )
             )
         await asyncio.sleep(0.01)
-
-
-class WeightSetter(AsyncLoopRunner):
-    pass
 
 
 task_scorer = TaskScorer()

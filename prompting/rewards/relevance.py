@@ -17,8 +17,8 @@ class RelevanceRewardModel(BaseRewardModel):
     threshold: Optional[float] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
     embedding_model: ClassVar[AnglE] = AnglE.from_pretrained(
-        "WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=shared_settings.NEURON_DEVICE
-    ).to(shared_settings.NEURON_DEVICE)
+        "WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device="cpu"
+    ).to("cpu")
 
     async def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
         """Calculate the cosine similarity between sentence embeddings of the reference and completions.

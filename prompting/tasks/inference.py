@@ -5,7 +5,7 @@ import numpy as np
 from pydantic import Field, model_validator
 
 from prompting.datasets.sn13 import ChatEntry
-from prompting.llms.model_manager import model_manager
+from prompting.llms.model_manager import ModelManager
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.rewards.inference_reward_model import InferenceRewardModel
 from prompting.rewards.relevance import RelevanceRewardModel
@@ -75,7 +75,8 @@ class InferenceTask(BaseTextTask):
 
         return self.query
 
-    async def make_reference(self, dataset_entry: ChatEntry) -> str:
+    async def make_reference(self, dataset_entry: ChatEntry, model_manager: ModelManager | None = None) -> str:
+        assert model_manager is not None, f"Model manager must be provided for {self.__class__.__name__}"
         self.reference = await model_manager.generate(
             messages=self.messages,
             model=self.llm_model,
