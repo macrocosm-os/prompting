@@ -85,12 +85,8 @@ def start_api(
     scoring_queue: list,
     reward_events: list,
     miners_dict: dict,
-    event_restart: pymp.synchronize.Event,
 ):
     from prompting.api.api import start_scoring_api  # noqa: F401
-
-    # TODO: Currently API ModelManager and ModelSceduler are out of sync with main process.
-    # TODO: Do we need ModelManager for API at all?
 
     async def start():
         try:
@@ -201,7 +197,7 @@ async def main(
             if settings.shared_settings.DEPLOY_SCORING_API:
                 # Use multiprocessing to bypass API blocking issue
                 api_process = mp.Process(
-                    target=start_api, args=(scoring_queue, reward_events, miners_dict, event_restart), name="APIProcess"
+                    target=start_api, args=(scoring_queue, reward_events, miners_dict), name="APIProcess"
                 )
                 api_process.start()
                 processes.append(api_process)
