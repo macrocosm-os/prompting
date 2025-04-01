@@ -246,17 +246,17 @@ async def main(
                     logger.warning("Restart event detected. Restarting LoopProcess...")
                     break
 
-                # block = settings.shared_settings.SUBTENSOR.get_current_block()
-                # if (
-                #     block - settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID] > 500
-                #     and step > 120
-                # ):
-                #     last_update_block = settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID]
-                #     logger.warning(
-                #         f"Metagraph hasn't been updated for {block - last_update_block} blocks. "
-                #         f"Staled block: {block}, Last update: {last_update_block}"
-                #     )
-                #     break  # Exit the loop
+                block = settings.shared_settings.SUBTENSOR.get_current_block()
+                if (
+                    block - settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID] > 500
+                    and step > 120
+                ):
+                    last_update_block = settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID]
+                    logger.warning(
+                        f"Metagraph hasn't been updated for {block - last_update_block} blocks. "
+                        f"Staled block: {block}, Last update: {last_update_block}"
+                    )
+                    break  # Exit the loop
                 step += 1
 
         except KeyboardInterrupt:
