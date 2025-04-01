@@ -1,10 +1,10 @@
 import asyncio
 import gc
-import torch.multiprocessing as mp
 import multiprocessing as pymp
 from typing import ClassVar
 
 import torch
+import torch.multiprocessing as mp
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -40,7 +40,7 @@ class ModelManager(BaseModel):
         """
         async with self._mp_lock:
             if model_config in self.active_models.keys():
-                print(f"Model {model_config.llm_model_id} is already loaded.")
+                logger.debug(f"Model {model_config.llm_model_id} is already loaded.")
                 return self.active_models[model_config]
 
             if force:
@@ -64,12 +64,12 @@ class ModelManager(BaseModel):
                         device=settings.shared_settings.NEURON_DEVICE,
                         sampling_params=settings.shared_settings.SAMPLING_PARAMS,
                     )
-                    self.active_models[model_config] = model
                     self.used_ram += model_config.min_ram
                     logger.info(
                         f"Model {model_config.llm_model_id} has been successfully loaded. "
                         f"Approx. used VRAM: {self.used_ram:.0f}GB"
                     )
+                    self.active_models[model_config] = model
                     return model
                 except BaseException as e:
                     if retry_counter > retries_max:
@@ -100,9 +100,7 @@ class ModelManager(BaseModel):
                     # Fallback for meta tensors.
                     model_instance.model = model_instance.model.to_empty("cpu")
                 except Exception as fallback_e:
-                    logger.exception(
-                        f"Could not move meta model to CPU, proceeding with generic GC: {str(fallback_e)}"
-                    )
+                    logger.exception(f"Could not move meta model to CPU, proceeding with generic GC: {str(fallback_e)}")
             except Exception as e:
                 logger.exception(f"Unexpected error when moving model to CPU: {str(e)}")
 
@@ -164,8 +162,6 @@ class ModelManager(BaseModel):
             dict_messages = messages
         else:
             dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
-        
-        logger.info(f"Inferencing {dict_messages}")
 
         async with self._mp_lock:
             if isinstance(model, str):
@@ -177,7 +173,7 @@ class ModelManager(BaseModel):
 
         async with self._mp_lock:
             if model_instance is None:
-                raise ValueError(f"Model is None, which may indicate the model is still loading.")
+                raise ValueError("Model is None, which may indicate the model is still loading.")
             responses = await model_instance.generate(
                 messages=[dict_messages], sampling_params=sampling_params, seed=seed
             )

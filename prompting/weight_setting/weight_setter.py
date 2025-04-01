@@ -170,7 +170,8 @@ class WeightSetter(AsyncLoopRunner):
             #     config: {uid: 0 for uid in get_uids(sampling_mode="all")} for config in TaskRegistry.task_configs
             # }
             miner_rewards: dict[TaskConfig, dict[int, float]] = {
-                config: {uid: {"reward": 0, "count": 0} for uid in range(shared_settings.METAGRAPH.n)} for config in TaskRegistry.task_configs
+                config: {uid: {"reward": 0, "count": 0} for uid in range(shared_settings.METAGRAPH.n)}
+                for config in TaskRegistry.task_configs
             }
 
             inference_events: list[WeightedRewardEvent] = []

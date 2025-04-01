@@ -31,13 +31,8 @@ class TaskScorer(AsyncLoopRunner):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def start(
-            self,
-            model_scheduler: AsyncModelScheduler,
-            scoring_queue,
-            reward_events,
-            name: str | None = None,
-            **kwargs
-        ):
+        self, model_scheduler: AsyncModelScheduler, scoring_queue, reward_events, name: str | None = None, **kwargs
+    ):
         self.scoring_queue = scoring_queue
         self.reward_events = reward_events
         self.model_scheduler = model_scheduler

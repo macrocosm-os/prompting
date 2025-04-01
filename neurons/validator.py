@@ -1,15 +1,14 @@
 import asyncio
+import multiprocessing as pymp
 import sys
 
 import netaddr
 import requests
 import torch
-
-from loguru import logger
 import torch.multiprocessing as mp
-import multiprocessing as pymp
 import wandb
 from bittensor.core.extrinsics.serving import serve_extrinsic
+from loguru import logger
 
 from prompting.llms.model_manager import AsyncModelScheduler, ModelManager
 from prompting.rewards.scoring import task_scorer
@@ -22,7 +21,6 @@ settings.shared_settings = settings.SharedSettings.load(mode="validator")
 
 from prompting.llms.utils import GPUInfo
 
-
 logger.remove()
 logger.add("logfile.log", rotation="100 MB", retention="10 days", level="DEBUG")
 logger.add("err.log", rotation="100 MB", retention="10 days", level="WARNING")
@@ -32,13 +30,13 @@ torch.multiprocessing.set_start_method("spawn", force=True)
 
 
 async def create_loop_process(
-        model_scheduler: AsyncModelScheduler,
-        task_queue: list,
-        scoring_queue: list,
-        reward_events: list,
-        miners_dict: dict,
-        event_restart: pymp.synchronize.Event,
-    ):
+    model_scheduler: AsyncModelScheduler,
+    task_queue: list,
+    scoring_queue: list,
+    reward_events: list,
+    miners_dict: dict,
+    event_restart: pymp.synchronize.Event,
+):
     event_restart.clear()
     settings.shared_settings = settings.SharedSettings.load(mode="validator")
     if settings.shared_settings.WANDB_ON:
@@ -55,8 +53,7 @@ async def create_loop_process(
         tasks = asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=4))
         models = asyncio.create_task(model_scheduler.start(scoring_queue, event_restart), name="ModelScheduler")
         scorer = asyncio.create_task(
-            task_scorer.start(model_scheduler, scoring_queue, reward_events, simultaneous_loops=4),
-            name="TaskScorer"
+            task_scorer.start(model_scheduler, scoring_queue, reward_events, simultaneous_loops=4), name="TaskScorer"
         )
         all_tasks = [profile, tasks, models, scorer]
 
@@ -69,7 +66,7 @@ async def create_loop_process(
                 for t in all_tasks:
                     t.cancel()
                 await asyncio.gather(*all_tasks)
-                raise MemoryError(f"Detected restart event in LoopProcess. Exiting")
+                raise MemoryError("Detected restart event in LoopProcess. Exiting")
 
     try:
         await spawn_loops(task_queue, scoring_queue, reward_events, miners_dict)
@@ -85,19 +82,17 @@ async def create_loop_process(
 
 
 def start_api(
-        scoring_queue: list,
-        reward_events: list,
-        miners_dict: dict,
-        event_restart: pymp.synchronize.Event,
-    ):
+    scoring_queue: list,
+    reward_events: list,
+    miners_dict: dict,
+    event_restart: pymp.synchronize.Event,
+):
     from prompting.api.api import start_scoring_api  # noqa: F401
+
     # TODO: Currently API ModelManager and ModelSceduler are out of sync with main process.
     # TODO: Do we need ModelManager for API at all?
-    model_scheduler = AsyncModelScheduler(llm_model_manager=ModelManager(event_restart=event_restart), sync=True)
 
     async def start():
-        model_scheduler.llm_model_manager.event_restart = event_restart
-
         try:
             external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
             netaddr.IPAddress(external_ip)
@@ -123,10 +118,10 @@ def start_api(
 
 
 async def start_task_sending_loop(
-        task_queue: list,
-        scoring_queue: list,
-        miners_dict: dict,
-    ):
+    task_queue: list,
+    scoring_queue: list,
+    miners_dict: dict,
+):
     async def spawn_loops(task_queue, scoring_queue, miners_dict: dict):
         from prompting.tasks.task_sending import task_sender
 
@@ -184,11 +179,11 @@ def start_weight_setter_loop(reward_events):
 
 
 async def main(
-        cache_rewards: list | None = None,
-        cache_scores: list | None = None,
-        cache_tasks: list | None = None,
-        cache_miners: dict | None = None,
-    ):
+    cache_rewards: list | None = None,
+    cache_scores: list | None = None,
+    cache_tasks: list | None = None,
+    cache_miners: dict | None = None,
+):
     # will start checking the availability of miners at regular intervals, needed for API and Validator
     with mp.Manager() as manager:
         reward_events = manager.list(list(cache_rewards) if cache_rewards else [])
@@ -206,9 +201,7 @@ async def main(
             if settings.shared_settings.DEPLOY_SCORING_API:
                 # Use multiprocessing to bypass API blocking issue
                 api_process = mp.Process(
-                    target=start_api,
-                    args=(scoring_queue, reward_events, miners_dict, event_restart),
-                    name="APIProcess"
+                    target=start_api, args=(scoring_queue, reward_events, miners_dict, event_restart), name="APIProcess"
                 )
                 api_process.start()
                 processes.append(api_process)
