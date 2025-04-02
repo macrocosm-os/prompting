@@ -113,7 +113,7 @@ def start_api(
     asyncio.run(start())
 
 
-async def start_task_sending_loop(
+def start_task_sending_loop(
     task_queue: list,
     scoring_queue: list,
     miners_dict: dict,
@@ -122,14 +122,15 @@ async def start_task_sending_loop(
         from prompting.tasks.task_sending import task_sender
 
         logger.info("Starting task sending loop in validator...")
-        asyncio.create_task(task_sender.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=4))
+        asyncio.create_task(task_sender.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=1))
+        logger.error("Task sending loop started")
         while True:
             await asyncio.sleep(5)
             logger.debug("Task sending loop is running")
 
     try:
         logger.info("Starting task sending loop in validator...")
-        await spawn_loops(task_queue, scoring_queue, miners_dict)
+        asyncio.run(spawn_loops(task_queue, scoring_queue, miners_dict))
 
     except Exception as e:
         logger.exception(f"Task sending loop error: {e}")
@@ -222,8 +223,13 @@ async def main(
             )
             tasks.append(loop_task)
 
-            sending_task = asyncio.create_task(start_task_sending_loop(task_queue, scoring_queue, miners_dict))
-            tasks.append(sending_task)
+            sending_task = mp.Process(
+                target=start_task_sending_loop,
+                args=(task_queue, scoring_queue, miners_dict),
+                name="SendingTaskProcess",
+            )
+            sending_task.start()
+            processes.append(sending_task)
 
             weight_setter_process = mp.Process(
                 target=start_weight_setter_loop,
