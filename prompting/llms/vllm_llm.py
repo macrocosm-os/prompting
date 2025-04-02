@@ -31,7 +31,7 @@ class ReproducibleVLLM:
         # Store tokenizer from VLLM for consistency
         self.tokenizer = self.model.get_tokenizer()
 
-    def generate(
+    async def generate(
         self,
         messages: list[str] | list[dict[str, str]],
         sampling_params: dict[str, str | float | int | bool] | None = None,
@@ -90,7 +90,7 @@ class ReproducibleVLLM:
         result = outputs[0].outputs[0].text
         return result
 
-    def generate_logits(
+    async def generate_logits(
         self,
         messages: list[str] | list[dict[str, str]],
         top_n: int = 10,

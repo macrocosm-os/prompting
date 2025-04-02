@@ -18,10 +18,11 @@ def health():
     return {"status": "healthy"}
 
 
-async def start_scoring_api(task_scorer, scoring_queue, reward_events):
+async def start_scoring_api(task_scorer, scoring_queue, reward_events, miners_dict):
     app.state.task_scorer = task_scorer
     app.state.task_scorer.scoring_queue = scoring_queue
     app.state.task_scorer.reward_events = reward_events
+    app.state.miners_dict = miners_dict
 
     logger.info(f"Starting Scoring API on https://0.0.0.0:{settings.shared_settings.SCORING_API_PORT}")
     config = uvicorn.Config(

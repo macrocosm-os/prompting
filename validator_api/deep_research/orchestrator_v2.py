@@ -1,27 +1,24 @@
+import asyncio
 import json
 import time
-import asyncio
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any
+from typing import Any, Awaitable, Callable, Optional
 
+from fastapi.responses import StreamingResponse
 from loguru import logger
-from mistralai import Mistral
 from pydantic import BaseModel
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from shared.settings import shared_settings
-from validator_api.deep_research.persistent_cache import persistent_cache
 from validator_api.deep_research.utils import parse_llm_json, with_retries
-from validator_api.gpt_endpoints import WebRetrievalRequest, web_retrieval
+from validator_api.serializers import CompletionsRequest, WebRetrievalRequest
+from validator_api.web_retrieval import web_retrieval
+
 
 def make_chunk(text):
-    return {
-        "choices": [{
-            "delta": {
-                "content": text
-            }
-        }]
-    }
+    chunk = json.dumps({"choices": [{"delta": {"content": text}}]})
+    return f"data: {chunk}\n\n"
+
 
 def get_current_datetime_str() -> str:
     """Returns a nicely formatted string of the current date and time"""
@@ -39,8 +36,7 @@ class LLMQuery(BaseModel):
     model: str  # Which model was used
 
 
-@persistent_cache(cache_file="web_search_cache.json")
-async def search_web(question: str, n_results: int = 5) -> dict:
+async def search_web(question: str, n_results: int = 5, completions=None) -> dict:
     """
     Takes a natural language question, generates an optimized search query, performs web search,
     and returns a referenced answer based on the search results.
@@ -48,6 +44,7 @@ async def search_web(question: str, n_results: int = 5) -> dict:
     Args:
         question: The natural language question to answer
         n_results: Number of search results to retrieve
+        completions: Function to make completions request
 
     Returns:
         dict containing the answer, references, and search metadata
@@ -59,7 +56,9 @@ async def search_web(question: str, n_results: int = 5) -> dict:
 
     messages = [{"role": "system", "content": query_prompt}, {"role": "user", "content": question}]
 
-    optimized_query, query_record = await make_mistral_request(messages, "optimize_search_query")
+    optimized_query, query_record = await make_mistral_request(
+        messages, "optimize_search_query", completions=completions
+    )
 
     # Perform web search
     search_results = await web_retrieval(WebRetrievalRequest(search_query=optimized_query, n_results=n_results))
@@ -93,7 +92,9 @@ async def search_web(question: str, n_results: int = 5) -> dict:
         {"role": "user", "content": "Please generate a referenced answer based on the search results."},
     ]
 
-    raw_answer, answer_record = await make_mistral_request(messages, "generate_referenced_answer")
+    raw_answer, answer_record = await make_mistral_request(
+        messages, "generate_referenced_answer", completions=completions
+    )
     answer_data = parse_llm_json(raw_answer)
 
     return {
@@ -105,90 +106,33 @@ async def search_web(question: str, n_results: int = 5) -> dict:
     }
 
 
-@with_retries(max_retries=3)
-@persistent_cache(cache_file="mistral_cache.json")
-async def make_mistral_request(messages: list[dict], step_name: str) -> tuple[str, LLMQuery]:
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=15), retry=retry_if_exception_type())
+async def make_mistral_request(
+    messages: list[dict], step_name: str, completions: Callable[[CompletionsRequest], Awaitable[StreamingResponse]]
+) -> tuple[str, LLMQuery]:
     """Makes a request to Mistral API and records the query"""
 
-    model = "mistral-small-latest"
-    client = Mistral(api_key=shared_settings.GEMMA_API_KEY)
-    chat_response = client.chat.complete(model=model, messages=messages)
-    response_content = chat_response.choices[0].message.content
-
+    model = "mrfakename/mistral-small-3.1-24b-instruct-2503-hf"
+    temperature = 0.1
+    top_p = 1
+    max_tokens = 128000
+    sample_params = {
+        "top_p": top_p,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "do_sample": False,
+    }
+    logger.info(f"Making request to Mistral API with model: {model}")
+    response = await completions(
+        CompletionsRequest(messages=messages, model=model, stream=False, sampling_parameters=sample_params)
+    )
+    response_content = response.choices[0].message.content
     # Record the query
     query_record = LLMQuery(
         messages=messages, raw_response=response_content, step_name=step_name, timestamp=time.time(), model=model
     )
 
     return response_content, query_record
-
-
-async def assess_question_suitability(question: str) -> dict:
-    """
-    Assesses whether a question is suitable for deep research or if it can be answered directly.
-
-    Args:
-        question: The user's question to assess
-
-    Returns:
-        dict containing assessment results with:
-        - is_suitable: Boolean indicating if deep research is needed
-        - reason: Explanation of the assessment
-        - direct_answer: Simple answer if question doesn't need deep research
-    """
-
-    assessment_prompt = f"""You are part of Apex, a Deep Research Assistant. Your purpose is to assess whether a question is suitable for deep research or if it can be answered directly. The current date and time is {get_current_datetime_str()}.
-
-                        Task:
-                        Evaluate the given question and determine if it:
-
-                        1. Requires deep research (complex topics, factual research, analysis of multiple sources, or needs verification through web search)
-                        2. Can be answered directly (simple questions, greetings, opinions, or well-known facts that do not require research)
-
-                        # Definitions
-                        ## Deep research questions typically:
-                        - Seek factual information that may require up-to-date or verified data (e.g., prices, event times, current status)
-                        - Involve complex topics with nuance, such as technical processes, system design, or multi-step methodologies
-                        - Request detailed breakdowns, plans, or analysis grounded in domain-specific knowledge (e.g., engineering, AI development)
-                        - Require synthesis of information from multiple or external sources
-                        - Involve comparing different perspectives, approaches, or technologies
-                        - Would reasonably benefit from web search, expert resources, or tool use to provide a comprehensive answer
-
-                        ## Questions NOT suitable for deep research include:
-                        - Simple greetings or conversational remarks (e.g., "How are you?", "Hello")
-                        - Basic opinions that don't require factual grounding or research
-                        - Simple, well-known facts that don't need verification (e.g., "The sky is blue")
-                        - Requests for purely imaginative content like poems, stories, or fictional narratives
-                        - Personal questions about the AI assistant (e.g., "What's your favorite color?")
-                        - Questions with obvious or unambiguous answers that don't benefit from external tools or elaboration
-
-                        Response Format:
-                        Format your response as a JSON object with the following structure:
-                        {{
-                            "is_suitable": boolean,  // true if deep research or a web search is needed, false if not
-                            "reason": "Brief explanation of why the question does or doesn't need deep research",
-                            "direct_answer": "If the question doesn't need deep research, provide a direct answer here. Otherwise, null."
-                        }}
-                        """
-
-    messages = [
-        {"role": "system", "content": assessment_prompt},
-        {"role": "user", "content": question},
-    ]
-
-    assessment_result, query_record = await make_mistral_request(messages, "assess_question_suitability")
-
-    try:
-        assessment_data = parse_llm_json(assessment_result)
-        query_record.parsed_response = assessment_data
-        return assessment_data
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse question assessment output as JSON: {e}")
-        return {
-            "is_suitable": True,
-            "reason": "Unable to assess question suitability due to parsing error. Proceeding with deep research.",
-            "direct_answer": None,
-        }
 
 
 class Step(BaseModel):
@@ -235,6 +179,9 @@ class Tool(ABC):
 class WebSearchTool(Tool):
     """Tool for performing web searches and getting referenced answers"""
 
+    def __init__(self, completions=None):
+        self.completions = completions
+
     @property
     def name(self) -> str:
         return "web_search"
@@ -254,7 +201,7 @@ class WebSearchTool(Tool):
         - raw_results: Raw search results used"""
 
     async def execute(self, question: str, n_results: int = 5) -> dict:
-        return await search_web(question=question, n_results=n_results)
+        return await search_web(question=question, n_results=n_results, completions=self.completions)
 
 
 class ToolRequest(BaseModel):
@@ -282,10 +229,91 @@ class OrchestratorV2(BaseModel):
     completed_steps: StepManager = StepManager(steps=[])
     query_history: list[LLMQuery] = []
     tool_history: list[ToolResult] = []
-    tools: dict[str, Tool] = {"web_search": WebSearchTool()}
+    completions: Optional[Callable[[CompletionsRequest], Awaitable[StreamingResponse]]] = None
+    tools: dict[str, Tool] = {}
 
     class Config:
         arbitrary_types_allowed = True
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Initialize tools with the completions function
+        self.tools = {"web_search": WebSearchTool(completions=self.completions)}
+
+    async def assess_question_suitability(
+        self, question: str, completions: Callable[[CompletionsRequest], Awaitable[StreamingResponse]] = None
+    ) -> dict:
+        logger.info(f"assess_question_suitability: {question}")
+        logger.info(f"completions: {completions}")
+        logger.info(f"self.completions: {self.completions}")
+
+        """
+        Assesses whether a question is suitable for deep research or if it can be answered directly.
+
+        Args:
+            question: The user's question to assess
+
+        Returns:
+            dict containing assessment results with:
+            - is_suitable: Boolean indicating if deep research is needed
+            - reason: Explanation of the assessment
+            - direct_answer: Simple answer if question doesn't need deep research
+        """
+
+        assessment_prompt = f"""You are part of Apex, a Deep Research Assistant. Your purpose is to assess whether a question is suitable for deep research or if it can be answered directly. The current date and time is {get_current_datetime_str()}.
+
+                            Task:
+                            Evaluate the given question and determine if it:
+
+                            1. Requires deep research (complex topics, factual research, analysis of multiple sources, or needs verification through web search)
+                            2. Can be answered directly (simple questions, greetings, opinions, or well-known facts that do not require research)
+
+                            # Definitions
+                            ## Deep research questions typically:
+                            - Seek factual information that may require up-to-date or verified data (e.g., prices, event times, current status)
+                            - Involve complex topics with nuance, such as technical processes, system design, or multi-step methodologies
+                            - Request detailed breakdowns, plans, or analysis grounded in domain-specific knowledge (e.g., engineering, AI development)
+                            - Require synthesis of information from multiple or external sources
+                            - Involve comparing different perspectives, approaches, or technologies
+                            - Would reasonably benefit from web search, expert resources, or tool use to provide a comprehensive answer
+
+                            ## Questions NOT suitable for deep research include:
+                            - Simple greetings or conversational remarks (e.g., "How are you?", "Hello")
+                            - Basic opinions that don't require factual grounding or research
+                            - Simple, well-known facts that don't need verification (e.g., "The sky is blue")
+                            - Requests for purely imaginative content like poems, stories, or fictional narratives
+                            - Personal questions about the AI assistant (e.g., "What's your favorite color?")
+                            - Questions with obvious or unambiguous answers that don't benefit from external tools or elaboration
+
+                            Response Format:
+                            Format your response as a JSON object with the following structure:
+                            {{
+                                "is_suitable": boolean,  // true if deep research or a web search is needed, false if not
+                                "reason": "Brief explanation of why the question does or doesn't need deep research",
+                                "direct_answer": "If the question doesn't need deep research, provide a direct answer here. Otherwise, null."
+                            }}
+                            """
+
+        messages = [
+            {"role": "system", "content": assessment_prompt},
+            {"role": "user", "content": question},
+        ]
+
+        assessment_result, query_record = await make_mistral_request(
+            messages, "assess_question_suitability", completions=self.completions
+        )
+
+        try:
+            assessment_data = parse_llm_json(assessment_result)
+            query_record.parsed_response = assessment_data
+            return assessment_data
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse question assessment output as JSON: {e}")
+            return {
+                "is_suitable": True,
+                "reason": "Unable to assess question suitability due to parsing error. Proceeding with deep research.",
+                "direct_answer": None,
+            }
 
     @with_retries(max_retries=3)
     async def plan_tool_executions(self) -> list[ToolRequest]:
@@ -330,7 +358,9 @@ class OrchestratorV2(BaseModel):
             {"role": "user", "content": "Please plan the necessary tool executions for the next step."},
         ]
 
-        plan_output, query_record = await make_mistral_request(messages, f"plan_tools_step_{self.current_step}")
+        plan_output, query_record = await make_mistral_request(
+            messages, f"plan_tools_step_{self.current_step}", completions=self.completions
+        )
 
         try:
             tool_requests = parse_llm_json(plan_output)
@@ -358,33 +388,28 @@ class OrchestratorV2(BaseModel):
 
     async def execute_tools(self, tool_requests: list[ToolRequest]) -> list[ToolResult]:
         """Executes the requested tools concurrently and records their results"""
-        
+
         async def execute_single_tool(request: ToolRequest) -> ToolResult | None:
             """Helper function to execute a single tool and handle exceptions"""
             logger.info(f"Executing {request.tool_name} - Purpose: {request.purpose}")
             tool = self.tools[request.tool_name]
-            
+
             try:
                 result = await tool.execute(**request.parameters)
                 return ToolResult(
-                    tool_name=request.tool_name, 
-                    parameters=request.parameters, 
-                    result=result, 
-                    purpose=request.purpose
+                    tool_name=request.tool_name, parameters=request.parameters, result=result, purpose=request.purpose
                 )
             except Exception as e:
                 logger.error(f"Failed to execute {request.tool_name}: {e}")
                 return None
-        
+
         # Execute all tool requests concurrently
-        tool_results = await asyncio.gather(
-            *[execute_single_tool(request) for request in tool_requests]
-        )
-        
+        tool_results = await asyncio.gather(*[execute_single_tool(request) for request in tool_requests])
+
         # Filter out None results (from failed executions) and record successful results
         results = [result for result in tool_results if result is not None]
         self.tool_history.extend(results)
-        
+
         return results
 
     async def run(self, messages):
@@ -393,14 +418,15 @@ class OrchestratorV2(BaseModel):
 
         # Always take the last user message as the question
         question = messages[-1]["content"]
-
+        logger.info(f"self.completions: {self.completions}")
         # First assess if the question is suitable for deep research
-        question_assessment = await assess_question_suitability(question)
+        question_assessment = await self.assess_question_suitability(question, self.completions)
 
         # If the question is not suitable for deep research, return a direct answer
         if not question_assessment["is_suitable"]:
             logger.info(f"Question not suitable for deep research: {question_assessment['reason']}")
             yield make_chunk(question_assessment["direct_answer"])
+            yield "data: [DONE]\n\n"
             return
 
         # Continue with deep research process
@@ -415,7 +441,6 @@ class OrchestratorV2(BaseModel):
             # Plan and execute tools for this step
             yield make_chunk(f"\n## Step {step + 1}: Planning Tools\n")
             tool_requests = await self.plan_tool_executions()
-            
             if tool_requests:
                 for request in tool_requests:
                     yield make_chunk(f"\n## Executing {request.tool_name}\n{request.purpose}\n")
@@ -434,13 +459,14 @@ class OrchestratorV2(BaseModel):
                 yield make_chunk(f"\n## Final Answer\n{final_answer}\n")
                 return
 
-            yield make_chunk(f"\n## Updating Research Plan\n")
+            yield make_chunk("\n## Updating Research Plan\n")
             await self.update_todo_list()
-            yield make_chunk(f"\n## Research Plan Updated\n")
+            yield make_chunk("\n## Research Plan Updated\n")
 
         yield make_chunk("\n## Generating Final Answer\n")
         final_answer = await self.generate_final_answer()
         yield make_chunk(f"\n# Final Answer\n{final_answer}\n")
+        yield "data: [DONE]\n\n"
 
     @with_retries(max_retries=3)
     async def generate_todo_list(self):
@@ -473,7 +499,9 @@ class OrchestratorV2(BaseModel):
             },
         ]
 
-        response, query_record = await make_mistral_request(messages, "generate_todo_list")
+        response, query_record = await make_mistral_request(
+            messages, "generate_todo_list", completions=self.completions
+        )
         self.query_history.append(query_record)
         self.todo_list = response
         return self.todo_list
@@ -510,7 +538,9 @@ Find the first unchecked item in the todo list (items without a ✓) and analyze
             },
         ]
 
-        thinking_output, query_record = await make_mistral_request(messages, f"thinking_step_{self.current_step}")
+        thinking_output, query_record = await make_mistral_request(
+            messages, f"thinking_step_{self.current_step}", completions=self.completions
+        )
 
         try:
             thinking_dict = parse_llm_json(thinking_output)
@@ -579,7 +609,9 @@ Format your response in the following JSON structure:
             {"role": "user", "content": f"Here is the conversation history for context:\n{self.user_messages}"},
         ]
 
-        updated_todo, query_record = await make_mistral_request(messages, f"update_todo_list_step_{self.current_step}")
+        updated_todo, query_record = await make_mistral_request(
+            messages, f"update_todo_list_step_{self.current_step}", completions=self.completions
+        )
 
         try:
             updated_todo_dict = parse_llm_json(updated_todo)
@@ -651,7 +683,9 @@ Focus on providing a helpful, accurate answer to what the user actually asked.""
             {"role": "user", "content": "Please generate a final answer based on the analysis performed."},
         ]
 
-        final_answer, query_record = await make_mistral_request(messages, "generate_final_answer")
+        final_answer, query_record = await make_mistral_request(
+            messages, "generate_final_answer", completions=self.completions
+        )
         logger.debug(f"Generated final answer:\n{final_answer}")
 
         try:
@@ -666,3 +700,21 @@ Focus on providing a helpful, accurate answer to what the user actually asked.""
         except KeyError as e:
             logger.error(f"Missing required key in final answer: {e}")
             raise
+
+
+if __name__ == "__main__":
+
+    async def main():
+        orchestrator = OrchestratorV2()
+        try:
+            # We would need a real completions function here, but since this is just an example,
+            # we'll use None and it will fail gracefully
+            async for chunk in orchestrator.run(
+                messages=[{"role": "user", "content": "How can I implement a prompt engineering project?"}],
+                completions=None,
+            ):
+                print(chunk)
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+    asyncio.run(main())

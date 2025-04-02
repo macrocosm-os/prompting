@@ -4,12 +4,13 @@ import threading
 from loguru import logger
 from pydantic import ConfigDict
 
-from prompting.miner_availability.miner_availability import miner_availabilities
+from prompting.miner_availability.miner_availability import MinerAvailabilities
 from prompting.tasks.task_registry import TaskRegistry
 from shared import settings
 
 # from shared.logging import ErrorLoggingEvent, ValidatorLoggingEvent
 from shared.loop_runner import AsyncLoopRunner
+from shared.timer import Timer
 
 shared_settings = settings.shared_settings
 
@@ -22,12 +23,14 @@ class TaskLoop(AsyncLoopRunner):
     interval: int = 20
     task_queue: list | None = []
     scoring_queue: list | None = []
+    miners_dict: dict | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def start(self, task_queue, scoring_queue):
+    async def start(self, task_queue, scoring_queue, miners_dict, **kwargs):
         self.task_queue = task_queue
         self.scoring_queue = scoring_queue
-        await super().start()
+        self.miners_dict = miners_dict
+        await super().start(**kwargs)
 
     async def run_step(self):
         if len(self.task_queue) > shared_settings.TASK_QUEUE_LENGTH_THRESHOLD:
@@ -48,7 +51,14 @@ class TaskLoop(AsyncLoopRunner):
                     logger.exception(ex)
                 await asyncio.sleep(0.1)
 
-            if len(miner_availabilities.get_available_miners(task=task, model=task.llm_model_id)) == 0:
+            if (
+                len(
+                    MinerAvailabilities.get_available_miners(
+                        miners=self.miners_dict, task=task, model=task.llm_model_id
+                    )
+                )
+                == 0
+            ):
                 logger.debug(
                     f"No available miners for Task: {task.__class__.__name__} and Model ID: {task.llm_model_id}. Skipping step."
                 )
@@ -58,10 +68,11 @@ class TaskLoop(AsyncLoopRunner):
                 logger.warning(f"Dataset for task {task.__class__.__name__} returned None. Skipping step.")
                 return None
 
-            # Generate the query and reference for the task
-            if not task.query:
-                logger.debug(f"Generating query for task: {task.__class__.__name__}.")
-                task.make_query(dataset_entry=dataset_entry)
+            # Generate the query for the task
+            with Timer(label=f"Generating query for task: {task.__class__.__name__}"):
+                if not task.query:
+                    logger.debug(f"Generating query for task: {task.__class__.__name__}.")
+                    await task.make_query(dataset_entry=dataset_entry)
                 logger.debug(f"Generated Messages: {task.task_messages}")
 
             logger.debug(f"Appending task: {task.__class__.__name__} to task queue.")

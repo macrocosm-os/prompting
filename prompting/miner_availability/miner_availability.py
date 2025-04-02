@@ -4,7 +4,6 @@ from typing import Dict
 
 import numpy as np
 from loguru import logger
-from pydantic import BaseModel
 
 from prompting.llms.model_zoo import ModelZoo
 from prompting.tasks.base_task import BaseTask
@@ -20,35 +19,19 @@ task_config: dict[str, bool] = {str(task_config.task.__name__): True for task_co
 model_config: dict[str, bool] = {conf.llm_model_id: False for conf in ModelZoo.models_configs}
 
 
-class MinerAvailability(BaseModel):
-    """This class keeps track of one miner's availability"""
+class MinerAvailabilities:
+    """Static class that provides methods to query miner availabilities from a miners dictionary"""
 
-    task_availabilities: dict[str, bool] = task_config
-    llm_model_availabilities: dict[str, bool] = model_config
-
-    def is_model_available(self, model: str) -> bool:
-        return self.llm_model_availabilities.get(model, False)
-
-    def is_task_available(self, task: BaseTask | type[BaseTask]) -> bool:
-        if isinstance(task, BaseTask):
-            return self.task_availabilities.get(task.__class__.__name__, False)
-        return self.task_availabilities.get(task.__name__, False)
-
-
-class MinerAvailabilities(BaseModel):
-    """This class keeps track of all the miner's availabilities and
-    let's us target a miner based on its availability"""
-
-    miners: dict[int, MinerAvailability] = {}
-
+    @staticmethod
     def get_available_miners(
-        self, task: BaseTask | None = None, model: str | None = None, k: int | None = None
+        miners: dict[int, dict], task: BaseTask | None = None, model: str | None = None, k: int | None = None
     ) -> list[int]:
-        available = list(self.miners.keys())
+        available = list(miners.keys())
         if task:
-            available = [uid for uid in available if self.miners[uid].is_task_available(task)]
+            task_name = task.__class__.__name__ if isinstance(task, BaseTask) else task.__name__
+            available = [uid for uid in available if miners[uid]["task_availabilities"].get(task_name, False)]
         if model:
-            available = [uid for uid in available if self.miners[uid].is_model_available(model)]
+            available = [uid for uid in available if miners[uid]["llm_model_availabilities"].get(model, False)]
         if k:
             available = random.sample(available, min(len(available), k))
         return list(map(int, available))
@@ -59,9 +42,15 @@ class CheckMinerAvailability(AsyncLoopRunner):
     uids: np.ndarray = shared_settings.TEST_MINER_IDS or get_uids(sampling_mode="all")
     current_index: int = 0
     uids_per_step: int = 10
+    miners_dict: dict[int, dict] = {}
 
     class Config:
         arbitrary_types_allowed = True
+
+    async def start(self, miners_dict: dict[int, dict], **kwargs):
+        self.miners_dict = miners_dict
+        logger.debug("Starting availability checking loop...")
+        return await super().start(**kwargs)
 
     async def run_step(self):
         start_index = self.current_index
@@ -76,23 +65,23 @@ class CheckMinerAvailability(AsyncLoopRunner):
 
         for response, uid in zip(responses, uids_to_query):
             try:
-                miner_availabilities.miners[uid] = MinerAvailability(
-                    task_availabilities=response["task_availabilities"],
-                    llm_model_availabilities=response["llm_model_availabilities"],
-                )
+                self.miners_dict[uid] = {
+                    "task_availabilities": response["task_availabilities"],
+                    "llm_model_availabilities": response["llm_model_availabilities"],
+                }
             except Exception:
                 # logger.debug("Availability Response Invalid")
-                miner_availabilities.miners[uid] = MinerAvailability(
-                    task_availabilities={task: True for task in task_config},
-                    llm_model_availabilities={model: False for model in model_config},
-                )
+                self.miners_dict[uid] = {
+                    "task_availabilities": {task: True for task in task_config},
+                    "llm_model_availabilities": {model: False for model in model_config},
+                }
 
         self.current_index = end_index
 
         if self.current_index >= len(self.uids):
             self.current_index = 0
 
-        tracked_miners = [m for m in miner_availabilities.miners.values() if m is not None]
+        tracked_miners = [m for m in self.miners_dict.values() if m is not None]
         logger.debug(
             f"TRACKED MINERS: {len(tracked_miners)} --- UNTRACKED MINERS: {len(self.uids) - len(tracked_miners)}"
         )
@@ -101,5 +90,6 @@ class CheckMinerAvailability(AsyncLoopRunner):
         await asyncio.sleep(0.1)
 
 
-miner_availabilities = MinerAvailabilities()
+# Initialize global miners dictionary
+# miners_dict: dict[int, dict] = {}
 availability_checking_loop = CheckMinerAvailability()

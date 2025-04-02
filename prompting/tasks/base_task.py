@@ -37,7 +37,7 @@ class BaseTask(BaseModel, ABC):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @abstractmethod
-    def make_query(self, **kwargs):
+    async def make_query(self, **kwargs):
         raise NotImplementedError("Method make_query must be implemented")
 
     @abstractmethod
@@ -72,15 +72,15 @@ class BaseTextTask(BaseTask):
             self.llm_model_id = self.llm_model.llm_model_id if self.llm_model else None
         return self
 
-    def make_query(self, dataset_entry: DatasetEntry, **kwargs) -> str:
+    async def make_query(self, dataset_entry: DatasetEntry, **kwargs) -> str:
         return self.query
 
     async def make_reference(self, dataset_entry: DatasetEntry) -> str:
         return self.reference
 
-    def generate_reference(self, messages: list[str]) -> str:
+    async def generate_reference(self, messages: list[str]) -> str:
         """Generates a reference answer to be used for scoring miner completions"""
-        self.reference = model_manager.get_model(settings.shared_settings.LLM_MODEL).generate(
+        self.reference = await model_manager.get_model(settings.shared_settings.LLM_MODEL[0]).generate(
             messages=messages
         )  # This should be a list of dict
         if self.reference is None:
@@ -88,10 +88,7 @@ class BaseTextTask(BaseTask):
 
         return self.reference
 
-    def generate_query(
-        self,
-        messages: list[str],
-    ) -> str:
+    async def generate_query(self, messages: list[str]) -> str:
         """Generates a query to be used for generating the challenge"""
         llm_messages = [LLMMessage(role="system", content=self.query_system_prompt)] if self.query_system_prompt else []
         llm_messages.extend([LLMMessage(role="user", content=message) for message in messages])

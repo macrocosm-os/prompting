@@ -8,14 +8,12 @@ from pydantic import BaseModel, ConfigDict
 from prompting.datasets.huggingface_github import HuggingFaceGithubDataset
 from prompting.datasets.random_website import DDGDataset
 from prompting.datasets.sn13 import SN13Dataset
-from prompting.datasets.wiki import WikiDataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
-from prompting.tasks.multi_choice import MultiChoiceRewardConfig, MultiChoiceTask
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningRewardConfig, MultiStepReasoningTask
 from prompting.tasks.programming_task import ProgrammingRewardConfig, ProgrammingTask
-from prompting.tasks.qa import QARewardConfig, WebQuestionAnsweringTask, WikiQuestionAnsweringTask
+from prompting.tasks.qa import QARewardConfig, WebQuestionAnsweringTask
 from prompting.tasks.web_retrieval import WebRetrievalRewardConfig, WebRetrievalTask
 from shared.base import BaseDataset
 

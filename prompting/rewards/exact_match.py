@@ -11,7 +11,7 @@ from prompting.tasks.base_task import BaseTextTask
 from prompting.llms.model_manager import model_manager
 
 shared_settings = settings.shared_settings
-INCORRECT_PENALTY = 3
+INCORRECT_PENALTY = 1
 INCOMPLETE_PENALTY = 1
 VERIFICATION_RATIO = 0.1
 VERIFICATION_THRESHOLD = 0.9

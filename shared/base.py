@@ -63,7 +63,7 @@ class BaseDataset(ABC, BaseModel):
         tries = 1
         context: DatasetEntry  # for some reason the ls doesn't understand it's of type Context without this
 
-        with Timer() as timer:
+        with Timer(label=f"Fetching Data from {self.__class__.__name__} Dataset") as timer:
             for _ in range(RETRIES):
                 # TODO: Multithread the get method so that we don't have to suffer nonexistent pages
                 if method == "random":

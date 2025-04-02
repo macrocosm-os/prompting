@@ -301,7 +301,7 @@ class OpenAIMiner:
     async def run_inference(self, request: Request) -> str:
         data = await request.json()
         try:
-            response = self.llm.generate(
+            response = await self.llm.generate(
                 data.get("messages"), sampling_params=data.get("sampling_parameters"), seed=data.get("seed")
             )
             return response
