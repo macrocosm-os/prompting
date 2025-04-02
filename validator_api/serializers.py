@@ -59,6 +59,7 @@ class CompletionsRequest(BaseModel):
     )
     json_format: bool = Field(default=False, description="Enable JSON format for the response.", example=True)
     stream: bool = Field(default=False, description="Enable streaming for the response.", example=True)
+    pseudo_stream: bool = Field(default=False, description="Enable pseudo-streaming to break large chunks into smaller ones.", example=True)
 
 
 class WebRetrievalRequest(BaseModel):

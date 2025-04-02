@@ -2,6 +2,7 @@ import asyncio
 import json
 import math
 import random
+import re
 import time
 from typing import Any, AsyncGenerator, Callable, List, Optional
 
@@ -94,6 +95,7 @@ async def stream_chunks(
     collected_chunks_list: List[List[str]],
     timings_list: List[List[float]],
     response_start_time: float,
+    pseudo_stream: bool = False,
 ) -> AsyncGenerator[str, None]:
     """Stream chunks from a valid response and collect timing data.
 
@@ -102,6 +104,7 @@ async def stream_chunks(
         collected_chunks_list: List to collect response chunks
         timings_list: List to collect timing data
         response_start_time: Start time of the response for timing calculations
+        pseudo_stream: Whether to break large chunks into smaller ones
     """
     chunks_received = False
     async for chunk in first_valid_response:
@@ -116,11 +119,27 @@ async def stream_chunks(
         chunks_received = True
         timings_list[0].append(time.monotonic() - response_start_time)
         collected_chunks_list[0].append(content)
-        yield f"data: {json.dumps(chunk.model_dump())}\n\n"
+        
+        if pseudo_stream:
+            # Split content into smaller chunks (by words, keeping punctuation)
+            words = re.findall(r'\S+|\s+|[.,!?;]', content)
+            chunk_size = 3  # Number of words per chunk
+            
+            for i in range(0, len(words), chunk_size):
+                sub_chunk = ''.join(words[i:i + chunk_size])
+                if sub_chunk.strip():  # Only yield non-empty chunks
+                    pseudo_chunk = chunk.model_dump()
+                    pseudo_chunk['choices'][0]['delta']['content'] = sub_chunk
+                    yield f"data: {json.dumps(pseudo_chunk)}\n\n"
+                    await asyncio.sleep(0.01)  # Add a small delay between chunks
+        else:
+            # Stream the chunk as is
+            yield f"data: {json.dumps(chunk.model_dump())}\n\n"
 
     if not chunks_received:
         logger.error("Stream is empty: No chunks were received")
         yield 'data: {"error": "502 - Response is empty"}\n\n'
+        return
 
     yield "data: [DONE]\n\n"
 
@@ -137,6 +156,7 @@ async def stream_from_first_response(
 ) -> AsyncGenerator[str, None]:
     first_valid_response = None
     response_start_time = time.monotonic()
+    all_responses = []
 
     try:
         # Keep looping until we find a valid response or run out of tasks
@@ -156,6 +176,7 @@ async def stream_from_first_response(
                         continue
 
                     first_valid_response = rebuilt_generator
+                    all_responses.append((first_chunk, rebuilt_generator))
                     break
 
                 except Exception as e:
@@ -167,25 +188,28 @@ async def stream_from_first_response(
             yield 'data: {"error": "502 - No valid response received"}\n\n'
             return
 
-        # Stream the first valid response
-        async for chunk_data in stream_chunks(
-            first_valid_response, collected_chunks_list, timings_list, response_start_time
-        ):
-            yield chunk_data
-
-        # Continue collecting remaining responses in background for scoring
+        # Collect all responses first
         remaining = asyncio.gather(*pending, return_exceptions=True)
-        remaining_tasks = asyncio.create_task(
-            collect_remaining_responses(
-                remaining=remaining,
-                collected_chunks_list=collected_chunks_list,
-                body=body,
-                uids=uids,
-                timings_list=timings_list,
-                response_start_time=response_start_time,
-            )
-        )
-        await remaining_tasks
+        remaining_responses = await remaining
+        
+        for response in remaining_responses:
+            if not isinstance(response, Exception):
+                first_chunk, rebuilt_generator = await peek_until_valid_chunk(response, is_valid_chunk)
+                if first_chunk is not None:
+                    all_responses.append((first_chunk, rebuilt_generator))
+
+        # Now stream each response in sequence
+        for _, response_generator in all_responses:
+            async for chunk_data in stream_chunks(
+                response_generator, 
+                collected_chunks_list, 
+                timings_list, 
+                response_start_time,
+                pseudo_stream=body.get("pseudo_stream", False)
+            ):
+                yield chunk_data
+
+        # Add to scoring queue after all responses are collected
         asyncio.create_task(
             scoring_queue.scoring_queue.append_response(
                 uids=uids, body=body, chunks=collected_chunks_list, timings=timings_list
