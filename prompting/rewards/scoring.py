@@ -4,7 +4,7 @@ import threading
 from loguru import logger
 from pydantic import ConfigDict
 
-from prompting.llms.model_manager import model_manager, model_scheduler
+from prompting.llms.model_manager import model_manager
 from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_registry import TaskRegistry
@@ -63,9 +63,10 @@ class TaskScorer(AsyncLoopRunner):
             or (scoring_config.task.llm_model is None)
         ]
         if len(scorable) == 0:
-            # Run a model_scheduler step to load a new model as there are no more tasks to be scored
-            if len(self.scoring_queue) > 0:
-                await model_scheduler.run_step()
+            #     # Run a model_scheduler step to load a new model as there are no more tasks to be scored
+            #     if len(self.scoring_queue) > 0:
+            #         await model_scheduler.run_step()
+            await asyncio.sleep(5)
             return
         self.scoring_queue.remove(scorable[0])
         scoring_config: ScoringConfig = scorable.pop(0)

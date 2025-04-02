@@ -4,6 +4,8 @@ import torch
 from vllm import LLM, SamplingParams
 from loguru import logger
 
+import gc
+
 
 class ReproducibleVLLM:
     def __init__(
@@ -21,8 +23,8 @@ class ReproducibleVLLM:
         # gpu_memory_utilization = 0.9  # Default high utilization since VLLM is memory efficient
         self.model = LLM(
             model=model_id,
-            tensor_parallel_size=1,  # Single GPU by default
-            dtype="float16",
+            # tensor_parallel_size=1,  # Single GPU by default
+            # dtype="float16",
             trust_remote_code=True,
             gpu_memory_utilization=0.7,
             max_model_len=1000,
@@ -182,6 +184,14 @@ class ReproducibleVLLM:
                 torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
+
+    def unload_model(self):
+        del self.model.llm_engine.driver_worker
+        del self.model
+        gc.collect()
+        torch.cuda.empty_cache()
+        # torch.distributed.destroy_process_group()
+        logger.info("Successfully delete the llm pipeline and free the GPU memory!")
 
     @staticmethod
     def format_messages(messages: list[str] | list[dict[str, str]]) -> list[dict[str, str | list[dict[str, str]]]]:

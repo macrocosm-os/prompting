@@ -31,7 +31,7 @@ class ModelManager(BaseModel):
             self.load_model(model_config)
 
     def load_model(self, model_config: ModelConfig, force: bool = True):
-        torch.cuda.empty_cache()
+        # Ensure CUDA is synchronized before any memory operations
         if model_config in self.active_models.keys():
             print(f"Model {model_config.llm_model_id} is already loaded.")
             return
@@ -46,6 +46,8 @@ class ModelManager(BaseModel):
                 if self.used_ram + model_config.min_ram > self.total_ram or GPUInfo.free_memory < model_config.min_ram:
                     logger.debug(f"Unloading {active_model.llm_model_id} to make room for {model_config.llm_model_id}")
                     self.unload_model(active_model)
+                    # Add synchronization point after unloading
+                    torch.cuda.synchronize()
                 else:
                     logger.debug(f"Enough RAM for model {model_config.llm_model_id} free")
                     GPUInfo.log_gpu_info()
@@ -73,6 +75,7 @@ class ModelManager(BaseModel):
         try:
             GPUInfo.log_gpu_info()
 
+            # Ensure clean CUDA state before model loading
             model = model_factory(model_config.llm_model_id)(
                 model_id=model_config.llm_model_id,
                 device=settings.shared_settings.NEURON_DEVICE,
@@ -84,38 +87,53 @@ class ModelManager(BaseModel):
             logger.info(f"Model {model_config.llm_model_id} loaded. Current used RAM: {self.used_ram} GB")
             return model
         except Exception as e:
-            logger.exception(f"Failed to load model {model_config.llm_model_id}. Error: {str(e)}")
+            logger.error(f"Failed to load model {model_config.llm_model_id}. Error: {str(e)}")
 
     def _cleanup_pytorch_model(self, model_instance, model_config: ModelConfig):
-        """Handle cleanup specifically for PyTorch-based models."""
-        if hasattr(model_instance.llm, "model"):
+        """Handle cleanup specifically for vLLM and PyTorch-based models."""
+        if hasattr(model_instance, "model"):
             try:
-                # Check if it's a PyTorch model with a 'to' method
-                if hasattr(model_instance.llm.model, "to"):
-                    logger.debug(f"Moving model {model_config.llm_model_id} to CPU before deletion")
-                    model_instance.llm.model.to("cpu")
+                # Ensure CUDA synchronization before cleanup
+                torch.cuda.synchronize()
+
+                # Handle vLLM model cleanup
+                if hasattr(model_instance.model, "llm_engine"):
+                    logger.debug(f"Cleaning up vLLM model {model_config.llm_model_id}")
+                    # Clean up the engine's workers and resources
+                    if hasattr(model_instance.model.llm_engine, "model_executor"):
+                        del model_instance.model.llm_engine.model_executor
+                    del model_instance.model.llm_engine
+                    del model_instance.model
+                    torch.cuda.synchronize()
+                    return
+
+                # Legacy PyTorch model cleanup as fallback
+                if hasattr(model_instance.model, "to"):
+                    logger.debug(f"Moving PyTorch model {model_config.llm_model_id} to CPU before deletion")
+                    model_instance.model.to("cpu")
+                    torch.cuda.synchronize()
                     time.sleep(0.1)
 
-                    # Explicitly set requires_grad to False for all parameters if possible
-                    if hasattr(model_instance.llm.model, "parameters"):
-                        for param in model_instance.llm.model.parameters():
+                    if hasattr(model_instance.model, "parameters"):
+                        for param in model_instance.model.parameters():
                             if hasattr(param, "requires_grad"):
                                 param.requires_grad = False
 
             except Exception as e:
-                logger.debug(f"Could not move model to CPU: {str(e)}, proceeding with direct deletion")
+                logger.debug(f"Could not properly cleanup model: {str(e)}, proceeding with direct deletion")
 
-            # Delete the model reference and any cached states
-            if hasattr(model_instance.llm.model, "_clear_cache"):
-                model_instance.llm.model._clear_cache()
+            # Delete any cached states
+            if hasattr(model_instance.model, "_clear_cache"):
+                model_instance.model._clear_cache()
 
             # Explicitly delete model components if available
-            if hasattr(model_instance.llm.model, "modules"):
-                for module in list(model_instance.llm.model.modules()):
+            if hasattr(model_instance.model, "modules"):
+                for module in list(model_instance.model.modules()):
                     del module
 
             # Final deletion of model
-            del model_instance.llm.model
+            del model_instance.model
+            torch.cuda.synchronize()
 
     def unload_model(self, model_config: ModelConfig):
         if model_config not in self.active_models:
@@ -130,55 +148,9 @@ class ModelManager(BaseModel):
             initial_free_memory = GPUInfo.free_memory
             logger.debug(f"Initial free GPU memory before unloading: {initial_free_memory} GB")
 
-            # Different model implementations have different structures
-            # Handle vLLM-based models
-            if hasattr(model_instance, "llm") and hasattr(model_instance.llm, "llm_engine"):
-                if hasattr(model_instance.llm.llm_engine, "model_executor") and hasattr(
-                    model_instance.llm.llm_engine.model_executor, "driver_worker"
-                ):
-                    del model_instance.llm.llm_engine.model_executor.driver_worker
-
-            # Handle pipeline-based models with a hybrid approach
-            if hasattr(model_instance, "llm"):
-                # Try to move model to CPU first if it's a PyTorch model
-                self._cleanup_pytorch_model(model_instance, model_config)
-
-                # Handle tokenizer
-                if hasattr(model_instance.llm, "tokenizer"):
-                    del model_instance.llm.tokenizer
-
-                # Delete the llm object itself
-                del model_instance.llm
-
-            # Remove the model from active models dictionary
-            del self.active_models[model_config]
-
-            # Force Python garbage collection multiple times to ensure cleanup
-            gc.collect()
-            torch.cuda.empty_cache()
-            gc.collect()
-
-            # Additional memory cleanup for PyTorch
-            if torch.cuda.is_available():
-                # Reset peak memory stats
-                torch.cuda.reset_peak_memory_stats()
-                # Synchronize CUDA to ensure operations are complete
-                torch.cuda.synchronize()
-
-                # Force additional cleanup with multiple empty_cache calls
-                torch.cuda.empty_cache()
-
-                # Wait a bit longer to ensure memory is released back to the system
-                import time
-
-                time.sleep(0.5)
-                torch.cuda.empty_cache()
-
-                # Additional synchronization point
-                torch.cuda.synchronize()
-
-            # One final garbage collection
-            gc.collect()
+            # Ensure CUDA synchronization before unloading
+            torch.cuda.synchronize()
+            model_instance.unload_model()
 
             # Report memory change
             memory_freed = GPUInfo.free_memory - initial_free_memory
@@ -250,7 +222,7 @@ class ModelManager(BaseModel):
             model = ModelZoo.get_random(max_ram=self.total_ram)
 
         model_instance: ReproducibleVLLM = self.get_model(model)
-        responses = await model_instance.generate(messages=[dict_messages], sampling_params=sampling_params, seed=seed)
+        responses = await model_instance.generate(messages=dict_messages, sampling_params=sampling_params, seed=seed)
 
         return responses
 
@@ -266,10 +238,9 @@ class ModelManager(BaseModel):
         self.used_ram = 0.0
 
         # Run aggressive cleanup sequence
-        import time
-
-        # Multiple rounds of garbage collection
+        # Multiple rounds of garbage collection with synchronization
         for _ in range(3):
+            torch.cuda.synchronize()
             gc.collect()
             torch.cuda.empty_cache()
             time.sleep(0.1)
@@ -288,9 +259,9 @@ class ModelManager(BaseModel):
         # Delay to allow OS to reclaim memory
         time.sleep(1.0)
 
-        # Final cache clear
-        torch.cuda.empty_cache()
+        # Final synchronization and cache clear
         torch.cuda.synchronize()
+        torch.cuda.empty_cache()
 
         logger.info(f"Emergency cleanup complete. Current GPU utilization: {GPUInfo.gpu_utilization * 100:.2f}%")
         GPUInfo.log_gpu_info()
@@ -298,7 +269,7 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    interval: int = 14400
+    interval: int = 10
     scoring_queue: list | None = None
 
     async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
@@ -310,6 +281,8 @@ class AsyncModelScheduler(AsyncLoopRunner):
 
     async def run_step(self):
         """This method is called periodically according to the interval."""
+        if self.llm_model_manager.active_models:
+            self.interval = 60 * 10
         # try to load the model belonging to the oldest task in the queue
         selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
         if not selected_model:

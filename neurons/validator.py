@@ -48,12 +48,12 @@ def create_loop_process(task_queue, scoring_queue, reward_events, miners_dict):
         asyncio.create_task(profiler.print_stats(), name="Profiler"),
 
         logger.info("Starting TaskLoop...")
-        asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=4))
+        asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=3))
 
         logger.info("Starting ModelScheduler...")
         asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler"),
         logger.info("Starting TaskScorer...")
-        asyncio.create_task(task_scorer.start(scoring_queue, reward_events, simultaneous_loops=4), name="TaskScorer"),
+        asyncio.create_task(task_scorer.start(scoring_queue, reward_events, simultaneous_loops=5), name="TaskScorer"),
 
         while True:
             await asyncio.sleep(5)

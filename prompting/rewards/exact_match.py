@@ -115,61 +115,70 @@ class LogitsRewardModel(BaseRewardModel):
         # Iterate over each response event
 
         for chunks, timings, chunk_dicts_raw in zip(all_chunks, all_timings, all_chunk_dicts_raw):
-            logger.debug(f"CHECKING CHUNKS: {chunks}")
-            # If no response is provided, apply full penalty
-            if not chunks:
-                rewards.append(-INCORRECT_PENALTY)
-                timing_outputs.append(0.0)
-                continue
-
-            # Verify logits for selected indices
-            verification_scores = []
-            completion_length = len(chunks)
-
-            logger.debug(f"VERIFY INDICES: {verify_indices}")
-            logger.debug(f"CHUNKS TO VERIFY: {[chunks[i] for i in verify_indices]}")
-            for idx in verify_indices:
-                check_idx = min(idx, completion_length - 1)
-                if not chunk_dicts_raw[check_idx].choices[0].logprobs:
-                    logger.debug(f"NO LOGPROBS FOR CHUNK: {chunk_dicts_raw[check_idx]}")
-                    logger.debug(f"LOGPROBS: {chunk_dicts_raw[check_idx].choices[0].logprobs}")
-                    verification_scores.append(0.0)
+            try:
+                logger.debug(f"CHECKING CHUNKS: {chunks}")
+                # If no response is provided, apply full penalty
+                if not chunks:
+                    rewards.append(-INCORRECT_PENALTY)
+                    timing_outputs.append(0.0)
                     continue
 
-                original_logits = {
-                    info.token: info.logprob for info in chunk_dicts_raw[check_idx].choices[0].logprobs.content
-                }
+                # Verify logits for selected indices
+                verification_scores = []
+                completion_length = len(chunks)
 
-                verification_output, prompt = await model_manager.get_model(task.llm_model_id).generate_logits(
-                    messages=task.task_messages + [{"role": "assistant", "content": "".join(chunks[:check_idx])}],
-                    sampling_params=sampling_parameters,
-                    continue_last_message=True,
+                logger.debug(f"VERIFY INDICES: {verify_indices}")
+                logger.debug(f"CHUNKS TO VERIFY: {[chunks[i] for i in verify_indices]}")
+                for idx in verify_indices:
+                    check_idx = min(idx, completion_length - 1)
+                    if not chunk_dicts_raw[check_idx].choices[0].logprobs:
+                        logger.debug(f"NO LOGPROBS FOR CHUNK: {chunk_dicts_raw[check_idx]}")
+                        logger.debug(f"LOGPROBS: {chunk_dicts_raw[check_idx].choices[0].logprobs}")
+                        verification_scores.append(0.0)
+                        continue
+
+                    if chunk_dicts_raw[check_idx].choices[0].logprobs.content is None:
+                        logger.warning(f"Miner failed to provide logits: {chunk_dicts_raw[check_idx]}")
+                        verification_scores.append(0.0)
+                        continue
+                    original_logits = {
+                        info.token: info.logprob for info in chunk_dicts_raw[check_idx].choices[0].logprobs.content
+                    }
+
+                    verification_output, prompt = await model_manager.get_model(task.llm_model_id).generate_logits(
+                        messages=task.task_messages + [{"role": "assistant", "content": "".join(chunks[:check_idx])}],
+                        sampling_params=sampling_parameters,
+                        continue_last_message=True,
+                    )
+
+                    logit_score = verify_single_logit(original_logits, verification_output)
+                    verification_scores.append(logit_score)
+                    if logit_score < 0.99:
+                        logger.debug(f"VERIFICATION OUTPUT: {verification_output}")
+                        logger.debug(f"PROMPT: {prompt}")
+                        logger.debug(f"ORIGINAL LOGITS: {original_logits}")
+                    # At the end, if we've checked all indices, break
+                    if idx >= completion_length:
+                        break
+                final_score = np.mean(verification_scores)
+
+                # Compute timing reward
+                valid_chunks = []
+                for chunk, timing in zip(chunks, timings):
+                    if chunk:
+                        valid_chunks.append(normalize_timing(timing, all_timings))
+
+                timing_reward = np.mean(valid_chunks) if valid_chunks else 0.0
+
+                rewards.append(float(final_score > VERIFICATION_THRESHOLD) * timing_reward)
+                timing_outputs.append(np.array(valid_chunks).mean())
+                logger.info(
+                    f"FINAL SCORE: {final_score}\n\nVERIFICATION SCORES: {verification_scores}\n\nTIMING REWARD: {timing_reward}\n\nREWARDS: {rewards}\n\n"
                 )
-
-                logit_score = verify_single_logit(original_logits, verification_output)
-                verification_scores.append(logit_score)
-                if logit_score < 0.99:
-                    logger.debug(f"VERIFICATION OUTPUT: {verification_output}")
-                    logger.debug(f"PROMPT: {prompt}")
-                    logger.debug(f"ORIGINAL LOGITS: {original_logits}")
-                # At the end, if we've checked all indices, break
-                if idx >= completion_length:
-                    break
-            final_score = np.mean(verification_scores)
-
-            # Compute timing reward
-            valid_chunks = []
-            for chunk, timing in zip(chunks, timings):
-                if chunk:
-                    valid_chunks.append(normalize_timing(timing, all_timings))
-
-            timing_reward = np.mean(valid_chunks) if valid_chunks else 0.0
-
-            rewards.append(float(final_score > VERIFICATION_THRESHOLD) * timing_reward)
-            timing_outputs.append(np.array(valid_chunks).mean())
-            logger.info(
-                f"FINAL SCORE: {final_score}\n\nVERIFICATION SCORES: {verification_scores}\n\nTIMING REWARD: {timing_reward}\n\nREWARDS: {rewards}\n\n"
-            )
+            except Exception as e:
+                logger.warning(f"Error in reward calculation: {e}")
+                rewards.append(-INCORRECT_PENALTY)
+                timing_outputs.append(0.0)
 
         return BatchRewardOutput(
             rewards=np.array(rewards),
