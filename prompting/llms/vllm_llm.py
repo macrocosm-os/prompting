@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from vllm import LLM, SamplingParams
 from loguru import logger
-
+from vllm.distributed import destroy_model_parallel
 import gc
 
 
@@ -186,11 +186,12 @@ class ReproducibleVLLM:
             torch.backends.cudnn.benchmark = False
 
     def unload_model(self):
+        destroy_model_parallel()
         del self.model.llm_engine.driver_worker
         del self.model
         gc.collect()
         torch.cuda.empty_cache()
-        # torch.distributed.destroy_process_group()
+        torch.distributed.destroy_process_group()
         logger.info("Successfully delete the llm pipeline and free the GPU memory!")
 
     @staticmethod
