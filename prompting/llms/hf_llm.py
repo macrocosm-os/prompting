@@ -1,7 +1,5 @@
-import asyncio
 import random
 from abc import abstractmethod
-from functools import partial
 
 import numpy as np
 from loguru import logger
@@ -13,11 +11,23 @@ except ImportError:
 
 
 class ReproducibleHF:
+    """Base class for HuggingFace model.
+
+    The following fields must be implemented:
+        model: Torch model.
+        tokenizer: Model's tokenizer.
+
+    The following methods must be implemented:
+        format_messages: Formats messages list or dict into the model's supported format.
+    """
+
     def __init__(self, model_id: str, device: str, sampling_params: dict[str, str | float | int | bool] | None = None):
         self.model_id = model_id
         self._device = device
         self.sampling_params = sampling_params if sampling_params else {}
-        self.message_formatter = ReproducibleHF.format_messages
+        # Implement the following fields in the child class:
+        self.model = None
+        self.tokenizer = None
 
     @staticmethod
     @abstractmethod
@@ -33,42 +43,27 @@ class ReproducibleHF:
         """Generate text with optimized performance."""
         with torch.inference_mode():
             self.set_random_seeds(seed)
-            # Move tokenization to a background thread since it can be CPU intensive
-            loop = asyncio.get_event_loop()
-            inputs = await loop.run_in_executor(
-                None,
-                partial(
-                    self.tokenizer.apply_chat_template,
-                    self.message_formatter(messages),
-                    tokenize=True,
-                    add_generation_prompt=True,
-                    return_tensors="pt",
-                    return_dict=True,
-                ),
+            messages = self.format_messages(messages)
+            inputs = self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=True,
+                add_generation_prompt=True,
+                return_tensors="pt",
+                return_dict=True,
             )
             inputs = inputs.to(self._device)
 
             params = sampling_params if sampling_params else self.sampling_params
             filtered_params = {k: v for k, v in params.items() if k in self.valid_generation_params}
 
-            # Run model generation in a background thread to avoid blocking
-            outputs = await loop.run_in_executor(
-                None,
-                partial(
-                    self.model.generate,
-                    **inputs,
-                    **filtered_params,
-                ),
+            outputs = self.model.generate(
+                **inputs,
+                **filtered_params,
             )
 
-            # Decode outputs in background thread
-            results = await loop.run_in_executor(
-                None,
-                partial(
-                    self.tokenizer.batch_decode,
-                    outputs[:, inputs["input_ids"].shape[1] :],
-                    skip_special_tokens=True,
-                ),
+            results = self.tokenizer.batch_decode(
+                outputs[:, inputs["input_ids"].shape[1] :],
+                skip_special_tokens=True,
             )
 
             return results if len(results) > 1 else results[0]
