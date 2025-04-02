@@ -169,8 +169,7 @@ class WeightSetter(AsyncLoopRunner):
             reward_dict = {uid: 0 for uid in all_uids}
             # miner_rewards is a dictionary that separates each task config into a dictionary of uids with their rewards
             miner_rewards: dict[TaskConfig, dict[int, float]] = {
-                config: {uid: {"reward": 0, "count": 0} for uid in all_uids}
-                for config in TaskRegistry.task_configs
+                config: {uid: {"reward": 0, "count": 0} for uid in all_uids} for config in TaskRegistry.task_configs
             }
 
             inference_events: list[WeightedRewardEvent] = []
