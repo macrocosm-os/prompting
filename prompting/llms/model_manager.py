@@ -23,7 +23,7 @@ class ModelManager(BaseModel):
     total_ram: float = settings.shared_settings.LLM_MODEL_RAM
     active_models: dict[ModelConfig, ReproducibleHF] = {}
     used_ram: float = 0.0
-    _mp_lock: ClassVar[asyncio.Lock] = asyncio.Lock()
+    _lock: ClassVar[asyncio.Lock] = asyncio.Lock()
 
     async def load_always_active_models(self):
         for model_config in self.always_active_models:
@@ -38,7 +38,7 @@ class ModelManager(BaseModel):
             model_config: Model config to load.
             force: If enabled, will unload all other models.
         """
-        async with self._mp_lock:
+        async with self._lock:
             if model_config in self.active_models.keys():
                 logger.debug(f"Model {model_config.llm_model_id} is already loaded.")
                 return self.active_models[model_config]
@@ -141,7 +141,7 @@ class ModelManager(BaseModel):
         GPUInfo.log_gpu_info()
 
     async def get_model(self, llm_model: ModelConfig | str) -> ReproducibleHF:
-        async with self._mp_lock:
+        async with self._lock:
             if not llm_model:
                 llm_model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
             if isinstance(llm_model, str):
@@ -164,7 +164,7 @@ class ModelManager(BaseModel):
         else:
             dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
 
-        async with self._mp_lock:
+        async with self._lock:
             if isinstance(model, str):
                 model = ModelZoo.get_model_by_id(model)
             if not model:
@@ -172,7 +172,7 @@ class ModelManager(BaseModel):
 
         model_instance: ReproducibleHF = await self.get_model(model)
 
-        async with self._mp_lock:
+        async with self._lock:
             if model_instance is None:
                 raise ValueError("Model is None, which may indicate the model is still loading.")
             responses = await model_instance.generate(
