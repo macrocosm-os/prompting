@@ -70,6 +70,7 @@ class ModelManager(BaseModel):
                         f"Approx. used VRAM: {self.used_ram:.0f}GB"
                     )
                     self.active_models[model_config] = model
+                    await asyncio.sleep(1.0)
                     return model
                 except BaseException as e:
                     if retry_counter > retries_max:
@@ -212,7 +213,8 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    interval: int = 14400
+    # interval: int = 14400
+    interval: int = 240
     scoring_queue: list | None = None
 
     async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
