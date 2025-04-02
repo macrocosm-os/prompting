@@ -165,8 +165,8 @@ class WeightSetter(AsyncLoopRunner):
 
             # reward_dict = {uid: 0 for uid in get_uids(sampling_mode="all")}
             all_uids = range(shared_settings.METAGRAPH.n.item())
-            logger.error(f"All uids: {list(all_uids)}")
             reward_dict = {uid: 0 for uid in all_uids}
+            logger.info(f"Setting weights for {len(reward_dict)} uids")
             # miner_rewards is a dictionary that separates each task config into a dictionary of uids with their rewards
             miner_rewards: dict[TaskConfig, dict[int, float]] = {
                 config: {uid: {"reward": 0, "count": 0} for uid in all_uids} for config in TaskRegistry.task_configs
