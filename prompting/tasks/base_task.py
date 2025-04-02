@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
-from prompting.llms.model_manager import model_manager
+from prompting.llms.model_manager import ModelManager
 from prompting.llms.model_zoo import ModelConfig
 from shared import settings
 from shared.base import DatasetEntry
@@ -75,14 +75,13 @@ class BaseTextTask(BaseTask):
     async def make_query(self, dataset_entry: DatasetEntry, **kwargs) -> str:
         return self.query
 
-    async def make_reference(self, dataset_entry: DatasetEntry) -> str:
+    async def make_reference(self, dataset_entry: DatasetEntry, model_manager: ModelManager | None = None) -> str:
         return self.reference
 
-    async def generate_reference(self, messages: list[str]) -> str:
-        """Generates a reference answer to be used for scoring miner completions"""
-        self.reference = await model_manager.get_model(settings.shared_settings.LLM_MODEL[0]).generate(
-            messages=messages
-        )  # This should be a list of dict
+    async def generate_reference(self, messages: list[str], model_manager: ModelManager | None = None) -> str:
+        """Generate reference answer to be used for scoring miner completions"""
+        model = await model_manager.get_model(settings.shared_settings.LLM_MODEL[0])
+        self.reference = await model.generate(messages=messages)
         if self.reference is None:
             raise Exception("Reference generation failed")
 
