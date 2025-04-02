@@ -50,10 +50,10 @@ async def create_loop_process(
         logger.info("Starting loops...")
         profile = asyncio.create_task(profiler.print_stats(), name="Profiler")
         # TODO: Revisit why do we need simultaneous loops?
-        tasks = asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=4))
+        tasks = asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=2))
         models = asyncio.create_task(model_scheduler.start(scoring_queue, event_restart), name="ModelScheduler")
         scorer = asyncio.create_task(
-            task_scorer.start(model_scheduler, scoring_queue, reward_events, simultaneous_loops=4), name="TaskScorer"
+            task_scorer.start(model_scheduler, scoring_queue, reward_events, simultaneous_loops=2), name="TaskScorer"
         )
         all_tasks = [profile, tasks, models, scorer]
 
