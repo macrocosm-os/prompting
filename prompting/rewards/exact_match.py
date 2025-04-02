@@ -140,7 +140,7 @@ class LogitsRewardModel(BaseRewardModel):
                     info.token: info.logprob for info in chunk_dicts_raw[check_idx].choices[0].logprobs.content
                 }
 
-                verification_output, prompt = model_manager.get_model(task.llm_model_id).generate_logits(
+                verification_output, prompt = await model_manager.get_model(task.llm_model_id).generate_logits(
                     messages=task.task_messages + [{"role": "assistant", "content": "".join(chunks[:check_idx])}],
                     sampling_params=sampling_parameters,
                     continue_last_message=True,

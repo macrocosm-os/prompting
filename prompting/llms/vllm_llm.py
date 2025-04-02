@@ -112,32 +112,6 @@ class ReproducibleVLLM:
             dict: Dictionary mapping tokens to their log probabilities
         """
         self.set_random_seeds(seed)
-
-        # Convert chat messages to prompt string using tokenizer's chat template
-        if isinstance(messages, list) and isinstance(messages[0], dict):
-            try:
-                prompt = self.tokenizer.apply_chat_template(
-                    messages,
-                    tokenize=False,
-                    add_generation_prompt=not continue_last_message,
-                    continue_final_message=continue_last_message,
-                )
-            except (AttributeError, NotImplementedError) as e:
-                logger.warning(f"Chat template not supported for model {self.model_id}, using default format")
-                prompt = ""
-                for msg in messages:
-                    role = msg.get("role", "").lower()
-                    content = msg.get("content", "")
-                    if role == "system":
-                        prompt += f"System: {content}\n"
-                    elif role == "user":
-                        prompt += f"User: {content}\n"
-                    elif role == "assistant":
-                        prompt += f"Assistant: {content}\n"
-                prompt = prompt.strip()
-        else:
-            prompt = messages[0] if isinstance(messages, list) else messages
-
         # Set up sampling parameters for logit generation
         params = sampling_params if sampling_params else self.sampling_params
         params["max_tokens"] = 1
@@ -208,3 +182,7 @@ class ReproducibleVLLM:
                 torch.cuda.manual_seed_all(seed)
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
+
+    @staticmethod
+    def format_messages(messages: list[str] | list[dict[str, str]]) -> list[dict[str, str | list[dict[str, str]]]]:
+        return messages
