@@ -241,6 +241,8 @@ async def make_openai_query(
         choices = []
         chunks = []
         chunk_timings = []
+        last_finish_reason = None  # Only track the finish reason of the last chunk
+
         chunk_dicts_raw = []
         async for chunk in chat:
             if not chunk.choices:
@@ -250,12 +252,19 @@ async def make_openai_query(
                     choices.append("")
                 if choice.delta.content:
                     choices[i] += choice.delta.content
+                # Save finish reason from the last chunk, safely handling the attribute
+                if hasattr(choice, "finish_reason") and choice.finish_reason is not None:
+                    last_finish_reason = choice.finish_reason
             if chunk.choices[0].delta.content:
                 chunks.append(chunk.choices[0].delta.content)
                 chunk_timings.append(time.perf_counter() - start_time)
                 chunk_dicts_raw.append(chunk)
         choices = [
-            Choice(index=i, message=ChatCompletionMessage(content=choice, role="assistant"), finish_reason="stop")
+            Choice(
+                index=i,
+                message=ChatCompletionMessage(content=choice, role="assistant"),
+                finish_reason=last_finish_reason or "stop",  # Use the captured finish_reason or fallback to "stop"
+            )
             for i, choice in enumerate(choices)
         ]
         # TODO: We need to find a better way to do this instead of sometimes returning a tuple and sometimes not, but for now this has to do
