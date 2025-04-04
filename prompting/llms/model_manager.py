@@ -141,8 +141,6 @@ class ModelManager(BaseModel):
             return
 
         try:
-            # Get the model instance
-            model_instance = self.active_models[model_config]
 
             # Record initial memory state for debugging
             initial_free_memory = GPUInfo.free_memory
@@ -150,7 +148,10 @@ class ModelManager(BaseModel):
 
             # Ensure CUDA synchronization before unloading
             torch.cuda.synchronize()
-            model_instance.unload_model()
+            del self.active_models[model_config]
+            gc.collect()
+
+            torch.cuda.empty_cache()
 
             # Report memory change
             memory_freed = GPUInfo.free_memory - initial_free_memory
