@@ -68,11 +68,17 @@ def get_token_logprobs(llm, prompt, sampling_params):
         # Store the actual chosen token from generation
         chosen_token = llm.get_tokenizer().decode([generated_tokens[i]])
 
+        # Format top logprobs as list of dictionaries
+        top_logprobs = [
+            {"token": llm.get_tokenizer().decode([tid]), "logprob": lp}
+            for tid, lp in zip(top_token_ids, top_logprob_values)
+        ]
+
         # Store logprobs for this step
         step_logprobs = {
             "token": chosen_token,
             "top_tokens": [llm.get_tokenizer().decode([tid]) for tid in top_token_ids],
-            "top_logprobs": top_logprob_values,
+            "top_logprobs": top_logprobs,
         }
         token_logprobs.append(step_logprobs)
 
@@ -163,7 +169,7 @@ class OpenAIMiner:
             for step in result["token_logprobs"]:
                 logger.info(step)
                 token = step["token"]
-                logprobs_info = {"top_tokens": step["top_tokens"], "top_logprobs": step["top_logprobs"]}
+                logprobs_info = {"top_logprobs": step["top_logprobs"]}
 
                 # Format in OpenAI streaming style but include logprobs
                 data = {
@@ -172,7 +178,7 @@ class OpenAIMiner:
                             "delta": {
                                 "content": token,
                             },
-                            "logprobs": logprobs_info,
+                            "logprobs": {"content": [logprobs_info]},
                             "index": 0,
                             "finish_reason": None,
                         }

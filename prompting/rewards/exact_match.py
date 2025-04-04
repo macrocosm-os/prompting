@@ -142,7 +142,7 @@ class LogitsRewardModel(BaseRewardModel):
                         verification_scores.append(0.0)
                         continue
                     original_logits = {
-                        info.token: info.logprob for info in chunk_dicts_raw[check_idx].choices[0].logprobs.content
+                        info.token: info.logprob for info in chunk_dicts_raw[check_idx].choices[0].logprobs.content[0].top_logprobs
                     }
 
                     verification_output, prompt = await model_manager.get_model(task.llm_model_id).generate_logits(
