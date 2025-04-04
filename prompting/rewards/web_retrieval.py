@@ -8,11 +8,11 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
+import whois
 from loguru import logger
 from pydantic import BaseModel
 from scipy import spatial
 from thefuzz import fuzz
-import whois
 
 from prompting.datasets.random_website import DDGDataset, DDGDatasetEntry
 from prompting.rewards.relevance import RelevanceRewardModel

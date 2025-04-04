@@ -1,6 +1,6 @@
 # ruff: noqa: E402
-from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
