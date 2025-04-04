@@ -223,8 +223,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
     async def run_step(self):
         """This method is called periodically according to the interval."""
         if self.llm_model_manager.active_models:
-            # self.interval = 60 * 10
-            self.interval = 10
+            self.interval = 120 * 10
         # try to load the model belonging to the oldest task in the queue
         selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
         if not selected_model:
