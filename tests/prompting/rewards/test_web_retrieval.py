@@ -1,5 +1,6 @@
 # ruff: noqa: E402
-from unittest.mock import MagicMock
+from unittest.mock import patch, MagicMock
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
@@ -8,6 +9,26 @@ from shared import settings
 
 settings.shared_settings = settings.SharedSettings(mode="mock")
 from prompting.rewards.web_retrieval import WebRetrievalRewardModel
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "creation_date, expected_age",
+    [
+        # Domain created 100 days ago.
+        (datetime.now() - timedelta(days=100), 100),
+        # Domain created 10 days ago.
+        (datetime.now() - timedelta(days=10), 10),
+        # Domain has no valid creation_date => fallback_age.
+        (None, 1_000_000),
+    ],
+)
+async def test_domain_age(creation_date: datetime, expected_age: int):
+    mock_whois = MagicMock()
+    mock_whois.creation_date = creation_date
+    with patch("prompting.rewards.web_retrieval.whois.whois", return_value=mock_whois):
+        age = await WebRetrievalRewardModel.domain_age_days("testdomain.com", fallback_age=1_000_000)
+        assert age == expected_age
 
 
 @pytest.mark.parametrize(

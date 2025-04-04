@@ -110,7 +110,6 @@ async def make_api_call(
                     max_tokens=2000,
                 )
 
-            logger.debug(f"Making API call with\n\nMESSAGES: {messages}\n\nRESPONSE: {response_str}")
             response_dict = parse_multiple_json(response_str)[0]
             return response_dict
         except Exception as e:

@@ -123,11 +123,21 @@ async def query_miners(
         tasks = []
         for uid in uids:
             try:
+                timeout_connect = 10
+                timeout_postprocess = 5
                 response = asyncio.wait_for(
                     asyncio.create_task(
-                        make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, timeout_seconds, body, uid)
+                        make_openai_query(
+                            shared_settings.METAGRAPH,
+                            shared_settings.WALLET,
+                            timeout_seconds,
+                            body,
+                            uid,
+                            timeout_connect=timeout_connect,
+                        )
                     ),
-                    timeout=timeout_seconds,
+                    # Give additional time for connect and result post-processings.
+                    timeout=timeout_seconds + timeout_connect + timeout_postprocess,
                 )
             except asyncio.TimeoutError:
                 logger.error(f"Timeout exceeded while querying miner {uid}")
@@ -136,22 +146,36 @@ async def query_miners(
 
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
-        results = []
+        responses_valid = 0
+        responses_error = 0
+        responses_exception = 0
+        exception_info: Exception | None = None
+        results: list[SynapseStreamResult] = []
         for response, uid in zip(responses, uids):
             if isinstance(response, Exception):
+                responses_exception += 1
+                exception_info = response
                 results.append(SynapseStreamResult(exception=str(response)))
             elif isinstance(response, tuple) and isinstance(response[0], ChatCompletion):
+                if response and response[1]:
+                    responses_valid += 1
                 results.append(
                     SynapseStreamResult(
                         uid=uid,
-                        response=response[0],
                         accumulated_chunks=response[1],
                         accumulated_chunks_timings=response[2],
                     )
                 )
             else:
+                responses_error += 1
                 logger.error(f"Unknown response type: {response}")
                 results.append(SynapseStreamResult(uid=uid, exception=f"Unknown response type: {response}"))
+
+        logger.info(
+            f"Responses success: {responses_valid}/{len(uids)}. "
+            f"Responses exception: {responses_exception}/{len(uids)} [{exception_info}]. "
+            f"Reponses error: {responses_error}/{len(uids)}"
+        )
         return results
     except Exception as e:
         logger.error(f"Error in query_miners: {e}")
@@ -210,6 +234,7 @@ async def make_openai_query(
     body: dict[str, Any],
     uid: int,
     stream: bool = False,
+    timeout_connect: int = 10,
 ) -> tuple[ChatCompletion, list, list] | AsyncGenerator:
     body["seed"] = body.get("seed", random.randint(0, 1000000))
     axon_info = metagraph.axons[uid]
@@ -217,7 +242,7 @@ async def make_openai_query(
         base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
         api_key="Apex",
         max_retries=0,
-        timeout=Timeout(timeout_seconds, connect=5, read=timeout_seconds - 5),
+        timeout=Timeout(timeout_seconds, connect=timeout_connect, read=timeout_seconds),
         http_client=openai.DefaultAsyncHttpxClient(
             event_hooks={
                 "request": [create_header_hook(wallet.hotkey, axon_info.hotkey, timeout_seconds=timeout_seconds)]
@@ -226,6 +251,7 @@ async def make_openai_query(
     )
     extra_body = {k: v for k, v in body.items() if k not in ["messages", "model"]}
     body["messages"] = model_factory(body.get("model")).format_messages(body["messages"])
+
     start_time = time.perf_counter()
     chat = await miner.chat.completions.create(
         # model=None,

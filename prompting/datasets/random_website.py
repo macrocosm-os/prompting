@@ -26,15 +26,16 @@ class DDGDataset(BaseDataset):
 
     def search_random_term(self, retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
         ddg = PatchedDDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
+        exception: BaseException | None = None
         for _ in range(retries):
             random_words = " ".join(random.sample(ENGLISH_WORDS, 3))
             try:
                 results = list(ddg.text(random_words))
                 if results:
                     return random_words, results
-            except Exception as ex:
-                logger.debug(f"Failed to get search results from DuckDuckGo: {ex}")
-        logger.warning(f"Failed to get search results from DuckDuckGo after {retries} tries")
+            except BaseException as ex:
+                exception = ex
+        logger.warning(f"Failed to get search results from DuckDuckGo after {retries} tries: {exception}")
         return None, None
 
     @staticmethod
