@@ -55,7 +55,6 @@ def persistent_cache(cache_file=None):
                     key_parts.append(hashlib.md5(json.dumps(arg, sort_keys=True).encode()).hexdigest())
                 else:
                     key_parts.append(str(arg))
-
             # Process keyword arguments (sorted for consistency)
             for k in sorted(kwargs.keys()):
                 v = kwargs[k]

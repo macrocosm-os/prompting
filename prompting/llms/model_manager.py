@@ -8,7 +8,7 @@ import torch.multiprocessing as mp
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
 
-from prompting.llms.hf_llm import ReproducibleHF
+from prompting.llms.vllm_llm import ReproducibleVLLM
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.llms.utils import GPUInfo, model_factory
 from shared import settings
@@ -21,7 +21,7 @@ class ModelManager(BaseModel):
     event_restart: pymp.synchronize.Event = Field(default_factory=mp.Event)
     always_active_models: list[ModelConfig] = []
     total_ram: float = settings.shared_settings.LLM_MODEL_RAM
-    active_models: dict[ModelConfig, ReproducibleHF] = {}
+    active_models: dict[ModelConfig, ReproducibleVLLM] = {}
     used_ram: float = 0.0
     _lock: ClassVar[asyncio.Lock] = asyncio.Lock()
 
@@ -213,7 +213,7 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    interval: int = 14400
+    interval: int = 10
     scoring_queue: list | None = None
 
     async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
@@ -222,6 +222,8 @@ class AsyncModelScheduler(AsyncLoopRunner):
 
     async def run_step(self):
         """This method is called periodically according to the interval."""
+        if self.llm_model_manager.active_models:
+            self.interval = 120 * 10
         # try to load the model belonging to the oldest task in the queue
         selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
         if not selected_model:

@@ -8,7 +8,7 @@ poetry config virtualenvs.in-project true
 
 # Install the project dependencies
 poetry install --extras "validator"
-poetry run pip install flash-attn --no-build-isolation
+poetry run pip install vllm
 
 # Check if jq is installed and install it if not
 if ! command -v jq &> /dev/null

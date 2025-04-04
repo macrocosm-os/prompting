@@ -18,8 +18,7 @@ shared_settings = settings.shared_settings
 
 class InferenceRewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[BaseRewardModel]] = [
-        InferenceRewardModel(weight=0.5),
-        RelevanceRewardModel(weight=0.5),
+        InferenceRewardModel(weight=1),
     ]
 
 
@@ -59,10 +58,10 @@ class InferenceTask(BaseTextTask):
         # self.sampling_params["temperature"] = random.randint(1, 10) / 10
         # self.sampling_params["max_new_tokens"] = random.choice([256, 512, 1024, 2048])
 
-        if np.random.rand() < 0.2:
-            self.llm_model_id = None
-        else:
-            self.llm_model = ModelZoo.get_model_by_id(self.llm_model_id)
+        # if np.random.rand() < 0.2:
+        # self.llm_model_id = None
+        # else:
+        self.llm_model = ModelZoo.get_model_by_id(self.llm_model_id)
         return self
 
     async def make_query(self, dataset_entry: ChatEntry) -> str:
@@ -77,6 +76,12 @@ class InferenceTask(BaseTextTask):
 
     async def make_reference(self, dataset_entry: ChatEntry, model_manager: ModelManager | None = None) -> str:
         assert model_manager is not None, f"Model manager must be provided for {self.__class__.__name__}"
+        # With logits scoring there is no reference, and instead we need to generate the logits based
+        # on the miner's completions.
+        if self.llm_model or self.llm_model_id:
+            self.reference = ""
+            return self.reference
+
         self.reference = await model_manager.generate(
             messages=self.messages,
             model=self.llm_model,

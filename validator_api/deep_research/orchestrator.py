@@ -58,7 +58,6 @@ async def search_web(question: str, n_results: int = 5) -> dict:
         'content': result.content,
         'url': result.url
     } for i, result in enumerate(search_results.results)], indent=2)}
-
     Format your response as a JSON object with the following structure:
     {{
         "answer": "Your detailed answer with inline references [n]",
@@ -159,7 +158,6 @@ class WebSearchTool(Tool):
         Input parameters:
         - question: The natural language question to answer
         - n_results: (optional) Number of search results to use (default: 5)
-
         Returns a dictionary containing:
         - question: Original question asked
         - optimized_query: Search query used
