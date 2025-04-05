@@ -73,7 +73,7 @@ class CheckMinerAvailability(AsyncLoopRunner):
                 # logger.debug("Availability Response Invalid")
                 self.miners_dict[uid] = {
                     "task_availabilities": {task: True for task in task_config},
-                    "llm_model_availabilities": {model: False for model in model_config},
+                    "llm_model_availabilities": {model: True for model in model_config},
                 }
 
         self.current_index = end_index

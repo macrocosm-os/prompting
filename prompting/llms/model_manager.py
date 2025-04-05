@@ -29,7 +29,7 @@ class ModelManager(BaseModel):
         for model_config in self.always_active_models:
             await self.load_model(model_config=model_config)
 
-    async def load_model(self, model_config: ModelConfig, force: bool = True) -> ReproducibleHF:
+    async def load_model(self, model_config: ModelConfig, force: bool = True) -> ReproducibleVLLM:
         """Load model into GPU.
 
         Warning: This operation will block execution until the model is successfully loaded into VRAM.
@@ -90,7 +90,7 @@ class ModelManager(BaseModel):
                     logger.debug(f"Current active models: {self.active_models}")
                     await asyncio.sleep(retry_delay)
 
-    async def _cleanup_model(self, model_instance: ReproducibleHF, cpu_offload: bool = False):
+    async def _cleanup_model(self, model_instance: ReproducibleVLLM, cpu_offload: bool = False):
         """Free VRAM from given model."""
         if cpu_offload:
             try:
@@ -140,7 +140,7 @@ class ModelManager(BaseModel):
 
         GPUInfo.log_gpu_info()
 
-    async def get_model(self, llm_model: ModelConfig | str) -> ReproducibleHF:
+    async def get_model(self, llm_model: ModelConfig | str) -> ReproducibleVLLM:
         async with self._lock:
             if not llm_model:
                 llm_model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
@@ -170,7 +170,7 @@ class ModelManager(BaseModel):
             if not model:
                 model = ModelZoo.get_random(max_ram=self.total_ram)
 
-        model_instance: ReproducibleHF = await self.get_model(model)
+        model_instance: ReproducibleVLLM = await self.get_model(model)
 
         async with self._lock:
             if model_instance is None:

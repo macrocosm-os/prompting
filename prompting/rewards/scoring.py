@@ -91,6 +91,7 @@ class TaskScorer(AsyncLoopRunner):
                 reference=scoring_config.task.reference,
                 model_id=scoring_config.task.llm_model,
                 task=scoring_config.task,
+                model_manager=self.model_scheduler.llm_model_manager,
             )
         self.reward_events.append(reward_events)
 

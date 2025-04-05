@@ -8,8 +8,8 @@ from shared import settings
 from shared.dendrite import DendriteResponseEvent
 from openai.types.chat import ChatCompletionChunk
 from prompting.tasks.base_task import BaseTextTask
-from prompting.llms.model_manager import model_manager
-
+from pydantic import model_validator
+from prompting.llms.model_manager import ModelManager
 shared_settings = settings.shared_settings
 INCORRECT_PENALTY = 1
 INCOMPLETE_PENALTY = 1
@@ -73,8 +73,9 @@ def verify_single_logit(original_logits, verification_logits):
 
 
 class LogitsRewardModel(BaseRewardModel):
+
     async def reward(
-        self, reference: str, response_event: DendriteResponseEvent, task: BaseTextTask, **kwargs
+        self, reference: str, response_event: DendriteResponseEvent, task: BaseTextTask, model_manager: ModelManager, **kwargs
     ) -> BatchRewardOutput:
         """
         Calculates rewards based on the logits of the response and verifies them.
@@ -145,7 +146,7 @@ class LogitsRewardModel(BaseRewardModel):
                         info.token: info.logprob for info in chunk_dicts_raw[check_idx].choices[0].logprobs.content[0].top_logprobs
                     }
 
-                    verification_output, prompt = await model_manager.get_model(task.llm_model_id).generate_logits(
+                    verification_output, prompt = await self.model_manager.get_model(task.llm_model_id).generate_logits(
                         messages=task.task_messages + [{"role": "assistant", "content": "".join(chunks[:check_idx])}],
                         sampling_params=sampling_parameters,
                         continue_last_message=True,
