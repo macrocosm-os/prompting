@@ -146,7 +146,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         if not response_url or not response_content or not response_relevant:
             return 0
 
-        # Extract domain from URL
+        # Extract domain from URL.
         netloc = extract_main_domain(response_url)
         logger.debug(f"Scoring url: {response_url}")
 
