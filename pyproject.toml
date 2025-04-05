@@ -164,6 +164,7 @@ primp = "^0.10.0"
 nltk = { version = ">=3.8.1", optional = true }
 thefuzz = { version = ">=0.22.1", optional = true }
 wandb = { version = ">=0.19.4", optional = true }
+python-whois = { version = ">=0.9.5", optional = true }
 substrate-interface = "^1.7.11"
 tldextract = "^5.1.3"
 
@@ -187,6 +188,7 @@ validator = [
     "datasets",
     "nltk",
     "wandb",
+    "python-whois",
 ]
 
 [build-system]
