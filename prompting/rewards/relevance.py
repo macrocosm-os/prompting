@@ -20,7 +20,7 @@ class RelevanceRewardModel(BaseRewardModel):
         "WhereIsAI/UAE-Large-V1", pooling_strategy="cls", device=shared_settings.NEURON_DEVICE
     ).to(shared_settings.NEURON_DEVICE)
 
-    async def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
+    async def reward(self, reference: str, response_event: DendriteResponseEvent, model_manager=None, **kwargs) -> BatchRewardOutput:
         """Calculate the cosine similarity between sentence embeddings of the reference and completions.
 
         We subtract a baseline score which is what an empty string would get (a failed completion).
