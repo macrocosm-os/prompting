@@ -1,5 +1,4 @@
 from loguru import logger
-import numpy as np
 
 try:
     import torch
@@ -7,7 +6,6 @@ try:
 except ImportError:
     logger.warning("Transformers or torch is not installed. This module will not be available.")
 
-from prompting.llms.hf_llm import ReproducibleHF
 from prompting.llms.vllm_llm import ReproducibleVLLM
 
 

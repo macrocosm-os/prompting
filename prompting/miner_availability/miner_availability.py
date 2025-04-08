@@ -67,7 +67,9 @@ class CheckMinerAvailability(AsyncLoopRunner):
             try:
                 self.miners_dict[uid] = {
                     "task_availabilities": response.get("task_availabilities", {task: True for task in task_config}),
-                    "llm_model_availabilities": response.get("llm_model_availabilities", {model: False for model in model_config}),
+                    "llm_model_availabilities": response.get(
+                        "llm_model_availabilities", {model: False for model in model_config}
+                    ),
                 }
             except BaseException:
                 logger.debug(f"Availability Response Invalid for miner {uid}")

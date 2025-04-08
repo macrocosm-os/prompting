@@ -1,14 +1,12 @@
 import random
 from typing import ClassVar
 
-import numpy as np
 from pydantic import Field, model_validator
 
 from prompting.datasets.sn13 import ChatEntry
 from prompting.llms.model_manager import ModelManager
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.rewards.inference_reward_model import InferenceRewardModel
-from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.tasks.base_task import BaseTextTask
 from shared import settings

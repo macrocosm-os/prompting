@@ -1,7 +1,7 @@
-import numpy as np
-from pydantic import BaseModel, ConfigDict, model_validator, Field
-
 from typing import Any
+
+import numpy as np
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from shared.misc import serialize_exception_to_string
 

@@ -1,17 +1,20 @@
-from typing import Callable, Any, Type
-from pydantic import BaseModel
+from typing import Any, Callable, Type
+
 from loguru import logger
+from pydantic import BaseModel
 
 _serializers: dict[Type, Callable[[Any], Any]] = {}
+
 
 def register_serializer(cls: Type):
     def wrapper(func: Callable[[Any], Any]):
         _serializers[cls] = func
         return func
+
     return wrapper
 
-def recursive_model_dump(obj: Any, path: str = "") -> Any:
 
+def recursive_model_dump(obj: Any, path: str = "") -> Any:
     # Check custom serializer
     for cls, serializer in _serializers.items():
         if isinstance(obj, cls):

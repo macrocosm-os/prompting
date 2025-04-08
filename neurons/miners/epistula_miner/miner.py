@@ -7,7 +7,6 @@ shared_settings = settings.shared_settings
 import asyncio
 import json
 import time
-import numpy as np
 
 import httpx
 import netaddr
@@ -15,12 +14,12 @@ import requests
 import uvicorn
 from bittensor.core.axon import FastAPIThreadedServer
 from bittensor.core.extrinsics.serving import serve_extrinsic
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from loguru import logger
 from starlette.background import BackgroundTask
 from starlette.responses import StreamingResponse
-from web_retrieval import get_websites_with_similarity
 from vllm import LLM, SamplingParams
+from web_retrieval import get_websites_with_similarity
 
 from shared.epistula import verify_signature
 

@@ -1,10 +1,11 @@
+import gc
 import random
+
 import numpy as np
 import torch
-from vllm import LLM, SamplingParams
 from loguru import logger
+from vllm import LLM, SamplingParams
 from vllm.distributed import destroy_model_parallel
-import gc
 
 
 class ReproducibleVLLM:
@@ -65,7 +66,7 @@ class ReproducibleVLLM:
                 # Append back just the trailing whitespace if it was stripped
                 if trailing_space:
                     prompt += trailing_space
-            except (AttributeError, NotImplementedError) as e:
+            except (AttributeError, NotImplementedError):
                 raise ValueError(f"Chat template not supported for model {self.model_id}")
         else:
             prompt = messages[0] if isinstance(messages, list) else messages

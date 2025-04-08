@@ -188,7 +188,11 @@ async def stream_from_first_response(
         await remaining_tasks
         asyncio.create_task(
             scoring_queue.scoring_queue.append_response(
-                uids=uids, body=body, chunks=collected_chunks_list, chunk_dicts_raw=collected_chunks_raw_list, timings=timings_list
+                uids=uids,
+                body=body,
+                chunks=collected_chunks_list,
+                chunk_dicts_raw=collected_chunks_raw_list,
+                timings=timings_list,
             )
         )
 
@@ -365,6 +369,8 @@ async def collect_remaining_nonstream_responses(
         # TODO: Add timings.
         # timings = [response[2] if response else [] for response in collected_responses]
         # Append all collected responses to the scoring queue for later processing.
-        await scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=chunks, chunk_dicts_raw=chunk_dicts_raw)
+        await scoring_queue.scoring_queue.append_response(
+            uids=uids, body=body, chunks=chunks, chunk_dicts_raw=chunk_dicts_raw
+        )
     except Exception as e:
         logger.error(f"Error appending non-stream responses to scoring queue: {e}")

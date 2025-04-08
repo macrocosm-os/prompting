@@ -8,9 +8,9 @@ import torch.multiprocessing as mp
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
 
-from prompting.llms.vllm_llm import ReproducibleVLLM
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.llms.utils import GPUInfo, model_factory
+from prompting.llms.vllm_llm import ReproducibleVLLM
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
 

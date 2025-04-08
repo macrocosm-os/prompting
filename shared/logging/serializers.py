@@ -1,7 +1,10 @@
-from openai.types.chat import ChatCompletionChunk
 from logging import logger
-from shared.logging.serializer_registry import register_serializer
+
 import numpy as np
+from openai.types.chat import ChatCompletionChunk
+
+from shared.logging.serializer_registry import register_serializer
+
 
 @register_serializer(ChatCompletionChunk)
 def serialize_chunk(chunk: ChatCompletionChunk) -> dict:
@@ -17,9 +20,11 @@ def serialize_chunk(chunk: ChatCompletionChunk) -> dict:
         logger.error(f"Error: {e}")
         return {"content": None, "logprobs": None}
 
+
 @register_serializer(np.ndarray)
 def serialize_ndarray(array: np.ndarray) -> list:
     return array.tolist()
+
 
 @register_serializer(np.float64)
 def serialize_float64(value: np.float64) -> float:

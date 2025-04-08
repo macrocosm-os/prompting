@@ -1,11 +1,11 @@
 import asyncio
 import datetime
-from openai.types.chat import ChatCompletionChunk
 from collections import deque
 from typing import Any
 
 import httpx
 from loguru import logger
+from openai.types.chat import ChatCompletionChunk
 from pydantic import BaseModel
 
 from shared import settings

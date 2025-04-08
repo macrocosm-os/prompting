@@ -2,9 +2,8 @@ import json
 import os
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Any, Literal
+from typing import Literal
 
-import numpy as np
 import wandb
 from loguru import logger
 from pydantic import BaseModel, ConfigDict
@@ -199,8 +198,8 @@ class RewardLoggingEvent(BaseEvent):
             source: {self.source}
             reference: {self.reference}
             challenge: {self.challenge}
-        """ 
-    
+        """
+
     # Override the model_dump method to return a dictionary like the __str__ method
     def model_dump(self) -> dict:
         return {
