@@ -15,6 +15,7 @@ from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.task_registry import TaskRegistry
 from shared import settings
 from shared.dendrite import DendriteResponseEvent
+from shared.logging.serializer_registry import recursive_model_dump
 
 # TODO: Get rid of global variables.
 WANDB: Run | None = None
@@ -186,16 +187,46 @@ class RewardLoggingEvent(BaseEvent):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __str__(self):
-        rewards = [r.rewards for r in self.reward_events]
-
+        # Return everthing
         return f"""RewardLoggingEvent:
-            Rewards:
-                Rewards: {rewards}
-                Min: {np.min(rewards) if len(rewards) > 0 else None}
-                Max: {np.max(rewards) if len(rewards) > 0 else None}
-                Average: {np.mean(rewards) if len(rewards) > 0 else None}
+            block: {self.block}
+            step: {self.step}
+            response_event: {self.response_event}
+            reward_events: {self.reward_events}
             task_id: {self.task_id}
-            task_name: {self.task}"""
+            task: {self.task}
+            task_dict: {self.task_dict}
+            source: {self.source}
+            reference: {self.reference}
+            challenge: {self.challenge}
+        """ 
+    
+    # Override the model_dump method to return a dictionary like the __str__ method
+    def model_dump(self) -> dict:
+        return {
+            "block": self.block,
+            "step": self.step,
+            "response_event": self.response_event,
+            "reward_events": self.reward_events,
+            "task_id": self.task_id,
+            "task": self.task,
+            "task_dict": self.task_dict,
+            "source": self.source,
+            "reference": self.reference,
+            "challenge": self.challenge,
+        }
+
+    # def __str__(self):
+    #     rewards = [r.rewards for r in self.reward_events]
+
+    #     return f"""RewardLoggingEvent:
+    #         Rewards:
+    #             Rewards: {rewards}
+    #             Min: {np.min(rewards) if len(rewards) > 0 else None}
+    #             Max: {np.max(rewards) if len(rewards) > 0 else None}
+    #             Average: {np.mean(rewards) if len(rewards) > 0 else None}
+    #         task_id: {self.task_id}
+    #         task_name: {self.task}"""
 
 
 class MinerLoggingEvent(BaseEvent):
@@ -222,21 +253,11 @@ def log_event(event: BaseEvent):
     if settings.shared_settings.WANDB_ON:
         if should_reinit_wandb():
             reinit_wandb()
-        unpacked_event = unpack_events(event)
-        unpacked_event = convert_arrays_to_lists(unpacked_event)
+        unpacked_event = recursive_model_dump(event)
+        # Attempt to serialize the event
+        try:
+            serialized_event = json.dumps(unpacked_event)
+        except Exception as e:
+            logger.error(f"Error serializing event: {e}")
+            logger.error(f"Event: {unpacked_event}")
         wandb.log(unpacked_event)
-
-
-def unpack_events(event: BaseEvent) -> dict[str, Any]:
-    """reward_events and penalty_events are unpacked into a list of dictionaries."""
-    event_dict = event.model_dump()
-    for key in list(event_dict.keys()):
-        if key == "response_event":
-            nested_dict = event_dict.pop(key)
-            if isinstance(nested_dict, dict):
-                event_dict.update(nested_dict)
-    return event_dict
-
-
-def convert_arrays_to_lists(data: dict) -> dict:
-    return {key: value.tolist() if hasattr(value, "tolist") else value for key, value in data.items()}
