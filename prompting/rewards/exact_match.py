@@ -81,6 +81,10 @@ class LogitsRewardModel(BaseRewardModel):
         Calculates rewards based on the logits of the response and verifies them.
         """
 
+        # Check that the model_manager is set
+        if model_manager is None:
+            raise ValueError("Model manager must be set")
+
         all_chunks: list[list[str]] = response_event.stream_results_all_chunks
         all_chunk_dicts_raw: list[list[ChatCompletionChunk]] = response_event.stream_results_all_chunk_dicts_raw
         all_timings: list[list[float]] = response_event.stream_results_all_chunks_timings
@@ -181,7 +185,9 @@ class LogitsRewardModel(BaseRewardModel):
                 rewards.append(-INCORRECT_PENALTY)
                 timing_outputs.append(0.0)
 
-        return BatchRewardOutput(
+        reward_output = BatchRewardOutput(
             rewards=np.array(rewards),
             timings=np.array(timing_outputs),
         )
+        logger.debug(f"REWARD OUTPUT: {reward_output.model_dump()}")
+        return reward_output
