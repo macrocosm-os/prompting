@@ -1,5 +1,6 @@
 from typing import Callable, Any, Type
 from pydantic import BaseModel
+from loguru import logger
 
 _serializers: dict[Type, Callable[[Any], Any]] = {}
 
@@ -10,7 +11,6 @@ def register_serializer(cls: Type):
     return wrapper
 
 def recursive_model_dump(obj: Any, path: str = "") -> Any:
-    from pydantic import BaseModel
 
     # Check custom serializer
     for cls, serializer in _serializers.items():
@@ -22,9 +22,8 @@ def recursive_model_dump(obj: Any, path: str = "") -> Any:
         try:
             data = vars(obj)  # Same as obj.__dict__
         except Exception as e:
-            print(f"🧨 Failed accessing __dict__ at {path}: {type(obj)} — {e}")
-            raise
-
+            logger.error(f"❌ Failed to dump __dict__ at {path}: {type(obj)} — {e}")
+            raise e
         result = {}
         for k, v in data.items():
             result[k] = recursive_model_dump(v, f"{path}.{k}")
@@ -40,7 +39,7 @@ def recursive_model_dump(obj: Any, path: str = "") -> Any:
         try:
             return recursive_model_dump(vars(obj), f"{path}.__dict__")
         except Exception as e:
-            print(f"❌ Failed to dump __dict__ at {path}: {type(obj)} — {e}")
-            raise
+            logger.error(f"❌ Failed to dump __dict__ at {path}: {type(obj)} — {e}")
+            raise e
 
     return obj
