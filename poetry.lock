@@ -4671,6 +4671,22 @@ files = [
 diagrams = ["pydot (>=2.0.0)"]
 
 [[package]]
+name = "python-whois"
+version = "0.9.5"
+description = "Whois querying and parsing of domain registration information."
+optional = true
+python-versions = "*"
+groups = ["main"]
+markers = "extra == \"validator\""
+files = [
+    {file = "python_whois-0.9.5-py3-none-any.whl", hash = "sha256:d435cf8012659745ce3b4e7c15428df9405648696727812d9eaacc36782d14e3"},
+    {file = "python_whois-0.9.5.tar.gz", hash = "sha256:18968c21484752fcc4b9a5f0af477ef6b8dc2e8bb7f1bd5c33831499c0dd41ca"},
+]
+
+[package.dependencies]
+python-dateutil = "*"
+
+[[package]]
 name = "pytz"
 version = "2025.2"
 description = "World timezone definitions, modern and historical"
