@@ -6780,9 +6780,9 @@ multidict = ">=4.0"
 propcache = ">=0.2.1"
 
 [extras]
-validator = ["accelerate", "angle-emb", "bs4", "datasets", "duckduckgo-search", "huggingface-hub", "nltk", "numpy", "pandas", "rouge", "thefuzz", "torch", "torchvision", "trafilatura", "transformers", "wandb", "wikipedia"]
+validator = ["accelerate", "angle-emb", "bs4", "datasets", "duckduckgo-search", "huggingface-hub", "nltk", "numpy", "pandas", "python-whois", "rouge", "thefuzz", "torch", "torchvision", "trafilatura", "transformers", "wandb", "wikipedia"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10 <3.11"
-content-hash = "4be7e084d2e100d8fb51b67359c91ec41cb9c70c4ab91aa11b6dbdc29ee2ccaa"
+content-hash = "bab43e80d6ae9c0c2f3c71cf1f439139f916c709973e4eeecfdef4de40d3329c"
