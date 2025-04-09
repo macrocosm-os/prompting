@@ -67,11 +67,6 @@ def verify_single_logit(original_logits, verification_logits):
     return np.dot(orig_vec, verif_vec)
 
 
-# def verify_logits(chunk_dicts_raw: list[ChatCompletionChunk], model_id: str):
-# placeholder
-# model_id.query_model.
-
-
 class LogitsRewardModel(BaseRewardModel):
     async def reward(
         self,
@@ -106,7 +101,7 @@ class LogitsRewardModel(BaseRewardModel):
                 max_length = len(chunk)
 
         if max_length == 0:
-            logger.debug("NO CHUNKS TO VERIFY, PENALIZING ALL")
+            logger.debug("No chunks to verify, penalizing all")
             return PENALIZE_ALL
 
         if timeout <= 0:
@@ -138,13 +133,11 @@ class LogitsRewardModel(BaseRewardModel):
                 for idx in verify_indices:
                     check_idx = min(idx, completion_length - 1)
                     if not chunk_dicts_raw[check_idx].choices[0].logprobs:
-                        # logger.debug(f"NO LOGPROBS FOR CHUNK: {chunk_dicts_raw[check_idx]}")
-                        # logger.debug(f"LOGPROBS: {chunk_dicts_raw[check_idx].choices[0].logprobs}")
                         verification_scores.append(0.0)
                         continue
 
                     if chunk_dicts_raw[check_idx].choices[0].logprobs.content is None:
-                        logger.warning(f"Miner failed to provide logits: {chunk_dicts_raw[check_idx]}")
+                        logger.debug(f"Miner failed to provide logits: {chunk_dicts_raw[check_idx]}")
                         verification_scores.append(0.0)
                         continue
                     original_logits = {
@@ -160,11 +153,6 @@ class LogitsRewardModel(BaseRewardModel):
 
                     logit_score = verify_single_logit(original_logits, verification_output)
                     verification_scores.append(logit_score)
-                    # if logit_score < 0.99:
-                    #     logger.debug(f"VERIFICATION OUTPUT: {verification_output}")
-                    #     logger.debug(f"PROMPT: {prompt}")
-                    #     logger.debug(f"ORIGINAL LOGITS: {original_logits}")
-                    # At the end, if we've checked all indices, break
                     if idx >= completion_length:
                         break
                 final_score = np.mean(verification_scores)

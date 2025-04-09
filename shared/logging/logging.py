@@ -215,18 +215,6 @@ class RewardLoggingEvent(BaseEvent):
             "challenge": self.challenge,
         }
 
-    # def __str__(self):
-    #     rewards = [r.rewards for r in self.reward_events]
-
-    #     return f"""RewardLoggingEvent:
-    #         Rewards:
-    #             Rewards: {rewards}
-    #             Min: {np.min(rewards) if len(rewards) > 0 else None}
-    #             Max: {np.max(rewards) if len(rewards) > 0 else None}
-    #             Average: {np.mean(rewards) if len(rewards) > 0 else None}
-    #         task_id: {self.task_id}
-    #         task_name: {self.task}"""
-
 
 class MinerLoggingEvent(BaseEvent):
     epoch_time: float
