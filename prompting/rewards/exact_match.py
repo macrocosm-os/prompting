@@ -100,20 +100,20 @@ class LogitsRewardModel(BaseRewardModel):
             timings=np.array([0.0] * len(completions)),
         )
 
-        if not any(chunks for chunks in all_chunks):
+        max_length = 0
+        for chunk in all_chunks:
+            if chunk and max_length < len(chunk):
+                max_length = len(chunk)
+
+        if max_length == 0:
             logger.debug("NO CHUNKS TO VERIFY, PENALIZING ALL")
             return PENALIZE_ALL
+
         if timeout <= 0:
             logger.error("Timeout must be greater than 0. Received timeout: {}", timeout)
             raise ValueError("Timeout must be greater than 0.")
 
         timing_outputs, rewards = [], []
-
-        # Find longest completion for verification indices
-        max_length = max(len(chunks) for chunks in all_chunks) if all_chunks else 0
-        if max_length == 0:
-            logger.debug("MAX LENGTH IS 0, PENALIZING ALL")
-            return PENALIZE_ALL
         num_verify = max(1, int(max_length * VERIFICATION_RATIO))
         verify_indices = random.sample(
             range(max_length - 1), num_verify - 1
@@ -136,13 +136,13 @@ class LogitsRewardModel(BaseRewardModel):
                 verification_scores = []
                 completion_length = len(chunks)
 
-                logger.debug(f"VERIFY INDICES: {verify_indices}")
-                logger.debug(f"CHUNKS TO VERIFY: {[chunks[i] for i in verify_indices]}")
+                # logger.debug(f"VERIFY INDICES: {verify_indices}")
+                # logger.debug(f"CHUNKS TO VERIFY: {[chunks[i] for i in verify_indices]}")
                 for idx in verify_indices:
                     check_idx = min(idx, completion_length - 1)
                     if not chunk_dicts_raw[check_idx].choices[0].logprobs:
-                        logger.debug(f"NO LOGPROBS FOR CHUNK: {chunk_dicts_raw[check_idx]}")
-                        logger.debug(f"LOGPROBS: {chunk_dicts_raw[check_idx].choices[0].logprobs}")
+                        # logger.debug(f"NO LOGPROBS FOR CHUNK: {chunk_dicts_raw[check_idx]}")
+                        # logger.debug(f"LOGPROBS: {chunk_dicts_raw[check_idx].choices[0].logprobs}")
                         verification_scores.append(0.0)
                         continue
 
@@ -163,10 +163,10 @@ class LogitsRewardModel(BaseRewardModel):
 
                     logit_score = verify_single_logit(original_logits, verification_output)
                     verification_scores.append(logit_score)
-                    if logit_score < 0.99:
-                        logger.debug(f"VERIFICATION OUTPUT: {verification_output}")
-                        logger.debug(f"PROMPT: {prompt}")
-                        logger.debug(f"ORIGINAL LOGITS: {original_logits}")
+                    # if logit_score < 0.99:
+                    #     logger.debug(f"VERIFICATION OUTPUT: {verification_output}")
+                    #     logger.debug(f"PROMPT: {prompt}")
+                    #     logger.debug(f"ORIGINAL LOGITS: {original_logits}")
                     # At the end, if we've checked all indices, break
                     if idx >= completion_length:
                         break
@@ -182,9 +182,9 @@ class LogitsRewardModel(BaseRewardModel):
 
                 rewards.append(float(final_score > VERIFICATION_THRESHOLD) * timing_reward)
                 timing_outputs.append(np.array(valid_chunks).mean())
-                logger.info(
-                    f"FINAL SCORE: {final_score}\n\nVERIFICATION SCORES: {verification_scores}\n\nTIMING REWARD: {timing_reward}\n\nREWARDS: {rewards}\n\n"
-                )
+                # logger.info(
+                #     f"FINAL SCORE: {final_score}\n\nVERIFICATION SCORES: {verification_scores}\n\nTIMING REWARD: {timing_reward}\n\nREWARDS: {rewards}\n\n"
+                # )
             except Exception as e:
                 logger.warning(f"Error in reward calculation: {e}")
                 rewards.append(-INCORRECT_PENALTY)

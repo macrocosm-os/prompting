@@ -215,7 +215,7 @@ async def handle_availability(
     try:
         axon_info = metagraph.axons[uid]
         url = f"http://{axon_info.ip}:{axon_info.port}/availability"
-        logger.debug(f"Querying availability from {url}")
+        # logger.debug(f"Querying availability from {url}")
         timeout = httpx.Timeout(shared_settings.NEURON_TIMEOUT, connect=5, read=5)
 
         async with httpx.AsyncClient(timeout=timeout) as client:
