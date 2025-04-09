@@ -32,8 +32,6 @@ NEURON_STREAMING_BATCH_SIZE: int = 12
 NEURON_STOP_ON_FORWARD_EXCEPTION: bool = False
 SHOULD_SERVE_LLM: bool = True
 LOCAL_MODEL_ID = "casperhansen/llama-3.2-3b-instruct-awq"
-# LOCAL_MODEL_ID = "casperhansen/tinyllama-1.1b-chat-smoothquant"
-# LOCAL_MODEL_ID = "casperhansen/qwen2-0.5b-instruct-awq"
 
 
 def get_token_logprobs(llm, prompt, sampling_params):
@@ -150,8 +148,6 @@ class OpenAIMiner:
                 logprobs=10,
             )
 
-            # Format messages into a prompt
-            # prompt = "\n".join([msg["content"] for msg in messages])
             prompt = self.tokenizer.apply_chat_template(
                 messages,
                 tokenize=False,
@@ -243,7 +239,7 @@ class OpenAIMiner:
             raise HTTPException(status_code=400, detail=err)
 
     def run(self):
-        external_ip = None  # shared_settings.EXTERNAL_IP
+        external_ip = None
         if not external_ip or external_ip == "[::]":
             try:
                 external_ip = requests.get("https://checkip.amazonaws.com").text.strip()
@@ -252,14 +248,14 @@ class OpenAIMiner:
                 logger.error("Failed to get external IP")
 
         logger.info(
-            f"Serving miner endpoint {external_ip}:{11175} on network: {shared_settings.SUBTENSOR_NETWORK} with netuid: {shared_settings.NETUID}"
+            f"Serving miner endpoint {external_ip}:{shared_settings.AXON_PORT} on network: {shared_settings.SUBTENSOR_NETWORK} with netuid: {shared_settings.NETUID}"
         )
 
         serve_success = serve_extrinsic(
             subtensor=shared_settings.SUBTENSOR,
             wallet=shared_settings.WALLET,
             ip=external_ip,
-            port=11175,
+            port=shared_settings.AXON_PORT,
             protocol=4,
             netuid=shared_settings.NETUID,
         )
@@ -284,8 +280,7 @@ class OpenAIMiner:
         fast_config = uvicorn.Config(
             app,
             host="0.0.0.0",
-            # port=shared_settings.AXON_PORT,
-            port=11175,
+            port=shared_settings.AXON_PORT,
             log_level="info",
             loop="asyncio",
             workers=4,

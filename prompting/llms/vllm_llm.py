@@ -131,7 +131,6 @@ class ReproducibleVLLM:
             stripped = content.rstrip()
             if len(content) > len(stripped):
                 trailing_space = content[len(stripped) :]
-                print(f'Trailing space: "{trailing_space}"')
 
         if not messages[-1]["content"]:
             continue_last_message = False
