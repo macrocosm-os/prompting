@@ -56,7 +56,6 @@ async def create_loop_process(
             task_scorer.start(model_scheduler, scoring_queue, reward_events, simultaneous_loops=2), name="TaskScorer"
         )
         all_tasks = [profile, tasks, models, scorer]
-        # all_tasks = [models]
 
         while True:
             await asyncio.sleep(5)
