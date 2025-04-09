@@ -125,7 +125,6 @@ class LogitsRewardModel(BaseRewardModel):
 
         for chunks, timings, chunk_dicts_raw in zip(all_chunks, all_timings, all_chunk_dicts_raw):
             try:
-                logger.debug(f"CHECKING CHUNKS: {chunks}")
                 # If no response is provided, apply full penalty
                 if not chunks:
                     rewards.append(-INCORRECT_PENALTY)
@@ -136,8 +135,6 @@ class LogitsRewardModel(BaseRewardModel):
                 verification_scores = []
                 completion_length = len(chunks)
 
-                # logger.debug(f"VERIFY INDICES: {verify_indices}")
-                # logger.debug(f"CHUNKS TO VERIFY: {[chunks[i] for i in verify_indices]}")
                 for idx in verify_indices:
                     check_idx = min(idx, completion_length - 1)
                     if not chunk_dicts_raw[check_idx].choices[0].logprobs:
@@ -182,9 +179,6 @@ class LogitsRewardModel(BaseRewardModel):
 
                 rewards.append(float(final_score > VERIFICATION_THRESHOLD) * timing_reward)
                 timing_outputs.append(np.array(valid_chunks).mean())
-                # logger.info(
-                #     f"FINAL SCORE: {final_score}\n\nVERIFICATION SCORES: {verification_scores}\n\nTIMING REWARD: {timing_reward}\n\nREWARDS: {rewards}\n\n"
-                # )
             except Exception as e:
                 logger.warning(f"Error in reward calculation: {e}")
                 rewards.append(-INCORRECT_PENALTY)
