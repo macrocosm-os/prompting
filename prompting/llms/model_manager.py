@@ -13,6 +13,7 @@ from prompting.llms.utils import GPUInfo, model_factory
 from prompting.llms.vllm_llm import ReproducibleVLLM
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
+from shared.misc import async_lru_cache
 
 
 class ModelManager(BaseModel):
@@ -179,6 +180,24 @@ class ModelManager(BaseModel):
                 messages=[dict_messages], sampling_params=sampling_params, seed=seed
             )
             return responses
+
+    @async_lru_cache(maxsize=1000)
+    async def generate_logits(
+        self,
+        messages: list[str],
+        model: ModelConfig | str | None = None,
+        sampling_params: dict[str, float] = None,
+        seed: int = None,
+        continue_last_message: bool = False,
+    ):
+        async with self._lock:
+            model_instance: ReproducibleVLLM = await self.get_model(model)
+            return await model_instance.generate_logits(
+                messages=messages,
+                sampling_params=sampling_params,
+                seed=seed,
+                continue_last_message=continue_last_message,
+            )
 
     async def _vram_cleanup(self):
         """Perform VRAM clean-up."""
