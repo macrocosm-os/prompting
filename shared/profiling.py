@@ -55,7 +55,10 @@ class LoopProfiler:
             stats["min_time"] = min(stats["min_time"], wall_duration)
             stats["max_time"] = max(stats["max_time"], wall_duration)
             stats["last_iteration_end"] = datetime.now()
-            self._active_measurements.remove(loop_name)
+            try:
+                self._active_measurements.remove(loop_name)
+            except KeyError:
+                pass
 
     async def print_stats(self):
         while True:

@@ -123,7 +123,7 @@ def start_task_sending_loop(
 
         logger.info("Starting task sending loop in validator...")
         asyncio.create_task(task_sender.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=1))
-        logger.error("Task sending loop started")
+        logger.debug("Task sending loop started")
         while True:
             await asyncio.sleep(5)
             logger.debug("Task sending loop is running")
@@ -195,7 +195,7 @@ async def main(
 
         try:
             # Start checking the availability of miners at regular intervals
-            if settings.shared_settings.DEPLOY_SCORING_API:
+            if settings.shared_settings.DEPLOY_SCORING_API and not settings.shared_settings.NEURON_DISABLE_SET_WEIGHTS:
                 # Use multiprocessing to bypass API blocking issue
                 api_process = mp.Process(
                     target=start_api, args=(scoring_queue, reward_events, miners_dict), name="APIProcess"

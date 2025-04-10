@@ -37,7 +37,7 @@ def calculate_image_tokens(width: int, height: int, low_res: bool = False) -> in
 
 class LLMMessage(BaseModel):
     role: Literal["system", "user", "assistant"]
-    content: str = None
+    content: str | None = None
     image: Image.Image | None = None
 
     class Config:

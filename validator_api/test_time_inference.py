@@ -61,7 +61,7 @@ def parse_multiple_json(api_response):
                 continue
 
     if len(parsed_objects) == 0:
-        logger.error(
+        logger.debug(
             f"No valid JSON objects found in the response - couldn't parse json. The miner response was: {api_response}"
         )
         return None
@@ -70,7 +70,7 @@ def parse_multiple_json(api_response):
         or not parsed_objects[0].get("content")
         or not parsed_objects[0].get("next_action")
     ):
-        logger.error(
+        logger.debug(
             f"Invalid JSON object found in the response - field missing. The miner response was: {api_response}"
         )
         return None
@@ -110,7 +110,6 @@ async def make_api_call(
                     max_tokens=2000,
                 )
 
-            logger.debug(f"Making API call with\n\nMESSAGES: {messages}\n\nRESPONSE: {response_str}")
             response_dict = parse_multiple_json(response_str)[0]
             return response_dict
         except Exception as e:

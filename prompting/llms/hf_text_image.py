@@ -6,25 +6,25 @@ try:
 except ImportError:
     logger.warning("Transformers or torch is not installed. This module will not be available.")
 
-from prompting.llms.hf_llm import ReproducibleHF
+from prompting.llms.vllm_llm import ReproducibleVLLM
 
 
-class HFTextImageToText(ReproducibleHF):
-    def __init__(
-        self,
-        model_id: str = "google/gemma-3-27b-it",
-        device: str = "cuda:0",
-        sampling_params: dict[str, str | float | int | bool] | None = None,
-    ):
-        super().__init__(model_id, device, sampling_params)
-        self.model: AutoModelForImageTextToText = AutoModelForImageTextToText.from_pretrained(
-            model_id,
-            torch_dtype=torch.bfloat16,
-            device_map=self._device,
-        )
-        self.model = self.model.to(self._device)
-        self.tokenizer = AutoProcessor.from_pretrained(model_id)
-        self.valid_generation_params = set(self.model.generation_config.to_dict().keys())
+class VLLMTextImageToText(ReproducibleVLLM):
+    # def __init__(
+    #     self,
+    #     model_id: str = "google/gemma-3-27b-it",
+    #     device: str = "cuda:0",
+    #     sampling_params: dict[str, str | float | int | bool] | None = None,
+    # ):
+    #     super().__init__(model_id, device, sampling_params)
+    # self.model: AutoModelForImageTextToText = AutoModelForImageTextToText.from_pretrained(
+    #     model_id,
+    #     torch_dtype=torch.bfloat16,
+    #     device_map=self._device,
+    # )
+    # self.tokenizer = AutoProcessor.from_pretrained(model_id)
+    # self.valid_generation_params = set(self.model.generation_config.to_dict().keys())
+    # self.message_formatter = HFTextImageToText.format_messages
 
     @staticmethod
     def format_messages(messages: list[str] | list[dict[str, str]]) -> list[dict[str, str | list[dict[str, str]]]]:
@@ -36,9 +36,9 @@ class HFTextImageToText(ReproducibleHF):
         Output: [{"role": "user", "content": [{"type": "text", "text": "Hello"}]}]
         """
         formatted_messages = []
-        # Check if the message is a list of only one element and that element is a list
-        if isinstance(messages, list) and len(messages) == 1 and isinstance(messages[0], list):
-            messages = messages[0]
+        # Flatten list if messages is nested
+        if isinstance(messages, list) and all(isinstance(m, list) for m in messages):
+            messages = [item for sublist in messages for item in sublist]
         for message in messages:
             if isinstance(message, dict) and "content" in message:
                 # If content is a string, convert it to a list with a dictionary
@@ -57,5 +57,5 @@ class HFTextImageToText(ReproducibleHF):
 
 
 if __name__ == "__main__":
-    model = HFTextImageToText(model_id="google/gemma-3-27b-it", device="cuda:0")
+    model = VLLMTextImageToText(model_id="google/gemma-3-27b-it", device="cuda:0")
     print(model.generate([{"role": "user", "content": "What's ur name?"}]))
