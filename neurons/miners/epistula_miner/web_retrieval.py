@@ -3,9 +3,9 @@ from typing import Dict, List
 
 import numpy as np
 import trafilatura
+from duckduckgo_search.duckduckgo_search import DDGS
 from openai import OpenAI
 
-from duckduckgo_search.duckduckgo_search import DDGS
 from shared import settings
 
 

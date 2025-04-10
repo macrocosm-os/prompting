@@ -1,7 +1,8 @@
 import random
-from loguru import logger
 from typing import Any, ClassVar, Iterator
+
 from datasets import load_dataset
+from loguru import logger
 from pydantic import ConfigDict, model_validator
 
 from shared.base import BaseDataset, DatasetEntry
@@ -29,7 +30,7 @@ class HuggingFaceGithubDatasetEntry(DatasetEntry):
 
 class HuggingFaceGithubDataset(BaseDataset):
     language: str = "python"
-    
+
     # Shared streaming dataset and its number of shards
     base_dataset: ClassVar[Any] = None
     num_shards: ClassVar[int] = DEFAULT_NUM_SHARDS
@@ -44,10 +45,7 @@ class HuggingFaceGithubDataset(BaseDataset):
         if HuggingFaceGithubDataset.base_dataset is None:
             # Load the full streaming dataset
             HuggingFaceGithubDataset.base_dataset = load_dataset(
-                "macrocosm-os/code-parrot-github-code",
-                streaming=True,
-                split="train",
-                trust_remote_code=True
+                "macrocosm-os/code-parrot-github-code", streaming=True, split="train", trust_remote_code=True
             )
             # Try to determine the number of shards from the underlying file list.
             files = HuggingFaceGithubDataset.base_dataset._ex_iterable.kwargs.get("files")
@@ -66,8 +64,7 @@ class HuggingFaceGithubDataset(BaseDataset):
         random_shard_index = random.randrange(HuggingFaceGithubDataset.num_shards)
         print(f"Shard index {random_shard_index}")
         shard_dataset = HuggingFaceGithubDataset.base_dataset.shard(
-            num_shards=HuggingFaceGithubDataset.num_shards,
-            index=random_shard_index
+            num_shards=HuggingFaceGithubDataset.num_shards, index=random_shard_index
         )
         # Apply filtering to the selected shard
         shard_dataset = shard_dataset.filter(self._filter_function)
@@ -84,10 +81,7 @@ class HuggingFaceGithubDataset(BaseDataset):
         file_content = "\n".join(entry["content"].split("\n")[:MAX_LINES])
         url = f"https://github.com/{entry['repo_name']}"
         return HuggingFaceGithubDatasetEntry(
-            github_url=url,
-            file_path=entry["path"],
-            file_content=file_content,
-            source=url
+            github_url=url, file_path=entry["path"], file_content=file_content, source=url
         )
 
     def _try_sample(self) -> HuggingFaceGithubDatasetEntry:

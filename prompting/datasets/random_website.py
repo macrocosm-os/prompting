@@ -3,8 +3,8 @@ from functools import lru_cache
 from typing import Optional
 
 import trafilatura
-from loguru import logger
 from duckduckgo_search.duckduckgo_search import DDGS
+from loguru import logger
 
 from prompting.datasets.utils import ENGLISH_WORDS
 from shared import settings
