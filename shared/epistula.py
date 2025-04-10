@@ -136,8 +136,8 @@ async def query_miners(
                             timeout_connect=timeout_connect,
                         )
                     ),
-                    # Give additional time for connect and result post-processings.
-                    timeout=timeout_seconds + timeout_connect + timeout_postprocess,
+                    # Give additional time for result post-processings.
+                    timeout=timeout_seconds + timeout_postprocess,
                 )
             except asyncio.TimeoutError:
                 logger.error(f"Timeout exceeded while querying miner {uid}")
