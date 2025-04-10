@@ -4,8 +4,8 @@ from typing import Optional
 
 import trafilatura
 from loguru import logger
+from duckduckgo_search.duckduckgo_search import DDGS
 
-from prompting.base.duckduckgo_patch import PatchedDDGS
 from prompting.datasets.utils import ENGLISH_WORDS
 from shared import settings
 from shared.base import BaseDataset, Context, DatasetEntry
@@ -25,7 +25,7 @@ class DDGDataset(BaseDataset):
     english_words: list[str] = None
 
     def search_random_term(self, retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
-        ddg = PatchedDDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
+        ddg = DDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
         exception: BaseException | None = None
         for _ in range(retries):
             random_words = " ".join(random.sample(ENGLISH_WORDS, 3))

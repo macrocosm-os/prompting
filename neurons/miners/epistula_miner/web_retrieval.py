@@ -5,13 +5,8 @@ import numpy as np
 import trafilatura
 from openai import OpenAI
 
-from prompting.base.duckduckgo_patch import PatchedDDGS
+from duckduckgo_search.duckduckgo_search import DDGS
 from shared import settings
-
-# Import the patched DDGS and use that
-
-
-# Import the patched DDGS and use that
 
 
 async def fetch_url(url: str) -> str:
@@ -54,7 +49,7 @@ async def get_websites_with_similarity(
     Returns:
         List of dictionaries containing website URLs and their best matching chunks
     """
-    ddgs = PatchedDDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
+    ddgs = DDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
     results = list(ddgs.text(query))
     urls = [r["href"] for r in results][:n_results]
 
