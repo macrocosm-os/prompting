@@ -1,4 +1,9 @@
+import random
+from typing import Any, ClassVar, Iterator
 from datasets import load_dataset
+from datasets.dataset_dict import DatasetDict, IterableDatasetDict
+from datasets.arrow_dataset import Dataset
+from datasets.iterable_dataset import IterableDataset
 from pydantic import ConfigDict, model_validator
 
 from shared.base import BaseDataset, DatasetEntry
@@ -13,6 +18,7 @@ MIN_INPUT_LINES = 10
 OUTPUT_LINES = 10
 MAX_LINES = 500
 RETRIES = 50  # Increased retry limit
+RANDOM_SKIP = 1_000
 
 
 class HuggingFaceGithubDatasetEntry(DatasetEntry):
@@ -24,17 +30,18 @@ class HuggingFaceGithubDatasetEntry(DatasetEntry):
 
 class HuggingFaceGithubDataset(BaseDataset):
     language: str = "python"
-    dataset: any = None
-    iterator: any = None
+    dataset: ClassVar[DatasetDict | Dataset | IterableDatasetDict | IterableDataset | None] = None
+    iterator: ClassVar[Iterator[Any] | None] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="after")
     def load_dataset(self) -> "HuggingFaceGithubDataset":
-        self.dataset = load_dataset(
-            "macrocosm-os/code-parrot-github-code", streaming=True, split="train", trust_remote_code=True
-        )
-        self.iterator = iter(self.dataset.filter(self._filter_function))
+        if HuggingFaceGithubDataset.dataset is None or self.iterator is None:
+            HuggingFaceGithubDataset.dataset = load_dataset(
+                "macrocosm-os/code-parrot-github-code", streaming=True, split="train", trust_remote_code=True
+            )
+            HuggingFaceGithubDataset.iterator = iter(HuggingFaceGithubDataset.dataset.filter(self._filter_function))
         return self
 
     def _filter_function(self, example):
@@ -55,9 +62,12 @@ class HuggingFaceGithubDataset(BaseDataset):
         return self.next()
 
     def next(self) -> HuggingFaceGithubDatasetEntry:
+        for _ in range(random.randint(0, RANDOM_SKIP)):
+            next(HuggingFaceGithubDataset.iterator)
+
         for _ in range(RETRIES):
             try:
-                entry = next(self.iterator)
+                entry = next(HuggingFaceGithubDataset.iterator)
                 return self._process_entry(entry)  # Throws failed to get a valid file after multiple attempts
             except StopIteration:
                 self.reset()
@@ -69,7 +79,7 @@ class HuggingFaceGithubDataset(BaseDataset):
         return self.next()
 
     def reset(self):
-        self.iterator = iter(self.dataset.filter(self._filter_function))
+        HuggingFaceGithubDataset.iterator = iter(HuggingFaceGithubDataset.dataset.filter(self._filter_function))
 
 
 if __name__ == "__main__":

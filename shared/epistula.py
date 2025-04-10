@@ -124,7 +124,7 @@ async def query_miners(
         for uid in uids:
             try:
                 timeout_connect = 10
-                timeout_postprocess = 5
+                timeout_postprocess = 1
                 response = asyncio.wait_for(
                     asyncio.create_task(
                         make_openai_query(
