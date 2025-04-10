@@ -32,7 +32,12 @@ class TaskConfig(BaseModel):
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
-        TaskConfig(task=WebQuestionAnsweringTask, probability=0.05, datasets=[DDGDataset], reward_model=QARewardConfig),
+        TaskConfig(
+            task=WebQuestionAnsweringTask,
+            probability=0.05,
+            datasets=[DDGDataset],
+            reward_model=QARewardConfig,
+        ),
         TaskConfig(
             task=InferenceTask,
             probability=0.3,

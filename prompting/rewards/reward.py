@@ -5,6 +5,7 @@ from typing import ClassVar, Literal
 import numpy as np
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from prompting.llms.model_manager import ModelManager
 from prompting.tasks.base_task import BaseTextTask
 from shared.dendrite import DendriteResponseEvent
 
@@ -66,6 +67,7 @@ class BatchRewardOutput(BaseModel):
 
 
 class BaseRewardModel(ABC, BaseModel):
+    model_manager: ModelManager = None
     weight: float = 1.0
 
     @abstractmethod
@@ -121,6 +123,7 @@ class BaseRewardConfig(ABC, BaseModel):
     and weight it with <1.
     """
 
+    model_manager: ModelManager = None
     reward_definitions: ClassVar[list[BaseRewardModel]]
     penalty_definitions: ClassVar[list[BaseRewardModel]] = []
 
@@ -143,9 +146,14 @@ class BaseRewardConfig(ABC, BaseModel):
         challenge: str | None = None,
         model_id: str | None = None,
         task: BaseTextTask | None = None,
+        model_manager: ModelManager | None = None,
     ) -> list[WeightedRewardEvent]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
+            # Set the model_manager on the weighted_reward if it's None
+            if weighted_reward.model_manager is None and model_manager is not None:
+                weighted_reward.model_manager = model_manager
+
             reward_events.append(
                 await weighted_reward.apply(
                     reference=reference,

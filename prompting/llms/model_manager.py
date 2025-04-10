@@ -8,11 +8,45 @@ import torch.multiprocessing as mp
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
 
-from prompting.llms.hf_llm import ReproducibleHF
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.llms.utils import GPUInfo, model_factory
+from prompting.llms.vllm_llm import ReproducibleVLLM
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
+from shared.misc import async_lru_cache
+
+
+class AsyncRLock:
+    def __init__(self):
+        self._lock = asyncio.Lock()
+        self._owner = None
+        self._count = 0
+
+    async def acquire(self):
+        current_task = asyncio.current_task()
+        if self._owner == current_task:
+            self._count += 1
+            return True
+        await self._lock.acquire()
+        self._owner = current_task
+        self._count = 1
+        return True
+
+    def release(self):
+        current_task = asyncio.current_task()
+        if self._owner != current_task:
+            raise RuntimeError("Lock can only be released by the owner")
+        self._count -= 1
+        if self._count == 0:
+            self._owner = None
+            self._lock.release()
+
+    async def __aenter__(self):
+        await self.acquire()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.release()
 
 
 class ModelManager(BaseModel):
@@ -21,15 +55,15 @@ class ModelManager(BaseModel):
     event_restart: pymp.synchronize.Event = Field(default_factory=mp.Event)
     always_active_models: list[ModelConfig] = []
     total_ram: float = settings.shared_settings.LLM_MODEL_RAM
-    active_models: dict[ModelConfig, ReproducibleHF] = {}
+    active_models: dict[ModelConfig, ReproducibleVLLM] = {}
     used_ram: float = 0.0
-    _lock: ClassVar[asyncio.Lock] = asyncio.Lock()
+    lock: ClassVar[AsyncRLock] = AsyncRLock()
 
     async def load_always_active_models(self):
         for model_config in self.always_active_models:
             await self.load_model(model_config=model_config)
 
-    async def load_model(self, model_config: ModelConfig, force: bool = True) -> ReproducibleHF:
+    async def load_model(self, model_config: ModelConfig, force: bool = True) -> ReproducibleVLLM:
         """Load model into GPU.
 
         Warning: This operation will block execution until the model is successfully loaded into VRAM.
@@ -38,7 +72,7 @@ class ModelManager(BaseModel):
             model_config: Model config to load.
             force: If enabled, will unload all other models.
         """
-        async with self._lock:
+        async with self.lock:
             if model_config in self.active_models.keys():
                 logger.debug(f"Model {model_config.llm_model_id} is already loaded.")
                 return self.active_models[model_config]
@@ -90,7 +124,7 @@ class ModelManager(BaseModel):
                     logger.debug(f"Current active models: {self.active_models}")
                     await asyncio.sleep(retry_delay)
 
-    async def _cleanup_model(self, model_instance: ReproducibleHF, cpu_offload: bool = False):
+    async def _cleanup_model(self, model_instance: ReproducibleVLLM, cpu_offload: bool = False):
         """Free VRAM from given model."""
         if cpu_offload:
             try:
@@ -140,8 +174,8 @@ class ModelManager(BaseModel):
 
         GPUInfo.log_gpu_info()
 
-    async def get_model(self, llm_model: ModelConfig | str) -> ReproducibleHF:
-        async with self._lock:
+    async def get_model(self, llm_model: ModelConfig | str) -> ReproducibleVLLM:
+        async with self.lock:
             if not llm_model:
                 llm_model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
             if isinstance(llm_model, str):
@@ -164,21 +198,38 @@ class ModelManager(BaseModel):
         else:
             dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
 
-        async with self._lock:
+        async with self.lock:
             if isinstance(model, str):
                 model = ModelZoo.get_model_by_id(model)
             if not model:
                 model = ModelZoo.get_random(max_ram=self.total_ram)
 
-        model_instance: ReproducibleHF = await self.get_model(model)
+        model_instance: ReproducibleVLLM = await self.get_model(model)
 
-        async with self._lock:
+        async with self.lock:
             if model_instance is None:
                 raise ValueError("Model is None, which may indicate the model is still loading.")
             responses = await model_instance.generate(
                 messages=[dict_messages], sampling_params=sampling_params, seed=seed
             )
             return responses
+
+    @async_lru_cache(maxsize=1000)
+    async def generate_logits(
+        self,
+        messages: list[str],
+        model: ModelConfig | str | None = None,
+        sampling_params: dict[str, float] = None,
+        seed: int = None,
+        continue_last_message: bool = False,
+    ):
+        model_instance: ReproducibleVLLM = await self.get_model(model)
+        return await model_instance.generate_logits(
+            messages=messages,
+            sampling_params=sampling_params,
+            seed=seed,
+            continue_last_message=continue_last_message,
+        )
 
     async def _vram_cleanup(self):
         """Perform VRAM clean-up."""
@@ -213,7 +264,7 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    interval: int = 14400
+    interval: int = 10
     scoring_queue: list | None = None
 
     async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
@@ -222,6 +273,8 @@ class AsyncModelScheduler(AsyncLoopRunner):
 
     async def run_step(self):
         """This method is called periodically according to the interval."""
+        if self.llm_model_manager.active_models:
+            self.interval = 600
         # try to load the model belonging to the oldest task in the queue
         selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
         if not selected_model:

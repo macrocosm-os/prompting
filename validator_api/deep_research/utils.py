@@ -52,7 +52,6 @@ def with_retries(max_retries: int = 3):
                 except Exception as e:
                     # Get the full stack trace
                     stack_trace = traceback.format_exc()
-
                     # If this is the last attempt, log as critical with full stack trace
                     if attempt == max_retries - 1:
                         logger.exception(
@@ -60,7 +59,6 @@ def with_retries(max_retries: int = 3):
                             f"Error: {str(e)}\nStack trace:\n{stack_trace}"
                         )
                         raise  # Re-raise the exception after logging
-
                     # Otherwise log as error without stack trace
                     logger.error(
                         f"Function '{func.__name__}' failed on attempt {attempt + 1}/{max_retries}. "

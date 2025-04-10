@@ -441,7 +441,6 @@ class OrchestratorV2(BaseModel):
             # Plan and execute tools for this step
             yield make_chunk(f"\n## Step {step + 1}: Planning Tools\n")
             tool_requests = await self.plan_tool_executions()
-
             if tool_requests:
                 for request in tool_requests:
                     yield make_chunk(f"\n## Executing {request.tool_name}\n{request.purpose}\n")

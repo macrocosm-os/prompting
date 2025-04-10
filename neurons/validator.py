@@ -195,7 +195,7 @@ async def main(
 
         try:
             # Start checking the availability of miners at regular intervals
-            if settings.shared_settings.DEPLOY_SCORING_API:
+            if settings.shared_settings.DEPLOY_SCORING_API and not settings.shared_settings.NEURON_DISABLE_SET_WEIGHTS:
                 # Use multiprocessing to bypass API blocking issue
                 api_process = mp.Process(
                     target=start_api, args=(scoring_queue, reward_events, miners_dict), name="APIProcess"

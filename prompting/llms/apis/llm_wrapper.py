@@ -1,5 +1,3 @@
-from loguru import logger
-
 from prompting.llms.apis.gpt_wrapper import openai_client
 from prompting.llms.apis.llm_messages import LLMMessages
 from prompting.llms.apis.sn19_wrapper import chat_complete
@@ -37,10 +35,11 @@ class LLMWrapper:
                 )
 
             except Exception:
-                logger.error(
-                    "Failed to use SN19 API, falling back to GPT-3.5. "
-                    "Make sure to specify 'SN19_API_KEY' and 'SN19_API_URL' in .env.validator"
-                )
+                # logger.error(
+                #     "Failed to use SN19 API, falling back to GPT-3.5. "
+                #     "Make sure to specify 'SN19_API_KEY' and 'SN19_API_URL' in .env.validator"
+                # )
+                pass
 
         if response is None:
             model = "gpt-3.5-turbo"

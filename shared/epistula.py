@@ -164,6 +164,7 @@ async def query_miners(
                         uid=uid,
                         accumulated_chunks=response[1],
                         accumulated_chunks_timings=response[2],
+                        accumulated_chunk_dicts_raw=response[3],
                     )
                 )
             else:
@@ -178,7 +179,7 @@ async def query_miners(
         )
         return results
     except Exception as e:
-        logger.error(f"Error in query_miners: {e}")
+        logger.exception(f"Error in query_miners: {e}")
         return []
 
 
@@ -214,7 +215,7 @@ async def handle_availability(
     try:
         axon_info = metagraph.axons[uid]
         url = f"http://{axon_info.ip}:{axon_info.port}/availability"
-
+        # logger.debug(f"Querying availability from {url}")
         timeout = httpx.Timeout(shared_settings.NEURON_TIMEOUT, connect=5, read=5)
 
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -268,6 +269,7 @@ async def make_openai_query(
         chunk_timings = []
         last_finish_reason = None  # Only track the finish reason of the last chunk
 
+        chunk_dicts_raw = []
         async for chunk in chat:
             if not chunk.choices:
                 continue
@@ -282,7 +284,7 @@ async def make_openai_query(
             if chunk.choices[0].delta.content:
                 chunks.append(chunk.choices[0].delta.content)
                 chunk_timings.append(time.perf_counter() - start_time)
-
+                chunk_dicts_raw.append(chunk)
         choices = [
             Choice(
                 index=i,
@@ -305,82 +307,5 @@ async def make_openai_query(
             ),
             chunks,
             chunk_timings,
+            chunk_dicts_raw,
         )
-
-
-async def handle_inference(
-    metagraph: "bt.NonTorchMetagraph",
-    wallet: "bt.wallet",
-    body: Dict[str, Any],
-    uid: int,
-    stream: bool = False,
-    timeout_seconds: int = shared_settings.NEURON_TIMEOUT,
-) -> SynapseStreamResult:
-    exception = None
-    chunks = []
-    chunk_timings = []
-    try:
-        start_time = time.time()
-        axon_info = metagraph.axons[uid]
-        miner = openai.AsyncOpenAI(
-            base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
-            api_key="Apex",
-            max_retries=0,
-            timeout=Timeout(timeout_seconds, connect=5, read=10),
-            http_client=openai.DefaultAsyncHttpxClient(
-                event_hooks={
-                    "request": [create_header_hook(wallet.hotkey, axon_info.hotkey, timeout_seconds=timeout_seconds)]
-                }
-            ),
-        )
-        payload = json.loads(body)
-        chat = await miner.chat.completions.create(
-            messages=payload["messages"],
-            model=payload["model"],
-            stream=True,
-            extra_body={k: v for k, v in payload.items() if k not in ["messages", "model"]},
-        )
-        if not stream:
-            async for chunk in chat:
-                if chunk.choices[0].delta and chunk.choices[0].delta.content:
-                    chunks.append(chunk.choices[0].delta.content)
-                    chunk_timings.append(time.time() - start_time)
-    except openai.APIConnectionError as e:
-        logger.trace(f"Miner {uid} failed request: {e}")
-        exception = str(e)
-    except Exception as e:
-        logger.trace(f"Unknown Error when sending to miner {uid}: {e}")
-        exception = str(e)
-    finally:
-        if exception is None:
-            status_code = 200
-            status_message = "Success"
-        elif isinstance(exception, openai.APIConnectionError):
-            status_code = 502
-            status_message = exception
-        else:
-            status_code = 500
-            status_message = exception
-
-    if stream:
-        return chat
-    else:
-        try:
-            return SynapseStreamResult(
-                accumulated_chunks=chunks,
-                accumulated_chunks_timings=chunk_timings,
-                uid=uid,
-                exception=exception,
-                status_code=status_code,
-                status_message=status_message,
-            )
-        except Exception as e:
-            logger.error(f"Couldn't create SynapseStreamResult: {e}")
-            return SynapseStreamResult(
-                accumulated_chunks=[],
-                accumulated_chunks_timings=[],
-                uid=uid,
-                exception=f"Exception thrown validator-side: {str(e)}",
-                status_code=500,
-                status_message="Exception thrown validator-side",
-            )
