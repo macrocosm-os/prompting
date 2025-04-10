@@ -13,6 +13,40 @@ from prompting.llms.utils import GPUInfo, model_factory
 from prompting.llms.vllm_llm import ReproducibleVLLM
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
+from shared.misc import async_lru_cache
+
+
+class AsyncRLock:
+    def __init__(self):
+        self._lock = asyncio.Lock()
+        self._owner = None
+        self._count = 0
+
+    async def acquire(self):
+        current_task = asyncio.current_task()
+        if self._owner == current_task:
+            self._count += 1
+            return True
+        await self._lock.acquire()
+        self._owner = current_task
+        self._count = 1
+        return True
+
+    def release(self):
+        current_task = asyncio.current_task()
+        if self._owner != current_task:
+            raise RuntimeError("Lock can only be released by the owner")
+        self._count -= 1
+        if self._count == 0:
+            self._owner = None
+            self._lock.release()
+
+    async def __aenter__(self):
+        await self.acquire()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        self.release()
 
 
 class ModelManager(BaseModel):
@@ -23,7 +57,7 @@ class ModelManager(BaseModel):
     total_ram: float = settings.shared_settings.LLM_MODEL_RAM
     active_models: dict[ModelConfig, ReproducibleVLLM] = {}
     used_ram: float = 0.0
-    _lock: ClassVar[asyncio.Lock] = asyncio.Lock()
+    lock: ClassVar[AsyncRLock] = AsyncRLock()
 
     async def load_always_active_models(self):
         for model_config in self.always_active_models:
@@ -38,7 +72,7 @@ class ModelManager(BaseModel):
             model_config: Model config to load.
             force: If enabled, will unload all other models.
         """
-        async with self._lock:
+        async with self.lock:
             if model_config in self.active_models.keys():
                 logger.debug(f"Model {model_config.llm_model_id} is already loaded.")
                 return self.active_models[model_config]
@@ -141,7 +175,7 @@ class ModelManager(BaseModel):
         GPUInfo.log_gpu_info()
 
     async def get_model(self, llm_model: ModelConfig | str) -> ReproducibleVLLM:
-        async with self._lock:
+        async with self.lock:
             if not llm_model:
                 llm_model = list(self.active_models.keys())[0] if self.active_models else ModelZoo.get_random()
             if isinstance(llm_model, str):
@@ -164,7 +198,7 @@ class ModelManager(BaseModel):
         else:
             dict_messages = [{"content": message, "role": role} for message, role in zip(messages, roles)]
 
-        async with self._lock:
+        async with self.lock:
             if isinstance(model, str):
                 model = ModelZoo.get_model_by_id(model)
             if not model:
@@ -172,13 +206,30 @@ class ModelManager(BaseModel):
 
         model_instance: ReproducibleVLLM = await self.get_model(model)
 
-        async with self._lock:
+        async with self.lock:
             if model_instance is None:
                 raise ValueError("Model is None, which may indicate the model is still loading.")
             responses = await model_instance.generate(
                 messages=[dict_messages], sampling_params=sampling_params, seed=seed
             )
             return responses
+
+    @async_lru_cache(maxsize=1000)
+    async def generate_logits(
+        self,
+        messages: list[str],
+        model: ModelConfig | str | None = None,
+        sampling_params: dict[str, float] = None,
+        seed: int = None,
+        continue_last_message: bool = False,
+    ):
+        model_instance: ReproducibleVLLM = await self.get_model(model)
+        return await model_instance.generate_logits(
+            messages=messages,
+            sampling_params=sampling_params,
+            seed=seed,
+            continue_last_message=continue_last_message,
+        )
 
     async def _vram_cleanup(self):
         """Perform VRAM clean-up."""
