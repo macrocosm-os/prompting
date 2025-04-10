@@ -3,9 +3,9 @@ from functools import lru_cache
 from typing import Optional
 
 import trafilatura
+from duckduckgo_search.duckduckgo_search import DDGS
 from loguru import logger
 
-from prompting.base.duckduckgo_patch import PatchedDDGS
 from prompting.datasets.utils import ENGLISH_WORDS
 from shared import settings
 from shared.base import BaseDataset, Context, DatasetEntry
@@ -25,7 +25,7 @@ class DDGDataset(BaseDataset):
     english_words: list[str] = None
 
     def search_random_term(self, retries: int = 3) -> tuple[Optional[str], Optional[list[dict[str, str]]]]:
-        ddg = PatchedDDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
+        ddg = DDGS(proxy=settings.shared_settings.PROXY_URL, verify=False)
         exception: BaseException | None = None
         for _ in range(retries):
             random_words = " ".join(random.sample(ENGLISH_WORDS, 3))
@@ -40,13 +40,16 @@ class DDGDataset(BaseDataset):
 
     @staticmethod
     @lru_cache(maxsize=1000)
-    def extract_website_content(url: str) -> Optional[str]:
-        try:
-            website = trafilatura.fetch_url(url)
-            extracted = trafilatura.extract(website)
-            return extracted[:MAX_CHARS] if extracted else None
-        except Exception as ex:
-            logger.debug(f"Failed to extract content from website {url}: {ex}")
+    def extract_website_content(url: str, retries: int = 3) -> Optional[str]:
+        exception: Exception | None = None
+        for _ in range(retries):
+            try:
+                website = trafilatura.fetch_url(url)
+                extracted = trafilatura.extract(website)
+                return extracted[:MAX_CHARS] if extracted else None
+            except Exception as ex:
+                exception = ex
+        logger.debug(f"Failed to extract content from website {url} after {retries} retries: {exception}")
 
     def next(self) -> Optional[DDGDatasetEntry]:
         search_term, results = self.search_random_term(retries=5)
