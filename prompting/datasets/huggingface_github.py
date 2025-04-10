@@ -31,11 +31,10 @@ class HuggingFaceGithubDatasetEntry(DatasetEntry):
 class HuggingFaceGithubDataset(BaseDataset):
     language: str = "python"
 
-    # Shared streaming dataset and its number of shards
     base_dataset: ClassVar[Any] = None
     num_shards: ClassVar[int] = DEFAULT_NUM_SHARDS
 
-    # Instance-level iterator over the current shard
+    # Instance-level iterator over the current shard.
     current_shard_iterator: Iterator[Any] | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -43,7 +42,7 @@ class HuggingFaceGithubDataset(BaseDataset):
     @model_validator(mode="after")
     def load_dataset(self) -> "HuggingFaceGithubDataset":
         if HuggingFaceGithubDataset.base_dataset is None:
-            # Load the full streaming dataset
+            # Load the full streaming dataset.
             HuggingFaceGithubDataset.base_dataset = load_dataset(
                 "macrocosm-os/code-parrot-github-code", streaming=True, split="train", trust_remote_code=True
             )
@@ -52,21 +51,20 @@ class HuggingFaceGithubDataset(BaseDataset):
             if files is not None:
                 HuggingFaceGithubDataset.num_shards = len(files)
             else:
-                print("Cannot get number of shards")
+                logger.warning("Cannot get number of shards")
                 HuggingFaceGithubDataset.num_shards = DEFAULT_NUM_SHARDS
 
-        # Select a random shard to begin iterating
+        # Select a random shard to begin iterating.
         self._reset_shard()
         return self
 
     def _reset_shard(self) -> None:
         """Choose a new random shard and creates a fresh iterator over its filtered records."""
         random_shard_index = random.randrange(HuggingFaceGithubDataset.num_shards)
-        print(f"Shard index {random_shard_index}")
         shard_dataset = HuggingFaceGithubDataset.base_dataset.shard(
             num_shards=HuggingFaceGithubDataset.num_shards, index=random_shard_index
         )
-        # Apply filtering to the selected shard
+        # Apply filtering to the selected shard.
         shard_dataset = shard_dataset.filter(self._filter_function)
         HuggingFaceGithubDataset.current_shard_iterator = iter(shard_dataset)
 
@@ -84,7 +82,7 @@ class HuggingFaceGithubDataset(BaseDataset):
             github_url=url, file_path=entry["path"], file_content=file_content, source=url
         )
 
-    def _try_sample(self) -> HuggingFaceGithubDatasetEntry:
+    def _try_sample(self) -> dict[str, str]:
         """Return the next record from the current shard.
 
         When the shard is exhausted, it automatically resets to a new random shard.
