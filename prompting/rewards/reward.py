@@ -150,9 +150,6 @@ class BaseRewardConfig(ABC, BaseModel):
     ) -> list[WeightedRewardEvent]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
-            # Set the model_manager on the weighted_reward if it's None
-            if weighted_reward.model_manager is None and model_manager is not None:
-                weighted_reward.model_manager = model_manager
 
             reward_events.append(
                 await weighted_reward.apply(
@@ -162,6 +159,7 @@ class BaseRewardConfig(ABC, BaseModel):
                     reward_type="reward",
                     model_id=model_id,
                     task=task,
+                    model_manager=model_manager,
                 ),
             )
         return reward_events

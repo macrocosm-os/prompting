@@ -16,8 +16,6 @@ class InferenceRewardModel(BaseRewardModel):
         **kwargs,
     ) -> BatchRewardOutput:
         """Gives an exact reward of 1 if the response matches the reference, 0 otherwise"""
-        # Use self.model_manager if model_manager is None
-        model_manager = model_manager or self.model_manager
         if model_manager is None:
             raise ValueError("Model manager must be set")
 
