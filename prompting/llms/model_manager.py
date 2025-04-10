@@ -190,14 +190,13 @@ class ModelManager(BaseModel):
         seed: int = None,
         continue_last_message: bool = False,
     ):
-        async with self._lock:
-            model_instance: ReproducibleVLLM = await self.get_model(model)
-            return await model_instance.generate_logits(
-                messages=messages,
-                sampling_params=sampling_params,
-                seed=seed,
-                continue_last_message=continue_last_message,
-            )
+        model_instance: ReproducibleVLLM = await self.get_model(model)
+        return await model_instance.generate_logits(
+            messages=messages,
+            sampling_params=sampling_params,
+            seed=seed,
+            continue_last_message=continue_last_message,
+        )
 
     async def _vram_cleanup(self):
         """Perform VRAM clean-up."""
