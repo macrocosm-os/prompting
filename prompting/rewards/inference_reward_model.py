@@ -23,9 +23,7 @@ class InferenceRewardModel(BaseRewardModel):
 
         if model_id:
             logits_reward_model = LogitsRewardModel()
-            logits_reward_model.model_manager = model_manager
             return await logits_reward_model.reward(reference, response_event, task, model_manager=model_manager)
 
         relevance_reward_model = RelevanceRewardModel()
-        relevance_reward_model.model_manager = model_manager
         return await relevance_reward_model.reward(reference, response_event, model_manager=model_manager)
