@@ -40,13 +40,16 @@ class DDGDataset(BaseDataset):
 
     @staticmethod
     @lru_cache(maxsize=1000)
-    def extract_website_content(url: str) -> Optional[str]:
-        try:
-            website = trafilatura.fetch_url(url)
-            extracted = trafilatura.extract(website)
-            return extracted[:MAX_CHARS] if extracted else None
-        except Exception as ex:
-            logger.debug(f"Failed to extract content from website {url}: {ex}")
+    def extract_website_content(url: str, retries: int = 3) -> Optional[str]:
+        exception: Exception | None = None
+        for _ in range(retries):
+            try:
+                website = trafilatura.fetch_url(url)
+                extracted = trafilatura.extract(website)
+                return extracted[:MAX_CHARS] if extracted else None
+            except Exception as ex:
+                exception = ex
+        logger.debug(f"Failed to extract content from website {url} after {retries} retries: {exception}")
 
     def next(self) -> Optional[DDGDatasetEntry]:
         search_term, results = self.search_random_term(retries=5)
