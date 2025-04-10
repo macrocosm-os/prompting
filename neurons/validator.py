@@ -123,7 +123,7 @@ def start_task_sending_loop(
 
         logger.info("Starting task sending loop in validator...")
         asyncio.create_task(task_sender.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=1))
-        logger.error("Task sending loop started")
+        logger.debug("Task sending loop started")
         while True:
             await asyncio.sleep(5)
             logger.debug("Task sending loop is running")
