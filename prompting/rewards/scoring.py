@@ -61,6 +61,7 @@ class TaskScorer(AsyncLoopRunner):
     async def run_step(self) -> RewardLoggingEvent:
         await asyncio.sleep(0.1)
         # Only score responses for which the model is loaded
+        await self.model_scheduler.llm_model_manager.lock.acquire()
         scorable = [
             scoring_config
             for scoring_config in self.scoring_queue
@@ -119,6 +120,8 @@ class TaskScorer(AsyncLoopRunner):
                     source=scoring_config.dataset_entry.source,
                 )
             )
+
+        self.model_scheduler.llm_model_manager.lock.release()
         await asyncio.sleep(0.01)
 
 
