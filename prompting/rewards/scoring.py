@@ -69,8 +69,8 @@ class TaskScorer(AsyncLoopRunner):
         ]
         if len(scorable) == 0:
             # Run a model_scheduler step to load a new model as there are no more tasks to be scored
-            if len(self.scoring_queue) > 0:
-                await self.model_scheduler.run_step()
+            # if len(self.scoring_queue) > 0:
+            #     await self.model_scheduler.run_step()
             return
         self.scoring_queue.remove(scorable[0])
         scoring_config: ScoringConfig = scorable.pop(0)
