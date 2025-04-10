@@ -187,7 +187,7 @@ class ModelManager(BaseModel):
 
     async def generate(
         self,
-        messages: list[str],
+        messages: list[str] | list[dict],
         roles: list[str] | None = None,
         model: ModelConfig | str | None = None,
         seed: int = None,
@@ -210,7 +210,7 @@ class ModelManager(BaseModel):
             if model_instance is None:
                 raise ValueError("Model is None, which may indicate the model is still loading.")
             responses = await model_instance.generate(
-                messages=[dict_messages], sampling_params=sampling_params, seed=seed
+                messages=dict_messages, sampling_params=sampling_params, seed=seed
             )
             return responses
 
@@ -274,7 +274,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
     async def run_step(self):
         """This method is called periodically according to the interval."""
         if self.llm_model_manager.active_models:
-            self.interval = 600
+            self.interval = 1200
         # try to load the model belonging to the oldest task in the queue
         selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
         if not selected_model:
