@@ -67,7 +67,6 @@ class BatchRewardOutput(BaseModel):
 
 
 class BaseRewardModel(ABC, BaseModel):
-    model_manager: ModelManager = None
     weight: float = 1.0
 
     @abstractmethod
