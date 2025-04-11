@@ -214,7 +214,6 @@ class ModelManager(BaseModel):
             )
             return responses
 
-    @async_lru_cache(maxsize=1000)
     async def generate_logits(
         self,
         messages: list[str],
