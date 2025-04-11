@@ -13,7 +13,6 @@ from prompting.llms.utils import GPUInfo, model_factory
 from prompting.llms.vllm_llm import ReproducibleVLLM
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
-from shared.misc import async_lru_cache
 
 
 class AsyncRLock:
