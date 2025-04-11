@@ -24,7 +24,7 @@ class TaskScorer(AsyncLoopRunner):
     is_running: bool = False
     model_scheduler: AsyncModelScheduler | None = None
     thread: threading.Thread = None
-    interval: int = 0
+    interval: int = 1
     scoring_queue: list | None = None
     reward_events: list | None = None
 
