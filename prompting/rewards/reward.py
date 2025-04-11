@@ -127,7 +127,6 @@ class BaseRewardConfig(ABC, BaseModel):
     and weight it with <1.
     """
 
-    model_manager: ModelManager = None
     reward_definitions: ClassVar[list[BaseRewardModel]]
     penalty_definitions: ClassVar[list[BaseRewardModel]] = []
 
