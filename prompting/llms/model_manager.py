@@ -262,17 +262,17 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    interval: int = 10
+    interval: int = 1200
     scoring_queue: list | None = None
 
     async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
         self.scoring_queue = scoring_queue
-        return await super().start(name=name, **kwargs)
+        await super().start(name=name, **kwargs)
+        # Load the model immediately.
+        await self.run_step()
 
     async def run_step(self):
         """This method is called periodically according to the interval."""
-        if self.llm_model_manager.active_models:
-            self.interval = 1200
         # try to load the model belonging to the oldest task in the queue
         selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
         if not selected_model:
@@ -283,6 +283,6 @@ class AsyncModelScheduler(AsyncLoopRunner):
             logger.info(f"Model {selected_model.llm_model_id} is already loaded.")
             return
 
-        logger.debug(f"Active models: {self.llm_model_manager.active_models.keys()}")
         await self.llm_model_manager.load_model(selected_model)
+        logger.debug(f"Active models: {self.llm_model_manager.active_models.keys()}")
         await asyncio.sleep(0.01)
