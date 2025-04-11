@@ -86,6 +86,7 @@ class LogitsRewardModel(BaseRewardModel):
 
         all_chunks: list[list[str]] = response_event.stream_results_all_chunks
         all_chunk_dicts_raw: list[list[ChatCompletionChunk]] = response_event.stream_results_all_chunk_dicts_raw
+        uids: np.ndarray | list[float] = response_event.uids
         all_timings: list[list[float]] = response_event.stream_results_all_chunks_timings
         completions: list[str] = response_event.completions
         timeout: float = response_event.timeout
@@ -118,7 +119,7 @@ class LogitsRewardModel(BaseRewardModel):
 
         # Iterate over each response event
 
-        for chunks, timings, chunk_dicts_raw in zip(all_chunks, all_timings, all_chunk_dicts_raw):
+        for chunks, timings, chunk_dicts_raw, uid in zip(all_chunks, all_timings, all_chunk_dicts_raw, uids):
             try:
                 # If no response is provided, apply full penalty
                 if not chunks:
@@ -133,19 +134,21 @@ class LogitsRewardModel(BaseRewardModel):
                 for idx in verify_indices:
                     check_idx = min(idx, completion_length - 1)
                     if not chunk_dicts_raw[check_idx].choices[0].logprobs:
+                        logger.debug(f"Miner {uid} failed to provide logprobs: {chunk_dicts_raw[check_idx]}")
                         verification_scores.append(0.0)
                         continue
 
                     if chunk_dicts_raw[check_idx].choices[0].logprobs.content is None:
-                        logger.debug(f"Miner failed to provide logits: {chunk_dicts_raw[check_idx]}")
+                        logger.debug(f"Miner {uid} failed to provide logprobs content: {chunk_dicts_raw[check_idx]}")
                         verification_scores.append(0.0)
                         continue
+
                     original_logits = {
                         info.token: info.logprob
                         for info in chunk_dicts_raw[check_idx].choices[0].logprobs.content[0].top_logprobs
                     }
 
-                    verification_output, prompt = await self.model_manager.generate_logits(
+                    verification_output, prompt = await model_manager.generate_logits(
                         model=task.llm_model_id,
                         messages=task.task_messages + [{"role": "assistant", "content": "".join(chunks[:check_idx])}],
                         sampling_params=sampling_parameters,
@@ -169,8 +172,8 @@ class LogitsRewardModel(BaseRewardModel):
                 rewards.append(float(final_score > VERIFICATION_THRESHOLD) * timing_reward)
                 timing_outputs.append(np.array(valid_chunks).mean())
             except Exception as e:
-                logger.warning(f"Error in reward calculation: {e}")
-                rewards.append(-INCORRECT_PENALTY)
+                logger.debug(f"Miner {uid} failed to provide logits chunk, setting reward to 0: {e}")
+                rewards.append(0.0)
                 timing_outputs.append(0.0)
 
         reward_output = BatchRewardOutput(

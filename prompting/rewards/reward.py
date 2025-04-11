@@ -67,11 +67,12 @@ class BatchRewardOutput(BaseModel):
 
 
 class BaseRewardModel(ABC, BaseModel):
-    model_manager: ModelManager = None
     weight: float = 1.0
 
     @abstractmethod
-    async def reward(self, reference: str, response_event: DendriteResponseEvent, **kwargs) -> BatchRewardOutput:
+    async def reward(
+        self, reference: str, response_event: DendriteResponseEvent, model_manager: ModelManager = None, **kwargs
+    ) -> BatchRewardOutput:
         raise NotImplementedError("You must implement the reward method")
 
     async def apply(
@@ -81,11 +82,14 @@ class BaseRewardModel(ABC, BaseModel):
         challenge: str | None = None,
         reward_type: Literal["reward", "penalty"] = "reward",
         task: BaseTextTask | None = None,
+        model_manager: ModelManager | None = None,
         **kwargs,
     ) -> WeightedRewardEvent:
         t0 = time.time()
         comparator = reference if reward_type == "reward" else challenge
-        batch_rewards_output: BatchRewardOutput = await self.reward(comparator, response_event, task=task, **kwargs)
+        batch_rewards_output: BatchRewardOutput = await self.reward(
+            comparator, response_event, task=task, model_manager=model_manager, **kwargs
+        )
         batch_rewards_time = time.time() - t0
 
         return WeightedRewardEvent(
@@ -123,7 +127,6 @@ class BaseRewardConfig(ABC, BaseModel):
     and weight it with <1.
     """
 
-    model_manager: ModelManager = None
     reward_definitions: ClassVar[list[BaseRewardModel]]
     penalty_definitions: ClassVar[list[BaseRewardModel]] = []
 
@@ -150,10 +153,6 @@ class BaseRewardConfig(ABC, BaseModel):
     ) -> list[WeightedRewardEvent]:
         reward_events = []
         for weighted_reward in cls.reward_definitions:
-            # Set the model_manager on the weighted_reward if it's None
-            if weighted_reward.model_manager is None and model_manager is not None:
-                weighted_reward.model_manager = model_manager
-
             reward_events.append(
                 await weighted_reward.apply(
                     reference=reference,
@@ -162,6 +161,7 @@ class BaseRewardConfig(ABC, BaseModel):
                     reward_type="reward",
                     model_id=model_id,
                     task=task,
+                    model_manager=model_manager,
                 ),
             )
         return reward_events

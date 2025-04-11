@@ -16,16 +16,12 @@ class InferenceRewardModel(BaseRewardModel):
         **kwargs,
     ) -> BatchRewardOutput:
         """Gives an exact reward of 1 if the response matches the reference, 0 otherwise"""
-        # Use self.model_manager if model_manager is None
-        model_manager = model_manager or self.model_manager
         if model_manager is None:
             raise ValueError("Model manager must be set")
 
         if model_id:
             logits_reward_model = LogitsRewardModel()
-            logits_reward_model.model_manager = model_manager
             return await logits_reward_model.reward(reference, response_event, task, model_manager=model_manager)
 
         relevance_reward_model = RelevanceRewardModel()
-        relevance_reward_model.model_manager = model_manager
         return await relevance_reward_model.reward(reference, response_event, model_manager=model_manager)
