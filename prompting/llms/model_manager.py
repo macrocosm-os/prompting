@@ -13,7 +13,6 @@ from prompting.llms.utils import GPUInfo, model_factory
 from prompting.llms.vllm_llm import ReproducibleVLLM
 from shared import settings
 from shared.loop_runner import AsyncLoopRunner
-from shared.misc import async_lru_cache
 
 
 class AsyncRLock:
@@ -214,7 +213,6 @@ class ModelManager(BaseModel):
             )
             return responses
 
-    @async_lru_cache(maxsize=1000)
     async def generate_logits(
         self,
         messages: list[str],
@@ -250,7 +248,7 @@ class ModelManager(BaseModel):
                 torch.cuda.reset_accumulated_memory_stats()
                 await asyncio.sleep(1.0)
             except BaseException as e:
-                logger.error(f"Error during CUDA empty cache: {e}")
+                logger.warning(f"Error during CUDA empty cache: {e}")
         else:
             logger.warning("CUDA is not available")
 
