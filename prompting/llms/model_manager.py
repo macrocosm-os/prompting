@@ -250,7 +250,7 @@ class ModelManager(BaseModel):
                 torch.cuda.reset_accumulated_memory_stats()
                 await asyncio.sleep(1.0)
             except BaseException as e:
-                logger.error(f"Error during CUDA empty cache: {e}")
+                logger.warning(f"Error during CUDA empty cache: {e}")
         else:
             logger.warning("CUDA is not available")
 
