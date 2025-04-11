@@ -71,8 +71,8 @@ class CheckMinerAvailability(AsyncLoopRunner):
                         "llm_model_availabilities", {model: False for model in model_config}
                     ),
                 }
-            except BaseException:
-                logger.debug(f"Availability Response Invalid for miner {uid}")
+            except BaseException as e:
+                logger.debug(f"Availability Response Invalid for miner {uid}: {e}")
 
         self.current_index = end_index
 

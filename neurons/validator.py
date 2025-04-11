@@ -53,7 +53,7 @@ async def create_loop_process(
         tasks = asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=2))
         models = asyncio.create_task(model_scheduler.start(scoring_queue, event_restart), name="ModelScheduler")
         scorer = asyncio.create_task(
-            task_scorer.start(model_scheduler, scoring_queue, reward_events, simultaneous_loops=2), name="TaskScorer"
+            task_scorer.start(model_scheduler, scoring_queue, reward_events, simultaneous_loops=1), name="TaskScorer"
         )
         all_tasks = [profile, tasks, models, scorer]
 
