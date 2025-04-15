@@ -2,6 +2,9 @@ import asyncio
 import gc
 import multiprocessing as pymp
 from typing import ClassVar
+import hashlib
+import json
+from collections import OrderedDict
 
 import torch
 import torch.multiprocessing as mp
@@ -57,6 +60,8 @@ class ModelManager(BaseModel):
     active_models: dict[ModelConfig, ReproducibleVLLM] = {}
     used_ram: float = 0.0
     lock: ClassVar[AsyncRLock] = AsyncRLock()
+    logits_cache: OrderedDict = Field(default_factory=OrderedDict)
+    max_cache_size: int = 150
 
     async def load_always_active_models(self):
         for model_config in self.always_active_models:
@@ -221,13 +226,49 @@ class ModelManager(BaseModel):
         seed: int = None,
         continue_last_message: bool = False,
     ):
+        # Create a hashable key for the cache
+        if isinstance(model, ModelConfig):
+            model_key = model.llm_model_id
+        else:
+            model_key = model
+            
+        # Convert messages to a hashable format (tuple of strings)
+        messages_key = tuple(messages)
+        
+        # Convert sampling_params to a hashable format
+        sampling_params_key = json.dumps(sampling_params, sort_keys=True) if sampling_params else None
+        
+        # Create a cache key from all parameters
+        cache_key = (messages_key, model_key, sampling_params_key, seed, continue_last_message)
+        
+        # Check if result is in cache
+        if cache_key in self.logits_cache:
+            logger.debug(f"Cache hit for logits generation with key {hash(cache_key)}")
+            # Move this entry to the end to mark it as most recently used
+            result = self.logits_cache.pop(cache_key)
+            self.logits_cache[cache_key] = result
+            return result
+        
+        # Not in cache, generate logits
         model_instance: ReproducibleVLLM = await self.get_model(model)
-        return await model_instance.generate_logits(
+        result = await model_instance.generate_logits(
             messages=messages,
             sampling_params=sampling_params,
             seed=seed,
             continue_last_message=continue_last_message,
         )
+        
+        # Check if cache is at max capacity
+        if len(self.logits_cache) >= self.max_cache_size:
+            # Remove the oldest item (first item in OrderedDict)
+            self.logits_cache.popitem(last=False)
+            logger.debug(f"Cache limit reached, removed oldest entry. Cache size: {len(self.logits_cache)}")
+        
+        # Store in cache
+        self.logits_cache[cache_key] = result
+        logger.debug(f"Cached logits generation with key {hash(cache_key)}. Cache size: {len(self.logits_cache)}")
+        
+        return result
 
     async def _vram_cleanup(self):
         """Perform VRAM clean-up."""
