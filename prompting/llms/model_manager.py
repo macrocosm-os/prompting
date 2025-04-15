@@ -61,7 +61,7 @@ class ModelManager(BaseModel):
     used_ram: float = 0.0
     lock: ClassVar[AsyncRLock] = AsyncRLock()
     logits_cache: OrderedDict = Field(default_factory=OrderedDict)
-    max_cache_size: int = 150
+    max_cache_size: int = 150 #Shouldn't need 150 generations per step, and we only need to cache per step
 
     async def load_always_active_models(self):
         for model_config in self.always_active_models:
@@ -229,7 +229,7 @@ class ModelManager(BaseModel):
         # Create a hashable key for the cache
         if isinstance(model, ModelConfig):
             model_key = model.llm_model_id
-        else:
+        else: # If model is a string, it's a model ID
             model_key = model
             
         # Convert messages to a hashable format (tuple of strings)
