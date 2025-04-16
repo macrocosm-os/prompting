@@ -61,14 +61,12 @@ async def create_loop_process(
 
         logger.info("Starting loops...")
         # Create tasks and give them descriptive names.
-        profile: asyncio.Task = asyncio.create_task(profiler.print_stats(), name="Profiler")
-        task_loop_task: asyncio.Task = asyncio.create_task(
+        profile = asyncio.create_task(profiler.print_stats(), name="Profiler")
+        task_loop_task = asyncio.create_task(
             task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=1), name="TaskLoop"
         )
-        model_scheduler_task: asyncio.Task = asyncio.create_task(
-            model_scheduler.start(scoring_queue), name="ModelScheduler"
-        )
-        task_scorer_task: asyncio.Task = asyncio.create_task(
+        model_scheduler_task = asyncio.create_task(model_scheduler.start(scoring_queue), name="ModelScheduler")
+        task_scorer_task = asyncio.create_task(
             task_scorer.start(model_scheduler, scoring_queue, reward_events, mp_lock=mp_lock, simultaneous_loops=1),
             name="TaskScorer",
         )
