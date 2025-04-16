@@ -203,7 +203,7 @@ class ReproducibleVLLM:
             if torch.distributed.is_initialized():
                 torch.distributed.destroy_process_group()
 
-            logger.info("Successfully deleted the LLM pipeline and freed GPU memory.")
+            logger.info("Successfully deleted the LLM pipeline and freed GPU memory")
 
         except Exception as e:
             logger.error(f"An error occurred during model unloading: {e}")
