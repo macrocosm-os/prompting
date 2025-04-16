@@ -187,14 +187,16 @@ class ReproducibleVLLM:
 
     def unload_model(self):
         try:
+            destroy_model_parallel()
             if hasattr(self.model, "llm_engine") and hasattr(self.model.llm_engine, "driver_worker"):
                 del self.model.llm_engine.driver_worker
+            if hasattr(self.model, "model"):
+                self.model = None
+                del self.model
+            if hasattr(self.model, "tokenizer"):
+                self.tokenizer = None
+                del self.tokenizer
 
-            destroy_model_parallel()
-            self.model = None
-            del self.model
-            self.tokenizer = None
-            del self.tokenizer
             gc.collect()
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
