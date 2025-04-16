@@ -209,6 +209,9 @@ class ReproducibleVLLM:
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
+    def __del__(self):
+        self.unload_model()
+
     @staticmethod
     def format_messages(messages: list[str] | list[dict[str, str]]) -> list[dict[str, str | list[dict[str, str]]]]:
         return messages

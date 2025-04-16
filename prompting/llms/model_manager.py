@@ -1,4 +1,5 @@
 import asyncio
+from functools import partial
 import gc
 from multiprocessing.managers import AcquirerProxy
 from typing import ClassVar
@@ -81,7 +82,7 @@ class ModelManager(BaseModel):
                     logger.debug(f"Unloading {active_model.llm_model_id} to make room for {model_config.llm_model_id}")
 
                     await self._unload_model(active_model)
-                await self._vram_cleanup()
+                await self.cleanup()
 
             retries_max = 1
             retry_counter = 0
@@ -89,11 +90,14 @@ class ModelManager(BaseModel):
             while True:
                 try:
                     GPUInfo.log_gpu_info()
-                    model = model_factory(model_config.llm_model_id)(
+                    # Wrap blocking model loading into thread.
+                    loader = partial(
+                        model_factory(model_config.llm_model_id),
                         model_id=model_config.llm_model_id,
                         device=settings.shared_settings.NEURON_DEVICE,
                         sampling_params=settings.shared_settings.SAMPLING_PARAMS,
                     )
+                    model: ReproducibleVLLM = await asyncio.to_thread(loader)
                     self.used_ram += model_config.min_ram
                     logger.info(
                         f"Model {model_config.llm_model_id} has been successfully loaded. "
@@ -105,13 +109,13 @@ class ModelManager(BaseModel):
                 except BaseException as e:
                     if retry_counter > retries_max:
                         logger.error(f"Failed to load model after {retries_max} retries. Terminating process")
-                        await self._vram_cleanup()
+                        await self.cleanup()
                         # In case of VRAM leak, raise an exception to terminate the process.
                         raise MemoryError
 
                     retry_counter += 1
                     retry_delay += retry_counter
-                    await self._vram_cleanup()
+                    await self.cleanup()
                     logger.error(
                         f"Failed to load model {model_config.llm_model_id}. Retrying in {retry_delay} seconds. "
                         f"Error: {str(e)}"
@@ -150,7 +154,7 @@ class ModelManager(BaseModel):
             logger.debug(f"Initial free GPU memory before unloading: {initial_free_memory} GB")
 
             await self._cleanup_model(model_instance, cpu_offload=False)
-            await self._vram_cleanup()
+            await self.cleanup()
 
             memory_freed = GPUInfo.free_memory - initial_free_memory
             logger.info(f"Successfully unloaded model {model_config.llm_model_id}. Memory freed: {memory_freed:.2f} GB")
@@ -219,7 +223,7 @@ class ModelManager(BaseModel):
             continue_last_message=continue_last_message,
         )
 
-    async def _vram_cleanup(self):
+    async def cleanup(self):
         """Perform VRAM clean-up."""
         for _, model in self.active_models.items():
             del model.model

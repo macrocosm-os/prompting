@@ -121,7 +121,7 @@ class HuggingFaceGithubDataset(BaseDataset):
                 return self._process_entry(entry)
             except BaseException as e:
                 logger.debug(f"Failed to sample from shard, skipping: {e}")
-        raise ValueError(f"Failed to get sample from shard after {RETRIES} retries")
+        raise ValueError(f"Failed to get sample from shard after {RETRIES} retries.")
 
     def get(self) -> HuggingFaceGithubDatasetEntry:
         return self.next()

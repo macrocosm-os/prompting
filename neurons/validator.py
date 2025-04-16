@@ -1,4 +1,6 @@
 import asyncio
+import os
+import signal
 import sys
 from multiprocessing.managers import AcquirerProxy
 
@@ -36,7 +38,7 @@ async def create_loop_process(
     reward_events: list,
     miners_dict: dict,
     mp_lock: AcquirerProxy,
-) -> None:
+):
     # Load settings and initialize external services.
     settings.shared_settings = settings.SharedSettings.load(mode="validator")
     if settings.shared_settings.WANDB_ON:
@@ -45,8 +47,10 @@ async def create_loop_process(
     # A list to keep references to all the tasks we spawn, so they can be cancelled later.
     all_tasks: list[asyncio.Task] = []
 
-    async def cleanup():
+    async def cleanup(model_scheduler):
         logger.info("Cleaning up resources...")
+        torch.distributed.destroy_process_group()
+        await model_scheduler.llm_model.cleanup()
         for t in all_tasks:
             t.cancel()
         await asyncio.gather(*all_tasks, return_exceptions=True)
@@ -88,12 +92,12 @@ async def create_loop_process(
         await spawn_loops(task_queue, scoring_queue, reward_events, miners_dict)
     except MemoryError as e:
         logger.error(f"MemoryError encountered. Terminating program: {e}")
-        await cleanup()
+        await cleanup(model_scheduler)
         sys.exit(1)
     except Exception as e:
         logger.exception(f"Terminating loop process: {e}")
     finally:
-        await cleanup()
+        await cleanup(model_scheduler)
 
 
 def start_api(
@@ -260,10 +264,10 @@ async def main(
             step = 0
             while True:
                 await asyncio.sleep(30)
-                block = settings.shared_settings.SUBTENSOR.get_current_block()
+                block = settings.shared_settings.block
                 if (
                     block - settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID] > 500
-                    and step > 120
+                    and step > 150
                 ):
                     last_update_block = settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID]
                     logger.warning(
@@ -279,17 +283,27 @@ async def main(
             logger.error(f"Main loop error: {e}")
             raise
         finally:
+            logger.warning("🚨  Force‑killing entire process‑group")
+
+            # 1. Cancel in‑process tasks so they stop touching the Manager.
             for t in tasks:
                 t.cancel()
-            await asyncio.gather(*tasks)
+            await asyncio.gather(*tasks, return_exceptions=True)
 
-            for process in processes:
-                if process.is_alive():
-                    process.terminate()
-                    process.join()
-            sys.exit(1)
+            # 2. Manager cleanup *first* (so its socket vanishes).
+            manager.shutdown()
+
+            # 3. Sledgehammer.
+            if os.name == "posix":
+                os.killpg(0, signal.SIGKILL)
+            else:
+                logger.error(f"Unsupported OS: {os.name}")
+    sys.exit(1)
 
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
+    if os.name == "posix":
+        # Become the leader of a new process group.
+        os.setpgrp()
     asyncio.run(main())

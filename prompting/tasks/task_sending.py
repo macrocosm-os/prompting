@@ -6,7 +6,6 @@ from loguru import logger
 
 from prompting.miner_availability.miner_availability import MinerAvailabilities
 
-# from prompting.rewards.scoring import task_scorer
 from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceTask
@@ -77,9 +76,6 @@ async def collect_responses(task: BaseTextTask, miners_dict: dict) -> DendriteRe
 class TaskSender(AsyncLoopRunner):
     interval: int = 10
     _lock: asyncio.Lock = asyncio.Lock()
-    block_sync_last_time: float = 0
-    block_sync_interval: float = 300
-
     task_queue: list | None = None
     scoring_queue: list | None = None
     miners_dict: dict | None = None
@@ -92,17 +88,6 @@ class TaskSender(AsyncLoopRunner):
         self.scoring_queue = scoring_queue
         self.miners_dict = miners_dict
         return await super().start(**kwargs)
-
-    @property
-    def block(self) -> int:
-        time_since_last_block = time.time() - self.block_sync_last_time
-        if time_since_last_block > self.block_sync_interval:
-            self._block = shared_settings.SUBTENSOR.get_current_block()
-            self.block_sync_last_time = time.time()
-            return self._block
-
-        blocks_passed = time_since_last_block // 12
-        return self._block + blocks_passed
 
     async def run_step(self) -> ValidatorLoggingEvent | ErrorLoggingEvent | None:
         logger.info("Checking for tasks to be sent...")
@@ -124,7 +109,7 @@ class TaskSender(AsyncLoopRunner):
                 task=task,
                 response=response_event,
                 dataset_entry=task.dataset_entry,
-                block=self.block,
+                block=shared_settings.block,
                 step=self.step,
                 task_id=task.task_id,
             )
@@ -132,7 +117,7 @@ class TaskSender(AsyncLoopRunner):
 
             # Log the step event.
             return ValidatorLoggingEvent(
-                block=self.block,
+                block=shared_settings.block,
                 step=self.step,
                 step_time=timer.final_time,
                 response_event=response_event,
