@@ -255,6 +255,7 @@ class AsyncModelScheduler(AsyncLoopRunner):
     mp_lock: AcquirerProxy
     interval: int = 1200
     scoring_queue: list | None = None
+    memory_error: MemoryError | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -277,6 +278,9 @@ class AsyncModelScheduler(AsyncLoopRunner):
             logger.info(f"Model {selected_model.llm_model_id} is already loaded.")
             return
 
-        await self.llm_model_manager.load_model(selected_model)
+        try:
+            await self.llm_model_manager.load_model(selected_model)
+        except MemoryError as e:
+            self.memory_error = e
         logger.debug(f"Active models: {self.llm_model_manager.active_models.keys()}")
         await asyncio.sleep(0.01)

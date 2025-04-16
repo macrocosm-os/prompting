@@ -82,7 +82,6 @@ class TaskSender(AsyncLoopRunner):
 
     task_queue: list | None = None
     scoring_queue: list | None = None
-    # subtensor: bt.Subtensor | None = None
     miners_dict: dict | None = None
 
     class Config:
@@ -92,9 +91,6 @@ class TaskSender(AsyncLoopRunner):
         self.task_queue = task_queue
         self.scoring_queue = scoring_queue
         self.miners_dict = miners_dict
-
-        # # shared_settings is not initialised inside this process, meaning it cannot access any non-constants from here
-        # self.subtensor = bt.subtensor(network=shared_settings.SUBTENSOR_NETWORK)
         return await super().start(**kwargs)
 
     @property
@@ -133,7 +129,6 @@ class TaskSender(AsyncLoopRunner):
                 task_id=task.task_id,
             )
             self.scoring_queue.append(scoring_config)
-            # logger.debug(f"Scoring queue length: {len(self.scoring_queue)}")
 
             # Log the step event.
             return ValidatorLoggingEvent(

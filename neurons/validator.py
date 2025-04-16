@@ -80,6 +80,8 @@ async def create_loop_process(
                 logger.debug(
                     f"Task Queue {len(task_queue)}. Scoring Queue {len(scoring_queue)}. Reward Events {len(reward_events)}"
                 )
+                if model_scheduler.memory_error is not None:
+                    raise model_scheduler.memory_error
         except asyncio.CancelledError:
             logger.info("spawn_loops received cancellation signal.")
             raise
