@@ -3,6 +3,7 @@ import os
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from typing import Literal
+import sys
 
 import wandb
 from loguru import logger
@@ -244,7 +245,10 @@ def log_event(event: BaseEvent):
         # Attempt to serialize the event
         try:
             serialized_event = json.dumps(unpacked_event)
+            logger.debug(f"Serialized event: {sys.getsizeof(serialized_event)} bytes")
+            logger.debug(f"Event: {unpacked_event}")
+            wandb.log(unpacked_event)
         except Exception as e:
             logger.error(f"Error serializing event: {e}")
             logger.error(f"Event: {unpacked_event}")
-        wandb.log(unpacked_event)
+        
