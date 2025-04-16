@@ -1,6 +1,5 @@
 import asyncio
 import gc
-from functools import partial
 from multiprocessing.managers import AcquirerProxy
 from typing import ClassVar
 
