@@ -1,11 +1,9 @@
 # ruff: noqa: E402
 import asyncio
-import time
 
 from loguru import logger
 
 from prompting.miner_availability.miner_availability import MinerAvailabilities
-
 from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceTask
