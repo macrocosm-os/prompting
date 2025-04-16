@@ -91,13 +91,12 @@ class ModelManager(BaseModel):
                 try:
                     GPUInfo.log_gpu_info()
                     # Wrap blocking model loading into thread.
-                    loader = partial(
-                        model_factory(model_config.llm_model_id),
+                    model_class = model_factory(model_config.llm_model_id)
+                    model = model_class(
                         model_id=model_config.llm_model_id,
                         device=settings.shared_settings.NEURON_DEVICE,
                         sampling_params=settings.shared_settings.SAMPLING_PARAMS,
                     )
-                    model: ReproducibleVLLM = await asyncio.to_thread(loader)
                     self.used_ram += model_config.min_ram
                     logger.info(
                         f"Model {model_config.llm_model_id} has been successfully loaded. "
@@ -257,7 +256,8 @@ class ModelManager(BaseModel):
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
     mp_lock: AcquirerProxy
-    interval: int = 1200
+    # interval: int = 1200
+    interval: int = 120
     scoring_queue: list | None = None
     memory_error: MemoryError | None = None
 
