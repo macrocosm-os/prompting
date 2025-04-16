@@ -44,7 +44,6 @@ async def create_loop_process(
     if settings.shared_settings.WANDB_ON:
         init_wandb(neuron="validator")
 
-    # A list to keep references to all the tasks we spawn, so they can be cancelled later.
     all_tasks: list[asyncio.Task] = []
 
     async def cleanup(model_scheduler):
@@ -64,7 +63,6 @@ async def create_loop_process(
         from shared.profiling import profiler
 
         logger.info("Starting loops...")
-        # Create tasks and give them descriptive names.
         profile = asyncio.create_task(profiler.print_stats(), name="Profiler")
         task_loop_task = asyncio.create_task(
             task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=1), name="TaskLoop"

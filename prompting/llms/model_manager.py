@@ -90,7 +90,6 @@ class ModelManager(BaseModel):
             while True:
                 try:
                     GPUInfo.log_gpu_info()
-                    # Wrap blocking model loading into thread.
                     model_class = model_factory(model_config.llm_model_id)
                     model = model_class(
                         model_id=model_config.llm_model_id,
