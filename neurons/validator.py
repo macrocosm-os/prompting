@@ -30,10 +30,10 @@ torch.multiprocessing.set_start_method("spawn", force=True)
 
 async def create_loop_process(
     model_scheduler: AsyncModelScheduler,
-    task_queue: List[Any],
-    scoring_queue: List[Any],
-    reward_events: List[Any],
-    miners_dict: Dict[Any, Any],
+    task_queue: list,
+    scoring_queue: list,
+    reward_events: list,
+    miners_dict: dict,
     mp_lock: mp.Lock,
 ) -> None:
     # Load settings and initialize external services.
