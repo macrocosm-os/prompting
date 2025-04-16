@@ -189,8 +189,6 @@ class ReproducibleVLLM:
         try:
             if hasattr(self.model, "llm_engine") and hasattr(self.model.llm_engine, "driver_worker"):
                 del self.model.llm_engine.driver_worker
-            else:
-                logger.warning("Attribute 'driver_worker' not found or accessible during unload")
 
             destroy_model_parallel()
             self.model = None
