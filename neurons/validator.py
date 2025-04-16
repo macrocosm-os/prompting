@@ -303,7 +303,4 @@ async def main(
 
 # The main function parses the configuration and runs the validator.
 if __name__ == "__main__":
-    if os.name == "posix":
-        # Become the leader of a new process group.
-        os.setpgrp()
     asyncio.run(main())
