@@ -1,12 +1,11 @@
 import asyncio
 import gc
-import multiprocessing as pymp
+import multiprocessing as mp
 from typing import ClassVar
 
 import torch
-import torch.multiprocessing as mp
 from loguru import logger
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.llms.utils import GPUInfo, model_factory
@@ -50,8 +49,6 @@ class AsyncRLock:
 
 class ModelManager(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    event_restart: pymp.synchronize.Event = Field(default_factory=mp.Event)
     always_active_models: list[ModelConfig] = []
     total_ram: float = settings.shared_settings.LLM_MODEL_RAM
     active_models: dict[ModelConfig, ReproducibleVLLM] = {}
@@ -109,9 +106,8 @@ class ModelManager(BaseModel):
                     if retry_counter > retries_max:
                         logger.error(f"Failed to load model after {retries_max} retries. Terminating process")
                         await self._vram_cleanup()
-                        # In case of VRAM leak, fire an event to terminate the process.
-                        self.event_restart.set()
-                        break
+                        # In case of VRAM leak, raise an exception to terminate the process.
+                        raise MemoryError
 
                     retry_counter += 1
                     retry_delay += retry_counter
@@ -138,13 +134,7 @@ class ModelManager(BaseModel):
             except Exception as e:
                 logger.exception(f"Unexpected error when moving model to CPU: {str(e)}")
 
-        model_instance.model = None
-        model_instance.tokenizer = None
-        try:
-            del model_instance.model
-            del model_instance.tokenizer
-        except BaseException as e:
-            logger.exception(f"Error deleting model attributes: {str(e)}")
+        model_instance.unload_model()
         del model_instance
 
     async def _unload_model(self, model_config: ModelConfig):
@@ -262,6 +252,7 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
+    mp_lock: mp.Lock
     interval: int = 1200
     scoring_queue: list | None = None
 
@@ -274,7 +265,8 @@ class AsyncModelScheduler(AsyncLoopRunner):
     async def run_step(self):
         """This method is called periodically according to the interval."""
         # try to load the model belonging to the oldest task in the queue
-        selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
+        with self.mp_lock:
+            selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
         if not selected_model:
             selected_model = ModelZoo.get_random(max_ram=self.llm_model_manager.total_ram)
         logger.info(f"Loading model {selected_model.llm_model_id} for {self.interval} seconds.")

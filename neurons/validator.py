@@ -1,5 +1,4 @@
 import asyncio
-import multiprocessing as pymp
 import sys
 
 import netaddr
@@ -31,54 +30,69 @@ torch.multiprocessing.set_start_method("spawn", force=True)
 
 async def create_loop_process(
     model_scheduler: AsyncModelScheduler,
-    task_queue: list,
-    scoring_queue: list,
-    reward_events: list,
-    miners_dict: dict,
-    event_restart: pymp.synchronize.Event,
-):
-    event_restart.clear()
+    task_queue: List[Any],
+    scoring_queue: List[Any],
+    reward_events: List[Any],
+    miners_dict: Dict[Any, Any],
+    mp_lock: mp.Lock,
+) -> None:
+    # Load settings and initialize external services.
     settings.shared_settings = settings.SharedSettings.load(mode="validator")
     if settings.shared_settings.WANDB_ON:
         init_wandb(neuron="validator")
 
-    async def spawn_loops(task_queue, scoring_queue, reward_events, miners_dict):
-        # ruff: noqa: E402
+    # A list to keep references to all the tasks we spawn, so they can be cancelled later.
+    all_tasks: list[asyncio.Task] = []
+
+    async def cleanup():
+        logger.info("Cleaning up resources...")
+        for t in all_tasks:
+            t.cancel()
+        await asyncio.gather(*all_tasks, return_exceptions=True)
+        if settings.shared_settings.WANDB_ON:
+            wandb.finish()
+            logger.info("WandB run finished.")
+
+    async def spawn_loops(task_queue: list, scoring_queue: list, reward_events: list, miners_dict: dict):
+        # Import modules that are local to this scope.
         from prompting.tasks.task_creation import task_loop
         from shared.profiling import profiler
 
         logger.info("Starting loops...")
-        profile = asyncio.create_task(profiler.print_stats(), name="Profiler")
-        # TODO: Revisit why do we need simultaneous loops?
-        tasks = asyncio.create_task(task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=2))
-        models = asyncio.create_task(model_scheduler.start(scoring_queue, event_restart), name="ModelScheduler")
-        scorer = asyncio.create_task(
-            task_scorer.start(model_scheduler, scoring_queue, reward_events, simultaneous_loops=1), name="TaskScorer"
+        # Create tasks and give them descriptive names.
+        profile: asyncio.Task = asyncio.create_task(profiler.print_stats(), name="Profiler")
+        task_loop_task: asyncio.Task = asyncio.create_task(
+            task_loop.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=1), name="TaskLoop"
         )
-        all_tasks = [profile, tasks, models, scorer]
+        model_scheduler_task: asyncio.Task = asyncio.create_task(
+            model_scheduler.start(scoring_queue), name="ModelScheduler"
+        )
+        task_scorer_task: asyncio.Task = asyncio.create_task(
+            task_scorer.start(model_scheduler, scoring_queue, reward_events, mp_lock=mp_lock, simultaneous_loops=1),
+            name="TaskScorer",
+        )
+        all_tasks.extend([profile, task_loop_task, model_scheduler_task, task_scorer_task])
 
-        while True:
-            await asyncio.sleep(5)
-            logger.debug(
-                f"Task Queue {len(task_queue)}. Scoring Queue {len(scoring_queue)}. Reward Events {len(reward_events)}"
-            )
-            if event_restart.is_set():
-                for t in all_tasks:
-                    t.cancel()
-                await asyncio.gather(*all_tasks)
-                raise MemoryError("Detected restart event in LoopProcess. Exiting")
+        try:
+            while True:
+                await asyncio.sleep(10)
+                logger.debug(
+                    f"Task Queue {len(task_queue)}. Scoring Queue {len(scoring_queue)}. Reward Events {len(reward_events)}"
+                )
+        except asyncio.CancelledError:
+            logger.info("spawn_loops received cancellation signal.")
+            raise
 
     try:
         await spawn_loops(task_queue, scoring_queue, reward_events, miners_dict)
+    except MemoryError as e:
+        logger.error(f"MemoryError encountered. Terminating program: {e}")
+        await cleanup()
+        sys.exit(1)
     except Exception as e:
         logger.exception(f"Terminating loop process: {e}")
     finally:
-        logger.info("Cleaning up resources...")
-
-        # Ensure wandb is closed properly
-        if settings.shared_settings.WANDB_ON:
-            wandb.finish()
-            logger.info("WandB run finished.")
+        await cleanup()
 
 
 def start_api(
@@ -119,9 +133,10 @@ def start_task_sending_loop(
     miners_dict: dict,
 ):
     async def spawn_loops(task_queue, scoring_queue, miners_dict: dict):
-        from prompting.tasks.task_sending import task_sender
+        from prompting.tasks.task_sending import TaskSender
 
         logger.info("Starting task sending loop in validator...")
+        task_sender = TaskSender()
         asyncio.create_task(task_sender.start(task_queue, scoring_queue, miners_dict, simultaneous_loops=1))
         logger.debug("Task sending loop started")
         while True:
@@ -187,11 +202,11 @@ async def main(
         scoring_queue = manager.list(list(cache_scores) if cache_scores else [])
         task_queue = manager.list(list(cache_tasks) if cache_tasks else [])
         miners_dict = manager.dict(dict(cache_miners) if cache_miners else {})
-        event_restart = mp.Event()
+        mp_lock = manager.Lock()
         processes: list[mp.Process] = []
         tasks: list[asyncio.Task] = []
 
-        model_scheduler = AsyncModelScheduler(llm_model_manager=ModelManager(event_restart=event_restart), sync=True)
+        model_scheduler = AsyncModelScheduler(llm_model_manager=ModelManager(mp_lock=mp_lock), sync=True)
 
         try:
             # Start checking the availability of miners at regular intervals
@@ -218,7 +233,7 @@ async def main(
                     scoring_queue=scoring_queue,
                     reward_events=reward_events,
                     miners_dict=miners_dict,
-                    event_restart=event_restart,
+                    mp_lock=mp_lock,
                 )
             )
             tasks.append(loop_task)
@@ -244,10 +259,6 @@ async def main(
             step = 0
             while True:
                 await asyncio.sleep(30)
-                if event_restart.is_set():
-                    logger.warning("Restart event detected. Restarting LoopProcess...")
-                    break
-
                 block = settings.shared_settings.SUBTENSOR.get_current_block()
                 if (
                     block - settings.shared_settings.METAGRAPH.last_update[settings.shared_settings.UID] > 500
@@ -258,7 +269,7 @@ async def main(
                         f"Metagraph hasn't been updated for {block - last_update_block} blocks. "
                         f"Staled block: {block}, Last update: {last_update_block}"
                     )
-                    break  # Exit the loop
+                    break
                 step += 1
 
         except KeyboardInterrupt:
