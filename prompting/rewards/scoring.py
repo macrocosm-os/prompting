@@ -1,6 +1,6 @@
 import asyncio
-import multiprocessing as mp
 import threading
+from multiprocessing.managers import AcquirerProxy
 
 from loguru import logger
 from pydantic import ConfigDict
@@ -22,7 +22,7 @@ class TaskScorer(AsyncLoopRunner):
     This scoring loop will score the responses once the LLM needed is loaded in the model_manager and log the rewards.
     """
 
-    mp_lock: mp.Lock
+    mp_lock: AcquirerProxy | None = None
     is_running: bool = False
     model_scheduler: AsyncModelScheduler | None = None
     thread: threading.Thread = None
@@ -33,11 +33,18 @@ class TaskScorer(AsyncLoopRunner):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def start(
-        self, model_scheduler: AsyncModelScheduler, scoring_queue, reward_events, name: str | None = None, **kwargs
+        self,
+        model_scheduler: AsyncModelScheduler,
+        scoring_queue,
+        reward_events,
+        mp_lock: AcquirerProxy,
+        name: str | None = None,
+        **kwargs,
     ):
         self.scoring_queue = scoring_queue
         self.reward_events = reward_events
         self.model_scheduler = model_scheduler
+        self.mp_lock = mp_lock
         return await super().start(name=name, **kwargs)
 
     def add_to_queue(

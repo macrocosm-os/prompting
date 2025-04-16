@@ -1,5 +1,6 @@
 import asyncio
 import sys
+from multiprocessing.managers import AcquirerProxy
 
 import netaddr
 import requests
@@ -34,7 +35,7 @@ async def create_loop_process(
     scoring_queue: list,
     reward_events: list,
     miners_dict: dict,
-    mp_lock: mp.Lock,
+    mp_lock: AcquirerProxy,
 ) -> None:
     # Load settings and initialize external services.
     settings.shared_settings = settings.SharedSettings.load(mode="validator")
@@ -206,7 +207,7 @@ async def main(
         processes: list[mp.Process] = []
         tasks: list[asyncio.Task] = []
 
-        model_scheduler = AsyncModelScheduler(llm_model_manager=ModelManager(mp_lock=mp_lock), sync=True)
+        model_scheduler = AsyncModelScheduler(llm_model_manager=ModelManager(), mp_lock=mp_lock, sync=True)
 
         try:
             # Start checking the availability of miners at regular intervals

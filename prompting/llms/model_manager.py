@@ -1,6 +1,6 @@
 import asyncio
 import gc
-import multiprocessing as mp
+from multiprocessing.managers import AcquirerProxy
 from typing import ClassVar
 
 import torch
@@ -252,9 +252,11 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
-    mp_lock: mp.Lock
+    mp_lock: AcquirerProxy
     interval: int = 1200
     scoring_queue: list | None = None
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
         self.scoring_queue = scoring_queue
