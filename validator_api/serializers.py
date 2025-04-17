@@ -55,7 +55,7 @@ class CompletionsRequest(BaseModel):
     inference_mode: Optional[str] = Field(
         default=None,
         description="Inference mode to use for the task.",
-        example="Reasoning-Fast",
+        example="Chain-of-Thought",
     )
     json_format: bool = Field(default=False, description="Enable JSON format for the response.", example=True)
     stream: bool = Field(default=False, description="Enable streaming for the response.", example=True)

@@ -12,7 +12,6 @@ from prompting.rewards.reward import WeightedRewardEvent
 from prompting.tasks.inference import InferenceTask
 from prompting.tasks.task_registry import TaskConfig, TaskRegistry
 from shared import settings
-from shared.logging import WeightSetEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
 from shared.misc import ttl_get_block
 
@@ -50,7 +49,6 @@ def set_weights(
     """
     Sets the validator weights to the metagraph hotkeys based on the scores it has received from the miners. The weights determine the trust and incentive level the validator assigns to miner nodes on the network.
     """
-    log_event(WeightSetEvent(weight_set_event=list(weights)))
     # Check if self.scores contains any NaN values and log a warning if it does.
     try:
         if any(np.isnan(weights).flatten()):
@@ -142,7 +140,7 @@ class WeightSetter(AsyncLoopRunner):
     class Config:
         arbitrary_types_allowed = True
 
-    async def start(self, reward_events, name: str | None = None):
+    async def start(self, reward_events, name: str | None = None, **kwargs):
         self.reward_events = reward_events
         global PAST_WEIGHTS
 
@@ -154,7 +152,7 @@ class WeightSetter(AsyncLoopRunner):
             PAST_WEIGHTS = []
         except Exception as ex:
             logger.error(f"Couldn't load weights from file: {ex}")
-        return await super().start(name=name)
+        return await super().start(name=name, **kwargs)
 
     async def run_step(self):
         await asyncio.sleep(0.01)
@@ -166,13 +164,12 @@ class WeightSetter(AsyncLoopRunner):
             self.reward_events: list[list[WeightedRewardEvent]] = self.reward_events  # to get correct typehinting
 
             # reward_dict = {uid: 0 for uid in get_uids(sampling_mode="all")}
-            reward_dict = {uid: 0 for uid in range(1024)}
+            all_uids = range(shared_settings.METAGRAPH.n.item())
+            reward_dict = {uid: 0 for uid in all_uids}
+            logger.info(f"Setting weights for {len(reward_dict)} uids")
             # miner_rewards is a dictionary that separates each task config into a dictionary of uids with their rewards
-            # miner_rewards: dict[TaskConfig, dict[int, float]] = {
-            #     config: {uid: 0 for uid in get_uids(sampling_mode="all")} for config in TaskRegistry.task_configs
-            # }
             miner_rewards: dict[TaskConfig, dict[int, float]] = {
-                config: {uid: {"reward": 0, "count": 0} for uid in range(1024)} for config in TaskRegistry.task_configs
+                config: {uid: {"reward": 0, "count": 0} for uid in all_uids} for config in TaskRegistry.task_configs
             }
 
             inference_events: list[WeightedRewardEvent] = []

@@ -1,4 +1,5 @@
 import sys
+import time
 
 # Need to delete logging from modules and load in standard python logging
 if "logging" in sys.modules:
@@ -14,11 +15,12 @@ from typing import Any, Literal, Optional
 
 import bittensor as bt
 import dotenv
+from bittensor.core.metagraph import Metagraph
 from loguru import logger
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
-from shared.misc import cached_property_with_expiration, is_cuda_available
+from shared.misc import is_cuda_available
 
 logging.getLogger("requests").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
@@ -28,6 +30,8 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 class SharedSettings(BaseSettings):
     _instance: Optional["SharedSettings"] = None
     _instance_mode: Optional[str] = None
+    _last_metagraph: Metagraph = None
+    _last_update_time: float = 0
 
     mode: Literal["api", "validator", "miner", "mock"] = Field("validator", env="MODE")
     MOCK: bool = False
@@ -53,6 +57,8 @@ class SharedSettings(BaseSettings):
     # Logging.
     LOGGING_DONT_SAVE_EVENTS: bool = Field(True, env="LOGGING_DONT_SAVE_EVENTS")
     LOG_WEIGHTS: bool = Field(False, env="LOG_WEIGHTS")
+    LOG_TIMINGS: bool = Field(False, env="LOG_TIMINGS")
+    LOG_LEVEL: str = Field("INFO", env="LOG_LEVEL")
 
     # Neuron parameters.
     NEURON_TIMEOUT: int = Field(20, env="NEURON_TIMEOUT")
@@ -80,8 +86,8 @@ class SharedSettings(BaseSettings):
     ORGANIC_TRIGGER_FREQUENCY_MIN: int = Field(5, env="ORGANIC_TRIGGER_FREQUENCY_MIN")
     ORGANIC_TRIGGER: str = Field("seconds", env="ORGANIC_TRIGGER")
     ORGANIC_SCALING_FACTOR: int = Field(1, env="ORGANIC_SCALING_FACTOR")
-    TASK_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="TASK_QUEUE_LENGTH_THRESHOLD")
-    SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(10, env="SCORING_QUEUE_LENGTH_THRESHOLD")
+    TASK_QUEUE_LENGTH_THRESHOLD: int = Field(50, env="TASK_QUEUE_LENGTH_THRESHOLD")
+    SCORING_QUEUE_LENGTH_THRESHOLD: int = Field(50, env="SCORING_QUEUE_LENGTH_THRESHOLD")
     HF_TOKEN: Optional[str] = Field(None, env="HF_TOKEN")
     DEPLOY_VALIDATOR: bool = Field(True, env="DEPLOY_VALDITAOR")
     DEPLOY_SCORING_API: bool = Field(True, env="DEPLOY_SCORING_API")
@@ -127,15 +133,16 @@ class SharedSettings(BaseSettings):
     TEST_MINER_IDS: list[int] = Field([], env="TEST_MINER_IDS")
     SUBTENSOR_NETWORK: Optional[str] = Field(None, env="SUBTENSOR_NETWORK")
     MAX_ALLOWED_VRAM_GB: float = Field(62, env="MAX_ALLOWED_VRAM_GB")
-    LLM_MAX_MODEL_LEN: int = Field(4096, env="LLM_MAX_MODEL_LEN")
     PROXY_URL: Optional[str] = Field(None, env="PROXY_URL")
-    LLM_MODEL: str = Field("hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4", env="LLM_MODEL")
+    LLM_MODEL: list[str] = [
+        "mrfakename/mistral-small-3.1-24b-instruct-2503-hf",
+        "hugging-quants/Meta-Llama-3.1-70B-Instruct-AWQ-INT4",
+    ]
     SAMPLING_PARAMS: dict[str, Any] = {
         "temperature": 0.7,
         "top_p": 0.95,
         "top_k": 50,
-        "max_new_tokens": 512,
-        "do_sample": True,
+        "max_tokens": 512,
     }
     MINER_LLM_MODEL: Optional[str] = Field(None, env="MINER_LLM_MODEL")
     LLM_MODEL_RAM: float = Field(70, env="LLM_MODEL_RAM")
@@ -244,6 +251,7 @@ class SharedSettings(BaseSettings):
 
     @cached_property
     def WALLET(self):
+        # TODO: Move chain-related stuff out of settings.
         wallet_name = self.WALLET_NAME  # or config().wallet.name
         hotkey = self.HOTKEY  # or config().wallet.hotkey
         logger.info(f"Instantiating wallet with name: {wallet_name}, hotkey: {hotkey}")
@@ -251,6 +259,7 @@ class SharedSettings(BaseSettings):
 
     @cached_property
     def SUBTENSOR(self) -> bt.subtensor:
+        # TODO: Move chain-related stuff out of settings.
         subtensor_network = self.SUBTENSOR_NETWORK or os.environ.get("SUBTENSOR_NETWORK", "local")
         # bt_config = config()
         if subtensor_network.lower() == "local":
@@ -260,17 +269,34 @@ class SharedSettings(BaseSettings):
         logger.info(f"Instantiating subtensor with network: {subtensor_network}")
         return bt.subtensor(network=subtensor_network)
 
-    @cached_property_with_expiration(expiration_seconds=1200)
-    def METAGRAPH(self) -> bt.metagraph:
-        logger.info(f"Instantiating metagraph with NETUID: {self.NETUID}")
-        return self.SUBTENSOR.metagraph(netuid=self.NETUID)
+    @property
+    def METAGRAPH(self) -> Metagraph:
+        if time.time() - self._last_update_time > 1200:
+            try:
+                logger.info(f"Fetching new METAGRAPH for NETUID={self.NETUID}")
+                meta = self.SUBTENSOR.metagraph(netuid=self.NETUID)
+                self._last_metagraph = meta
+                self._last_update_time = time.time()
+                return meta
+            except Exception as e:
+                logger.error(f"Failed to fetch new METAGRAPH for NETUID={self.NETUID}: {e}")
+                if self._last_metagraph is not None:
+                    logger.warning("Falling back to the previous METAGRAPH.")
+                    return self._last_metagraph
+                else:
+                    logger.error("No previous METAGRAPH is available; re-raising exception.")
+                    raise
+        else:
+            return self._last_metagraph
 
     @cached_property
     def UID(self) -> int:
+        # TODO: Move chain-related stuff out of settings.
         return self.METAGRAPH.hotkeys.index(self.WALLET.hotkey.ss58_address)
 
     @cached_property
     def DENDRITE(self) -> bt.dendrite:
+        # TODO: Move chain-related stuff out of settings.
         logger.info(f"Instantiating dendrite with wallet: {self.WALLET}")
         return bt.dendrite(wallet=self.WALLET)
 

@@ -17,6 +17,7 @@ from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from substrateinterface import Keypair
 
+from prompting.llms.utils import model_factory
 from shared import settings
 from shared.dendrite import SynapseStreamResult
 
@@ -122,11 +123,21 @@ async def query_miners(
         tasks = []
         for uid in uids:
             try:
+                timeout_connect = 10
+                timeout_postprocess = 1
                 response = asyncio.wait_for(
                     asyncio.create_task(
-                        make_openai_query(shared_settings.METAGRAPH, shared_settings.WALLET, timeout_seconds, body, uid)
+                        make_openai_query(
+                            shared_settings.METAGRAPH,
+                            shared_settings.WALLET,
+                            timeout_seconds,
+                            body,
+                            uid,
+                            timeout_connect=timeout_connect,
+                        )
                     ),
-                    timeout=timeout_seconds,
+                    # Give additional time for result post-processings.
+                    timeout=timeout_seconds + timeout_postprocess,
                 )
             except asyncio.TimeoutError:
                 logger.error(f"Timeout exceeded while querying miner {uid}")
@@ -135,25 +146,40 @@ async def query_miners(
 
         responses = await asyncio.gather(*tasks, return_exceptions=True)
 
-        results = []
+        responses_valid = 0
+        responses_error = 0
+        responses_exception = 0
+        exception_info: Exception | None = None
+        results: list[SynapseStreamResult] = []
         for response, uid in zip(responses, uids):
             if isinstance(response, Exception):
+                responses_exception += 1
+                exception_info = response
                 results.append(SynapseStreamResult(exception=str(response)))
             elif isinstance(response, tuple) and isinstance(response[0], ChatCompletion):
+                if response and response[1]:
+                    responses_valid += 1
                 results.append(
                     SynapseStreamResult(
                         uid=uid,
-                        response=response[0],
                         accumulated_chunks=response[1],
                         accumulated_chunks_timings=response[2],
+                        accumulated_chunk_dicts_raw=response[3],
                     )
                 )
             else:
+                responses_error += 1
                 logger.error(f"Unknown response type: {response}")
                 results.append(SynapseStreamResult(uid=uid, exception=f"Unknown response type: {response}"))
+
+        logger.info(
+            f"Responses success: {responses_valid}/{len(uids)}. "
+            f"Responses exception: {responses_exception}/{len(uids)} [{exception_info}]. "
+            f"Reponses error: {responses_error}/{len(uids)}"
+        )
         return results
-    except Exception:
-        # logger.error(f"Error in query_miners: {e}")
+    except Exception as e:
+        logger.exception(f"Error in query_miners: {e}")
         return []
 
 
@@ -189,7 +215,7 @@ async def handle_availability(
     try:
         axon_info = metagraph.axons[uid]
         url = f"http://{axon_info.ip}:{axon_info.port}/availability"
-
+        # logger.debug(f"Querying availability from {url}")
         timeout = httpx.Timeout(shared_settings.NEURON_TIMEOUT, connect=5, read=5)
 
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -209,6 +235,7 @@ async def make_openai_query(
     body: dict[str, Any],
     uid: int,
     stream: bool = False,
+    timeout_connect: int = 10,
 ) -> tuple[ChatCompletion, list, list] | AsyncGenerator:
     body["seed"] = body.get("seed", random.randint(0, 1000000))
     axon_info = metagraph.axons[uid]
@@ -216,7 +243,7 @@ async def make_openai_query(
         base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
         api_key="Apex",
         max_retries=0,
-        timeout=Timeout(timeout_seconds, connect=5, read=timeout_seconds - 5),
+        timeout=Timeout(timeout_seconds, connect=timeout_connect, read=timeout_seconds),
         http_client=openai.DefaultAsyncHttpxClient(
             event_hooks={
                 "request": [create_header_hook(wallet.hotkey, axon_info.hotkey, timeout_seconds=timeout_seconds)]
@@ -224,6 +251,8 @@ async def make_openai_query(
         ),
     )
     extra_body = {k: v for k, v in body.items() if k not in ["messages", "model"]}
+    body["messages"] = model_factory(body.get("model")).format_messages(body["messages"])
+
     start_time = time.perf_counter()
     chat = await miner.chat.completions.create(
         # model=None,
@@ -238,6 +267,9 @@ async def make_openai_query(
         choices = []
         chunks = []
         chunk_timings = []
+        last_finish_reason = None  # Only track the finish reason of the last chunk
+
+        chunk_dicts_raw = []
         async for chunk in chat:
             if not chunk.choices:
                 continue
@@ -246,11 +278,19 @@ async def make_openai_query(
                     choices.append("")
                 if choice.delta.content:
                     choices[i] += choice.delta.content
+                # Save finish reason from the last chunk, safely handling the attribute
+                if hasattr(choice, "finish_reason") and choice.finish_reason is not None:
+                    last_finish_reason = choice.finish_reason
             if chunk.choices[0].delta.content:
                 chunks.append(chunk.choices[0].delta.content)
                 chunk_timings.append(time.perf_counter() - start_time)
+                chunk_dicts_raw.append(chunk)
         choices = [
-            Choice(index=i, message=ChatCompletionMessage(content=choice, role="assistant"), finish_reason="stop")
+            Choice(
+                index=i,
+                message=ChatCompletionMessage(content=choice, role="assistant"),
+                finish_reason=last_finish_reason or "stop",  # Use the captured finish_reason or fallback to "stop"
+            )
             for i, choice in enumerate(choices)
         ]
         # TODO: We need to find a better way to do this instead of sometimes returning a tuple and sometimes not, but for now this has to do
@@ -267,82 +307,5 @@ async def make_openai_query(
             ),
             chunks,
             chunk_timings,
+            chunk_dicts_raw,
         )
-
-
-async def handle_inference(
-    metagraph: "bt.NonTorchMetagraph",
-    wallet: "bt.wallet",
-    body: Dict[str, Any],
-    uid: int,
-    stream: bool = False,
-    timeout_seconds: int = shared_settings.NEURON_TIMEOUT,
-) -> SynapseStreamResult:
-    exception = None
-    chunks = []
-    chunk_timings = []
-    try:
-        start_time = time.time()
-        axon_info = metagraph.axons[uid]
-        miner = openai.AsyncOpenAI(
-            base_url=f"http://{axon_info.ip}:{axon_info.port}/v1",
-            api_key="Apex",
-            max_retries=0,
-            timeout=Timeout(timeout_seconds, connect=5, read=10),
-            http_client=openai.DefaultAsyncHttpxClient(
-                event_hooks={
-                    "request": [create_header_hook(wallet.hotkey, axon_info.hotkey, timeout_seconds=timeout_seconds)]
-                }
-            ),
-        )
-        payload = json.loads(body)
-        chat = await miner.chat.completions.create(
-            messages=payload["messages"],
-            model=payload["model"],
-            stream=True,
-            extra_body={k: v for k, v in payload.items() if k not in ["messages", "model"]},
-        )
-        if not stream:
-            async for chunk in chat:
-                if chunk.choices[0].delta and chunk.choices[0].delta.content:
-                    chunks.append(chunk.choices[0].delta.content)
-                    chunk_timings.append(time.time() - start_time)
-    except openai.APIConnectionError as e:
-        logger.trace(f"Miner {uid} failed request: {e}")
-        exception = str(e)
-    except Exception as e:
-        logger.trace(f"Unknown Error when sending to miner {uid}: {e}")
-        exception = str(e)
-    finally:
-        if exception is None:
-            status_code = 200
-            status_message = "Success"
-        elif isinstance(exception, openai.APIConnectionError):
-            status_code = 502
-            status_message = exception
-        else:
-            status_code = 500
-            status_message = exception
-
-    if stream:
-        return chat
-    else:
-        try:
-            return SynapseStreamResult(
-                accumulated_chunks=chunks,
-                accumulated_chunks_timings=chunk_timings,
-                uid=uid,
-                exception=exception,
-                status_code=status_code,
-                status_message=status_message,
-            )
-        except Exception as e:
-            logger.error(f"Couldn't create SynapseStreamResult: {e}")
-            return SynapseStreamResult(
-                accumulated_chunks=[],
-                accumulated_chunks_timings=[],
-                uid=uid,
-                exception=f"Exception thrown validator-side: {str(e)}",
-                status_code=500,
-                status_message="Exception thrown validator-side",
-            )

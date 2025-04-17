@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from prompting.llms.apis.gpt_wrapper import LLMMessage, LLMMessages
 from prompting.llms.apis.llm_wrapper import LLMWrapper
-from prompting.llms.model_manager import model_manager
+from prompting.llms.model_manager import ModelManager
 from prompting.llms.model_zoo import ModelConfig
 from shared import settings
 from shared.base import DatasetEntry
@@ -38,7 +38,7 @@ class BaseTask(BaseModel, ABC):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @abstractmethod
-    def make_query(self, **kwargs):
+    async def make_query(self, **kwargs):
         raise NotImplementedError("Method make_query must be implemented")
 
     @abstractmethod
@@ -80,26 +80,22 @@ class BaseTextTask(BaseTask):
             self.llm_model_id = self.llm_model.llm_model_id if self.llm_model else None
         return self
 
-    def make_query(self, dataset_entry: DatasetEntry, **kwargs) -> str:
+    async def make_query(self, dataset_entry: DatasetEntry, **kwargs) -> str:
         return self.query
 
-    async def make_reference(self, dataset_entry: DatasetEntry) -> str:
+    async def make_reference(self, dataset_entry: DatasetEntry, model_manager: ModelManager | None = None) -> str:
         return self.reference
 
-    def generate_reference(self, messages: list[str]) -> str:
-        """Generates a reference answer to be used for scoring miner completions"""
-        self.reference = model_manager.get_model(settings.shared_settings.LLM_MODEL).generate(
-            messages=messages
-        )  # This should be a list of dict
+    async def generate_reference(self, messages: list[str], model_manager: ModelManager | None = None) -> str:
+        """Generate reference answer to be used for scoring miner completions"""
+        model = await model_manager.get_model(settings.shared_settings.LLM_MODEL[0])
+        self.reference = await model.generate(messages=messages)
         if self.reference is None:
             raise Exception("Reference generation failed")
 
         return self.reference
 
-    def generate_query(
-        self,
-        messages: list[str],
-    ) -> str:
+    async def generate_query(self, messages: list[str]) -> str:
         """Generates a query to be used for generating the challenge"""
         llm_messages = [LLMMessage(role="system", content=self.query_system_prompt)] if self.query_system_prompt else []
         llm_messages.extend([LLMMessage(role="user", content=message) for message in messages])

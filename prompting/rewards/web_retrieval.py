@@ -4,11 +4,11 @@ import asyncio
 import json
 import os
 from collections import defaultdict
-from functools import lru_cache
-from urllib.parse import urlparse
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
+import whois
 from loguru import logger
 from pydantic import BaseModel
 from scipy import spatial
@@ -19,6 +19,7 @@ from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BatchRewardOutput
 from prompting.tasks.base_task import BaseTextTask
 from shared.dendrite import DendriteResponseEvent
+from shared.misc import async_lru_cache
 
 MIN_RELEVANT_CHARS = 300
 MIN_MATCH_THRESHOLD = 98
@@ -48,6 +49,9 @@ BLACKLISTED_TERMS = {
 
 # Maximum number of past URLs to store per user
 N_PAST_URLS = 200
+
+# Minimum age of the website.
+MIN_AGE_DAYS = 90
 
 # Load the past_websites dictionary and top domains
 try:
@@ -84,12 +88,52 @@ class WebsiteResult(BaseModel):
     relevant: str | None
 
 
+import tldextract
+
+
+def extract_main_domain(url):
+    # Extract domain components
+    extracted = tldextract.extract(url)
+    # Return domain + suffix (e.g. "google.com")
+    return f"{extracted.domain}.{extracted.suffix}"
+
+
 class WebRetrievalRewardModel(RelevanceRewardModel):
     def __hash__(self):
         # Use the id of the object as its hash
         return hash(self.model_dump_json)
 
-    @lru_cache(maxsize=1000)
+    @staticmethod
+    @async_lru_cache(maxsize=1000)
+    async def domain_age_days(domain: str, fallback_age: int = 1_000_000) -> int:
+        """Returns the age of a domain in days.
+
+        Args:
+            domain: Website url.
+            fallback_age: If can't fetch domain age, fallback to `fallback_age` age.
+
+        Returns:
+            Domain age in days since creation.
+        """
+        fallback_age = 1_000_000
+        try:
+            w = whois.whois(domain)
+            creation_date = w.creation_date
+            if isinstance(creation_date, list):
+                creation_date = creation_date[0]
+
+            if creation_date is None:
+                return fallback_age
+            # Convert everything to naive datetime in UTC or local.
+            if hasattr(creation_date, "tzinfo") and creation_date.tzinfo is not None:
+                creation_date = creation_date.replace(tzinfo=None)
+            delta = datetime.now() - creation_date
+            return delta.days
+        except BaseException as e:
+            logger.debug(f"Error fetching domain age data: {e}")
+            return fallback_age
+
+    @async_lru_cache(maxsize=1000)
     async def _cosine_similarity(self, content1: str, content2: str) -> float:
         """Calculate the cosine similarity between sentence embeddings of the reference and completions."""
         reference_emb_flatten = self.embedding_model.encode(content1, to_numpy=True).flatten()
@@ -102,18 +146,17 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         if not response_url or not response_content or not response_relevant:
             return 0
 
-        # Extract domain from URL
-        parsed_url = urlparse(response_url)
+        # Extract domain from URL.
+        netloc = extract_main_domain(response_url)
+        logger.debug(f"Scoring url: {response_url}")
 
         if any(term in response_url for term in BLACKLISTED_TERMS):
-            logger.debug(f"Domain {parsed_url.netloc} contains blacklisted term, scoring 0")
+            logger.debug(f"Domain {response_url} contains blacklisted term, scoring 0")
             return 0
 
-        netloc = parsed_url.netloc.lower()
-
-        # Remove www. prefix if present
-        if netloc.startswith("www."):
-            netloc = netloc[4:]
+        if (days := await self.domain_age_days(response_url)) < MIN_AGE_DAYS:
+            logger.debug(f"Domain {response_url} is too young ({days} days old), scoring 0")
+            return 0
 
         # Penalise a completion where the relevant section is contained in the URL (e.g. miners)
         # trying to use a search box to enter exactly the relevant section they need
@@ -144,17 +187,17 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
             # Content scraped from the URL provided in the completion.
             reference_website_content = DDGDataset.extract_website_content(response_url)
             if not reference_website_content or len(reference_website_content) == 0:
-                logger.debug(f"Failed to extract miner's content from website: {response_url}")
+                logger.debug(f"Failed to extract miner {uid} content from website: {response_url}")
                 return 0
 
             if fuzz.ratio(response_content, reference_website_content) < MIN_MATCH_THRESHOLD:
-                logger.debug("Miner returned text that doesn't match the website, scoring 0")
+                logger.debug(f"Miner {uid} returned text that doesn't match the website, scoring 0")
                 return 0
 
             if len(response_relevant) > len(response_content) or len(response_relevant) < MIN_RELEVANT_CHARS:
                 logger.debug(
-                    f"Relevant section is too short (<{MIN_RELEVANT_CHARS} chars) or longer than the whole website content "
-                    f"{len(response_relevant)} > {len(response_content)}"
+                    f"Miner {uid} relevant section is too short (<{MIN_RELEVANT_CHARS} chars) or longer than the whole "
+                    f"website content {len(response_relevant)} > {len(response_content)}"
                 )
                 return 0
 
@@ -172,7 +215,7 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         scores = []
         miner_websites: list[WebsiteResult] = self._parse_response(completion)
         unique_websites = np.unique([website.url for website in miner_websites])
-        if unique_websites.size != len(miner_websites) and unique_websites.size != task.target_results:
+        if unique_websites.size != len(miner_websites) or unique_websites.size != task.target_results:
             # logger.warning("Miner returned multiple websites with the same URL")
             return 0
 
@@ -205,9 +248,6 @@ class WebRetrievalRewardModel(RelevanceRewardModel):
         for completion, uid in zip(response_event.completions, response_event.uids):
             rewards.append(await self.score_miner_response(dataset_entry, completion, task=task, uid=uid))
             timings.append(0)
-
-        logger.debug(f"REWARDWEBRETRIEVAL: {rewards}")
-        logger.debug(f"COMPLETIONS: {response_event.completions}")
 
         # Save the past_websites dictionary to CSV
         past_websites_data = []

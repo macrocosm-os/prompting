@@ -4,7 +4,7 @@ import threading
 from loguru import logger
 from pydantic import ConfigDict
 
-from prompting.llms.model_manager import model_manager, model_scheduler
+from prompting.llms.model_manager import AsyncModelScheduler
 from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.task_registry import TaskRegistry
@@ -12,26 +12,31 @@ from shared.base import DatasetEntry
 from shared.dendrite import DendriteResponseEvent
 from shared.logging import RewardLoggingEvent, log_event
 from shared.loop_runner import AsyncLoopRunner
+from shared.timer import Timer
 
 
 class TaskScorer(AsyncLoopRunner):
-    """The scoring manager maintains a queue of tasks & responses to score and then runs a scoring loop in a background thread.
+    """Maintains a queue of tasks and responses to score and then runs a scoring loop in a background thread.
+
     This scoring loop will score the responses once the LLM needed is loaded in the model_manager and log the rewards.
     """
 
     is_running: bool = False
+    model_scheduler: AsyncModelScheduler | None = None
     thread: threading.Thread = None
-    interval: int = 0
+    interval: int = 1
     scoring_queue: list | None = None
     reward_events: list | None = None
     task_queue: list | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def start(self, task_queue, scoring_queue, reward_events, name: str | None = None):
-        self.task_queue = task_queue
+    async def start(
+        self, model_scheduler: AsyncModelScheduler, scoring_queue, reward_events, name: str | None = None, **kwargs
+    ):
         self.scoring_queue = scoring_queue
         self.reward_events = reward_events
-        return await super().start(name=name)
+        self.model_scheduler = model_scheduler
+        return await super().start(name=name, **kwargs)
 
     def add_to_queue(
         self,
@@ -56,35 +61,39 @@ class TaskScorer(AsyncLoopRunner):
     async def run_step(self) -> RewardLoggingEvent:
         await asyncio.sleep(0.1)
         # Only score responses for which the model is loaded
+        await self.model_scheduler.llm_model_manager.lock.acquire()
         scorable = [
             scoring_config
             for scoring_config in self.scoring_queue
-            if (scoring_config.task.llm_model in model_manager.active_models.keys())
+            if (scoring_config.task.llm_model in self.model_scheduler.llm_model_manager.active_models.keys())
             or (scoring_config.task.llm_model is None)
         ]
         if len(scorable) == 0:
             # Run a model_scheduler step to load a new model as there are no more tasks to be scored
-            if len(self.scoring_queue) > 0:
-                await model_scheduler.run_step()
+            # if len(self.scoring_queue) > 0:
+            #     await self.model_scheduler.run_step()
             return
         self.scoring_queue.remove(scorable[0])
         scoring_config: ScoringConfig = scorable.pop(0)
 
         # here we generate the actual reference
-        await scoring_config.task.make_reference(
-            dataset_entry=scoring_config.dataset_entry,
-        )
+        with Timer(label=f"Generating reference for {scoring_config.task.__class__.__name__}"):
+            await scoring_config.task.make_reference(
+                dataset_entry=scoring_config.dataset_entry,
+                model_manager=self.model_scheduler.llm_model_manager,
+            )
 
         # and there we then calculate the reward
         reward_pipeline = TaskRegistry.get_task_reward(scoring_config.task)
-        reward_events = await reward_pipeline.apply(
-            response_event=scoring_config.response,
-            challenge=scoring_config.task.query,
-            reference=scoring_config.task.reference,
-            model_id=scoring_config.task.llm_model,
-            task=scoring_config.task,
-            task_queue=self.task_queue,
-        )
+        with Timer(label=f"Scoring {scoring_config.task.__class__.__name__}"):
+            reward_events = await reward_pipeline.apply(
+                response_event=scoring_config.response,
+                challenge=scoring_config.task.query,
+                reference=scoring_config.task.reference,
+                model_id=scoring_config.task.llm_model,
+                task=scoring_config.task,
+                model_manager=self.model_scheduler.llm_model_manager,
+            )
         self.reward_events.append(reward_events)
 
         # TODO: Remove this once we have a better way to handle organic tasks
@@ -111,11 +120,9 @@ class TaskScorer(AsyncLoopRunner):
                     source=scoring_config.dataset_entry.source,
                 )
             )
+
+        self.model_scheduler.llm_model_manager.lock.release()
         await asyncio.sleep(0.01)
-
-
-class WeightSetter(AsyncLoopRunner):
-    pass
 
 
 task_scorer = TaskScorer()

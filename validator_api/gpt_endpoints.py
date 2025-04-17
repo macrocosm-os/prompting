@@ -1,31 +1,17 @@
-import asyncio
-import json
 import random
-import time
-import uuid
 
-import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
-from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
 from starlette.responses import StreamingResponse
 
 from shared import settings
 
 shared_settings = settings.shared_settings
-from shared.epistula import SynapseStreamResult, query_miners
-from validator_api import scoring_queue
 from validator_api.api_management import validate_api_key
 from validator_api.chat_completion import chat_completion
+from validator_api.deep_research.orchestrator_v2 import OrchestratorV2
 from validator_api.mixture_of_miners import mixture_of_miners
-from validator_api.serializers import (
-    CompletionsRequest,
-    TestTimeInferenceRequest,
-    WebRetrievalRequest,
-    WebRetrievalResponse,
-    WebSearchResult,
-)
-from validator_api.test_time_inference import generate_response
+from validator_api.serializers import CompletionsRequest, TestTimeInferenceRequest
 from validator_api.utils import filter_available_uids
 
 router = APIRouter()
@@ -121,117 +107,6 @@ async def completions(request: CompletionsRequest, api_key: str = Depends(valida
         return StreamingResponse(content="Internal Server Error", status_code=500)
 
 
-@router.post(
-    "/web_retrieval",
-    response_model=WebRetrievalResponse,
-    summary="Web retrieval endpoint",
-    description="Retrieves information from the web based on a search query using multiple miners.",
-    response_description="List of unique web search results",
-    status_code=status.HTTP_200_OK,
-    responses={
-        status.HTTP_200_OK: {
-            "description": "Successful response with web search results",
-            "model": WebRetrievalResponse,
-        },
-        status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "description": "Internal server error, no available miners, or no successful miner responses"
-        },
-    },
-)
-async def web_retrieval(
-    request: WebRetrievalRequest,
-    api_key: str = Depends(validate_api_key),
-):
-    """
-    Web retrieval endpoint that queries multiple miners to search the web.
-
-    This endpoint distributes a search query to multiple miners, which perform web searches
-    and return relevant results. The results are deduplicated based on URLs before being returned.
-
-    ## Request Parameters:
-    - **search_query** (str): The query to search for on the web. Required.
-    - **n_miners** (int, default=10): Number of miners to query for results.
-    - **n_results** (int, default=5): Maximum number of results to return in the response.
-    - **max_response_time** (int, default=10): Maximum time to wait for responses in seconds.
-    - **uids** (List[int], optional): Optional list of specific miner UIDs to query.
-
-    ## Response:
-    Returns a list of unique web search results, each containing:
-    - **url** (str): The URL of the web page
-    - **content** (str, optional): The relevant content from the page
-    - **relevant** (str, optional): Information about why this result is relevant
-
-    Example request:
-    ```json
-    {
-      "search_query": "latest advancements in quantum computing",
-      "n_miners": 15,
-      "n_results": 10
-    }
-    ```
-    """
-    if request.uids:
-        uids = request.uids
-        try:
-            uids = list(map(int, uids))
-        except Exception:
-            logger.error(f"Error in uids: {uids}")
-    else:
-        uids = filter_available_uids(
-            task="WebRetrievalTask", test=shared_settings.API_TEST_MODE, n_miners=request.n_miners
-        )
-        uids = random.sample(uids, min(len(uids), request.n_miners))
-
-    if len(uids) == 0:
-        raise HTTPException(status_code=500, detail="No available miners")
-
-    body = {
-        "seed": random.randint(0, 1_000_000),
-        "sampling_parameters": shared_settings.SAMPLING_PARAMS,
-        "task": "WebRetrievalTask",
-        "target_results": request.n_results,
-        "timeout": request.max_response_time,
-        "messages": [
-            {"role": "user", "content": request.search_query},
-        ],
-    }
-
-    timeout_seconds = 30  # TODO: We need to scale down this timeout
-    logger.debug(f"🔍 Querying miners: {uids} for web retrieval")
-    stream_results = await query_miners(uids, body, timeout_seconds)
-    results = [
-        "".join(res.accumulated_chunks)
-        for res in stream_results
-        if isinstance(res, SynapseStreamResult) and res.accumulated_chunks
-    ]
-    distinct_results = list(np.unique(results))
-    loaded_results = []
-    for result in distinct_results:
-        try:
-            loaded_results.append(json.loads(result))
-            logger.info(f"🔍 Result: {result}")
-        except Exception:
-            logger.error(f"🔍 Result: {result}")
-    if len(loaded_results) == 0:
-        raise HTTPException(status_code=500, detail="No miner responded successfully")
-
-    collected_chunks_list = [res.accumulated_chunks if res and res.accumulated_chunks else [] for res in stream_results]
-    asyncio.create_task(scoring_queue.scoring_queue.append_response(uids=uids, body=body, chunks=collected_chunks_list))
-    loaded_results = [json.loads(r) if isinstance(r, str) else r for r in loaded_results]
-    flat_results = [item for sublist in loaded_results for item in sublist]
-    unique_results = []
-    seen_urls = set()
-
-    for result in flat_results:
-        if isinstance(result, dict) and "url" in result:
-            if result["url"] not in seen_urls:
-                seen_urls.add(result["url"])
-                # Convert dict to WebSearchResult
-                unique_results.append(WebSearchResult(**result))
-
-    return WebRetrievalResponse(results=unique_results)
-
-
 async def test_time_inference(request: TestTimeInferenceRequest):
     """
     Test time inference endpoint that provides step-by-step reasoning.
@@ -262,40 +137,14 @@ async def test_time_inference(request: TestTimeInferenceRequest):
     }
     ```
     """
+    orchestrator = OrchestratorV2(completions=completions)
 
     async def create_response_stream(request):
-        async for steps, total_thinking_time in generate_response(
-            request.messages, model=request.model, uids=request.uids
-        ):
-            if total_thinking_time is not None:
-                logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
-            yield steps, total_thinking_time
-
-    # Create a streaming response that yields each step
-    async def stream_steps():
-        try:
-            i = 0
-            async for steps, thinking_time in create_response_stream(request):
-                i += 1
-                if request.json_format:
-                    choice = Choice(index=i, delta=ChoiceDelta(content=json.dumps(steps[-1])))
-                else:
-                    choice = Choice(index=i, delta=ChoiceDelta(content=f"## {steps[-1][0]}\n\n{steps[-1][1]}" + "\n\n"))
-                yield "data: " + ChatCompletionChunk(
-                    id=str(uuid.uuid4()),
-                    created=int(time.time()),
-                    model=request.model or "None",
-                    object="chat.completion.chunk",
-                    choices=[choice],
-                ).model_dump_json() + "\n\n"
-        except Exception as e:
-            logger.exception(f"Error during streaming: {e}")
-            yield f'data: {{"error": "Internal Server Error: {str(e)}"}}\n\n'
-        finally:
-            yield "data: [DONE]\n\n"
+        async for chunk in orchestrator.run(messages=request.messages):
+            yield chunk
 
     return StreamingResponse(
-        stream_steps(),
+        create_response_stream(request),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

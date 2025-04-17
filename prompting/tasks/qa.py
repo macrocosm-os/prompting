@@ -1,11 +1,12 @@
 from typing import ClassVar
 
 from prompting.datasets.random_website import DDGDatasetEntry
+from prompting.llms.model_manager import ModelManager
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.rewards.rouge import RougeRewardModel
 from prompting.tasks.base_task import BaseTextTask
-from shared.base import Context
+from shared.base import Context  # type: ignore # noqa: F401
 
 # Used to instruct the LLM to provide a good query when given a context
 QUERY_SYSTEM_PROMPT = """\
@@ -48,28 +49,6 @@ class QARewardConfig(BaseRewardConfig):
     penalty_definition: ClassVar[list[BaseRewardModel]] = [RougeRewardModel(weight=0.5)]
 
 
-class WikiQuestionAnsweringTask(BaseTextTask):
-    """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
-    context from a dataset to base the query on"""
-
-    name: ClassVar[str] = "wiki_qa"
-    query_system_prompt: ClassVar[str] = QUERY_SYSTEM_PROMPT
-    reference_system_prompt: ClassVar[str] = REFERENCE_SYSTEM_PROMPT
-    augmentation_system_prompt: ClassVar[str] = ""
-    query: str | None = None
-    reference: str | None = None
-
-    def make_query(self, dataset_entry: Context):
-        query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.content)
-        self.query = self.generate_query(messages=[query_prompt])
-        return self.query
-
-    async def make_reference(self, dataset_entry: Context):
-        reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.content, question=self.query)
-        self.reference = self.generate_reference(messages=[{"role": "user", "content": reference_prompt}])
-        return self.reference
-
-
 class WebQuestionAnsweringTask(BaseTextTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
@@ -81,12 +60,16 @@ class WebQuestionAnsweringTask(BaseTextTask):
     query: str | None = None
     reference: str | None = None
 
-    def make_query(self, dataset_entry: DDGDatasetEntry):
+    async def make_query(self, dataset_entry: DDGDatasetEntry):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.website_content)
-        self.query = self.generate_query(messages=[query_prompt])
+        self.query = await self.generate_query(messages=[query_prompt])
         return self.query
 
-    async def make_reference(self, dataset_entry: DDGDatasetEntry):
+    async def make_reference(self, dataset_entry: DDGDatasetEntry, model_manager: ModelManager | None = None):
+        assert model_manager is not None, f"Model manager must be provided for {self.__class__.__name__}"
         reference_prompt = REFERENCE_PROMPT_TEMPLATE.format(context=dataset_entry.website_content, question=self.query)
-        self.reference = self.generate_reference(messages=[{"role": "user", "content": reference_prompt}])
+        self.reference = await self.generate_reference(
+            messages=[{"role": "user", "content": reference_prompt}],
+            model_manager=model_manager,
+        )
         return self.reference

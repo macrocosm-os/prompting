@@ -4,9 +4,10 @@ from typing import ClassVar
 from loguru import logger
 
 from prompting.datasets.random_website import DDGDatasetEntry
+from prompting.llms.model_manager import ModelManager
 from prompting.rewards.relevance import RelevanceRewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
-from prompting.tasks.qa import WikiQuestionAnsweringTask
+from prompting.tasks.qa import WebQuestionAnsweringTask
 from shared.base import Context
 from validator_api.test_time_inference import generate_response
 
@@ -71,7 +72,7 @@ SAMPLE_SYSTEM_PROMPTS = [
 ]
 
 
-class MultiStepReasoningTask(WikiQuestionAnsweringTask):
+class MultiStepReasoningTask(WebQuestionAnsweringTask):
     """QuestionAnsweringTasks must be initialised with an LLM pipeline to generate query and reference plus
     context from a dataset to base the query on"""
 
@@ -81,9 +82,9 @@ class MultiStepReasoningTask(WikiQuestionAnsweringTask):
     query_system_prompt: str = QUERY_SYSTEM_PROMPT
     reference: str | None = None
 
-    def make_query(self, dataset_entry: DDGDatasetEntry):
+    async def make_query(self, dataset_entry: DDGDatasetEntry):
         query_prompt = QUERY_PROMPT_TEMPLATE.format(context=dataset_entry.website_content)
-        question = self.generate_query(messages=[query_prompt])
+        question = await self.generate_query(messages=[query_prompt])
         msgs = [p + ". " if i < len(question.split(". ")) - 1 else p for i, p in enumerate(question.split(". ")) if p]
         self.messages = [{"role": "system", "content": random.choice(SAMPLE_SYSTEM_PROMPTS)}] + [
             {"role": random.choice(["user", "assistant"]), "content": msg} for msg in msgs
@@ -99,7 +100,7 @@ class MultiStepReasoningTask(WikiQuestionAnsweringTask):
                 logger.debug(f"**Total thinking time: {total_thinking_time:.2f} seconds**")
         return steps[-1][1]
 
-    async def make_reference(self, dataset_entry: Context):
+    async def make_reference(self, dataset_entry: Context, model_manager: ModelManager | None = None):
         try:
             logger.debug(f"Generating reference for MSR: {self.messages}")
             # Run the async function in a new event loop
