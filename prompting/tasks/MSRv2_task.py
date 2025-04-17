@@ -9,8 +9,6 @@ from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningTask
 from shared.base import Context
 
-MAX_THINKING_STEPS = 10
-
 
 class MSRv2RewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[BaseRewardModel]] = [
@@ -25,7 +23,7 @@ class MSRv2Task(MultiStepReasoningTask):
     name: ClassVar[str] = "multi_step_reasoning_v2"
     augmentation_system_prompt: ClassVar[str] = ""
     generative_miner_answer: str | None = None
-    reference: str | None = ""
+    reference: str | None = None
     REAL_REFERENCE_PROBABILITY: float = 0.1
     generator_uid: int | None = None
 
@@ -47,8 +45,11 @@ class MSRv2Task(MultiStepReasoningTask):
 
     def make_query(self, dataset_entry: DDGDatasetEntry):
         if self.stage == "generative":
+            # Question to send to miner
             self.query = super().make_query(dataset_entry)
+            # Wrapped Query
             self.messages = [{"role": "user", "content": self.query}]
+            return self.query
 
         return self.reference or self.generative_miner_answer
 
@@ -62,11 +63,10 @@ class MSRv2Task(MultiStepReasoningTask):
         else:
             # return 1 if it's validator generated, 0 if it's miner generated
             return 1 if self.reference else 0
-
+        
     @property
     def request_body(self) -> dict:
         body = super().request_body
-
         # By sending this over, we can allow miners to scale their prediction based on the probability of the reference being real
         # so that validators can adjust the probability based on load in later iterations
         body["real_reference_probability"] = self.REAL_REFERENCE_PROBABILITY
@@ -77,3 +77,4 @@ class MSRv2Task(MultiStepReasoningTask):
                 {"role": "assistant", "content": self.reference or self.generative_miner_answer}
             ]
         return body
+
