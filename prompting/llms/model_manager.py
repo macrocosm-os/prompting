@@ -1,12 +1,11 @@
 import asyncio
 import gc
-import multiprocessing as pymp
+from multiprocessing.managers import AcquirerProxy
 from typing import ClassVar
 
 import torch
-import torch.multiprocessing as mp
 from loguru import logger
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from prompting.llms.model_zoo import ModelConfig, ModelZoo
 from prompting.llms.utils import GPUInfo, model_factory
@@ -50,8 +49,6 @@ class AsyncRLock:
 
 class ModelManager(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    event_restart: pymp.synchronize.Event = Field(default_factory=mp.Event)
     always_active_models: list[ModelConfig] = []
     total_ram: float = settings.shared_settings.LLM_MODEL_RAM
     active_models: dict[ModelConfig, ReproducibleVLLM] = {}
@@ -84,7 +81,7 @@ class ModelManager(BaseModel):
                     logger.debug(f"Unloading {active_model.llm_model_id} to make room for {model_config.llm_model_id}")
 
                     await self._unload_model(active_model)
-                await self._vram_cleanup()
+                await self.cleanup()
 
             retries_max = 1
             retry_counter = 0
@@ -92,7 +89,8 @@ class ModelManager(BaseModel):
             while True:
                 try:
                     GPUInfo.log_gpu_info()
-                    model = model_factory(model_config.llm_model_id)(
+                    model_class = model_factory(model_config.llm_model_id)
+                    model = model_class(
                         model_id=model_config.llm_model_id,
                         device=settings.shared_settings.NEURON_DEVICE,
                         sampling_params=settings.shared_settings.SAMPLING_PARAMS,
@@ -108,14 +106,13 @@ class ModelManager(BaseModel):
                 except BaseException as e:
                     if retry_counter > retries_max:
                         logger.error(f"Failed to load model after {retries_max} retries. Terminating process")
-                        await self._vram_cleanup()
-                        # In case of VRAM leak, fire an event to terminate the process.
-                        self.event_restart.set()
-                        break
+                        await self.cleanup()
+                        # In case of VRAM leak, raise an exception to terminate the process.
+                        raise MemoryError
 
                     retry_counter += 1
                     retry_delay += retry_counter
-                    await self._vram_cleanup()
+                    await self.cleanup()
                     logger.error(
                         f"Failed to load model {model_config.llm_model_id}. Retrying in {retry_delay} seconds. "
                         f"Error: {str(e)}"
@@ -138,13 +135,7 @@ class ModelManager(BaseModel):
             except Exception as e:
                 logger.exception(f"Unexpected error when moving model to CPU: {str(e)}")
 
-        model_instance.model = None
-        model_instance.tokenizer = None
-        try:
-            del model_instance.model
-            del model_instance.tokenizer
-        except BaseException as e:
-            logger.exception(f"Error deleting model attributes: {str(e)}")
+        model_instance.unload_model()
         del model_instance
 
     async def _unload_model(self, model_config: ModelConfig):
@@ -160,7 +151,7 @@ class ModelManager(BaseModel):
             logger.debug(f"Initial free GPU memory before unloading: {initial_free_memory} GB")
 
             await self._cleanup_model(model_instance, cpu_offload=False)
-            await self._vram_cleanup()
+            await self.cleanup()
 
             memory_freed = GPUInfo.free_memory - initial_free_memory
             logger.info(f"Successfully unloaded model {model_config.llm_model_id}. Memory freed: {memory_freed:.2f} GB")
@@ -229,7 +220,7 @@ class ModelManager(BaseModel):
             continue_last_message=continue_last_message,
         )
 
-    async def _vram_cleanup(self):
+    async def cleanup(self):
         """Perform VRAM clean-up."""
         for _, model in self.active_models.items():
             del model.model
@@ -262,8 +253,12 @@ class ModelManager(BaseModel):
 
 class AsyncModelScheduler(AsyncLoopRunner):
     llm_model_manager: ModelManager
+    mp_lock: AcquirerProxy
     interval: int = 1200
     scoring_queue: list | None = None
+    memory_error: MemoryError | None = None
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def start(self, scoring_queue: list, name: str | None = None, **kwargs):
         self.scoring_queue = scoring_queue
@@ -274,7 +269,8 @@ class AsyncModelScheduler(AsyncLoopRunner):
     async def run_step(self):
         """This method is called periodically according to the interval."""
         # try to load the model belonging to the oldest task in the queue
-        selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
+        with self.mp_lock:
+            selected_model = self.scoring_queue[0].task.llm_model if self.scoring_queue else None
         if not selected_model:
             selected_model = ModelZoo.get_random(max_ram=self.llm_model_manager.total_ram)
         logger.info(f"Loading model {selected_model.llm_model_id} for {self.interval} seconds.")
@@ -283,6 +279,9 @@ class AsyncModelScheduler(AsyncLoopRunner):
             logger.info(f"Model {selected_model.llm_model_id} is already loaded.")
             return
 
-        await self.llm_model_manager.load_model(selected_model)
+        try:
+            await self.llm_model_manager.load_model(selected_model)
+        except MemoryError as e:
+            self.memory_error = e
         logger.debug(f"Active models: {self.llm_model_manager.active_models.keys()}")
         await asyncio.sleep(0.01)
