@@ -54,7 +54,6 @@ class WebRetrievalTask(BaseTextTask):
         self.reference = json.dumps(ref_dict)
         return self.reference
 
-
     @property
     def request_body(self) -> dict:
         body = super().request_body

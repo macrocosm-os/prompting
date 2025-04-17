@@ -1,18 +1,16 @@
 import random
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from loguru import logger
 
 from prompting.datasets.random_website import DDGDatasetEntry
-from typing import Literal
-from prompting.rewards.relevance import RelevanceRewardModel
+from prompting.rewards.MSRv2_reward import MSRv2RewardModel
 from prompting.rewards.reward import BaseRewardConfig, BaseRewardModel
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningTask
 from shared.base import Context
-from validator_api.test_time_inference import generate_response
-from prompting.rewards.MSRv2_reward import MSRv2RewardModel
 
 MAX_THINKING_STEPS = 10
+
 
 class MSRv2RewardConfig(BaseRewardConfig):
     reward_definitions: ClassVar[list[BaseRewardModel]] = [
@@ -56,7 +54,7 @@ class MSRv2Task(MultiStepReasoningTask):
 
     async def make_reference(self, dataset_entry: Context):
         if self.stage == "generative":
-            # Generates a real reference with probability REAL_REFERENCE_PROBABILITY, otherwise waits for miner to generate an answer 
+            # Generates a real reference with probability REAL_REFERENCE_PROBABILITY, otherwise waits for miner to generate an answer
             if random.random() < self.REAL_REFERENCE_PROBABILITY:
                 return super().make_reference(dataset_entry)
             else:
@@ -64,17 +62,18 @@ class MSRv2Task(MultiStepReasoningTask):
         else:
             # return 1 if it's validator generated, 0 if it's miner generated
             return 1 if self.reference else 0
-    
+
     @property
     def request_body(self) -> dict:
         body = super().request_body
-        
 
         # By sending this over, we can allow miners to scale their prediction based on the probability of the reference being real
         # so that validators can adjust the probability based on load in later iterations
-        body["real_reference_probability"] = self.REAL_REFERENCE_PROBABILITY         
+        body["real_reference_probability"] = self.REAL_REFERENCE_PROBABILITY
         body["stage"] = self.stage
         # if we're in the discriminative stage, we need to send the messages and the miner's answer, otherwise we just send the query
         if self.stage == "discriminative":
-            body["messages"] = self.messages + [{"role": "assistant", "content": self.reference or self.generative_miner_answer}]
+            body["messages"] = self.messages + [
+                {"role": "assistant", "content": self.reference or self.generative_miner_answer}
+            ]
         return body

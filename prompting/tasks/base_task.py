@@ -44,7 +44,7 @@ class BaseTask(BaseModel, ABC):
     @abstractmethod
     async def make_reference(self, **kwargs):
         raise NotImplementedError("Method make_reference must be implemented")
-    
+
     @property
     def request_body(self) -> dict:
         body = {

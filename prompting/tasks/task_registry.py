@@ -10,8 +10,8 @@ from prompting.datasets.random_website import DDGDataset
 from prompting.datasets.sn13 import SN13Dataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
-from prompting.tasks.MSRv2_task import MSRv2RewardConfig, MSRv2Task
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
+from prompting.tasks.MSRv2_task import MSRv2RewardConfig, MSRv2Task
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningRewardConfig, MultiStepReasoningTask
 from prompting.tasks.programming_task import ProgrammingRewardConfig, ProgrammingTask
 from prompting.tasks.qa import QARewardConfig, WebQuestionAnsweringTask

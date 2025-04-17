@@ -4,9 +4,9 @@ from shared import settings
 settings.shared_settings = settings.SharedSettings.load(mode="miner")
 shared_settings = settings.shared_settings
 
-import random
 import asyncio
 import json
+import random
 import time
 
 import httpx
@@ -129,7 +129,10 @@ class OpenAIMiner:
     async def create_chat_completion(self, request: Request):
         data = await request.json()
         headers = request.headers
-        if request.headers.get("task", None) == "multi_step_reasoning_v2" and request.headers.get("stage", None) == "discriminative":
+        if (
+            request.headers.get("task", None) == "multi_step_reasoning_v2"
+            and request.headers.get("stage", None) == "discriminative"
+        ):
             return await self.create_multi_step_reasoning_completion(request)
         if request.headers.get("task", None) == "WebRetrievalTask":
             return await self.stream_web_retrieval(data, headers)
