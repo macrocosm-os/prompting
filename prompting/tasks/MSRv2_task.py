@@ -63,7 +63,7 @@ class MSRv2Task(MultiStepReasoningTask):
         else:
             # return 1 if it's validator generated, 0 if it's miner generated
             return 1 if self.reference else 0
-        
+
     @property
     def request_body(self) -> dict:
         body = super().request_body
@@ -77,4 +77,3 @@ class MSRv2Task(MultiStepReasoningTask):
                 {"role": "assistant", "content": self.reference or self.generative_miner_answer}
             ]
         return body
-

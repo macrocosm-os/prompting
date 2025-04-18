@@ -11,7 +11,6 @@ from prompting.miner_availability.miner_availability import MinerAvailabilities
 from prompting.rewards.scoring_config import ScoringConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceTask
-from prompting.tasks.web_retrieval import WebRetrievalTask
 from shared import settings
 from shared.dendrite import DendriteResponseEvent
 from shared.epistula import query_miners
