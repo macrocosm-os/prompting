@@ -27,7 +27,7 @@ class TaskScorer(AsyncLoopRunner):
     interval: int = 1
     scoring_queue: list | None = None
     reward_events: list | None = None
-
+    task_queue: list | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def start(

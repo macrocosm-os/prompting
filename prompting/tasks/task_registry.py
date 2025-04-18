@@ -11,6 +11,7 @@ from prompting.datasets.sn13 import SN13Dataset
 from prompting.rewards.reward import BaseRewardConfig
 from prompting.tasks.base_task import BaseTextTask
 from prompting.tasks.inference import InferenceRewardConfig, InferenceTask
+from prompting.tasks.MSRv2_task import MSRv2RewardConfig, MSRv2Task
 from prompting.tasks.multi_step_reasoning import MultiStepReasoningRewardConfig, MultiStepReasoningTask
 from prompting.tasks.programming_task import ProgrammingRewardConfig, ProgrammingTask
 from prompting.tasks.qa import QARewardConfig, WebQuestionAnsweringTask
@@ -28,10 +29,16 @@ class TaskConfig(BaseModel):
 
     def __hash__(self):
         return hash(self.task)
-
+    
 
 class TaskRegistry(BaseModel):
     task_configs: ClassVar[list[TaskConfig]] = [
+        TaskConfig(
+            task=MSRv2Task, 
+            probability=0.2, 
+            datasets=[DDGDataset], 
+            reward_model=MSRv2RewardConfig
+        ),
         TaskConfig(
             task=WebQuestionAnsweringTask,
             probability=0.05,
@@ -40,7 +47,7 @@ class TaskRegistry(BaseModel):
         ),
         TaskConfig(
             task=InferenceTask,
-            probability=0.3,
+            probability=0.2,
             datasets=[SN13Dataset],
             reward_model=InferenceRewardConfig,
         ),
