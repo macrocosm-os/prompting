@@ -50,6 +50,10 @@ class EvalUnit(BaseModel):
     duration_seconds: float | None = None
     steps: int | None = None
     sample_count: int | None = None
+    # Competition-authored per-unit payload (APEX-105): seed, terminal reason,
+    # referee blob — anything the typed fields above don't model. Untrusted;
+    # dict-shape validation only, so junk can't fail the whole envelope.
+    details: dict = {}
 
 
 class EvalCapabilities(BaseModel):

@@ -32,6 +32,22 @@ def test_minimal_envelope_defaults_to_v1():
     assert meta.capabilities.score_distribution is False
 
 
+def test_eval_unit_details_defaults_empty_and_accepts_junk_values():
+    from common.models.api.eval_metadata import EvalUnit
+
+    u = EvalUnit(id="game-1", type="game", index=1, label="Game 1")
+    assert u.details == {}
+    # Competition-authored values are free-form: any JSON inside the dict is fine.
+    u2 = EvalUnit(
+        id="game-2",
+        type="game",
+        index=2,
+        label="Game 2",
+        details={"seed": 7, "referee": {"anything": [1, "x", None]}},
+    )
+    assert u2.details["referee"]["anything"] == [1, "x", None]
+
+
 def test_metric_defaults():
     m = EvalMetric(key="win_rate", label="Win rate", value=0.5)
     assert m.format == "number"

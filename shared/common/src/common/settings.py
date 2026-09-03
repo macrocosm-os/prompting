@@ -57,8 +57,8 @@ DEFAULT_BASE_BURN_RATE = 0.9
 
 # Submission fee settings
 SUBMISSION_FEE_ADDRESS = os.getenv(
-    "SUBMISSION_FEE_ADDRESS", "5EtauUg5ZyHYuRN8MP1hBSejvFjXsKoCKcDr3FJrdy8dZepK"
-)  # prod ss58 coldkey that receives submission fees
+    "SUBMISSION_FEE_ADDRESS", "5E4bbuhJfvritg1z9Ysi2Ne5Ccg6qFgqeng92JXExCTE4voE"
+)  # prod ss58 hotkey that receives submission fees
 
 # Primary network for payment verification — defaults to finney lite for low-latency
 # verification of recent blocks. State-pruned blocks (older than ~256 blocks on lite)
