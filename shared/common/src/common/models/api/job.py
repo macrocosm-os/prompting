@@ -148,6 +148,13 @@ class JobFile(BaseModel):
     file_type: str
     file_name: str
     file_content: str
+    # APEX-105 manifest declaration. Optional for rolling-deploy compat: an
+    # old worker sends none of these and the orchestrator infers role from
+    # file_type; an old orchestrator ignores them.
+    role: str | None = None
+    unit_id: str | None = None
+    content_type: str | None = None
+    schema_ref: str | None = None
 
 
 class JobReject(BaseModel):

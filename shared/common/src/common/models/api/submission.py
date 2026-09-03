@@ -3,6 +3,7 @@ from decimal import Decimal
 from pydantic import BaseModel, computed_field, model_validator
 from typing import Optional
 
+from common.models.api.artifact import EvaluationArtifact
 from common.models.api.eval_metadata import StandardEvalMetadata
 from common.models.api.pagination import Pagination
 
@@ -120,6 +121,9 @@ class SubmissionDetail(SubmissionBase):
     # generated types instead of `any`.
     eval_metadata: StandardEvalMetadata | None = None
     eval_file_paths: dict | None = None
+    # APEX-105: typed artifact manifest. Replaces eval_file_paths (which stays
+    # dual-emitted until the FE and CLI migrate). Reveal-gated with the rest.
+    artifacts: list[EvaluationArtifact] | None = None
     code_path: str | None = None
     reveal_at: Optional[datetime] = None
     # Miner's current best-per-miner rank in this competition (same semantics

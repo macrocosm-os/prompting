@@ -1,6 +1,6 @@
 from decimal import Decimal
 from datetime import date, datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, computed_field
 
@@ -34,6 +34,12 @@ class CompetitionHistory(BaseModel):
     competition_name: str
     submission_count: int
     best_score: Optional[float] = None
+    # Score semantics (APEX-108/APEX-166): what this competition's scores mean,
+    # so the profile's score-history chart can pick its axis scale and its
+    # "daily best" direction without a placeholder competition record.
+    score_scale: Literal["normalized_0_1", "raw"] = "normalized_0_1"
+    score_direction: Literal["higher_is_better", "lower_is_better"] = "higher_is_better"
+    baseline_valid: bool = False
     last_submission_at: Optional[datetime] = None
     alpha_earned: Decimal = Decimal("0.0")
     submissions: list[SubmissionHistoryRecord] = []
