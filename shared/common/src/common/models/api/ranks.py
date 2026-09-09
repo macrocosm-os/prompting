@@ -25,8 +25,6 @@ class RanksResponse(BaseModel):
     """Envelope for both rank endpoints (/miners and /submissions...)."""
 
     competition_id: int
-    # Deprecated (FE marks it @deprecated) — remove in the APEX-106 cleanup PR.
-    incentive_weight_render: float
     curr_top_scorer_hotkey: Optional[str] = None
     curr_top_scorer_coldkey: Optional[str] = None
     miners: list[RankRecord]
@@ -39,5 +37,4 @@ class RanksCache(BaseModel):
 
     meta: CompetitionMeta
     records: list[RankRecord]
-    scaled_incentive: float
     total_submissions: int

@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, computed_field, model_validator
+from pydantic import BaseModel, model_validator
 from typing import Optional
 
 from common.models.api.artifact import EvaluationArtifact
@@ -67,22 +67,6 @@ class SubmissionRecord(SubmissionBase):
     eval_time_in_seconds: Optional[float] = None
     eval_error: Optional[str] = None
 
-    # Deprecated dual-emitted names — remove in the APEX-106 cleanup PR.
-    @computed_field
-    @property
-    def submit_at(self) -> datetime:
-        return self.submitted_at
-
-    @computed_field
-    @property
-    def eval_score(self) -> Optional[float]:
-        return self.score
-
-    @computed_field
-    @property
-    def eval_raw_score(self) -> Optional[float]:
-        return self.raw_score
-
 
 class RankRecord(SubmissionBase):
     """One row of a competition rank listing. Replaces MinerRankRecord and
@@ -98,21 +82,6 @@ class RankRecord(SubmissionBase):
     can_play: bool = False
     estimated_current_competition_alpha_earned: float = 0.0
     estimated_current_round_alpha_earned: float = 0.0
-    # Deprecated presentation-layer value (score * scaled_incentive); the FE
-    # never reads it. Plain field (not computed) because it needs the
-    # competition's incentive weight. Remove in the APEX-106 cleanup PR.
-    score_render: float = 0.0
-
-    # Deprecated dual-emitted names — remove in the APEX-106 cleanup PR.
-    @computed_field
-    @property
-    def top_scorer(self) -> bool:
-        return self.top_score
-
-    @computed_field
-    @property
-    def submission_date(self) -> datetime:
-        return self.submitted_at
 
 
 class SubmissionDetail(SubmissionBase):
@@ -144,17 +113,6 @@ class SubmissionDetail(SubmissionBase):
     # ONNX-converted model). Generic across competitions; derived from
     # `submit_metadata.onnx`.
     can_play: bool = False
-
-    # Deprecated dual-emitted names — remove in the APEX-106 cleanup PR.
-    @computed_field
-    @property
-    def eval_score(self) -> Optional[float]:
-        return self.score
-
-    @computed_field
-    @property
-    def eval_raw_score(self) -> Optional[float]:
-        return self.raw_score
 
 
 class SubmissionResponse(BaseModel):
